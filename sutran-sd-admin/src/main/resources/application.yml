@@ -1,0 +1,495 @@
+# 项目相关配置
+ruoyi:
+  # 名称
+  name: SutranSD
+  # 版本
+  version: ${sutran-sd.version}
+  # 版权年份
+  copyrightYear: 2024
+  # 缓存懒加载
+  cacheLazy: false
+
+captcha:
+  # 页面 <参数设置> 可开启关闭 验证码校验
+  # 验证码类型 math 数组计算 char 字符验证
+  type: MATH
+  # line 线段干扰 circle 圆圈干扰 shear 扭曲干扰
+  category: CIRCLE
+  # 数字验证码位数
+  numberLength: 1
+  # 字符验证码长度
+  charLength: 4
+
+# 开发环境配置
+server:
+  # 服务器的HTTP端口，默认为8080
+  port: 8080
+  servlet:
+    # 应用的访问路径
+    context-path: /
+  # undertow 配置
+  undertow:
+    # HTTP post内容的最大大小。当值为-1时，默认值为大小是无限的
+    max-http-post-size: -1
+    # 以下的配置会影响buffer,这些buffer会用于服务器连接的IO操作,有点类似netty的池化内存管理
+    # 每块buffer的空间大小,越小的空间被利用越充分
+    buffer-size: 512
+    # 是否分配的直接内存
+    direct-buffers: true
+    threads:
+      # 设置IO线程数, 它主要执行非阻塞的任务,它们会负责多个连接, 默认设置每个CPU核心一个线程
+      io: 8
+      # 阻塞任务线程池, 当执行类似servlet请求阻塞操作, undertow会从这个线程池中取得线程,它的值设置取决于系统的负载
+      worker: 256
+
+# 日志配置
+logging:
+  level:
+    com.sutran.sd: warn
+    org.springframework: warn
+  config: classpath:logback-plus.xml
+
+# 用户配置
+user:
+  password:
+    # 密码最大错误次数
+    maxRetryCount: 5
+    # 密码锁定时间（默认10分钟）
+    lockTime: 10
+
+# Spring配置
+spring:
+  application:
+    name: ${ruoyi.name}
+  # 资源信息
+  messages:
+    # 国际化资源文件路径
+    basename: i18n/messages
+  # 文件上传
+  servlet:
+    multipart:
+      # 单个文件大小
+      max-file-size: 10MB
+      # 设置总上传的文件大小
+      max-request-size: 20MB
+  mvc:
+    format:
+      date-time: yyyy-MM-dd HH:mm:ss
+  jackson:
+    # 日期格式化
+    date-format: yyyy-MM-dd HH:mm:ss
+    serialization:
+      # 格式化输出
+      indent_output: false
+      # 忽略无法转换的对象
+      fail_on_empty_beans: false
+    deserialization:
+      # 允许对象忽略json中不存在的属性
+      fail_on_unknown_properties: false
+
+# Sa-Token配置
+sa-token:
+  # token名称 (同时也是cookie名称)
+  token-name: Authorization
+  # token有效期 设为一天 (必定过期) 单位: 秒
+  timeout: 86400
+  # 多端不同 token 有效期 可查看 LoginHelper.loginByDevice 方法自定义
+  # token最低活跃时间 (指定时间无操作就过期) 单位: 秒
+  active-timeout: 1800
+  # 允许动态设置 token 有效期
+  dynamic-active-timeout: true
+  # 是否允许同一账号并发登录 (为true时允许一起登录, 为false时新登录挤掉旧登录)
+  is-concurrent: true
+  # 在多人登录同一账号时，是否共用一个token (为true时所有登录共用一个token, 为false时每次登录新建一个token)
+  is-share: false
+  # 是否尝试从header里读取token
+  is-read-header: true
+  # 是否尝试从cookie里读取token
+  is-read-cookie: false
+  # token前缀
+  token-prefix: "Bearer"
+  # jwt秘钥
+  jwt-secret-key: abcdefghijklmnopqrstuvwxyz
+  is-print: off
+
+# security配置
+security:
+  # 排除路径
+  excludes:
+    # 静态资源
+    - /*.html
+    - /**/*.html
+    - /**/*.css
+    - /**/*.js
+    # 公共路径
+    - /favicon.ico
+    - /error
+    # swagger 文档配置
+    - /*/api-docs
+    - /*/api-docs/**
+    # actuator 监控配置
+    - /actuator
+    - /actuator/**
+
+# MyBatisPlus配置
+# https://baomidou.com/config/
+mybatis-plus:
+  # 不支持多包, 如有需要可在注解配置 或 提升扫包等级
+  # 例如 com.**.**.mapper
+  mapperPackage: com.sutran.sd.**.mapper
+  # 对应的 XML 文件位置
+  mapperLocations: classpath*:mapper/**/*Mapper.xml
+  # 实体扫描，多个package用逗号或者分号分隔
+  typeAliasesPackage: com.sutran.sd.**.domain
+  # 启动时是否检查 MyBatis XML 文件的存在，默认不检查
+  checkConfigLocation: false
+  configuration:
+    # 自动驼峰命名规则（camel case）映射
+    mapUnderscoreToCamelCase: true
+    # MyBatis 自动映射策略
+    # NONE：不启用 PARTIAL：只对非嵌套 resultMap 自动映射 FULL：对所有 resultMap 自动映射
+    autoMappingBehavior: PARTIAL
+    # MyBatis 自动映射时未知列或未知属性处理策
+    # NONE：不做处理 WARNING：打印相关警告 FAILING：抛出异常和详细信息
+    autoMappingUnknownColumnBehavior: NONE
+    # 更详细的日志输出 会有性能损耗 org.apache.ibatis.logging.stdout.StdOutImpl
+    # 关闭日志记录 (可单纯使用 p6spy 分析) org.apache.ibatis.logging.nologging.NoLoggingImpl
+    # 默认日志输出 org.apache.ibatis.logging.slf4j.Slf4jImpl
+    logImpl: org.apache.ibatis.logging.nologging.NoLoggingImpl
+  global-config:
+    # 是否打印 Logo banner
+    banner: true
+    dbConfig:
+      # 主键类型
+      # AUTO 自增 NONE 空 INPUT 用户输入 ASSIGN_ID 雪花 ASSIGN_UUID 唯一 UUID
+      idType: ASSIGN_ID
+      # 逻辑已删除值
+      logicDeleteValue: 2
+      # 逻辑未删除值
+      logicNotDeleteValue: 0
+      # 字段验证策略之 insert,在 insert 的时候的字段验证策略
+      # IGNORED 忽略 NOT_NULL 非NULL NOT_EMPTY 非空 DEFAULT 默认 NEVER 不加入 SQL
+      insertStrategy: NOT_NULL
+      # 字段验证策略之 update,在 update 的时候的字段验证策略
+      updateStrategy: NOT_NULL
+      # 字段验证策略之 select,在 select 的时候的字段验证策略既 wrapper 根据内部 entity 生成的 where 条件
+      where-strategy: NOT_NULL
+
+# 数据加密
+mybatis-encryptor:
+  # 是否开启加密
+  enable: false
+  # 默认加密算法
+  algorithm: BASE64
+  # 编码方式 BASE64/HEX。默认BASE64
+  encode: BASE64
+  # 安全秘钥 对称算法的秘钥 如：AES，SM4
+  password:
+  # 公私钥 非对称算法的公私钥 如：SM2，RSA
+  publicKey:
+  privateKey:
+
+springdoc:
+  swagger-ui:
+    persistAuthorization: true      # 持久化认证数据，如果设置为 true，它会保留授权数据并且不会在浏览器关闭/刷新时丢失
+    path: /swagger-ui.html
+    tags-sorter: alpha              # API 排序Z
+    operations-sorter: method       # HTTP 方法排序
+  api-docs:
+    # 是否开启接口文档
+    enabled: true
+    path: /v3/api-docs
+  info:
+    # 标题
+    title: '标题：${ruoyi.name}系统_接口文档'
+    # 描述
+    description: '描述：包括XXX,XXX模块...'
+    # 版本
+    version: '版本号: ${sutran-sd.version}'
+    # 作者信息
+    contact:
+      name: ZJ
+      email: zhujun19950922@163.com
+      url:
+  components:
+    # 鉴权方式配置
+    security-schemes:
+      apiKey:
+        type: APIKEY
+        in: HEADER
+        name: ${sa-token.token-name}
+  #这里定义了两个分组，可定义多个，也可以不定义
+#  group-configs:
+#    - group: 1.系统模块
+#      packages-to-scan: com.sutran.sd.web
+#    - group: 2.代码生成模块
+#      packages-to-scan: com.sutran.sd.generator
+#    - group: 3.SD模块
+#      packages-to-scan: com.sutran.sd.sdapi
+
+# 防止XSS攻击
+xss:
+  # 过滤开关
+  enabled: true
+  # 排除链接（多个用逗号分隔）
+  excludes: /system/notice
+  # 匹配链接
+  urlPatterns: /system/*,/monitor/*,/tool/*,/sd/*,/wx/*,/ai/*
+
+# 全局线程池相关配置
+thread-pool:
+  # 是否开启线程池
+  enabled: true
+  # 队列最大长度
+  queueCapacity: 128
+  # 线程池维护线程所允许的空闲时间
+  keepAliveSeconds: 300
+
+--- # 分布式锁 lock4j 全局配置
+lock4j:
+  # 获取分布式锁超时时间，默认为 3000 毫秒
+  acquire-timeout: 3000
+  # 分布式锁的超时时间，默认为 30 秒
+  expire: 30000
+
+--- # Actuator 监控端点的配置项
+management:
+  endpoints:
+    web:
+      exposure:
+        include: '*'
+  endpoint:
+    health:
+      show-details: ALWAYS
+    logfile:
+      external-file: ./logs/sys-console.log
+
+--- # forest 配置项
+forest:
+  backend: okhttp3             # 后端HTTP框架（默认为 okhttp3）
+  max-connections: 1000        # 连接池最大连接数（默认为 500）
+  max-route-connections: 500   # 每个路由的最大连接数（默认为 500）
+  max-request-queue-size: 100  # [自v1.5.22版本起可用] 最大请求等待队列大小
+  max-async-thread-size: 300   # [自v1.5.21版本起可用] 最大异步线程数
+  max-async-queue-size: 16     # [自v1.5.22版本起可用] 最大异步线程池队列大小
+  timeout: 120000               # [已不推荐使用] 请求超时时间，单位为毫秒（默认为 3000）
+  connect-timeout: 120000       # 连接超时时间，单位为毫秒（默认为 timeout）
+  read-timeout: 120000          # 数据读取超时时间，单位为毫秒（默认为 timeout）
+  max-retry-count: 0           # 请求失败后重试次数（默认为 0 次不重试）
+  ssl-protocol: TLS            # 单向验证的HTTPS的默认TLS协议（默认为 TLS）
+  log-enabled: true            # 打开或关闭日志（默认为 true）
+  log-request: true            # 打开/关闭Forest请求日志（默认为 true）
+  log-response-status: true    # 打开/关闭Forest响应状态日志（默认为 true）
+  log-response-content: false   # 打开/关闭Forest响应内容日志（默认为 false）
+  async-mode: platform         # [自v1.5.27版本起可用] 异步模式（默认为 platform）
+
+--- # 临时文件存储位置 避免临时文件被系统清理报错
+spring.servlet.multipart.location: /home/sutran-sd-v1/temp
+
+--- # 数据源配置
+spring:
+  datasource:
+    type: com.zaxxer.hikari.HikariDataSource
+    # 动态数据源文档 https://www.kancloud.cn/tracy5546/dynamic-datasource/content
+    dynamic:
+      # 性能分析插件(有性能损耗 不建议生产环境使用)
+      p6spy: true
+      # 设置默认的数据源或者数据源组,默认值即为 master
+      primary: master
+      # 严格模式 匹配不到数据源则报错
+      strict: true
+      datasource:
+        # 主库数据源
+        master:
+          type: ${spring.datasource.type}
+          driverClassName: com.mysql.cj.jdbc.Driver
+          # jdbc 所有参数配置参考 https://lionli.blog.csdn.net/article/details/122018562
+          # rewriteBatchedStatements=true 批处理优化 大幅提升批量插入更新删除性能(对数据库有性能损耗 使用批量操作应考虑性能问题)
+          url: jdbc:mysql://127.0.0.1:3306/sutran-sd-v1?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=true&serverTimezone=GMT%2B8&autoReconnect=true&rewriteBatchedStatements=true
+          username: root
+          password: zhujun1995!@#$%
+        # 从库数据源
+        slave:
+          lazy: true
+          type: ${spring.datasource.type}
+          driverClassName: com.mysql.cj.jdbc.Driver
+          url: jdbc:mysql://localhost:3306/ry-vue?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=true&serverTimezone=GMT%2B8&autoReconnect=true&rewriteBatchedStatements=true
+          username:
+          password:
+      hikari:
+        # 最大连接池数量
+        maxPoolSize: 20
+        # 最小空闲线程数量
+        minIdle: 10
+        # 配置获取连接等待超时的时间
+        connectionTimeout: 30000
+        # 校验超时时间
+        validationTimeout: 5000
+        # 空闲连接存活最大时间，默认10分钟
+        idleTimeout: 600000
+        # 此属性控制池中连接的最长生命周期，值0表示无限生命周期，默认30分钟
+        maxLifetime: 1800000
+        # 多久检查一次连接的活性
+        keepaliveTime: 30000
+
+--- # for 单机配置(单机与集群只能开启一个另一个需要注释掉)
+spring:
+  redis:
+    # 地址
+    host: 127.0.0.1
+    # 端口，默认为6379
+    port: 6379
+    # 数据库索引
+    database: 5
+    # 密码(如没有密码请注释掉)
+    password: 123456
+    # 连接超时时间
+    timeout: 10s
+    # 是否开启ssl
+    ssl: false
+
+redisson:
+  # redis key前缀
+  keyPrefix:
+  # 线程池数量
+  threads: 4
+  # Netty线程池数量
+  nettyThreads: 8
+  # 单节点配置
+  singleServerConfig:
+    # 客户端名称
+    clientName: ${ruoyi.name}
+    # 最小空闲连接数
+    connectionMinimumIdleSize: 8
+    # 连接池大小
+    connectionPoolSize: 32
+    # 连接空闲超时，单位：毫秒
+    idleConnectionTimeout: 10000
+    # 命令等待超时，单位：毫秒
+    timeout: 3000
+    # 发布和订阅连接池大小
+    subscriptionConnectionPoolSize: 50
+
+--- # rabbitmq配置
+spring:
+  rabbitmq:
+#    host: 106.75.214.61
+    host: 192.168.3.48
+    port: 5672
+    username: admin
+#    password: sd2024@.
+    password: 123456
+    virtualHost: /
+    connection-timeout: 15000
+    publisher-confirm-type: SIMPLE #支持发布确认
+    publisher-returns: true  #支持发布返回
+    listener:
+      simple:
+        acknowledge-mode: manual #采用手动应答
+        concurrency: 1 #指定最小的消费者数量
+        max-concurrency: 1 #指定最大的消费者数量
+        retry:
+          enabled: true #是否支持重试
+
+--- # mail 邮件发送
+mail:
+  enabled: false
+  host: smtp.163.com
+  port: 465
+  # 是否需要用户名密码验证
+  auth: true
+  # 发送方，遵循RFC-822标准
+  from: xxx@163.com
+  # 用户名（注意：如果使用foxmail邮箱，此处user为qq号）
+  user: xxx@163.com
+  # 密码（注意，某些邮箱需要为SMTP服务单独设置密码，详情查看相关帮助）
+  pass: xxxxxxxxxx
+  # 使用 STARTTLS安全连接，STARTTLS是对纯文本通信协议的扩展。
+  starttlsEnable: true
+  # 使用SSL安全连接
+  sslEnable: true
+  # SMTP超时时长，单位毫秒，缺省值不超时
+  timeout: 0
+  # Socket连接超时值，单位毫秒，缺省值不超时
+  connectionTimeout: 0
+
+--- # sms 短信 支持 阿里云 腾讯云 云片 等等各式各样的短信服务商
+# https://wind.kim/doc/start 文档地址 各个厂商可同时使用
+sms:
+  is-print: off
+  # 阿里云 dysmsapi.aliyuncs.com
+  alibaba:
+    #请求地址 默认为 dysmsapi.aliyuncs.com 如无特殊改变可以不用设置
+    requestUrl: dysmsapi.aliyuncs.com
+    #阿里云的accessKey
+    accessKeyId: xxxxxxx
+    #阿里云的accessKeySecret
+    accessKeySecret: xxxxxxx
+    #短信签名
+    signature: 测试
+  tencent:
+    #请求地址默认为 sms.tencentcloudapi.com 如无特殊改变可不用设置
+    requestUrl: sms.tencentcloudapi.com
+    #腾讯云的accessKey
+    accessKeyId: xxxxxxx
+    #腾讯云的accessKeySecret
+    accessKeySecret: xxxxxxx
+    #短信签名
+    signature: 测试
+    #短信sdkAppId
+    sdkAppId: appid
+    #地域信息默认为 ap-guangzhou 如无特殊改变可不用设置
+    territory: ap-guangzhou
+
+--- # 微信公众号配置
+wx:
+  mp:
+    app-id: wx78ff2a7ea0facd69
+    secret: fbc8a44592fbda71ebffea4a8fc24598
+    token: xiaomin
+    aes-key:
+    # 训练完成通知     归属人
+    template-id: iwmla6QyRolJ8eH1lG9UjrWfatm_0d1BuejppEM2Rtg
+    # 训练完成通知     审核人
+    approve-template-id: 8J9HQuOrGFp_cM4LKVRdX9MWQ2-cfiWjtTfoFi08QfE
+    # 模型测试完成通知 审核人
+    model-test-template-id: iwmla6QyRolJ8eH1lG9Ujg35CiNoCM_K4hZAKV1gV7s
+    # 发布模型通知     归属人
+    publish-template-id: iwmla6QyRolJ8eH1lG9UjnlXzimxaXF-4O77ufIbKRY
+    # GPU 通知管理员
+    gpu-alert-template-id: Nl2U6UnFJ9iab0N_AHJQKcE9HsinOGzI1MAFmQ31_6o
+    config-storage:
+      type: RedisTemplate
+      key-prefix: WX_MP
+      redis:
+        host: 127.0.0.1
+        port: 6379
+        password: 123456
+        database: 5
+
+--- # 有道翻译
+translator:
+  youdao:
+    appKey: 36cab0e56ecf8b26
+    appSecret: 77qOaQc8x6ThPSOIy1b6oIlrx2bLmovZ
+    vocabId: E7A58096BB69421DA154B559DB1EA328
+  baidu:
+    appId: 20240313001991668
+    appSecret: HyqyG7WTaLd0_gOxN2jF
+
+--- # sd采样器默认值
+sd:
+  sampler: DPM++ 2M Karras
+
+--- # 第三方登录加密密钥
+third:
+  login:
+    publicKey: MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCVCKOMwymhGvHqKF2pmwQ2pIjecMEBetpvexzcGq321qYu4omV5a3CLLSxeEpA61K4dKoWOz5QP2OX+My/4J+gEsgqAZIanyuaa7xSJRX1vJfPayV3mu/RIrQsyULioIPI5NYyj3XdlCnmxHZBrTB2vaAhBkpoBtwlbxGipkVVZQIDAQAB
+    privateKey: MIICdwIBADANBgkqhkiG9w0BAQEFAASCAmEwggJdAgEAAoGBAJUIo4zDKaEa8eooXambBDakiN5wwQF62m97HNwarfbWpi7iiZXlrcIstLF4SkDrUrh0qhY7PlA/Y5f4zL/gn6ASyCoBkhqfK5prvFIlFfW8l89rJXea79EitCzJQuKgg8jk1jKPdd2UKebEdkGtMHa9oCEGSmgG3CVvEaKmRVVlAgMBAAECgYANMaiZC6Yh1yrXmh9AprKmy8Y6Oy07Hk88U1/otIv2MGah+/hGRwEtEZwlogqg2LSIE/wC39fSbuo4SBSIYDCBbslanKjt+qZSI13oH4RzRKyR7jptYm3vtSMLh8/qvEb87SZw5V2Bv/8hKJlSd2AwzEwUfvmwea2uUF9Rne1wwQJBAMxgPRDrXltDfp3n42wmJkdQdQj8xBva59bTXy92JEDrEzcYraGvr70g4lHlWF/g0lj13xvoSCd97YxxM0qTur0CQQC6rcEU2ieAhJ8J7EgCESHrAVkGR5qpYZcuSF+yiGriegkQg84BK5yyukBgzrlxMrCjR9QuDzKyWyFKxcNmrYPJAkA347GPaO46wvBjOkDFGIGrSuNWe9kdTPXNl6wWDJbJcf+lN4h0CNlkPRPnFXLfdVnQnhxPQ2xH8HX/zA0cvd15AkEAg34umhSMbJ9+MwwnMKWGwbViUuUPES53whciqWwj9cFGL0bYTcS9jLta65XR0+WDvI+06ni0GiPM0JF68RFZ2QJBAIr75LT1ErWUOVGm/c8jvjQh0N0Y2gyaRBQ/KaHuPUc9LoQXQR4qpY6gWhoQ2vwoRuKDt0Z8oGu8ZN6ZnkCLctQ=
+  api:
+    privateKey: MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQCTKccX7AO2fSOIid9R61/Hu58Te+0uQLPhWJebhktBUzeuCZpnboQnkCLlFtWNM+mlCCy/sl4lawrm2u1+pJ0arMHHGiAKcvs8FUWCHBrv3vr+CdZyuGUv9ELw6plr6Z5TWYo9ZJaqJRhHBSIzAD3c7nTghMIzc1NOYA3vdcAufIAWkglaIwcf7zHdhEGC+L6NI5SKJYr39bEMgNlCknpR7C9LhEy1iuQ/BjbsK/FtgJZ+VUsmVTazmgN2iRoaBHrAL2EE8fyFf7Ipil+DvDNwwBoReQquaTi5030STkggB4PjzypL7P3L4mX+/cKckXj/Sr1xiGiBlqPJyD+ZlSaNAgMBAAECggEAJddUTp5txfsfq/hn6FSx6FYibYwsTPxuRL/XHDLIHyAa7TGi9n3AlbvGfUoF161Fox4bA6AF/XEs+HfLIgmKLFXH7j6VhppSZ/zARtibRJr9x10YO5+WxWH15KUulkUYZS5dEbRP2ah4OarkRGEHh0v52dHJbhl1jm28p5qLtGgDIwOINnX1EB5lxG0emli2YvcEKh600qIcBvIAGgXCQmzeHaIqUJxYsxMBeDUE5SLwLYRWBw0GkWrKeTJezXAJ+YPaZ1TL2gPiRU+6HFv7Re1h9vfFvxoU6PPkKw3Ghl3sPqnpQ4UFXE9oDKpoLbuLW/zK12T9m58Uiw+yVPiQgQKBgQDQoZsRzUvrBWX7xjZuZpuWN8+2MhPejeaHsY9fPWYLawtJzasZ1WeF/n4oCo7UcBOeV9wn2+TJx5f+Ce0l1DYhHGAZFdQY4QfGoAcd+0C/nR916/Dm+cQ+y1U/tnZvcqjQtBvPUhHOCvZRV+IfKZn7ygQfB1W7QAPxdfmfBZjx6QKBgQC0k22Hpx5Foojg+mWotJbAP7wnPnGTW+rYR5bkPGFLOv1Tb95NwIATGG531U0xAmkulpNVjVrj7AxKwaqZMJ3uED8HHGX31ZHsP4g/WCSQqSSvBKHFaqLZb/g8xGOUjuuSm5XTNPH1tBbacIEaHqFPCMtI+jY/JFW/W/InOLvlBQKBgF81oOLa4Y57hDMGHcj8InzHM49eAxtJfq7mJRu9lVgYnaospazAauIHZeM4Dj58dzeHuPynqR08bOyN8x+UXK93l5NbFtPTvgyy8wyHoODQ/459Ag8mZJyThm/xANOTa97yks5mEaIJ9qbgiFzYS2FQq9jNLB6r9CC5ShV8JHQhAoGBAILZBZgzh+MLqMXli76YxVgflvaU7/XIuD7qeTN/cTzzTNemC18p62Rq4rlgzeOCjLcekzp+CGt6A1o0RatlqDr2eMVtVZIlpuybCN5lv3E3r4ZHA/YqlECdOzLFWCcw/RCqPwHhrqbNTXYR6esEYP0FMVD7Rk2wxZW5SZoUKUsFAoGBAKnMQ8Y0erzNA873X0WGMjoIiheF2h5LFcPNVzZ2DMrfeZn8eVfDX3Eln4f+J9wmwJaGXmf//Yg2KerwxHYVvLq1q9xvkwmnD+uJJriFWoX6b3Afn0VnWaRtHAGJxTUYZhTtnrItqIM5eGM1tmS6sOxA1gnFQ/x0si5XHvkAfXNT
+
+--- # 通义千问
+ali:
+#  apiKey: sk-79dbbc40fb7a41afa5342f6c93cc4582
+  apiKey: sk-7e4c13403937433ab869b32c70036483

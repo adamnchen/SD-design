@@ -1,0 +1,230 @@
+package com.sutran.sd.common.utils.file;
+
+import cn.hutool.core.io.FileUtil;
+import com.sutran.sd.common.exception.ServiceException;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import net.coobird.thumbnailator.Thumbnails;
+import org.apache.commons.compress.utils.IOUtils;
+
+import javax.imageio.ImageIO;
+import javax.servlet.http.HttpServletResponse;
+import java.awt.image.BufferedImage;
+import java.io.*;
+import java.math.BigDecimal;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Base64;
+import java.util.List;
+
+/**
+ * 文件处理工具类
+ *
+ * @author Lion Li
+ */
+@Slf4j
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
+public class FileUtils extends FileUtil {
+
+    /**
+     * 下载文件名重新编码
+     *
+     * @param response     响应对象
+     * @param realFileName 真实文件名
+     */
+    public static void setAttachmentResponseHeader(HttpServletResponse response, String realFileName) throws UnsupportedEncodingException {
+        String percentEncodedFileName = percentEncode(realFileName);
+
+        StringBuilder contentDispositionValue = new StringBuilder();
+        contentDispositionValue.append("attachment; filename=")
+            .append(percentEncodedFileName)
+            .append(";")
+            .append("filename*=")
+            .append("utf-8''")
+            .append(percentEncodedFileName);
+
+        response.addHeader("Access-Control-Expose-Headers", "Content-Disposition,download-filename");
+        response.setHeader("Content-disposition", contentDispositionValue.toString());
+        response.setHeader("download-filename", percentEncodedFileName);
+    }
+
+    /**
+     * 百分号编码工具方法
+     *
+     * @param s 需要百分号编码的字符串
+     * @return 百分号编码后的字符串
+     */
+    public static String percentEncode(String s) throws UnsupportedEncodingException {
+        String encode = URLEncoder.encode(s, StandardCharsets.UTF_8.toString());
+        return encode.replaceAll("\\+", "%20");
+    }
+
+    /**
+     * 图片压缩(等比缩放)
+     * @param inputStream   文件输入流
+     * @param desFileSize   目标文件大小(单位b，例：300kb = 300 * 1024)
+     * @param accuracy      压缩比(例：0.8)
+     * @Return: void
+     **/
+    public static InputStream compressPicCycle(InputStream inputStream, long desFileSize, double accuracy) {
+        try{
+            ByteArrayOutputStream outputStream = cloneInputStream(inputStream);
+            // 用于读取长度的原始数据流
+            InputStream readStream = new ByteArrayInputStream(outputStream.toByteArray());
+            long l = readFileInputStreamLength(readStream);
+            System.out.println(l);
+            //如果小于指定大小不压缩；如果大于等于指定大小压缩
+            if (l <= desFileSize) {
+                return new ByteArrayInputStream(outputStream.toByteArray());
+            }
+
+            // 用于数据处理的原始数据流
+            InputStream imageStream = new ByteArrayInputStream(outputStream.toByteArray());
+            InputStream dataStream = new ByteArrayInputStream(outputStream.toByteArray());
+            // 压缩后的输出流
+            ByteArrayOutputStream returnOutputStream = new ByteArrayOutputStream();
+            // 计算宽高
+            BufferedImage bim = ImageIO.read(imageStream);
+            int desWidth = new BigDecimal(bim.getWidth()).multiply(new BigDecimal(accuracy)).intValue();
+            int desHeight = new BigDecimal(bim.getHeight()).multiply(new BigDecimal(accuracy)).intValue();
+            Thumbnails.of(dataStream).scale(1f).size(desWidth, desHeight).outputQuality(accuracy).toOutputStream(returnOutputStream);
+            return compressPicCycle(new ByteArrayInputStream(returnOutputStream.toByteArray()), desFileSize, accuracy);
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+            return inputStream;
+        }
+    }
+
+    /**
+     * 图片压缩(压缩大小，不改宽高)
+     * @param oldInputStream    原始文件输入流
+     * @param accuracy          图片质量(0-1之间，1为最好)
+     * @return
+     */
+    public static InputStream compressPic(InputStream oldInputStream, double accuracy) {
+        try{
+            // 生成一个临时字节数组，用于创建输入流(输入流只能使用一次)
+            byte[] imageBytes = IOUtils.toByteArray(oldInputStream);
+
+            ByteArrayInputStream byteInput = new ByteArrayInputStream(imageBytes);
+            BufferedImage image = ImageIO.read(byteInput);
+            // 如果图片空，返回空
+            if (image == null) {
+                return null;
+            }
+            final long srcSize = imageBytes.length;
+            log.info("压缩前图片大小：{} B",srcSize);
+            ByteArrayInputStream dataStream = new ByteArrayInputStream(imageBytes);
+
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            Thumbnails.of(dataStream).scale(1f).outputQuality(accuracy).outputFormat("jpg")
+                .toOutputStream(outputStream);
+            imageBytes = outputStream.toByteArray();
+            log.info("压缩后图片大小：{} B",imageBytes.length);
+            return new ByteArrayInputStream(imageBytes);
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+            return oldInputStream;
+        }
+    }
+
+    /** 计算压缩精度 **/
+    private static double getAccuracy(long size, long desFileSize) {
+        if (size<=desFileSize) {
+            return 1;
+        }
+        return (double) desFileSize / size;
+//        double accuracy = desFileSize / size;
+//        //图片大小小于3M,压缩精度为0.44;否则精度为0.1
+//        if (size <= 3072 * 1024) {
+//            accuracy = 0.1;
+//        } else {
+//            accuracy = 0.1;
+//        }
+//        return accuracy;
+    }
+
+    private static ByteArrayOutputStream cloneInputStream(InputStream input) {
+        try {
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            byte[] buffer = new byte[2048];
+            int len;
+            while ((len = input.read(buffer)) > -1) {
+                baos.write(buffer, 0, len);
+            }
+            baos.flush();
+            return baos;
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    private static long readFileInputStreamLength(InputStream inputStream) throws IOException {
+        byte[] buffer = new byte[1024];
+        long len = 0;
+        int bytesRead = 0;
+        while ((bytesRead=inputStream.read(buffer))!=-1) {
+            len += bytesRead;
+        }
+        return len;
+    }
+
+    public static File getGridFile(String gridsUrl) {
+        File gridFile = null;
+        File[] files = new File(gridsUrl).listFiles();
+        if (files!=null) {
+            List<File> list1 = new ArrayList<>(Arrays.asList(files));
+            list1.sort((file, newFile) -> Long.compare(newFile.lastModified(), file.lastModified()));
+            File[] files1 = list1.get(0).listFiles();
+            if (files1!=null) {
+                List<File> list = new ArrayList<>(Arrays.asList(files1));
+                list.sort((file, newFile) -> Long.compare(newFile.lastModified(), file.lastModified()));
+                gridFile = list.get(0);
+            }
+        }
+        return gridFile;
+    }
+
+    public static InputStream base64ToInputStream(String base64) {
+        base64 = base64.replace("data:image/jpeg;base64,","");
+        ByteArrayInputStream stream = null;
+        try {
+            byte[] bytes = Base64.getDecoder().decode(base64);
+            stream = new ByteArrayInputStream(bytes);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return stream;
+    }
+
+    public static String inputStreamToBase64(InputStream inputStream) {
+        if (inputStream==null) {
+            throw new ServiceException("初始图片获取异常");
+        }
+        try {
+            byte[] bytes = IOUtils.toByteArray(inputStream);
+            return Base64.getEncoder().encodeToString(bytes);
+        } catch (Exception e) {
+            throw new ServiceException("初始图片转base64失败");
+        }
+    }
+
+    public static File inputStreamToTempFile(InputStream inputStream, String fileUrl) {
+        try {
+            String prefixName = fileUrl.substring(fileUrl.lastIndexOf("."));
+            File file = File.createTempFile("tempFile","."+prefixName);
+            FileOutputStream fileOutputStream = new FileOutputStream(file);
+            IOUtils.copy(inputStream,fileOutputStream);
+            return file;
+        } catch (IOException e) {
+            log.error("stream流转file异常：", e);
+            return null;
+        }
+    }
+}

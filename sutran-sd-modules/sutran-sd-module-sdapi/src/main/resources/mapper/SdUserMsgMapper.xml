@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sutran.sd.sdapi.mapper.SdUserMsgMapper">
+
+    <select id="userMsgList" resultType="com.sutran.sd.sdapi.modules.system.entity.SdUserMsg">
+        SELECT id, title, msg_content AS msgContent, is_read AS isRead, read_time AS readTime, crt_time AS crtTime
+        FROM sd_user_msg
+        WHERE user_id = #{userId}
+        <if test="isRead != null">
+            AND is_read = #{isRead}
+        </if>
+        ORDER BY crt_time DESC
+    </select>
+
+</mapper>

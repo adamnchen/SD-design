@@ -120,6 +120,13 @@ public interface SysUserMapper extends BaseMapperPlus<SysUserMapper, SysUser, Sy
     void deductedTrainTimes(@Param("userId") Long userId);
 
     /**
+     * 扣除培训次数
+     * @param userId 用户ID
+     */
+    @Update("UPDATE sys_user SET limit_train_times=limit_train_times+1 WHERE user_id=#{userId} AND limit_train_times IS NOT NULL")
+    void returnedTrainTimes(@Param("userId") Long userId);
+
+    /**
      * 扣除绘图图片数量
      * @param userId 用户ID
      */

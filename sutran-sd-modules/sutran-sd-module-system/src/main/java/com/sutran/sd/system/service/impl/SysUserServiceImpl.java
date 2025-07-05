@@ -554,6 +554,15 @@ public class SysUserServiceImpl implements ISysUserService, UserService {
 
     @Override
     @Async("threadPoolTaskExecutor")
+    public void returnedTrainTimes(Long userId) {
+        if (userId == null) {
+            return;
+        }
+        baseMapper.returnedTrainTimes(userId);
+    }
+
+    @Override
+    @Async("threadPoolTaskExecutor")
     public void deductedDrawNum(Long userId, int num) {
         baseMapper.deductedDrawNum(userId,num);
     }

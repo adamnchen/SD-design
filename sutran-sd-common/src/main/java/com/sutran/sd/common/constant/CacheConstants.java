@@ -58,6 +58,16 @@ public interface CacheConstants {
     String PRE_IMG_PROGRESS_COMPLETE = "PRE_IMG_PROGRESS:COMPLETE:";
 
     /**
+     * 图片预处理进度
+     */
+    String PRE_IMG_PROCESS = "interrogator_task";
+
+    /**
+     * 图片预处理任务队列
+     */
+    String PRE_IMG_TASK_QUEUE_LIST = "PRE_IMG_TASK_QUEUE_LIST";
+
+    /**
      * 标签词翻译redis key
      */
     String TRAIN_TAG_TRANSLATE_MAP = "TRAIN_TAG_TRANSLATE_MAP:";
@@ -76,6 +86,10 @@ public interface CacheConstants {
      * 训练任务进度
      */
     String TRAIN_MODEL_PROGRESS_TASK_MAP = "TRAIN_MODEL_PROGRESS_TASK_MAP";
+    /**
+     * 训练任务进度
+     */
+    String TRAIN_PROCESS = "train_task";
 
     /**
      * 英文翻译成中文

@@ -1,12 +1,13 @@
 package com.sutran.sd.sdapi.modules.system;
 
 import com.alibaba.fastjson2.JSONObject;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.sutran.sd.common.core.domain.PageQuery;
 import com.sutran.sd.sdapi.domain.vo.TrainTaskStatusVo;
 import com.sutran.sd.sdapi.modules.system.entity.SdGpuPool;
 import com.sutran.sd.sdapi.modules.system.entity.SdTrainTask;
 
 import java.util.Date;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -14,7 +15,25 @@ import java.util.Map;
  * @date 2024-03-24
  */
 public interface SdTrainPreTaskService {
-    void insert(Long userId, String username, Map<String, Object> params, int imgNum, String taskId);
+
+    /**
+     * 按用户ID和任务状态查询列表
+     *
+     * @param userId    用户ID
+     * @param newStatus 任务状态
+     * @param pageQuery 分页参数
+     * @return 任务列表
+     */
+    Page<SdTrainTask> selectListByUserIdAndNewStatus(Long userId, Integer newStatus, PageQuery pageQuery);
+
+    /**
+     * 获取任务状态信息
+     * @param preTaskId 预处理任务ID
+     * @return  任务状态信息
+     */
+    TrainTaskStatusVo selectTaskStatusByPreTaskId(String preTaskId);
+
+    void insert(Long userId, String username, Map<String, Object> params, int imgNum, String preTaskId);
 
     SdTrainTask selectDetailById(String preTaskId);
 
@@ -34,14 +53,9 @@ public interface SdTrainPreTaskService {
 
     void deleteById(String preTaskId);
 
-    JSONObject selectNewStatusAndGpuPoolById(String preTaskId);
+    Integer selectNewStatusById(String preTaskId);
 
-    /**
-     * 获取任务状态信息
-     * @param preTaskId 预处理任务ID
-     * @return  任务状态信息
-     */
-    TrainTaskStatusVo selectTaskStatusByPreTaskId(String preTaskId);
+    JSONObject selectNewStatusByTaskId(String taskId);
 
     void updateAdditionTag(String preTaskId, String additionTagStr);
 
@@ -49,5 +63,5 @@ public interface SdTrainPreTaskService {
 
     boolean deleteByIdAndPicNumIsZero(String preTaskId);
 
-    List<SdTrainTask> selectByUserId(Long userId, Integer newStatus);
+    Long selectCrtUserIdById(String preTaskId);
 }

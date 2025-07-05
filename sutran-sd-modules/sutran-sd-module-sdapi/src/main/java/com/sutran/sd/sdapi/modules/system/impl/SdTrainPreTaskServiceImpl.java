@@ -5,6 +5,8 @@ import cn.hutool.core.util.StrUtil;
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.sutran.sd.common.core.domain.PageQuery;
 import com.sutran.sd.sdapi.domain.vo.TrainTaskStatusVo;
 import com.sutran.sd.sdapi.mapper.SdTrainPreTaskMapper;
 import com.sutran.sd.sdapi.modules.system.SdTrainPreTaskService;
@@ -16,7 +18,6 @@ import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import java.util.Date;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -30,9 +31,34 @@ public class SdTrainPreTaskServiceImpl implements SdTrainPreTaskService {
     @Resource
     private SdTrainPreTaskMapper baseMapper;
 
+    /**
+     * 按用户ID和任务状态查询列表
+     *
+     * @param userId    用户ID
+     * @param newStatus 任务状态
+     * @param pageQuery 分页参数
+     * @return 任务列表
+     */
     @Override
-    public void insert(Long userId, String username, Map<String, Object> params, int imgNum, String taskId) {
-        SdTrainTask task = new SdTrainTask().setId(StrUtil.isEmptyIfStr(taskId)?IdUtil.getSnowflakeNextId():Long.parseLong(taskId))
+    public Page<SdTrainTask> selectListByUserIdAndNewStatus(Long userId, Integer newStatus, PageQuery pageQuery) {
+        LambdaQueryWrapper<SdTrainTask> lqw = new LambdaQueryWrapper<>();
+        lqw.eq(SdTrainTask::getCrtUserId, userId).eq(SdTrainTask::getNewStatus, newStatus).orderByAsc(SdTrainTask::getId);
+        return baseMapper.selectPage(pageQuery.build(),lqw);
+    }
+
+    /**
+     * 获取任务状态信息
+     * @param preTaskId 预处理任务ID
+     * @return  任务状态信息
+     */
+    @Override
+    public TrainTaskStatusVo selectTaskStatusByPreTaskId(String preTaskId) {
+        return baseMapper.selectTaskStatusByPreTaskId(preTaskId);
+    }
+
+    @Override
+    public void insert(Long userId, String username, Map<String, Object> params, int imgNum, String preTaskId) {
+        SdTrainTask task = new SdTrainTask().setId(StrUtil.isEmptyIfStr(preTaskId)?IdUtil.getSnowflakeNextId():Long.parseLong(preTaskId))
             // 处于预处理队列中
             .setStatus(0).setNewStatus(0)
             .setPreParams(JSONObject.toJSONString(params)).setImgNum(imgNum)
@@ -87,18 +113,13 @@ public class SdTrainPreTaskServiceImpl implements SdTrainPreTaskService {
     }
 
     @Override
-    public JSONObject selectNewStatusAndGpuPoolById(String preTaskId) {
-        return baseMapper.selectNewStatusAndGpuPoolById(preTaskId);
+    public Integer selectNewStatusById(String preTaskId) {
+        return baseMapper.selectNewStatusById(preTaskId);
     }
 
-    /**
-     * 获取任务状态信息
-     * @param preTaskId 预处理任务ID
-     * @return  任务状态信息
-     */
     @Override
-    public TrainTaskStatusVo selectTaskStatusByPreTaskId(String preTaskId) {
-        return baseMapper.selectTaskStatusByPreTaskId(preTaskId);
+    public JSONObject selectNewStatusByTaskId(String taskId) {
+        return baseMapper.selectNewStatusByTaskId(taskId);
     }
 
     @Override
@@ -119,8 +140,9 @@ public class SdTrainPreTaskServiceImpl implements SdTrainPreTaskService {
     }
 
     @Override
-    public List<SdTrainTask> selectByUserId(Long userId, Integer newStatus) {
-        LambdaQueryWrapper<SdTrainTask> lqw = new LambdaQueryWrapper<>();
-        return baseMapper.selectList(lqw.eq(SdTrainTask::getCrtUserId,userId).eq(SdTrainTask::getNewStatus,newStatus));
+    public Long selectCrtUserIdById(String preTaskId) {
+        return baseMapper.selectCrtUserIdById(preTaskId);
     }
+
+
 }

@@ -254,6 +254,18 @@ public class RedisUtils {
     }
 
     /**
+     * 缓存List数据
+     *
+     * @param key      缓存的键值
+     * @param value     待缓存的数据
+     * @return 缓存的对象
+     */
+    public static <T> boolean setCacheListValue(final String key, final T value) {
+        RList<T> rList = CLIENT.getList(key);
+        return rList.add(value);
+    }
+
+    /**
      * 注册List监听器
      * <p>
      * key 监听器需开启 `notify-keyspace-events` 等 redis 相关配置
@@ -287,6 +299,20 @@ public class RedisUtils {
         RList<T> rList = CLIENT.getList(key);
         if (CollectionUtil.isNotEmpty(elements)) {
             return rList.removeAll(elements);
+        }
+        return true;
+    }
+
+    /**
+     * 移除list中指定元素
+     *
+     * @param key 缓存的键值
+     * @return 缓存键值对应的数据
+     */
+    public static <T> boolean delCacheListValue(final String key,T value) {
+        RList<T> rList = CLIENT.getList(key);
+        if (value != null) {
+            return rList.remove(value);
         }
         return true;
     }

@@ -37,10 +37,16 @@ public interface UserService {
     Integer selectDrawNumById(Long userId);
 
     /**
-     * 扣除培训次数
+     * 扣除训练次数
      * @param userId 用户ID
      */
     void deductedTrainTimes(Long userId);
+
+    /**
+     * 归还训练次数
+     * @param userId 用户ID
+     */
+    void returnedTrainTimes(Long userId);
 
     /**
      * 扣除绘图图片数量

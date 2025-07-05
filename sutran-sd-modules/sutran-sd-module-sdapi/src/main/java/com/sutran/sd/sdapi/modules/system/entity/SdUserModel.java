@@ -52,7 +52,7 @@ public class SdUserModel implements Serializable {
      * 模型共性词
      */
     @Schema(name = "additionTag", description = "模型共性词")
-    private Object additionTag;
+    private String additionTag;
     /**
      * 模型hash值
      */

@@ -5,6 +5,7 @@ import com.sutran.sd.common.core.mapper.BaseMapperPlus;
 import com.sutran.sd.sdapi.domain.vo.TrainTaskStatusVo;
 import com.sutran.sd.sdapi.modules.system.entity.SdTrainTask;
 import org.apache.ibatis.annotations.*;
+import org.apache.ibatis.annotations.Param;
 
 import java.util.Date;
 
@@ -36,8 +37,11 @@ public interface SdTrainPreTaskMapper extends BaseMapperPlus<SdTrainPreTaskMappe
     @Update("UPDATE sd_train_task SET img_num=img_num-1 WHERE id=#{preTaskId} AND img_num>0")
     void reduceImgNum(@Param("preTaskId") String preTaskId);
 
-    @Select("SELECT new_status AS newStatus,gpu_pool AS gpuPool FROM sd_train_task WHERE id=#{preTaskId}")
-    JSONObject selectNewStatusAndGpuPoolById(@Param("preTaskId") String preTaskId);
+    @Select("SELECT new_status FROM sd_train_task WHERE id=#{preTaskId}")
+    Integer selectNewStatusById(@Param("preTaskId") String preTaskId);
+
+    @Select("SELECT id AS preTaskId,new_status AS newStatus FROM sd_train_task WHERE task_id=#{taskId}")
+    JSONObject selectNewStatusByTaskId(@Param("taskId") String taskId);
 
     @Select("SELECT id AS preTaskId,new_status AS newStatus,task_id AS taskId FROM sd_train_task WHERE id=#{preTaskId}")
     TrainTaskStatusVo selectTaskStatusByPreTaskId(@Param("preTaskId") String preTaskId);
@@ -50,4 +54,7 @@ public interface SdTrainPreTaskMapper extends BaseMapperPlus<SdTrainPreTaskMappe
 
     @Delete("DELETE FROM sd_train_task WHERE id=#{preTaskId} AND img_num<=0")
     Integer deleteByIdAndPicNumIsZero(@Param("preTaskId") String preTaskId);
+
+    @Select("SELECT crt_user_id FROM sd_train_task WHERE id=#{preTaskId}")
+    Long selectCrtUserIdById(@Param("preTaskId") String preTaskId);
 }

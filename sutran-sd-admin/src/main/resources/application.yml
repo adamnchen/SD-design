@@ -194,7 +194,7 @@ springdoc:
     persistAuthorization: true      # 持久化认证数据，如果设置为 true，它会保留授权数据并且不会在浏览器关闭/刷新时丢失
     path: /swagger-ui.html
     tags-sorter: alpha              # API 排序Z
-    operations-sorter: method       # HTTP 方法排序
+    operations-sorter: order        # HTTP 方法排序
   api-docs:
     # 是否开启接口文档
     enabled: true
@@ -305,7 +305,7 @@ spring:
           driverClassName: com.mysql.cj.jdbc.Driver
           # jdbc 所有参数配置参考 https://lionli.blog.csdn.net/article/details/122018562
           # rewriteBatchedStatements=true 批处理优化 大幅提升批量插入更新删除性能(对数据库有性能损耗 使用批量操作应考虑性能问题)
-          url: jdbc:mysql://127.0.0.1:3306/sutran-sd-v1?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=true&serverTimezone=GMT%2B8&autoReconnect=true&rewriteBatchedStatements=true
+          url: jdbc:mysql://192.168.3.7:3306/sutran-sd-v1?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=true&serverTimezone=GMT%2B8&autoReconnect=true&rewriteBatchedStatements=true
           username: root
           password: zhujun1995!@#$%
         # 从库数据源
@@ -336,7 +336,7 @@ spring:
 spring:
   redis:
     # 地址
-    host: 127.0.0.1
+    host: 192.168.3.7
     # 端口，默认为6379
     port: 6379
     # 数据库索引
@@ -373,11 +373,9 @@ redisson:
 --- # rabbitmq配置
 spring:
   rabbitmq:
-#    host: 106.75.214.61
-    host: 192.168.3.48
+    host: 192.168.3.7
     port: 5672
     username: admin
-#    password: sd2024@.
     password: 123456
     virtualHost: /
     connection-timeout: 15000

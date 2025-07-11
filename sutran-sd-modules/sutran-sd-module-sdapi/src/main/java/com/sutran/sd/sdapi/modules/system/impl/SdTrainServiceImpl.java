@@ -498,11 +498,10 @@ public class SdTrainServiceImpl implements SdTrainService {
             delPreTaskData(preTaskId);
             return 100;
         }
-        JSONObject info = RedisUtils.getCacheMapValue(PRE_IMG_PROCESS,preTaskId);
-        if (info==null) {
+        Integer progress = RedisUtils.getCacheMapValue(PRE_IMG_PROCESS+preTaskId,"progress");
+        if (progress==null) {
             return 100;
         }
-        int progress = info.getIntValue("progress");
         // 完成预处理任务
         if (progress>=100) {
             try{
@@ -527,7 +526,7 @@ public class SdTrainServiceImpl implements SdTrainService {
         }
         RedisUtils.delCacheMapValue(PRE_IMG_PROGRESS_TASK_MAP,preTaskId);
         RedisUtils.delCacheListValue(PRE_IMG_TASK_QUEUE_LIST,preTaskId);
-        RedisUtils.delCacheMapValue(PRE_IMG_PROCESS,preTaskId);
+        RedisUtils.deleteKey(PRE_IMG_PROCESS+preTaskId);
         RedisUtils.deleteMultiObject(PRE_IMG_PROGRESS_TOTAL+preTaskId,PRE_IMG_PROGRESS_COMPLETE+preTaskId);
     }
 
@@ -856,7 +855,7 @@ public class SdTrainServiceImpl implements SdTrainService {
         if (newStatus == null || newStatus<=2 ||  newStatus>5) {
             log.error("模型训练任务>>>>>>>>>前置任务不存在或未开始或已结束,不可进行训练!");
             RedisUtils.delCacheListValue(TRAIN_TASK_QUEUE_LIST,preTaskId);
-            RedisUtils.delCacheMapValue(TRAIN_PROCESS,preTaskId);
+            RedisUtils.deleteKey(TRAIN_PROCESS+preTaskId);
             returnGpuFromTrainGpuPool(preTaskId);
             channel.basicAck(deliveryTag, false);
             return;
@@ -886,7 +885,7 @@ public class SdTrainServiceImpl implements SdTrainService {
                 log.error("模型训练任务>>>>>>>>>训练失败：{}",run.getString("message"));
                 sdTrainPreTaskService.modifyNewStatusById(preTaskId,6, run.getString("message"), sdGpuPool);
                 RedisUtils.delCacheListValue(TRAIN_TASK_QUEUE_LIST,preTaskId);
-                RedisUtils.delCacheMapValue(TRAIN_PROCESS,preTaskId);
+                RedisUtils.deleteKey(TRAIN_PROCESS+preTaskId);
                 returnGpuFromTrainGpuPool(preTaskId);
                 userService.returnedTrainTimes(crtUserId);
                 channel.basicAck(deliveryTag, false);
@@ -897,7 +896,7 @@ public class SdTrainServiceImpl implements SdTrainService {
                 log.error("模型训练任务>>>>>>>>>训练失败：{}",run.getString("message"));
                 sdTrainPreTaskService.modifyNewStatusById(preTaskId,6, run.getString("message"), sdGpuPool);
                 RedisUtils.delCacheListValue(TRAIN_TASK_QUEUE_LIST,preTaskId);
-                RedisUtils.delCacheMapValue(TRAIN_PROCESS,preTaskId);
+                RedisUtils.deleteKey(TRAIN_PROCESS+preTaskId);
                 returnGpuFromTrainGpuPool(preTaskId);
                 userService.returnedTrainTimes(crtUserId);
                 channel.basicAck(deliveryTag, false);
@@ -911,7 +910,7 @@ public class SdTrainServiceImpl implements SdTrainService {
         }
         catch (Exception e) {
             RedisUtils.delCacheListValue(TRAIN_TASK_QUEUE_LIST,preTaskId);
-            RedisUtils.delCacheMapValue(TRAIN_PROCESS,preTaskId);
+            RedisUtils.deleteKey(TRAIN_PROCESS+preTaskId);
             returnGpuFromTrainGpuPool(preTaskId);
             log.error("模型训练任务>>>>>>>>>任务ID[{}],训练异常,重新进入队列：{}", preTaskId,e.getMessage());
             channel.basicNack(deliveryTag, false, true);
@@ -973,22 +972,22 @@ public class SdTrainServiceImpl implements SdTrainService {
         final int newStatus = taskInfo.getIntValue("newStatus");
         if (StringUtils.isBlank(preTaskId) || newStatus<=2 || newStatus>4) {
             // 将当前任务从任务列表中移除
-            RedisUtils.delCacheMapValue(TRAIN_PROCESS,taskId);
+            RedisUtils.deleteKey(TRAIN_PROCESS+taskId);
             RedisUtils.delCacheMapValue(TRAIN_MODEL_PROGRESS_TASK_MAP,taskId);
             RedisUtils.delCacheListValue(TRAIN_TASK_QUEUE_LIST,preTaskId);
             returnGpuFromTrainGpuPool(preTaskId);
             return new TrainProcessDataVo().setId(taskId).setStatus("FINISHED").setProcess(100);
         }
         // 从redis中获取训练任务进度
-        JSONObject task = RedisUtils.getCacheMapValue(TRAIN_PROCESS,taskId);
-        if (CollectionUtil.isEmpty(task)) {
+        String status = RedisUtils.getCacheMapValue(TRAIN_PROCESS+taskId,"status");
+        if (StrUtil.isEmptyIfStr(status)) {
             RedisUtils.delCacheMapValue(TRAIN_MODEL_PROGRESS_TASK_MAP,taskId);
             RedisUtils.delCacheListValue(TRAIN_TASK_QUEUE_LIST,preTaskId);
             return new TrainProcessDataVo().setId(taskId).setStatus("FINISHED").setProcess(100);
         }
-        if ("FINISHED".equals(task.getString("status"))) {
+        if ("FINISHED".equals(status)) {
             sdTrainPreTaskService.completeTrainTask(taskId,new Date());
-            RedisUtils.delCacheMapValue(TRAIN_PROCESS,taskId);
+            RedisUtils.deleteKey(TRAIN_PROCESS+taskId);
             RedisUtils.delCacheMapValue(TRAIN_MODEL_PROGRESS_TASK_MAP,taskId);
             RedisUtils.delCacheListValue(TRAIN_TASK_QUEUE_LIST,preTaskId);
             returnGpuFromTrainGpuPool(preTaskId);

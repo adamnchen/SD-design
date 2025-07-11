@@ -60,7 +60,7 @@ public interface CacheConstants {
     /**
      * 图片预处理进度
      */
-    String PRE_IMG_PROCESS = "interrogator_task";
+    String PRE_IMG_PROCESS = "interrogator_task:";
 
     /**
      * 图片预处理任务队列
@@ -89,7 +89,7 @@ public interface CacheConstants {
     /**
      * 训练任务进度
      */
-    String TRAIN_PROCESS = "train_task";
+    String TRAIN_PROCESS = "train_task:";
 
     /**
      * 英文翻译成中文

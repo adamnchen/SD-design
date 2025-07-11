@@ -415,6 +415,7 @@ public class SdTrainServiceImpl implements SdTrainService {
         params.put("threshold",threshold!=null?threshold:0.5d);
         sdTrainPreTaskService.insert(userId, username, params, images.length, preTaskId);
         params.put("taskId",preTaskId);
+        params.put("task_id",preTaskId);
         // 添加到预处理任务队列中
         RedisUtils.setCacheListValue(PRE_IMG_TASK_QUEUE_LIST,preTaskId);
         try {

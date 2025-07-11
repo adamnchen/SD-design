@@ -3,13 +3,12 @@ package com.sutran.sd.job;
 import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.date.DateTime;
 import cn.hutool.core.date.DateUtil;
-import com.alibaba.fastjson2.JSONObject;
 import com.sutran.sd.common.utils.redis.RedisUtils;
 import com.sutran.sd.sdapi.domain.vo.TrainTaskStatusVo;
-import com.sutran.sd.sdapi.modules.system.entity.SdChannelData;
-import com.sutran.sd.sdapi.modules.webui.SdApiService;
 import com.sutran.sd.sdapi.modules.system.SdChannelDataService;
 import com.sutran.sd.sdapi.modules.system.SdTrainService;
+import com.sutran.sd.sdapi.modules.system.entity.SdChannelData;
+import com.sutran.sd.sdapi.modules.webui.SdApiService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -35,6 +34,7 @@ public class CommonJobEvent {
     private final SdApiService sdApiService;
     private final SdChannelDataService sdChannelDataService;
 
+    /** 定时处理训练任务 **/
     @Scheduled(cron="0/10 * * * * ?")   //每10秒执行一次
     public void executeTrainProgress(){
         Map<String, String> cacheMap = RedisUtils.getCacheMap(TRAIN_MODEL_PROGRESS_TASK_MAP);
@@ -46,22 +46,25 @@ public class CommonJobEvent {
         }
     }
 
+    /** 定时处理预处理任务 **/
     @Scheduled(cron="0/10 * * * * ?")   //每10秒执行一次
     public void executePreImgProgress(){
-        Map<String, String> cacheMap = RedisUtils.getCacheMap(PRE_IMG_PROGRESS_TASK_MAP);
-        if (CollectionUtil.isEmpty(cacheMap)) {
+        List<String> cacheList = RedisUtils.getCacheList(PRE_IMG_TASK_QUEUE_LIST);
+        if (CollectionUtil.isEmpty(cacheList)) {
             return;
         }
-        for (String taskId : cacheMap.keySet()) {
-            sdTrainService.getPreImgProgress(taskId);
+        for (String taskId : cacheList) {
+            sdTrainService.getPreImgProgressV2(taskId);
         }
     }
 
+    /** 定时拉取lora模型 **/
     @Scheduled(cron="0 0/10 * * * ?")   //每10分钟执行一次
     public void executeRefreshLora(){
         sdApiService.refreshLoraModels();
     }
 
+    /** 定时清理标签翻译缓存 **/
     @Scheduled(cron="0 0/5 * * * ?")   //每5分钟执行一次
     public void executeClearTranslateMap(){
         Collection<String> keys = RedisUtils.keys(TRAIN_TAG_TRANSLATE_MAP+"*");
@@ -77,6 +80,7 @@ public class CommonJobEvent {
         }
     }
 
+    /** 定时推送消息 **/
     @Scheduled(cron="0 0/1 * * * ?")   //每1分钟执行一次
     public void executeSendChannelMsg(){
         try{

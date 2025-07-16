@@ -83,6 +83,50 @@ public class CaptchaController {
     }
 
     /**
+     * 短信验证码 V2
+     *
+     * @param phoneNumber 用户手机号
+     * @param imageCode 图形验证码输入值
+     * @param uuid 图形验证码uuid
+     */
+    @GetMapping("/v2/captchaSms")
+    @SaIgnore
+    public R<Void> smsCaptcha(@NotBlank(message = "{user.phonenumber.not.blank}") @RequestParam String phoneNumber,@RequestParam String imageCode,@RequestParam String uuid) {
+        if (StringUtils.isBlank(phoneNumber)) {
+            return R.fail("手机号不能为空");
+        }
+        if (StringUtils.isBlank(imageCode)) {
+            return R.fail("验证码不能为空");
+        }
+        if (StringUtils.isBlank(uuid)) {
+            return R.fail("uuid不能为空");
+        }
+        String imgKey = CacheConstants.CAPTCHA_CODE_KEY + uuid;
+        String imgVerifyCode = RedisUtils.getCacheObject(imgKey);
+        if (StringUtils.isBlank(imgVerifyCode)) {
+            return R.fail("验证码已过期");
+        }
+        if (!imgVerifyCode.equals(imageCode)) {
+            return R.fail("验证码错误");
+        }
+        // 先判断
+        String templateId = "SMS_465409540";
+        String phoneKey = CacheConstants.CAPTCHA_CODE_KEY + phoneNumber;
+        String phoneCode = RandomUtil.randomNumbers(6);
+        // 验证码模板id 自行处理 (查数据库或写死均可)
+        LinkedHashMap<String, String> map = new LinkedHashMap<>(1);
+        map.put("code", phoneCode);
+        RedisUtils.setCacheObject(phoneKey, phoneCode, Duration.ofMinutes(Constants.CAPTCHA_EXPIRATION));
+        log.warn("短信验证码>>>>>>>>>手机号[{}], 在[{}]时发送了验证码[{}]",phoneNumber, DateUtil.now(),phoneCode);
+        SmsResponse smsResponse = SmsFactory.createSmsBlend(SupplierType.ALIBABA).sendMessage(phoneNumber, templateId, map);
+        if (!"OK".equals(smsResponse.getCode())) {
+            log.error("短信验证码>>>>>>>>>手机号[{}], 验证码短信发送异常 => {}", phoneNumber, smsResponse);
+            return R.fail(smsResponse.getMessage());
+        }
+        return R.ok();
+    }
+
+    /**
      * 邮箱验证码
      *
      * @param email 邮箱

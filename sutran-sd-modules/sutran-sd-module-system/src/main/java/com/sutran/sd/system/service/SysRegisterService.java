@@ -34,23 +34,35 @@ public class SysRegisterService {
      * 注册
      */
     public void register(RegisterBody registerBody) {
-        String username = registerBody.getUsername();
+        String username = registerBody.getPhoneNumber();
+        String nickname = StringUtils.isBlank(registerBody.getNickname())?registerBody.getNickname():"BS_USER_"+System.currentTimeMillis();
         String password = registerBody.getPassword();
+        String phoneNumber = registerBody.getPhoneNumber();
         // 校验用户类型是否存在
         String userType = UserType.getUserType(registerBody.getUserType()).getUserType();
-
-        boolean captchaEnabled = configService.selectCaptchaEnabled();
-        // 验证码开关
-        if (captchaEnabled) {
-            validateCaptcha(username, registerBody.getCode(), registerBody.getUuid());
+        // 校验验证码
+        if (!validateSmsCode(phoneNumber, registerBody.getSmsCode())) {
+            throw new CaptchaException();
         }
+
         SysUser sysUser = new SysUser();
         sysUser.setUserName(username);
-        sysUser.setNickName(username);
+        sysUser.setNickName(nickname);
+        sysUser.setPhonenumber(phoneNumber);
+        sysUser.setEmail(registerBody.getEmail());
         sysUser.setPassword(BCrypt.hashpw(password));
         sysUser.setUserType(userType);
+        sysUser.setChannelId("3");
+        sysUser.setChannel("自行注册");
+        String drawNum = configService.selectConfigByKey("registry.user.drawNum");
+        drawNum = StringUtils.isEmpty(drawNum)?"10":drawNum;
+        sysUser.setLimitDrawNum(Integer.parseInt(drawNum));
+        sysUser.setLimitTrainTimes(0);
 
         if (!userService.checkUserNameUnique(sysUser)) {
+            throw new UserException("user.register.save.error", username);
+        }
+        if (!userService.checkPhoneUnique(sysUser)) {
             throw new UserException("user.register.save.error", username);
         }
         boolean regFlag = userService.registerUser(sysUser);
@@ -79,6 +91,17 @@ public class SysRegisterService {
             recordLogininfor(username, Constants.REGISTER, MessageUtils.message("user.jcaptcha.error"));
             throw new CaptchaException();
         }
+    }
+
+    /**
+     * 校验短信验证码
+     */
+    private boolean validateSmsCode(String phoneNumber, String smsCode) {
+        String code = RedisUtils.getCacheObject(CacheConstants.CAPTCHA_CODE_KEY + phoneNumber);
+        if (StringUtils.isBlank(code)) {
+            throw new CaptchaExpireException();
+        }
+        return code.equals(smsCode);
     }
 
     /**

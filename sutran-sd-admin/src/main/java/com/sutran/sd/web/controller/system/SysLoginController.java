@@ -18,9 +18,7 @@ import com.sutran.sd.framework.manager.EncryptorManager;
 import com.sutran.sd.sdapi.modules.system.entity.SdUserMsg;
 import com.sutran.sd.sdapi.modules.system.SdUserMsgService;
 import com.sutran.sd.system.domain.vo.RouterVo;
-import com.sutran.sd.system.service.ISysMenuService;
-import com.sutran.sd.system.service.ISysUserService;
-import com.sutran.sd.system.service.SysLoginService;
+import com.sutran.sd.system.service.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import me.chanjar.weixin.common.error.WxErrorException;
@@ -50,6 +48,9 @@ public class SysLoginController {
     private final SdUserMsgService sdUserMsgService;
     private final EncryptorManager encryptorManager;
     private final DictService dictService;
+    private final SysRegisterService registerService;
+    private final ISysConfigService configService;
+
     @Value("${third.login.publicKey}")
     private String thirdLoginPublicKey;
     @Value("${third.login.privateKey}")
@@ -321,5 +322,18 @@ public class SysLoginController {
         Long userId = LoginHelper.getUserId();
         List<SysMenu> menus = menuService.selectMenuTreeByUserId(userId);
         return R.ok(menuService.buildMenus(menus));
+    }
+
+    /**
+     * 用户注册
+     */
+    @SaIgnore
+    @PostMapping("/register")
+    public R<Void> register(@Validated @RequestBody RegisterBody user) {
+        if (!("true".equals(configService.selectConfigByKey("sys.account.registerUser")))) {
+            return R.fail("当前系统没有开启注册功能！");
+        }
+        registerService.register(user);
+        return R.ok();
     }
 }

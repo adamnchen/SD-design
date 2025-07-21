@@ -41,7 +41,8 @@ public class SysRegisterService {
         // 校验用户类型是否存在
         String userType = UserType.getUserType(registerBody.getUserType()).getUserType();
         // 校验验证码
-        if (!validateSmsCode(phoneNumber, registerBody.getSmsCode())) {
+//        if (!validateSmsCode(phoneNumber, registerBody.getSmsCode())) {
+        if (!validateCaptcha(registerBody.getVerifyCode(),registerBody.getVerifyUuid())) {
             throw new CaptchaException();
         }
 
@@ -94,10 +95,29 @@ public class SysRegisterService {
     }
 
     /**
+     * 校验验证码
+     * @param code     验证码
+     * @param uuid     唯一标识
+     */
+    public boolean validateCaptcha(String code, String uuid) {
+        String verifyKey = CacheConstants.CAPTCHA_CODE_KEY + StringUtils.defaultString(uuid, "");
+        String captchaCode = RedisUtils.getCacheObject(verifyKey);
+        RedisUtils.deleteObject(verifyKey);
+        if (StringUtils.isBlank(code)) {
+            throw new CaptchaExpireException();
+        }
+        return code.equalsIgnoreCase(captchaCode);
+    }
+
+    /**
      * 校验短信验证码
+     * @param phoneNumber 手机号
+     * @param smsCode 短信验证码
      */
     private boolean validateSmsCode(String phoneNumber, String smsCode) {
-        String code = RedisUtils.getCacheObject(CacheConstants.CAPTCHA_CODE_KEY + phoneNumber);
+        String verifyKey = CacheConstants.CAPTCHA_CODE_KEY + phoneNumber;
+        String code = RedisUtils.getCacheObject(verifyKey);
+        RedisUtils.deleteObject(verifyKey);
         if (StringUtils.isBlank(code)) {
             throw new CaptchaExpireException();
         }

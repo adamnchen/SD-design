@@ -1,6 +1,5 @@
 package com.sutran.sd.sdapi.modules.system.impl;
 
-import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.StrUtil;
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONObject;
@@ -8,7 +7,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.sutran.sd.common.core.domain.PageQuery;
 import com.sutran.sd.sdapi.domain.vo.TrainTaskStatusVo;
-import com.sutran.sd.sdapi.mapper.SdTrainPreTaskMapper;
+import com.sutran.sd.sdapi.mapper.SdTrainTaskMapper;
 import com.sutran.sd.sdapi.modules.system.SdTrainPreTaskService;
 import com.sutran.sd.sdapi.modules.system.entity.SdGpuPool;
 import com.sutran.sd.sdapi.modules.system.entity.SdTrainTask;
@@ -29,7 +28,7 @@ import java.util.Map;
 public class SdTrainPreTaskServiceImpl implements SdTrainPreTaskService {
 
     @Resource
-    private SdTrainPreTaskMapper baseMapper;
+    private SdTrainTaskMapper baseMapper;
 
     /**
      * 按用户ID和任务状态查询列表
@@ -56,14 +55,106 @@ public class SdTrainPreTaskServiceImpl implements SdTrainPreTaskService {
         return baseMapper.selectTaskStatusByPreTaskId(preTaskId);
     }
 
+
+    /**
+     * 提交预处理任务
+     * @param userId    用户ID
+     * @param username  用户名
+     * @param params    训练参数
+     * @param imgNum    图片数量
+     * @param preTaskId 预处理任务ID
+     * @param preSubmitTime 预处理任务提交时间
+     */
     @Override
-    public void insert(Long userId, String username, Map<String, Object> params, int imgNum, String preTaskId) {
-        SdTrainTask task = new SdTrainTask().setId(StrUtil.isEmptyIfStr(preTaskId)?IdUtil.getSnowflakeNextId():Long.parseLong(preTaskId))
+    public void insert(Long userId, String username, Map<String, Object> params, int imgNum, String preTaskId, Date preSubmitTime) {
+        SdTrainTask task = new SdTrainTask().setId(Long.parseLong(preTaskId))
             // 处于预处理队列中
             .setStatus(0).setNewStatus(0)
-            .setPreParams(JSONObject.toJSONString(params)).setImgNum(imgNum)
+            .setPreParams(JSONObject.toJSONString(params)).setImgNum(imgNum).setPreSubmitTime(preSubmitTime)
             .setCrtUserId(userId).setCrtUserName(username).setCrtTime(new Date());
         baseMapper.insert(task);
+    }
+    /**
+     * 开始执行预处理任务
+     * @param preTaskId 预处理任务ID
+     * @param startTime 开始时间
+     */
+    @Async("threadPoolTaskExecutor")
+    @Override
+    public void startPreTask(String preTaskId, Date startTime) {
+        baseMapper.startPreTask(preTaskId,startTime);
+    }
+    /**
+     * 完成预处理任务
+     * @param preTaskId 预处理任务ID
+     * @param reason 原因
+     * @param endTime 结束时间
+     */
+    @Async("threadPoolTaskExecutor")
+    @Override
+    public void completePreTask(String preTaskId, String reason, Date endTime) {
+        baseMapper.completePreTask(preTaskId,reason,endTime);
+    }
+
+    /**
+     * 添加共性词
+     * @param preTaskId 预处理任务ID
+     * @param additionTagStr 共性词
+     */
+    @Override
+    public void updateAdditionTag(String preTaskId, String additionTagStr) {
+        baseMapper.updateAdditionTag(preTaskId,additionTagStr);
+    }
+
+    /**
+     * 提交训练任务
+     *
+     * @param preTaskId  预处理任务ID
+     * @param modelName  模型名称
+     * @param trainParams 训练参数
+     * @param submitTime 提交时间
+     */
+    @Async("threadPoolTaskExecutor")
+    @Override
+    public void submitTrainTask(String preTaskId, String modelName, String trainParams, Date submitTime) {
+        baseMapper.submitTrainTaskById(preTaskId,modelName,trainParams,submitTime);
+    }
+
+    /**
+     * 开始执行训练任务
+     * @param preTaskId 预处理任务ID
+     * @param taskId 训练任务ID
+     * @param startTime 开始时间
+     * @param sdGpuPool GPU 池
+     */
+    @Async("threadPoolTaskExecutor")
+    @Override
+    public void startTrainTask(String preTaskId, String taskId, Date startTime, SdGpuPool sdGpuPool) {
+        baseMapper.startTrainTask(preTaskId,taskId,startTime,JSON.toJSONString(sdGpuPool));
+    }
+
+    /**
+     * 完成训练任务
+     * @param taskId 训练任务ID
+     * @param endTime 结束时间
+     */
+    @Async("threadPoolTaskExecutor")
+    @Override
+    public void completeTrainTask(String taskId, Date endTime) {
+        baseMapper.completeTrainTask(taskId, endTime);
+    }
+
+    /**
+     * 训练任务失败
+     *
+     * @param preTaskId 预处理任务ID
+     * @param reason    原因
+     * @param sdGpuPool GPU 池
+     * @param endTime   结束时间
+     */
+    @Override
+    public void failTrainTask(String preTaskId, String reason, SdGpuPool sdGpuPool, Date endTime) {
+        baseMapper.failTrainTask(preTaskId,reason,sdGpuPool==null?null:JSON.toJSONString(sdGpuPool),endTime);
     }
 
     @Override
@@ -76,30 +167,10 @@ public class SdTrainPreTaskServiceImpl implements SdTrainPreTaskService {
         return baseMapper.selectDetailByUserId(userId);
     }
 
-    @Async("threadPoolTaskExecutor")
-    @Override
-    public void completePreTask(String preTaskId) {
-        baseMapper.completePreTask(preTaskId);
-    }
-
-    @Override
-    public void updateTaskIdAndNewStatus(String preTaskId, String taskId, Map<String, Object> trainParams, String modelName, Date startTime, int newStatus, SdGpuPool sdGpuPool) {
-        baseMapper.updateTaskIdAndNewStatus(preTaskId,taskId,JSON.toJSONString(trainParams),modelName,startTime,newStatus,JSON.toJSONString(sdGpuPool));
-    }
-
-    @Override
-    public void completeTrainTask(String taskId, Date endTime) {
-        baseMapper.completeTrainTask(taskId, endTime);
-    }
 
     @Override
     public SdTrainTask selectDetailByTaskId(String taskId) {
         return baseMapper.selectDetailByTaskId(taskId);
-    }
-
-    @Override
-    public void modifyNewStatusById(String preTaskId, int newStatus, String message, SdGpuPool sdGpuPool) {
-        baseMapper.modifyNewStatusById(preTaskId,newStatus,message,sdGpuPool==null?null:JSON.toJSONString(sdGpuPool));
     }
 
     @Override
@@ -120,11 +191,6 @@ public class SdTrainPreTaskServiceImpl implements SdTrainPreTaskService {
     @Override
     public JSONObject selectNewStatusByTaskId(String taskId) {
         return baseMapper.selectNewStatusByTaskId(taskId);
-    }
-
-    @Override
-    public void updateAdditionTag(String preTaskId, String additionTagStr) {
-        baseMapper.updateAdditionTag(preTaskId,additionTagStr);
     }
 
     @Override

@@ -34,27 +34,47 @@ public class CommonJobEvent {
     private final SdApiService sdApiService;
     private final SdChannelDataService sdChannelDataService;
 
-    /** 定时处理训练任务 **/
+    /** 定时处理训练任务V1 **/
     @Scheduled(cron="0/10 * * * * ?")   //每10秒执行一次
-    public void executeTrainProgress(){
-        Map<String, String> cacheMap = RedisUtils.getCacheMap(TRAIN_MODEL_PROGRESS_TASK_MAP);
+    public void executeTrainProgressV1(){
+        Map<String, String> cacheMap = RedisUtils.getCacheMap(TRAIN_MODEL_PROGRESS_TASK_MAP_V1);
         if (CollectionUtil.isEmpty(cacheMap)) {
             return;
         }
-        for (String taskId : cacheMap.keySet()) {
-            sdTrainService.trainProgress(taskId);
-        }
+        cacheMap.forEach((taskId, preTaskId) -> sdTrainService.trainProgress(taskId));
     }
 
-    /** 定时处理预处理任务 **/
+    /** 定时处理训练任务V2 **/
     @Scheduled(cron="0/10 * * * * ?")   //每10秒执行一次
-    public void executePreImgProgress(){
-        List<String> cacheList = RedisUtils.getCacheList(PRE_IMG_TASK_QUEUE_LIST);
+    public void executeTrainProgressV2(){
+        Map<String, String> cacheMap = RedisUtils.getCacheMap(TRAIN_MODEL_PROGRESS_TASK_MAP_V2);
+        if (CollectionUtil.isEmpty(cacheMap)) {
+            return;
+        }
+        cacheMap.forEach((taskId, preTaskId) -> sdTrainService.trainProgressV2(taskId));
+    }
+
+    /** 定时处理预处理任务V1 **/
+    @Scheduled(cron="0/10 * * * * ?")   //每10秒执行一次
+    public void executePreImgProgressV1(){
+        List<String> cacheList = RedisUtils.getCacheList(PRE_IMG_TASK_QUEUE_LIST_V1);
         if (CollectionUtil.isEmpty(cacheList)) {
             return;
         }
-        for (String taskId : cacheList) {
-            sdTrainService.getPreImgProgressV2(taskId);
+        for (String preTaskId : cacheList) {
+            sdTrainService.getPreImgProgress(preTaskId);
+        }
+    }
+
+    /** 定时处理预处理任务V2 **/
+    @Scheduled(cron="0/10 * * * * ?")   //每10秒执行一次
+    public void executePreImgProgressV2(){
+        List<String> cacheList = RedisUtils.getCacheList(PRE_IMG_TASK_QUEUE_LIST_V2);
+        if (CollectionUtil.isEmpty(cacheList)) {
+            return;
+        }
+        for (String preTaskId : cacheList) {
+            sdTrainService.getPreImgProgressV2(preTaskId);
         }
     }
 

@@ -34,9 +34,19 @@ public class RegisterBody {
     /**
      * 短信验证码（必填）
      */
-    @NotBlank(message = "验证码不可为空")
+//    @NotBlank(message = "验证码不可为空")
     @Parameter(description = "短信验证码",required = true)
     private String smsCode;
+
+    /**
+     * 校验验证码
+     */
+    private String verifyCode;
+
+    /**
+     * 校验uuid
+     */
+    private String verifyUuid;
 
     /**
      * 昵称

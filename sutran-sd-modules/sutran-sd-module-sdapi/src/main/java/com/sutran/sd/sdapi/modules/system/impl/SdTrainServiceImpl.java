@@ -110,6 +110,7 @@ public class SdTrainServiceImpl implements SdTrainService {
         List<TrainTaskVo> records = list.stream().map(e -> {
             TrainTaskVo vo = new TrainTaskVo();
             BeanUtils.copyProperties(e, vo);
+            vo.setPreTaskId(String.valueOf(e.getId()));
             if (StringUtils.isNotBlank(e.getPreParams())) {
                 JSONObject preParams = JSONObject.parseObject(e.getPreParams());
                 vo.setPreTaskParams(preParams);
@@ -128,7 +129,7 @@ public class SdTrainServiceImpl implements SdTrainService {
     }
 
     /**
-     * SD-获取当前任务状态
+     * 获取当前任务状态
      * @param preTaskId 预处理任务id
      * @return 任务状态
      */
@@ -193,12 +194,12 @@ public class SdTrainServiceImpl implements SdTrainService {
         List<TrianImgDataVo> results = CommonUtil.readTagFromTxtAndImgUrl(group, wjValueList);
 
         // 获取预处理任务下的所有共性词
-        Set<String> additionTags = RedisUtils.getCacheSet(TRAIN_ADDITION_LIST + task.getId());
+        Set<String> additionTags = RedisUtils.getCacheSet(TRAIN_ADDITION_LIST + preTaskId);
         // 获取预处理任务下的所有标签翻译
-        Map<String, String> cacheMap = RedisUtils.getCacheMap(TRAIN_TAG_TRANSLATE_MAP + task.getId());
+        Map<String, String> cacheMap = RedisUtils.getCacheMap(TRAIN_TAG_TRANSLATE_MAP + preTaskId);
         return new TrainPreImgTaskVo()
             .setImgList(results)
-            .setPreTaskId(String.valueOf(task.getId()))
+            .setPreTaskId(String.valueOf(preTaskId))
             .setNewStatus(task.getNewStatus())
             .setStatus(task.getStatus())
             .setTaskId(task.getTaskId())
@@ -241,12 +242,12 @@ public class SdTrainServiceImpl implements SdTrainService {
         List<TrianImgDataVo> results = CommonUtil.readTagFromTxtAndImgUrl(group, wjValueList);
 
         // 获取预处理任务下的所有共性词
-        Set<String> additionTags = RedisUtils.getCacheSet(TRAIN_ADDITION_LIST + task.getId());
+        Set<String> additionTags = RedisUtils.getCacheSet(TRAIN_ADDITION_LIST + preTaskId);
         // 获取预处理任务下的所有标签翻译
-        Map<String, String> cacheMap = RedisUtils.getCacheMap(TRAIN_TAG_TRANSLATE_MAP + task.getId());
+        Map<String, String> cacheMap = RedisUtils.getCacheMap(TRAIN_TAG_TRANSLATE_MAP + preTaskId);
         return new TrainPreImgTaskVo()
             .setImgList(results)
-            .setPreTaskId(String.valueOf(task.getId()))
+            .setPreTaskId(String.valueOf(preTaskId))
             .setNewStatus(task.getNewStatus())
             .setTaskId(task.getTaskId())
             .setAdditionTags(additionTags)
@@ -332,17 +333,17 @@ public class SdTrainServiceImpl implements SdTrainService {
             params.put("path","/lora-scripts"+parentFileUrl);
             params.put("replace_underscore",true);
             params.put("threshold",threshold!=null?threshold:0.5d);
-            sdTrainPreTaskService.insert(userId, username, params, images.length, preTaskId);
+            // 提交预处理任务
+            sdTrainPreTaskService.insert(userId, username, params, images.length, preTaskId, new Date());
             params.put("taskId",preTaskId);
             RedisUtils.setCacheObject(PRE_IMG_PROGRESS_TOTAL+preTaskId, images.length);
             RedisUtils.setCacheObject(PRE_IMG_PROGRESS_COMPLETE+preTaskId, 0);
-            // 添加到预处理任务map中，便于定时处理预处理图片的任务进度
-            RedisUtils.setCacheMapValue(PRE_IMG_PROGRESS_TASK_MAP,preTaskId,preTaskId);
+            // 添加到预处理任务队列中
+            RedisUtils.setCacheListValue(PRE_IMG_TASK_QUEUE_LIST_V1,preTaskId);
             // 创建该数据集文件夹监听任务
             CompletableFuture.runAsync(()->createFileDirMonitor(parent,preTaskId),executor);
             try {
                 rabbitTemplate.convertAndSend(SD_PRE_IMG_TASK_EXCHANGE,SD_PRE_IMG_TASK_ROUTING_KEY,params,new CorrelationData(preTaskId));
-                //TODO 将当前任务ID存入redis的排队队列中，方便返回当前任务ID排队位置
             }
             catch (Exception e) {
                 sdTrainPreTaskService.deleteById(preTaskId);
@@ -383,12 +384,14 @@ public class SdTrainServiceImpl implements SdTrainService {
         else if (images.length>canMoreSubmitPreImgNum) {
             throw new ServiceException("预处理图最多能提交"+canMoreSubmitPreImgNum+"张!");
         }
-
+        // 预处理任务ID
         String preTaskId = IdUtil.getSnowflakeNextIdStr();
         // 系统服务器的容器中创建上传的图片数据集，例如现在的系统容器会在根目录下创建 train-data目录
         // 目录挂载情况：系统容器(/train-data/*) -> 宿主机(/home/train/train-data/*) -> 训练器容器(/lora-scripts/train-data)
         // 将图片保存到指定的文件夹下；如果父文件夹不存在，就创建
+        //TODO windows
         String parentFileUrl = "/train-data/"+DateUtil.formatDate(new Date())+"/"+userId+"/"+preTaskId;
+//        String parentFileUrl = "D:\\project\\ai_project\\train-data\\"+DateUtil.formatDate(new Date())+"\\"+userId+"\\"+preTaskId;
         File parent = new File(parentFileUrl);
         if (!parent.exists()) {
             parent.mkdirs();
@@ -410,14 +413,17 @@ public class SdTrainServiceImpl implements SdTrainService {
         params.put("batch_output_action_on_conflict", StrUtil.isEmptyIfStr(batchOutputActionOnConflict)?"copy":batchOutputActionOnConflict);
         params.put("escape_tag",true);
         params.put("interrogator_model",StrUtil.isEmptyIfStr(interrogatorModel)?"wd-convnext-v3":interrogatorModel);
+        //TODO windows
         params.put("path","/lora-scripts"+parentFileUrl);
+//        params.put("path",parentFileUrl);
         params.put("replace_underscore",true);
         params.put("threshold",threshold!=null?threshold:0.5d);
-        sdTrainPreTaskService.insert(userId, username, params, images.length, preTaskId);
+        // 提交预处理任务
+        sdTrainPreTaskService.insert(userId, username, params, images.length, preTaskId, new Date());
         params.put("taskId",preTaskId);
         params.put("task_id",preTaskId);
         // 添加到预处理任务队列中
-        RedisUtils.setCacheListValue(PRE_IMG_TASK_QUEUE_LIST,preTaskId);
+        RedisUtils.setCacheListValue(PRE_IMG_TASK_QUEUE_LIST_V2,preTaskId);
         try {
             rabbitTemplate.convertAndSend(SD_PRE_IMG_TASK_EXCHANGE,SD_PRE_IMG_TASK_ROUTING_KEY,params,new CorrelationData(preTaskId));
         }
@@ -450,8 +456,8 @@ public class SdTrainServiceImpl implements SdTrainService {
             // 通过gpu卡池中的训练数据集目录
             log.warn("图片预处理>>>>>>>>>任务ID[{}],开始进行预处理图片", preTaskId);
             Forest.post("/api/interrogate").address(sdGpuPool.getHost(), sdGpuPool.getPort()).contentTypeJson().addBody(params).execute();
-            // 修改队列状态
-            sdTrainPreTaskService.modifyNewStatusById(String.valueOf(preTaskId),1, null, null);
+            // 开始执行预处理任务
+            sdTrainPreTaskService.startPreTask(String.valueOf(preTaskId),new Date());
             channel.basicAck(deliveryTag, false);
         }
         catch (Exception e) {
@@ -479,7 +485,7 @@ public class SdTrainServiceImpl implements SdTrainService {
         if (flag) {
             try{
                 // 完成预处理任务
-                sdTrainPreTaskService.completePreTask(preTaskId);
+                sdTrainPreTaskService.completePreTask(preTaskId,null,new Date());
             }
             finally {
                 delPreTaskData(preTaskId);
@@ -499,13 +505,20 @@ public class SdTrainServiceImpl implements SdTrainService {
             return 100;
         }
         Integer progress = RedisUtils.getCacheMapValue(PRE_IMG_PROCESS+preTaskId,"progress");
-        if (progress==null) {
-            return 100;
+        String status = RedisUtils.getCacheMapValue(PRE_IMG_PROCESS+preTaskId,"status");
+        String reason = RedisUtils.getCacheMapValue(PRE_IMG_PROCESS+preTaskId,"error");
+        // 没有进度，但是有预处理任务，则返回进度=0
+        if (progress==null && newStatus<=1) {
+            return 0;
         }
+        else if (progress==null) {
+            return progress;
+        }
+
         // 完成预处理任务
-        if (progress>=100) {
+        if (progress>=100 || "FAILED".equals(status)) {
             try{
-                sdTrainPreTaskService.completePreTask(preTaskId);
+                sdTrainPreTaskService.completePreTask(preTaskId, reason, new Date());
             }
             finally {
                 delPreTaskData(preTaskId);
@@ -515,7 +528,6 @@ public class SdTrainServiceImpl implements SdTrainService {
     }
     /** 预处理任务 end **/
 
-
     /** 删除预处理任务数据 **/
     private void delPreTaskData(String preTaskId) {
         WatchMonitor watchMonitor = MONITOR_MAP.get(preTaskId);
@@ -524,8 +536,8 @@ public class SdTrainServiceImpl implements SdTrainService {
             watchMonitor.close();
             MONITOR_MAP.remove(preTaskId);
         }
-        RedisUtils.delCacheMapValue(PRE_IMG_PROGRESS_TASK_MAP,preTaskId);
-        RedisUtils.delCacheListValue(PRE_IMG_TASK_QUEUE_LIST,preTaskId);
+        RedisUtils.delCacheListValue(PRE_IMG_TASK_QUEUE_LIST_V1,preTaskId);
+        RedisUtils.delCacheListValue(PRE_IMG_TASK_QUEUE_LIST_V2,preTaskId);
         RedisUtils.deleteKey(PRE_IMG_PROCESS+preTaskId);
         RedisUtils.deleteMultiObject(PRE_IMG_PROGRESS_TOTAL+preTaskId,PRE_IMG_PROGRESS_COMPLETE+preTaskId);
     }
@@ -570,6 +582,7 @@ public class SdTrainServiceImpl implements SdTrainService {
     /** 修改预处理图片上的标签 **/
     @Override
     public void modifyPreImgTag(SdTrainPreImgDto dto) {
+        String preTaskId = dto.getPreTaskId();
         if (CollectionUtil.isEmpty(dto.getTags())) {
             throw new ServiceException("训练数据集图片标签不能为空!");
         }
@@ -605,7 +618,7 @@ public class SdTrainServiceImpl implements SdTrainService {
             throw new ServiceException("训练数据集图片标签[移除违禁词]不能为空!");
         }
 
-        SdTrainTask sdTrainTask = sdTrainPreTaskService.selectDetailById(dto.getPreTaskId());
+        SdTrainTask sdTrainTask = sdTrainPreTaskService.selectDetailById(preTaskId);
         if (sdTrainTask==null) {
             throw new ServiceException("图片预处理任务不存在!");
         }
@@ -624,12 +637,13 @@ public class SdTrainServiceImpl implements SdTrainService {
         FileUtil.writeString(content,txtUrl, CharsetUtil.UTF_8);
         // 添加翻译
         Map<String, String> newTagMap = dto.getTags().stream().filter(e->StrUtil.isNotEmpty(e.getTagZh())).collect(Collectors.toMap(SdTrainTagDto::getTag, SdTrainTagDto::getTagZh, (v1, v2) -> v1));
-        RedisUtils.setCacheMap(TRAIN_TAG_TRANSLATE_MAP + dto.getPreTaskId(),newTagMap);
+        RedisUtils.setCacheMap(TRAIN_TAG_TRANSLATE_MAP + preTaskId,newTagMap);
     }
 
     /** 添加共性词标签 **/
     @Override
     public void insertAdditionTag(SdTrainAdditionTagDto dto) {
+        final String preTaskId = dto.getPreTaskId();
         if (StrUtil.isEmpty(dto.getAdditionTagZh()) && StrUtil.isEmpty(dto.getAdditionTag())) {
             throw new ServiceException("缺少共性词!");
         }
@@ -654,11 +668,11 @@ public class SdTrainServiceImpl implements SdTrainService {
             throw new ServiceException("当前共性词不可使用[违禁词]!");
         }
 
-        Set<Object> tagSet = RedisUtils.getCacheSet(TRAIN_ADDITION_LIST + dto.getPreTaskId());
+        Set<Object> tagSet = RedisUtils.getCacheSet(TRAIN_ADDITION_LIST + preTaskId);
         if (CollectionUtil.isNotEmpty(tagSet) && tagSet.size()>=3) {
             throw new ServiceException("当前训练任务的共性词已达上限,不可添加!");
         }
-        SdTrainTask sdTrainTask = sdTrainPreTaskService.selectDetailById(dto.getPreTaskId());
+        SdTrainTask sdTrainTask = sdTrainPreTaskService.selectDetailById(preTaskId);
         if (sdTrainTask==null) {
             throw new ServiceException("图片预处理任务不存!");
         }
@@ -690,20 +704,21 @@ public class SdTrainServiceImpl implements SdTrainService {
             });
         }
         // 添加翻译
-        RedisUtils.setCacheMapValue(TRAIN_TAG_TRANSLATE_MAP + dto.getPreTaskId(),additionTagEn,StrUtil.isEmptyIfStr(dto.getAdditionTagZh())?additionTagEn:dto.getAdditionTagZh());
+        RedisUtils.setCacheMapValue(TRAIN_TAG_TRANSLATE_MAP + preTaskId,additionTagEn,StrUtil.isEmptyIfStr(dto.getAdditionTagZh())?additionTagEn:dto.getAdditionTagZh());
         // 添加共性词数组
-        RedisUtils.setCacheSet(TRAIN_ADDITION_LIST+dto.getPreTaskId(),Collections.singleton(additionTagEn));
+        RedisUtils.setCacheSet(TRAIN_ADDITION_LIST+ preTaskId,Collections.singleton(additionTagEn));
         // 将共性词更新到数据库
-        sdTrainPreTaskService.updateAdditionTag(dto.getPreTaskId(),JSON.toJSONString(Collections.singleton(additionTagEn)));
+        sdTrainPreTaskService.updateAdditionTag(preTaskId,JSON.toJSONString(Collections.singleton(additionTagEn)));
     }
 
     /** 删除标签 **/
     @Override
     public void delPreImgTag(SdTrainTagDelDto dto) {
+        String preTaskId = dto.getPreTaskId();
         if (StrUtil.isEmptyIfStr(dto.getTag())) {
             throw new ServiceException("需要删除的共性词或标签不能为空!");
         }
-        SdTrainTask sdTrainTask = sdTrainPreTaskService.selectDetailById(dto.getPreTaskId());
+        SdTrainTask sdTrainTask = sdTrainPreTaskService.selectDetailById(preTaskId);
         if (sdTrainTask==null) {
             throw new ServiceException("图片预处理任务不存在!");
         }
@@ -714,7 +729,7 @@ public class SdTrainServiceImpl implements SdTrainService {
             throw new ServiceException("模型训练任务已开始,不可进行删除标签操作!");
         }
         // 判断删除的标签是否是共性词
-        Set<Object> tagSet = RedisUtils.getCacheSet(TRAIN_ADDITION_LIST + dto.getPreTaskId());
+        Set<Object> tagSet = RedisUtils.getCacheSet(TRAIN_ADDITION_LIST + preTaskId);
         String removeTag = dto.getTag();
         // 删除共性词
         if (CollectionUtil.isNotEmpty(tagSet) && tagSet.contains(removeTag)) {
@@ -740,7 +755,7 @@ public class SdTrainServiceImpl implements SdTrainService {
                 });
             }
             // 缓存中移除当前任务对应的删除的共性词
-            RedisUtils.delCacheSet(TRAIN_ADDITION_LIST + dto.getPreTaskId(),Collections.singleton(dto.getTag()));
+            RedisUtils.delCacheSet(TRAIN_ADDITION_LIST + preTaskId,Collections.singleton(dto.getTag()));
         }
         // 删除标签
         else {
@@ -795,12 +810,13 @@ public class SdTrainServiceImpl implements SdTrainService {
         JSONObject msg = new JSONObject();
         msg.put("trainParams",trainParams);
         msg.put("preTaskId",preTaskId);
+        msg.put("trainVersion","V1");
         msg.put("modelName",dto.getModelName());
 
-        // 更新为 队列中 状态
-        sdTrainPreTaskService.modifyNewStatusById(preTaskId, 3, null, null);
+        // 提交训练任务
+        sdTrainPreTaskService.submitTrainTask(preTaskId,dto.getModelName(),JSONObject.toJSONString(trainParams),new Date());
         // 将任务添加到任务列表中
-        RedisUtils.setCacheListValue(TRAIN_TASK_QUEUE_LIST,preTaskId);
+        RedisUtils.setCacheListValue(TRAIN_TASK_QUEUE_LIST_V1,preTaskId);
 
         rabbitTemplate.convertAndSend(SD_TRAIN_TASK_EXCHANGE,SD_TRAIN_TASK_ROUTING_KEY,msg,new CorrelationData(preTaskId));
         // 扣除训练次数
@@ -834,12 +850,13 @@ public class SdTrainServiceImpl implements SdTrainService {
         JSONObject msg = new JSONObject();
         msg.put("trainParams",trainParams);
         msg.put("preTaskId",preTaskId);
+        msg.put("trainVersion","V2");
         msg.put("modelName",dto.getModelName());
 
-        // 更新为 队列中 状态
-        sdTrainPreTaskService.modifyNewStatusById(preTaskId, 3, null, null);
+        // 提交训练任务
+        sdTrainPreTaskService.submitTrainTask(preTaskId, dto.getModelName(), JSONObject.toJSONString(trainParams), new Date());
         // 将任务添加到任务列表中
-        RedisUtils.setCacheListValue(TRAIN_TASK_QUEUE_LIST,preTaskId);
+        RedisUtils.setCacheListValue(TRAIN_TASK_QUEUE_LIST_V2,preTaskId);
 
         rabbitTemplate.convertAndSend(SD_TRAIN_TASK_EXCHANGE,SD_TRAIN_TASK_ROUTING_KEY,msg,new CorrelationData(preTaskId));
         // 扣除训练次数
@@ -851,10 +868,11 @@ public class SdTrainServiceImpl implements SdTrainService {
         long deliveryTag = message.getMessageProperties().getDeliveryTag();
         JSONObject params = JSON.parseObject(body, JSONObject.class);
         final String preTaskId = params.getString("preTaskId");
+        final String trainVersion = params.getString("trainVersion");
         Integer newStatus = sdTrainPreTaskService.selectNewStatusById(preTaskId);
         if (newStatus == null || newStatus<=2 ||  newStatus>5) {
             log.error("模型训练任务>>>>>>>>>前置任务不存在或未开始或已结束,不可进行训练!");
-            RedisUtils.delCacheListValue(TRAIN_TASK_QUEUE_LIST,preTaskId);
+            RedisUtils.delCacheListValue(TRAIN_TASK_QUEUE_LIST_V1,preTaskId);
             RedisUtils.deleteKey(TRAIN_PROCESS+preTaskId);
             returnGpuFromTrainGpuPool(preTaskId);
             channel.basicAck(deliveryTag, false);
@@ -873,46 +891,52 @@ public class SdTrainServiceImpl implements SdTrainService {
             channel.basicNack(deliveryTag, false, true);
             return;
         }
-
+        String taskId = null;
         try{
             Map<String,Object> trainParams = JSONObject.parseObject(params.getString("trainParams"), Map.class);
             log.info("模型训练任务>>>>>>>>>任务ID[{}],开始进行模型训练任务,训练参数：{}",preTaskId,trainParams);
 
             JSONObject run = Forest.post("/api/run").address(sdGpuPool.getHost(), sdGpuPool.getPort()).contentTypeJson().addBody(trainParams).execute(JSONObject.class);
             log.warn("模型训练任务>>>>>>>>>启动训练：{}",run);
-            if ("error".equals(run.getString("status"))) {
+            String status = run.getString("status");
+            JSONObject data = run.getJSONObject("data");
+            taskId = CollectionUtil.isEmpty(data)? null: data.getString("task_id");
+            if ("error".equals(status) || "fail".equals(status)) {
                 Long crtUserId = sdTrainPreTaskService.selectCrtUserIdById(preTaskId);
                 log.error("模型训练任务>>>>>>>>>训练失败：{}",run.getString("message"));
-                sdTrainPreTaskService.modifyNewStatusById(preTaskId,6, run.getString("message"), sdGpuPool);
-                RedisUtils.delCacheListValue(TRAIN_TASK_QUEUE_LIST,preTaskId);
-                RedisUtils.deleteKey(TRAIN_PROCESS+preTaskId);
+                sdTrainPreTaskService.failTrainTask(preTaskId,run.getString("message"),sdGpuPool,new Date());
+                if ("V1".equals(trainVersion) || StringUtils.isBlank(trainVersion)) {
+                    RedisUtils.delCacheListValue(TRAIN_TASK_QUEUE_LIST_V1,preTaskId);
+                }
+                else {
+                    RedisUtils.delCacheListValue(TRAIN_TASK_QUEUE_LIST_V2,preTaskId);
+                }
                 returnGpuFromTrainGpuPool(preTaskId);
                 userService.returnedTrainTimes(crtUserId);
                 channel.basicAck(deliveryTag, false);
                 return;
             }
-            else if ("fail".equals(run.getString("status"))) {
-                Long crtUserId = sdTrainPreTaskService.selectCrtUserIdById(preTaskId);
-                log.error("模型训练任务>>>>>>>>>训练失败：{}",run.getString("message"));
-                sdTrainPreTaskService.modifyNewStatusById(preTaskId,6, run.getString("message"), sdGpuPool);
-                RedisUtils.delCacheListValue(TRAIN_TASK_QUEUE_LIST,preTaskId);
-                RedisUtils.deleteKey(TRAIN_PROCESS+preTaskId);
-                returnGpuFromTrainGpuPool(preTaskId);
-                userService.returnedTrainTimes(crtUserId);
-                channel.basicAck(deliveryTag, false);
-                return;
+            // 开始执行训练任务
+            sdTrainPreTaskService.startTrainTask(preTaskId,taskId,new Date(),sdGpuPool);
+            if ("V1".equals(trainVersion) || StringUtils.isBlank(trainVersion)) {
+                // 添加训练任务到训练任务列表
+                RedisUtils.setCacheMapValue(TRAIN_MODEL_PROGRESS_TASK_MAP_V1,taskId,preTaskId);
+                // 从训练任务队列中移除
+                RedisUtils.delCacheListValue(TRAIN_TASK_QUEUE_LIST_V1,preTaskId);
             }
-            final String taskId = run.getJSONObject("data").getString("taskId");
-            // 修改为进行中状态
-            sdTrainPreTaskService.updateTaskIdAndNewStatus(preTaskId,taskId,trainParams,params.getString("modelName"),new Date(),4, sdGpuPool);
-            RedisUtils.setCacheMapValue(TRAIN_MODEL_PROGRESS_TASK_MAP,taskId,preTaskId);
+            else {
+                // 添加训练任务到训练任务列表
+                RedisUtils.setCacheMapValue(TRAIN_MODEL_PROGRESS_TASK_MAP_V2,taskId,preTaskId);
+                RedisUtils.delCacheListValue(TRAIN_TASK_QUEUE_LIST_V2,preTaskId);
+            }
             channel.basicAck(deliveryTag, false);
         }
         catch (Exception e) {
-            RedisUtils.delCacheListValue(TRAIN_TASK_QUEUE_LIST,preTaskId);
-            RedisUtils.deleteKey(TRAIN_PROCESS+preTaskId);
+            RedisUtils.delCacheListValue(TRAIN_TASK_QUEUE_LIST_V1,preTaskId);
+            RedisUtils.delCacheListValue(TRAIN_TASK_QUEUE_LIST_V2,preTaskId);
+            RedisUtils.deleteKey(TRAIN_PROCESS+taskId);
             returnGpuFromTrainGpuPool(preTaskId);
-            log.error("模型训练任务>>>>>>>>>任务ID[{}],训练异常,重新进入队列：{}", preTaskId,e.getMessage());
+            log.error("模型训练任务>>>>>>>>>任务ID[{}],训练异常,重新进入队列：", preTaskId, e);
             channel.basicNack(deliveryTag, false, true);
         }
     }
@@ -921,17 +945,19 @@ public class SdTrainServiceImpl implements SdTrainService {
         SdTrainTask sdTrainTask = sdTrainPreTaskService.selectDetailByTaskId(taskId);
         if (sdTrainTask==null || sdTrainTask.getNewStatus()==2 || sdTrainTask.getNewStatus()>4) {
             if (sdTrainTask!=null) {
+                long preTaskId = sdTrainTask.getId();
                 // 将当前任务从任务列表中移除
-                RedisUtils.delCacheMapValue(TRAIN_MODEL_PROGRESS_TASK_MAP,sdTrainTask.getTaskId());
-                RedisUtils.delCacheList(TRAIN_TASK_QUEUE_LIST,Collections.singletonList(sdTrainTask.getId()));
-                returnGpuFromTrainGpuPool(String.valueOf(sdTrainTask.getId()));
+                RedisUtils.delCacheMapValue(TRAIN_MODEL_PROGRESS_TASK_MAP_V1, taskId);
+                RedisUtils.delCacheListValue(TRAIN_TASK_QUEUE_LIST_V1,preTaskId);
+                returnGpuFromTrainGpuPool(String.valueOf(preTaskId));
             }
             return new TrainProcessDataVo().setId(taskId).setStatus("FINISHED");
         }
-        SdGpuPool sdGpuPool = RedisUtils.getCacheObject(TRAIN_GPU_TASK+sdTrainTask.getId());
+        long preTaskId = sdTrainTask.getId();
+        SdGpuPool sdGpuPool = RedisUtils.getCacheObject(TRAIN_GPU_TASK+ preTaskId);
         if (sdGpuPool==null) {
-            RedisUtils.delCacheMapValue(TRAIN_MODEL_PROGRESS_TASK_MAP,sdTrainTask.getTaskId());
-            RedisUtils.delCacheList(TRAIN_TASK_QUEUE_LIST,Collections.singletonList(sdTrainTask.getId()));
+            RedisUtils.delCacheMapValue(TRAIN_MODEL_PROGRESS_TASK_MAP_V1, taskId);
+            RedisUtils.delCacheListValue(TRAIN_TASK_QUEUE_LIST_V1,preTaskId);
             return new TrainProcessDataVo().setId(taskId).setStatus("FINISHED");
         }
 
@@ -948,11 +974,12 @@ public class SdTrainServiceImpl implements SdTrainService {
         }
         LinkedHashMap<String, String> map = task.get();
         if ("FINISHED".equals(map.get("status"))) {
-            sdTrainPreTaskService.completeTrainTask(map.get("id"),new Date());
-            sdTrainTask.setEndTime(new Date());
-            RedisUtils.delCacheMapValue(TRAIN_MODEL_PROGRESS_TASK_MAP,sdTrainTask.getTaskId());
-            RedisUtils.delCacheList(TRAIN_TASK_QUEUE_LIST,Collections.singletonList(sdTrainTask.getId()));
-            returnGpuFromTrainGpuPool(String.valueOf(sdTrainTask.getId()));
+            Date endTime = new Date();
+            sdTrainPreTaskService.completeTrainTask(map.get("id"), endTime);
+            sdTrainTask.setEndTime(endTime);
+            RedisUtils.delCacheMapValue(TRAIN_MODEL_PROGRESS_TASK_MAP_V1, taskId);
+            RedisUtils.delCacheListValue(TRAIN_TASK_QUEUE_LIST_V1,preTaskId);
+            returnGpuFromTrainGpuPool(String.valueOf(preTaskId));
             CompletableFuture.runAsync(()-> dealTrainModelFile(sdTrainTask),executor)
             .exceptionally(e -> {
                 log.error("处理模型文件出现异常：{}",e.getMessage());
@@ -966,6 +993,9 @@ public class SdTrainServiceImpl implements SdTrainService {
         // preTaskId、newStatus
         JSONObject taskInfo = sdTrainPreTaskService.selectNewStatusByTaskId(taskId);
         if (taskInfo==null) {
+            // 将当前任务从任务列表中移除
+            RedisUtils.deleteKey(TRAIN_PROCESS+taskId);
+            RedisUtils.delCacheMapValue(TRAIN_MODEL_PROGRESS_TASK_MAP_V2,taskId);
             throw new ServiceException("任务不存在!");
         }
         final String preTaskId = taskInfo.getString("preTaskId");
@@ -973,23 +1003,32 @@ public class SdTrainServiceImpl implements SdTrainService {
         if (StringUtils.isBlank(preTaskId) || newStatus<=2 || newStatus>4) {
             // 将当前任务从任务列表中移除
             RedisUtils.deleteKey(TRAIN_PROCESS+taskId);
-            RedisUtils.delCacheMapValue(TRAIN_MODEL_PROGRESS_TASK_MAP,taskId);
-            RedisUtils.delCacheListValue(TRAIN_TASK_QUEUE_LIST,preTaskId);
+            RedisUtils.delCacheMapValue(TRAIN_MODEL_PROGRESS_TASK_MAP_V2,taskId);
+            RedisUtils.delCacheListValue(TRAIN_TASK_QUEUE_LIST_V2,preTaskId);
+            returnGpuFromTrainGpuPool(preTaskId);
+            return new TrainProcessDataVo().setId(taskId).setStatus("FINISHED").setProcess(100);
+        }
+        if (newStatus>=5) {
+            // 将当前任务从任务列表中移除
+            RedisUtils.deleteKey(TRAIN_PROCESS+taskId);
+            RedisUtils.delCacheMapValue(TRAIN_MODEL_PROGRESS_TASK_MAP_V2,taskId);
+            RedisUtils.delCacheListValue(TRAIN_TASK_QUEUE_LIST_V2,preTaskId);
             returnGpuFromTrainGpuPool(preTaskId);
             return new TrainProcessDataVo().setId(taskId).setStatus("FINISHED").setProcess(100);
         }
         // 从redis中获取训练任务进度
         String status = RedisUtils.getCacheMapValue(TRAIN_PROCESS+taskId,"status");
-        if (StrUtil.isEmptyIfStr(status)) {
-            RedisUtils.delCacheMapValue(TRAIN_MODEL_PROGRESS_TASK_MAP,taskId);
-            RedisUtils.delCacheListValue(TRAIN_TASK_QUEUE_LIST,preTaskId);
-            return new TrainProcessDataVo().setId(taskId).setStatus("FINISHED").setProcess(100);
+        Integer progress = RedisUtils.getCacheMapValue(TRAIN_PROCESS+taskId,"progress");
+        String reason = RedisUtils.getCacheMapValue(TRAIN_PROCESS+taskId,"reason");
+        Integer remainingTime = RedisUtils.getCacheMapValue(TRAIN_PROCESS+taskId,"remainingTime");
+        if (StrUtil.isEmptyIfStr(status) || "CREATED".equals(status)) {
+            return new TrainProcessDataVo().setId(taskId).setStatus("CREATED").setProcess(progress);
         }
-        if ("FINISHED".equals(status)) {
+        else if ("FINISHED".equals(status) || "TERMINATED".equals(status) || "FAILED".equals(status)) {
             sdTrainPreTaskService.completeTrainTask(taskId,new Date());
             RedisUtils.deleteKey(TRAIN_PROCESS+taskId);
-            RedisUtils.delCacheMapValue(TRAIN_MODEL_PROGRESS_TASK_MAP,taskId);
-            RedisUtils.delCacheListValue(TRAIN_TASK_QUEUE_LIST,preTaskId);
+            RedisUtils.delCacheMapValue(TRAIN_MODEL_PROGRESS_TASK_MAP_V2,taskId);
+            RedisUtils.delCacheListValue(TRAIN_TASK_QUEUE_LIST_V2,preTaskId);
             returnGpuFromTrainGpuPool(preTaskId);
             try {
                 Thread.sleep(200);
@@ -1002,57 +1041,53 @@ public class SdTrainServiceImpl implements SdTrainService {
                 log.error("处理模型文件出现异常：",e);
                 return null;
             });
+            return new TrainProcessDataVo().setId(taskId).setStatus("FINISHED").setProcess(100);
         }
-        return new TrainProcessDataVo().setId(taskId).setStatus(taskInfo.getString("status")).setProcess(taskInfo.getIntValue("process")).setReason(taskInfo.getString("reason")).setRemainingTime(taskInfo.getIntValue("remainingTime"));
+        return new TrainProcessDataVo().setId(taskId).setStatus(status).setProcess(progress).setReason(reason).setRemainingTime(remainingTime);
     }
     private void dealTrainModelFile(SdTrainTask sdTrainTask) {
+        // 预处理任务ID
+        final long preTaskId = sdTrainTask.getId();
+        // 训练参数
         JSONObject trainParams = JSONObject.parseObject(sdTrainTask.getTrainParams());
         // 训练后的模型原始名称
         String oldModelName = trainParams.getString("output_name");
+        // 预处理参数
         JSONObject preParams = JSONObject.parseObject(sdTrainTask.getPreParams());
-        // 获取数据集中的第一张图片作为训练模型的封面，移除训练器容器中的目录前缀
-        // path -> /lora-scripts/train-data/{userId}/{preTaskId}/*
-        File[] imgs = FileUtil.ls(preParams.getString("path").replace("/lora-scripts","")+CommonUtil.suggestNumRepeat());
-        if (imgs != null) {
-            Optional<File> first = Arrays.stream(imgs).filter(e ->
-                e.getName().contains(".png") || e.getName().contains(".PNG") ||
-                    e.getName().contains(".jpg") || e.getName().contains(".JPG") ||
-                    e.getName().contains(".jpeg") || e.getName().contains(".JPEG")
-            ).findFirst();
-            if (first.isPresent()) {
-                File img = first.get();
-                log.warn("训练完成>>>>>>>>>复制数据集中的第一张图片作为模型图片：{}",img.getPath());
-                try {
-                    FileInputStream inputStream = new FileInputStream(img);
-                    FileOutputStream outputStream = new FileOutputStream("/models/"+oldModelName+img.getName().substring(img.getName().lastIndexOf(".")));
-                    IoUtil.copy(inputStream,outputStream);
-                } catch (FileNotFoundException e) {
-                    log.error("训练完成>>>>>>>>>需要复制的模型图片不存在：{}",e.getMessage());
-                }
-            }
-        }
+        // 处理模型封面图片
+        dealModelImg(preParams.getString("path"),preTaskId,oldModelName);
 
-        String oldModelDir = "/output/"+sdTrainTask.getId();
+        // 训练后的模型所在目录
+        //TODO windows
+        String oldModelDir = "/output/"+ preTaskId;
+//        String oldModelDir = "D:\\project\\ai_project\\models\\Lora\\train\\"+ preTaskId;
+        // 原始模型名称
+        String modelName = oldModelName+"."+trainParams.getString("save_model_as");
+        // 最后一轮训练的模型名称后缀
         String suffix = String.format("%06d",trainParams.getIntValue("max_train_epochs"));
-
         // 重命名最后一轮生成的模型名称
-        String modelName = oldModelName+"."+ trainParams.getString("save_model_as");
         String newModelName = oldModelName+"-"+suffix+ "." + trainParams.getString("save_model_as");
+        //TODO windows
         File startFile = new File(oldModelDir+"/"+modelName);
+//        File startFile = new File(oldModelDir+"\\"+modelName);
+        //TODO windows
         File renameFile = new File(oldModelDir+"/"+newModelName);
-
+//        File renameFile = new File(oldModelDir+"\\"+newModelName);
         log.warn("训练完成>>>>>>>>>修改最后一轮训练的模型名称：{}->{}",startFile.getPath(),renameFile.getPath());
         startFile.renameTo(renameFile);
 
-        log.warn("训练完成>>>>>>>>>拷贝训练模型到SdWebUI的lora目录下：{}->{}",oldModelDir,"/models");
-        // 移动全部模型到sd的models/Lora目录下
+        // 全部模型移动到sd的models/Lora目录下
+        //TODO windows
+        String modelDir = "/models/";
+//        String modelDir = "D:\\project\\ai_project\\models\\Lora\\sd\\";
+        log.warn("训练完成>>>>>>>>>拷贝训练模型到SdWebUI的lora目录下：{}->{}",oldModelDir,modelDir);
         try{
             File[] files = FileUtil.ls(oldModelDir);
             if (files != null) {
                 for (File file : files) {
                     try {
                         FileInputStream inputStream = new FileInputStream(file);
-                        FileOutputStream outputStream = new FileOutputStream("/models/"+file.getName());
+                        FileOutputStream outputStream = new FileOutputStream(modelDir+file.getName());
                         IoUtil.copy(inputStream,outputStream);
                     } catch (FileNotFoundException e) {
                         log.error("训练完成>>>>>>>>>需要复制的模型文件不存在：{}",e.getMessage());
@@ -1061,24 +1096,21 @@ public class SdTrainServiceImpl implements SdTrainService {
             }
         }
         catch (Exception e) {
-            log.error("训练完成>>>>>>>>>拷贝训练模型到SdWebUI的lora目录下：{}->{}报错：{}",oldModelDir,"/models",e.getMessage());
+            log.error("训练完成>>>>>>>>>拷贝训练模型到SdWebUI的lora目录下：{}->{}报错：{}",oldModelDir,modelDir,e.getMessage());
         }
 
-        // 删除模型目录
-        File outputDir = new File("/output/"+sdTrainTask.getId());
+        // 删除原始lora模型目录
+        File outputDir = new File(oldModelDir);
         log.warn("训练完成>>>>>>>>>删除训练模型[{}]的所在原目录：{}",modelName,outputDir.getPath());
         FileUtil.del(outputDir);
-
         // 删除redis
-        RedisUtils.deleteMultiObject(TRAIN_ADDITION_LIST+sdTrainTask.getId(),TRAIN_TAG_TRANSLATE_MAP+sdTrainTask.getId());
-        RedisUtils.delCacheList(TRAIN_TASK_QUEUE_LIST,Collections.singletonList(sdTrainTask.getId()));
-
+        RedisUtils.deleteMultiObject(TRAIN_ADDITION_LIST+ preTaskId,TRAIN_TAG_TRANSLATE_MAP+ preTaskId);
         // 通知刷新lora模型
         applicationEventPublisher.publishEvent(new RefreshLoraEvent(true));
 
         // 发送微信公众号消息
         JSONObject wxMsg = new JSONObject();
-        wxMsg.put("preTaskId",sdTrainTask.getId());
+        wxMsg.put("preTaskId", preTaskId);
         wxMsg.put("taskId",sdTrainTask.getTaskId());
         wxMsg.put("belongUserId",sdTrainTask.getCrtUserId());
         wxMsg.put("belongUserName",sdTrainTask.getCrtUserName());
@@ -1087,7 +1119,42 @@ public class SdTrainServiceImpl implements SdTrainService {
         wxMsg.put("oldModelName",oldModelName);
         wxMsg.put("startTime",DateUtil.formatDateTime(sdTrainTask.getStartTime()));
         wxMsg.put("endTime",DateUtil.formatDateTime(sdTrainTask.getEndTime()));
+        //TODO windows
         rabbitTemplate.convertAndSend(WX_MSG_EXCHANGE,WX_MSG_ROUTING_KEY,wxMsg);
+    }
+    /**
+     * 处理数据集的第一张图片作为模型图片
+     *
+     * @param path         训练数据集目录
+     * @param preTaskId
+     * @param oldModelName 训练的模型原始名称
+     */
+    private void dealModelImg(String path, long preTaskId, String oldModelName) {
+        // 获取数据集中的第一张图片作为训练模型的封面，移除训练器容器中的目录前缀
+        // path -> /lora-scripts/train-data/{userId}/{preTaskId}/*
+        File[] imgs = FileUtil.ls(path.replace("/lora-scripts","")+CommonUtil.suggestNumRepeat());
+        //TODO windows
+        String modelImgDir = "/models/"+preTaskId+"/";
+//        String modelImgDir = "D:\\project\\ai_project\\models\\Lora\\train\\"+preTaskId+"\\";
+        if (imgs != null) {
+            Optional<File> first = Arrays.stream(imgs).filter(e ->
+                e.getName().contains(".png") || e.getName().contains(".PNG") ||
+                    e.getName().contains(".jpg") || e.getName().contains(".JPG") ||
+                    e.getName().contains(".jpeg") || e.getName().contains(".JPEG")
+            ).findFirst();
+            if (first.isPresent()) {
+                File img = first.get();
+                String newModelImgPath = modelImgDir+oldModelName+img.getName().substring(img.getName().lastIndexOf("."));
+                log.warn("训练完成>>>>>>>>>复制数据集中的第一张图片作为模型图片：{}->{}",img.getPath(),newModelImgPath);
+                try {
+                    FileInputStream inputStream = new FileInputStream(img);
+                    FileOutputStream outputStream = new FileOutputStream(newModelImgPath);
+                    IoUtil.copy(inputStream,outputStream);
+                } catch (FileNotFoundException e) {
+                    log.error("训练完成>>>>>>>>>需要复制的模型图片不存在：{}",e.getMessage());
+                }
+            }
+        }
     }
     /** 模型训练任务 end **/
 
@@ -1153,7 +1220,7 @@ public class SdTrainServiceImpl implements SdTrainService {
     }
 
     /** 创建文件夹监听器 **/
-    private void createFileDirMonitor(File dir, String taskId) {
+    private void createFileDirMonitor(File dir, String preTaskId) {
         // 只监听目录的创建事件
         WatchMonitor watchMonitor = WatchMonitor.create(dir, WatchMonitor.ENTRY_CREATE);
         watchMonitor.setWatcher(new SimpleWatcher() {
@@ -1161,7 +1228,7 @@ public class SdTrainServiceImpl implements SdTrainService {
             public void onCreate(WatchEvent<?> watchEvent, Path path) {
                 Object context = watchEvent.context();
                 log.warn("创建：{}-->{}", path, context);
-                RedisUtils.incrAtomicValue(PRE_IMG_PROGRESS_COMPLETE+taskId);
+                RedisUtils.incrAtomicValue(PRE_IMG_PROGRESS_COMPLETE+preTaskId);
                 File txtFile = new File(path.toFile().getPath()+"/"+context);
                 try (Stream<String> lines = Files.lines(txtFile.toPath())) {
                     Optional<String> content = lines.findFirst();
@@ -1182,7 +1249,7 @@ public class SdTrainServiceImpl implements SdTrainService {
                                 }
                                 if (StrUtil.isNotEmpty(zhStr) && !enStr.equals(zhStr)) {
                                     RedisUtils.setCacheMapValue(TRANSLATE_EN_TO_ZH_MAP, enStr, zhStr);
-                                    RedisUtils.setCacheMapValue(TRAIN_TAG_TRANSLATE_MAP + taskId,enStr,zhStr);
+                                    RedisUtils.setCacheMapValue(TRAIN_TAG_TRANSLATE_MAP + preTaskId,enStr,zhStr);
                                 }
                             }
                         }
@@ -1195,7 +1262,7 @@ public class SdTrainServiceImpl implements SdTrainService {
         });
         // 启动监听
         watchMonitor.start();
-        MONITOR_MAP.put(taskId,watchMonitor);
+        MONITOR_MAP.put(preTaskId,watchMonitor);
     }
 
     /** 下线指定GPU **/

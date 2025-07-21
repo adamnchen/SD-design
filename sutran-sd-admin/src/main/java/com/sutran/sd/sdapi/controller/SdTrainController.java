@@ -46,8 +46,8 @@ public class SdTrainController {
     @ApiOperationSupport(order = 1)
     @GetMapping("/v2/my-task/page")
     public TableDataInfo<TrainTaskVo> pageTrainTasksV2(@RequestParam(required = false) Integer newStatus,
-                                                       @RequestParam(required = false) Integer pageNum,
-                                                       @RequestParam(required = false) Integer pageSize){
+                                                       @RequestParam(defaultValue = "1") int pageNum,
+                                                       @RequestParam(defaultValue = "20") int pageSize){
         PageQuery pageQuery = new PageQuery();
         pageQuery.setPageNum(pageNum);
         pageQuery.setPageSize(pageSize);
@@ -119,7 +119,7 @@ public class SdTrainController {
     }
 
     /**
-     * [V2]SD预处理-获取预处理图片进度V2
+     * [V2]SD预处理-获取预处理图片进度
      */
     @ApiOperationSupport(order = 7)
     @GetMapping("/v2/pre-img/progress")
@@ -198,7 +198,7 @@ public class SdTrainController {
     }
 
     /**
-     * SD训练-查询训练进度V2
+     * [V2]SD训练-查询训练进度
      */
     @ApiOperationSupport(order = 13)
     @GetMapping("/v2/progress")

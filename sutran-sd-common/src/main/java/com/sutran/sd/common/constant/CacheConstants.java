@@ -47,49 +47,58 @@ public interface CacheConstants {
      */
     String CHECK_POINT = "CHECK_POINT";
 
+
     /**
-     * 图片预处理总数redis key
+     * V1:图片预处理总数redis key
      */
     String PRE_IMG_PROGRESS_TOTAL = "PRE_IMG_PROGRESS:TOTAL:";
-
     /**
-     * 图片预处理已完成数redis key
+     * V1:图片预处理已完成数redis key
      */
     String PRE_IMG_PROGRESS_COMPLETE = "PRE_IMG_PROGRESS:COMPLETE:";
-
     /**
-     * 图片预处理进度
+     * V2:图片预处理进度
      */
     String PRE_IMG_PROCESS = "interrogator_task:";
-
     /**
-     * 图片预处理任务队列
+     * V1:图片预处理任务队列
      */
-    String PRE_IMG_TASK_QUEUE_LIST = "PRE_IMG_TASK_QUEUE_LIST";
+    String PRE_IMG_TASK_QUEUE_LIST_V1 = "PRE_IMG_TASK_QUEUE_LIST_V1";
+    /**
+     * V2:图片预处理任务队列
+     */
+    String PRE_IMG_TASK_QUEUE_LIST_V2 = "PRE_IMG_TASK_QUEUE_LIST_V2";
+
 
     /**
      * 标签词翻译redis key
      */
     String TRAIN_TAG_TRANSLATE_MAP = "TRAIN_TAG_TRANSLATE_MAP:";
-
     /**
      * 共性词数组redis key
      */
     String TRAIN_ADDITION_LIST = "TRAIN_ADDITION_LIST:";
-
     /**
-     * 预处理任务进度
+     * 训练任务列表V1
      */
-    String PRE_IMG_PROGRESS_TASK_MAP = "PRE_IMG_PROGRESS_TASK_MAP";
-
+    String TRAIN_MODEL_PROGRESS_TASK_MAP_V1 = "TRAIN_MODEL_PROGRESS_TASK_MAP_V1";
     /**
-     * 训练任务进度
+     * 训练任务列表V2
      */
-    String TRAIN_MODEL_PROGRESS_TASK_MAP = "TRAIN_MODEL_PROGRESS_TASK_MAP";
+    String TRAIN_MODEL_PROGRESS_TASK_MAP_V2 = "TRAIN_MODEL_PROGRESS_TASK_MAP_V2";
+    /**
+     * 训练任务队列V1
+     */
+    String TRAIN_TASK_QUEUE_LIST_V1 = "TRAIN_TASK_QUEUE_LIST_V1";
+    /**
+     * 训练任务队列V2
+     */
+    String TRAIN_TASK_QUEUE_LIST_V2 = "TRAIN_TASK_QUEUE_LIST_V2";
     /**
      * 训练任务进度
      */
     String TRAIN_PROCESS = "train_task:";
+
 
     /**
      * 英文翻译成中文
@@ -101,15 +110,12 @@ public interface CacheConstants {
      */
     String TRANSLATE_ZH_TO_EN_MAP = "TRANSLATE_ZH_TO_EN_MAP";
 
+
     /**
      * 绘图任务在队列中存在的时间
      */
     String DRAW_TASK_TIME_IN_QUEUE_MAP = "DRAW_TASK_TIME_IN_QUEUE_MAP";
 
-    /**
-     * 训练任务队列排序
-     */
-    String TRAIN_TASK_QUEUE_LIST = "TRAIN_TASK_QUEUE_LIST";
 
     /**
      * 训练卡池

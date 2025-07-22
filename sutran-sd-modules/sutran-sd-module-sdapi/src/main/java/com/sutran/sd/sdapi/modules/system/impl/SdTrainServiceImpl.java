@@ -161,7 +161,7 @@ public class SdTrainServiceImpl implements SdTrainService {
     public TrainPreImgTaskVo getPreImgList(String preTaskId) {
         SdTrainTask task;
         // 没有预处理任务ID，则按照当前登录用查询
-        if (StrUtil.isNotEmpty(preTaskId)) {
+        if (StrUtil.isNotEmpty(preTaskId) || "null".equals(preTaskId)) {
             task = sdTrainPreTaskService.selectDetailById(preTaskId);
         }
         else {
@@ -194,9 +194,9 @@ public class SdTrainServiceImpl implements SdTrainService {
         List<TrianImgDataVo> results = CommonUtil.readTagFromTxtAndImgUrl(group, wjValueList);
 
         // 获取预处理任务下的所有共性词
-        Set<String> additionTags = RedisUtils.getCacheSet(TRAIN_ADDITION_LIST + preTaskId);
+        Set<String> additionTags = RedisUtils.getCacheSet(TRAIN_ADDITION_LIST + task.getId());
         // 获取预处理任务下的所有标签翻译
-        Map<String, String> cacheMap = RedisUtils.getCacheMap(TRAIN_TAG_TRANSLATE_MAP + preTaskId);
+        Map<String, String> cacheMap = RedisUtils.getCacheMap(TRAIN_TAG_TRANSLATE_MAP + task.getId());
         return new TrainPreImgTaskVo()
             .setImgList(results)
             .setPreTaskId(String.valueOf(task.getId()))
@@ -674,7 +674,7 @@ public class SdTrainServiceImpl implements SdTrainService {
         }
         SdTrainTask sdTrainTask = sdTrainPreTaskService.selectDetailById(preTaskId);
         if (sdTrainTask==null) {
-            throw new ServiceException("图片预处理任务不存!");
+            throw new ServiceException("图片预处理任务不存在!");
         }
         else if (sdTrainTask.getNewStatus()<2) {
             throw new ServiceException("图片预处理任务已开始,不可进行添加共性词操作!");
@@ -708,7 +708,8 @@ public class SdTrainServiceImpl implements SdTrainService {
         // 添加共性词数组
         RedisUtils.setCacheSet(TRAIN_ADDITION_LIST+ preTaskId,Collections.singleton(additionTagEn));
         // 将共性词更新到数据库
-        sdTrainPreTaskService.updateAdditionTag(preTaskId,JSON.toJSONString(Collections.singleton(additionTagEn)));
+        tagSet.add(additionTagEn);
+        sdTrainPreTaskService.updateAdditionTag(preTaskId,JSON.toJSONString(tagSet));
     }
 
     /** 删除标签 **/
@@ -900,7 +901,7 @@ public class SdTrainServiceImpl implements SdTrainService {
             log.warn("模型训练任务>>>>>>>>>启动训练：{}",run);
             String status = run.getString("status");
             JSONObject data = run.getJSONObject("data");
-            taskId = CollectionUtil.isEmpty(data)? null: data.getString("task_id");
+            taskId = CollectionUtil.isEmpty(data)? null: StringUtils.isBlank(data.getString("taskId"))?data.getString("task_id"):data.getString("taskId");
             if ("error".equals(status) || "fail".equals(status)) {
                 Long crtUserId = sdTrainPreTaskService.selectCrtUserIdById(preTaskId);
                 log.error("模型训练任务>>>>>>>>>训练失败：{}",run.getString("message"));

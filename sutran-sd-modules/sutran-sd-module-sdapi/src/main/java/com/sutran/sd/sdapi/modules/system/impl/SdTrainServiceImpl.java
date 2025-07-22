@@ -199,7 +199,7 @@ public class SdTrainServiceImpl implements SdTrainService {
         Map<String, String> cacheMap = RedisUtils.getCacheMap(TRAIN_TAG_TRANSLATE_MAP + preTaskId);
         return new TrainPreImgTaskVo()
             .setImgList(results)
-            .setPreTaskId(String.valueOf(preTaskId))
+            .setPreTaskId(String.valueOf(task.getId()))
             .setNewStatus(task.getNewStatus())
             .setStatus(task.getStatus())
             .setTaskId(task.getTaskId())

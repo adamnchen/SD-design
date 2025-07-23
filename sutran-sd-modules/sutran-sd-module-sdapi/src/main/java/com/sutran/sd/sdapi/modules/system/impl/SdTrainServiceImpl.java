@@ -1135,7 +1135,7 @@ public class SdTrainServiceImpl implements SdTrainService {
         // path -> /lora-scripts/train-data/{userId}/{preTaskId}/*
         File[] imgs = FileUtil.ls(path.replace("/lora-scripts","")+CommonUtil.suggestNumRepeat());
         //TODO windows
-        String modelImgDir = "/models/"+preTaskId+"/";
+        String modelImgDir = "/models/";
 //        String modelImgDir = "D:\\project\\ai_project\\models\\Lora\\train\\"+preTaskId+"\\";
         if (imgs != null) {
             Optional<File> first = Arrays.stream(imgs).filter(e ->

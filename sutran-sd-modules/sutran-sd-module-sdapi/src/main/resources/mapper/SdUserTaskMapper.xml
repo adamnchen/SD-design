@@ -33,7 +33,7 @@
     </select>
 
     <select id="getDoingTask" resultType="java.lang.String">
-        SELECT task_id FROM sd_user_task WHERE category=#{category} AND belong_user_id=#{userId} AND status IN (0,1) ORDER BY task_id DESC
+        SELECT task_id FROM sd_user_task WHERE category=#{category} AND belong_user_id=#{userId} AND status IN (0,1) ORDER BY task_id DESC LIMIT 1
     </select>
 
     <select id="selectStatusByTaskId" resultType="java.lang.Integer">

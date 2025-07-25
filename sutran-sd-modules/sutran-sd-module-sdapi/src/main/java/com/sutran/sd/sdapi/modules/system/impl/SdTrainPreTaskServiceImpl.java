@@ -41,7 +41,7 @@ public class SdTrainPreTaskServiceImpl implements SdTrainPreTaskService {
     @Override
     public Page<SdTrainTask> selectListByUserIdAndNewStatus(Long userId, Integer newStatus, PageQuery pageQuery) {
         LambdaQueryWrapper<SdTrainTask> lqw = new LambdaQueryWrapper<>();
-        lqw.eq(SdTrainTask::getCrtUserId, userId).eq(newStatus!=null, SdTrainTask::getNewStatus, newStatus).orderByAsc(SdTrainTask::getId).orderByDesc(SdTrainTask::getCrtTime);
+        lqw.eq(SdTrainTask::getCrtUserId, userId).eq(newStatus!=null, SdTrainTask::getNewStatus, newStatus).orderByDesc(SdTrainTask::getCrtTime);
         return baseMapper.selectPage(pageQuery.build(),lqw);
     }
 

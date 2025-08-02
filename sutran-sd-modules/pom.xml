@@ -18,5 +18,6 @@
         <module>sutran-sd-module-generator</module>
         <module>sutran-sd-module-sdapi</module>
         <module>sutran-sd-module-ai</module>
+        <module>sutran-sd-module-pay</module>
     </modules>
 </project>

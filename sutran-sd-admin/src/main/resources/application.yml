@@ -306,8 +306,10 @@ spring:
           # jdbc 所有参数配置参考 https://lionli.blog.csdn.net/article/details/122018562
           # rewriteBatchedStatements=true 批处理优化 大幅提升批量插入更新删除性能(对数据库有性能损耗 使用批量操作应考虑性能问题)
           url: jdbc:mysql://192.168.3.7:3306/sutran-sd-v1?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=true&serverTimezone=GMT%2B8&autoReconnect=true&rewriteBatchedStatements=true
+#          url: jdbc:mysql://106.15.90.128:9104/sutran-sd-v1?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=true&serverTimezone=GMT%2B8&autoReconnect=true&rewriteBatchedStatements=true
           username: root
           password: zhujun1995!@#$%
+#          password: sd2024@.
         # 从库数据源
         slave:
           lazy: true
@@ -337,12 +339,15 @@ spring:
   redis:
     # 地址
     host: 192.168.3.7
+#    host: 106.15.90.128
     # 端口，默认为6379
     port: 6379
+#    port: 9108
     # 数据库索引
     database: 5
     # 密码(如没有密码请注释掉)
     password: 123456
+#    password: sd2024@.
     # 连接超时时间
     timeout: 10s
     # 是否开启ssl
@@ -374,6 +379,7 @@ redisson:
 spring:
   rabbitmq:
     host: 192.168.3.7
+#    host: 192.168.3.48
     port: 5672
     username: admin
     password: 123456
@@ -425,6 +431,7 @@ sms:
     accessKeySecret: xxxxxxx
     #短信签名
     signature: 测试
+    template-id: SMS_492085026
   tencent:
     #请求地址默认为 sms.tencentcloudapi.com 如无特殊改变可不用设置
     requestUrl: sms.tencentcloudapi.com
@@ -438,8 +445,9 @@ sms:
     sdkAppId: appid
     #地域信息默认为 ap-guangzhou 如无特殊改变可不用设置
     territory: ap-guangzhou
+    template-id: SMS_492085026
 
---- # 微信公众号配置
+--- # 微信公众号 和 微信支付配置
 wx:
   mp:
     app-id: wx78ff2a7ea0facd69
@@ -464,6 +472,17 @@ wx:
         port: 6379
         password: 123456
         database: 5
+  pay:
+    v3:
+      appId: wx78ff2a7ea0facd69
+      keyPath: key.pem
+      certPath: cert.pem
+      certP12Path: cert.p12
+      platformCertPath: wx_cert.pem
+      mchId: 微信商户号
+      apiKey: Api 密钥
+      apiKey3: Api-v3 密钥
+      domain: https://ijpay.javen.com
 
 --- # 有道翻译
 translator:

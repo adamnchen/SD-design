@@ -31,6 +31,10 @@ public class SdUserModelDto implements Serializable {
      */
     private String isAsc;
 
+    /**
+     * 发布状态
+     */
+    private Integer publishStatus;
     private String modelNameZh;
     private String belongUserName;
     private String startDate;

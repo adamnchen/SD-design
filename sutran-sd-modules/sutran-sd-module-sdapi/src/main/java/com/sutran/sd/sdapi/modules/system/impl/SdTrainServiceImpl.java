@@ -424,6 +424,8 @@ public class SdTrainServiceImpl implements SdTrainService {
         params.put("task_id",preTaskId);
         // 添加到预处理任务队列中
         RedisUtils.setCacheListValue(PRE_IMG_TASK_QUEUE_LIST_V2,preTaskId);
+        // 创建该数据集文件夹监听任务(主要是处理标签文件翻译)
+        CompletableFuture.runAsync(()->createFileDirMonitorV2(parent,preTaskId),executor);
         try {
             rabbitTemplate.convertAndSend(SD_PRE_IMG_TASK_EXCHANGE,SD_PRE_IMG_TASK_ROUTING_KEY,params,new CorrelationData(preTaskId));
         }
@@ -872,8 +874,13 @@ public class SdTrainServiceImpl implements SdTrainService {
         final String trainVersion = params.getString("trainVersion");
         Integer newStatus = sdTrainPreTaskService.selectNewStatusById(preTaskId);
         if (newStatus == null || newStatus<=2 ||  newStatus>5) {
-            log.error("模型训练任务>>>>>>>>>前置任务不存在或未开始或已结束,不可进行训练!");
-            RedisUtils.delCacheListValue(TRAIN_TASK_QUEUE_LIST_V1,preTaskId);
+            log.error("模型训练任务>>>>>>>>>前置任务[{}]不存在或未开始或已结束,不可进行训练!",preTaskId);
+            if ("V1".equals(trainVersion) || StringUtils.isBlank(trainVersion)) {
+                RedisUtils.delCacheListValue(TRAIN_TASK_QUEUE_LIST_V1,preTaskId);
+            }
+            else {
+                RedisUtils.delCacheListValue(TRAIN_TASK_QUEUE_LIST_V2,preTaskId);
+            }
             RedisUtils.deleteKey(TRAIN_PROCESS+preTaskId);
             returnGpuFromTrainGpuPool(preTaskId);
             channel.basicAck(deliveryTag, false);
@@ -1246,6 +1253,51 @@ public class SdTrainServiceImpl implements SdTrainService {
                                         zhStr = sysTranslateService.enToZh(enStr,TranslateType.BAIDU);
                                     } catch (NoSuchAlgorithmException ex) {
                                         log.error("翻译失败：{}",ex.getMessage());
+                                    }
+                                }
+                                if (StrUtil.isNotEmpty(zhStr) && !enStr.equals(zhStr)) {
+                                    RedisUtils.setCacheMapValue(TRANSLATE_EN_TO_ZH_MAP, enStr, zhStr);
+                                    RedisUtils.setCacheMapValue(TRAIN_TAG_TRANSLATE_MAP + preTaskId,enStr,zhStr);
+                                }
+                            }
+                        }
+                    }
+                }
+                catch (IOException ex) {
+                    log.error("获取文件[{}]内容失败：{}",path,ex.getMessage());
+                }
+            }
+        });
+        // 启动监听
+        watchMonitor.start();
+        MONITOR_MAP.put(preTaskId,watchMonitor);
+    }
+
+    /** 创建文件夹监听器 **/
+    private void createFileDirMonitorV2(File dir, String preTaskId) {
+        // 只监听目录的创建事件
+        WatchMonitor watchMonitor = WatchMonitor.create(dir, WatchMonitor.ENTRY_CREATE);
+        watchMonitor.setWatcher(new SimpleWatcher() {
+            @Override
+            public void onCreate(WatchEvent<?> watchEvent, Path path) {
+                Object context = watchEvent.context();
+                log.warn("创建：{}-->{}", path, context);
+                File txtFile = new File(path.toFile().getPath()+"/"+context);
+                try (Stream<String> lines = Files.lines(txtFile.toPath())) {
+                    Optional<String> content = lines.findFirst();
+                    if (content.isPresent()) {
+                        String en = content.get();
+                        //去转义
+                        en = StringEscapeUtils.unescapeJava(en);
+                        List<String> enList = Arrays.asList(en.split(", "));
+                        if (CollectionUtil.isNotEmpty(enList)) {
+                            for (String enStr : enList) {
+                                String zhStr = RedisUtils.getCacheMapValue(TRANSLATE_EN_TO_ZH_MAP, enStr);
+                                if (StrUtil.isEmptyIfStr(zhStr)) {
+                                    try{
+                                        zhStr = sysTranslateService.enToZh(enStr,TranslateType.BAIDU);
+                                    } catch (NoSuchAlgorithmException ex) {
+                                        log.error("标签文件翻译失败：",ex);
                                     }
                                 }
                                 if (StrUtil.isNotEmpty(zhStr) && !enStr.equals(zhStr)) {

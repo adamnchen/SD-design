@@ -114,7 +114,6 @@ public class SdTrainPreTaskServiceImpl implements SdTrainPreTaskService {
      * @param trainParams 训练参数
      * @param submitTime 提交时间
      */
-    @Async("threadPoolTaskExecutor")
     @Override
     public void submitTrainTask(String preTaskId, String modelName, String trainParams, Date submitTime) {
         baseMapper.submitTrainTaskById(preTaskId,modelName,trainParams,submitTime);

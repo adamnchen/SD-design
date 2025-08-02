@@ -27,6 +27,7 @@ import org.dromara.sms4j.api.entity.SmsResponse;
 import org.dromara.sms4j.core.factory.SmsFactory;
 import org.dromara.sms4j.provider.enumerate.SupplierType;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.expression.Expression;
 import org.springframework.expression.ExpressionParser;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
@@ -57,6 +58,10 @@ public class CaptchaController {
     private final CaptchaProperties captchaProperties;
     private final ISysConfigService configService;
     private final MailProperties mailProperties;
+    @Value("${sms.alibaba.template-id:SMS_492085026}")
+    private String alibabaTemplateId;
+    @Value("${sms.tencent.template-id:SMS_492085026}")
+    private String tencentTemplateId;
 
     /**
      * 短信验证码
@@ -66,7 +71,6 @@ public class CaptchaController {
     @GetMapping("/captchaSms")
     public R<Void> smsCaptcha(@NotBlank(message = "{user.phonenumber.not.blank}") String phonenumber) {
         // 先判断
-        String templateId = "SMS_465409540";
         String key = CacheConstants.CAPTCHA_CODE_KEY + phonenumber;
         String code = RandomUtil.randomNumbers(4);
         // 验证码模板id 自行处理 (查数据库或写死均可)
@@ -74,7 +78,7 @@ public class CaptchaController {
         map.put("code", code);
         RedisUtils.setCacheObject(key, code, Duration.ofMinutes(Constants.CAPTCHA_EXPIRATION));
         log.warn("短信验证码>>>>>>>>>手机号[{}], 在[{}]时发送了验证码[{}]",phonenumber, DateUtil.now(),code);
-        SmsResponse smsResponse = SmsFactory.createSmsBlend(SupplierType.ALIBABA).sendMessage(phonenumber, templateId, map);
+        SmsResponse smsResponse = SmsFactory.createSmsBlend(SupplierType.ALIBABA).sendMessage(phonenumber, alibabaTemplateId, map);
         if (!"OK".equals(smsResponse.getCode())) {
             log.error("短信验证码>>>>>>>>>手机号[{}], 验证码短信发送异常 => {}", phonenumber, smsResponse);
             return R.fail(smsResponse.getMessage());
@@ -110,7 +114,6 @@ public class CaptchaController {
             return R.fail("验证码错误");
         }
         // 先判断
-        String templateId = "SMS_465409540";
         String phoneKey = CacheConstants.CAPTCHA_CODE_KEY + phoneNumber;
         String phoneCode = RandomUtil.randomNumbers(6);
         // 验证码模板id 自行处理 (查数据库或写死均可)
@@ -118,7 +121,7 @@ public class CaptchaController {
         map.put("code", phoneCode);
         RedisUtils.setCacheObject(phoneKey, phoneCode, Duration.ofMinutes(Constants.CAPTCHA_EXPIRATION));
         log.warn("短信验证码>>>>>>>>>手机号[{}], 在[{}]时发送了验证码[{}]",phoneNumber, DateUtil.now(),phoneCode);
-        SmsResponse smsResponse = SmsFactory.createSmsBlend(SupplierType.ALIBABA).sendMessage(phoneNumber, templateId, map);
+        SmsResponse smsResponse = SmsFactory.createSmsBlend(SupplierType.ALIBABA).sendMessage(phoneNumber, alibabaTemplateId, map);
         if (!"OK".equals(smsResponse.getCode())) {
             log.error("短信验证码>>>>>>>>>手机号[{}], 验证码短信发送异常 => {}", phoneNumber, smsResponse);
             return R.fail(smsResponse.getMessage());

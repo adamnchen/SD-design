@@ -76,6 +76,9 @@
         FROM sd_user_model AS A
              LEFT JOIN sys_user AS B ON A.belong_user_id=B.user_id
         <where>
+            <if test="dto.publishStatus!=null and dto.publishStatus!=''">
+                AND A.publish_status=#{dto.publishStatus}
+            </if>
             <if test="dto.modelNameZh!=null and dto.modelNameZh!=''">
                 AND A.model_name_zh LIKE CONCAT('%',#{dto.modelNameZh},'%')
             </if>

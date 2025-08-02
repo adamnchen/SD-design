@@ -53,6 +53,8 @@
         <pool2.version>2.12.0</pool2.version>
         <!-- LangChain4j 依赖 -->
         <langChain4j.version>0.35.0</langChain4j.version>
+        <!-- 第三方支付工具库 -->
+        <ijapy.version>2.9.12</ijapy.version>
     </properties>
 
     <!-- 依赖声明 -->
@@ -226,17 +228,6 @@
                 <version>${sms4j.version}</version>
             </dependency>
 
-<!--            <dependency>-->
-<!--                <groupId>de.codecentric</groupId>-->
-<!--                <artifactId>spring-boot-admin-starter-server</artifactId>-->
-<!--                <version>${spring-boot-admin.version}</version>-->
-<!--            </dependency>-->
-<!--            <dependency>-->
-<!--                <groupId>de.codecentric</groupId>-->
-<!--                <artifactId>spring-boot-admin-starter-client</artifactId>-->
-<!--                <version>${spring-boot-admin.version}</version>-->
-<!--            </dependency>-->
-
             <!-- MQ依赖 -->
             <dependency>
                 <groupId>org.springframework.boot</groupId>
@@ -288,6 +279,37 @@
                 <version>${wx-mp.version}</version>
             </dependency>
 
+            <!-- 微信支付 -->
+            <dependency>
+                <groupId>com.github.javen205</groupId>
+                <artifactId>IJPay-WxPay</artifactId>
+                <version>${ijapy.version}</version>
+            </dependency>
+            <!-- 支付包支付 -->
+<!--            <dependency>-->
+<!--                <groupId>com.github.javen205</groupId>-->
+<!--                <artifactId>IJPay-AliPay</artifactId>-->
+<!--                <version>${ijapy.version}</version>-->
+<!--            </dependency>-->
+            <!-- QQ支付 -->
+<!--            <dependency>-->
+<!--                <groupId>com.github.javen205</groupId>-->
+<!--                <artifactId>IJPay-QQ</artifactId>-->
+<!--                <version>${ijapy.version}</version>-->
+<!--            </dependency>-->
+            <!-- 银联支付 -->
+<!--            <dependency>-->
+<!--                <groupId>com.github.javen205</groupId>-->
+<!--                <artifactId>IJPay-UnionPay</artifactId>-->
+<!--                <version>${ijapy.version}</version>-->
+<!--            </dependency>-->
+            <!-- JD支付 -->
+<!--            <dependency>-->
+<!--                <groupId>com.github.javen205</groupId>-->
+<!--                <artifactId>IJPay-JDPay</artifactId>-->
+<!--                <version>${ijapy.version}</version>-->
+<!--            </dependency>-->
+
             <dependency>
                 <groupId>com.alibaba.fastjson2</groupId>
                 <artifactId>fastjson2</artifactId>
@@ -333,6 +355,13 @@
             <dependency>
                 <groupId>com.sutran.sd</groupId>
                 <artifactId>sutran-sd-module-sdapi</artifactId>
+                <version>${sutran-sd.version}</version>
+            </dependency>
+
+            <!-- 支付模块 -->
+            <dependency>
+                <groupId>com.sutran.sd</groupId>
+                <artifactId>sutran-sd-module-pay</artifactId>
                 <version>${sutran-sd.version}</version>
             </dependency>
 

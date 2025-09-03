@@ -11,7 +11,7 @@
  Target Server Version : 50744 (5.7.44-log)
  File Encoding         : 65001
 
- Date: 16/07/2025 22:48:43
+ Date: 26/08/2025 18:30:32
 */
 
 SET NAMES utf8mb4;
@@ -169,23 +169,28 @@ DROP TABLE IF EXISTS `sd_train_task`;
 CREATE TABLE `sd_train_task`  (
   `id` bigint(20) NOT NULL COMMENT '数据ID',
   `pre_params` json NULL COMMENT '预处理参数',
-  `train_params` json NULL COMMENT '训练参数',
-  `model_name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '模型名称',
-  `addition_tag` json NULL COMMENT '共性词',
   `img_num` int(11) NULL DEFAULT NULL COMMENT '预处理图片数量',
-  `status` int(11) NULL DEFAULT 0 COMMENT '预处理图片状态[0-未训练,1-已预处理,2-已训练,3-训练失败]',
+  `pre_submit_time` datetime NULL DEFAULT NULL COMMENT '预处理提交时间',
+  `pre_start_time` datetime NULL DEFAULT NULL COMMENT '预处理开始时间',
+  `pre_end_time` datetime NULL DEFAULT NULL COMMENT '预处理结束时间',
+  `pre_reason` varchar(2048) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '预处理失败原因',
+  `status` int(11) NULL DEFAULT 0 COMMENT '任务状态(废弃)[0-未训练,1-已预处理,2-已训练,3-训练失败]',
   `new_status` int(11) NULL DEFAULT 0 COMMENT '任务状态[0-预处理队列中,1-预处理中,2-未训练,3-训练队列中,4-训练中,5-训练完成,6-训练失败]',
-  `gpu_pool` json NULL COMMENT '使用的GPU',
-  `reason` varchar(2048) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '失败原因',
   `task_id` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '训练任务ID',
-  `start_time` datetime NULL DEFAULT NULL COMMENT '任务开始时间',
-  `end_time` datetime NULL DEFAULT NULL COMMENT '任务完成时间',
+  `train_params` json NULL COMMENT '训练任务参数',
+  `model_name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '训练任务模型名称',
+  `addition_tag` json NULL COMMENT '训练任务共性词数组',
+  `gpu_pool` json NULL COMMENT '训练使用的GPU',
+  `submit_time` datetime NULL DEFAULT NULL COMMENT '训练任务提交时间',
+  `start_time` datetime NULL DEFAULT NULL COMMENT '训练任务开始时间',
+  `end_time` datetime NULL DEFAULT NULL COMMENT '训练任务完成时间',
+  `reason` varchar(2048) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '训练失败原因',
   `crt_user_id` bigint(20) NULL DEFAULT NULL COMMENT '创建人ID',
   `crt_user_name` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '创建人名称',
   `crt_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE INDEX `task_id`(`task_id`) USING BTREE,
-  INDEX `crt_user_id`(`crt_user_id`) USING BTREE
+  INDEX `crt_user_id`(`crt_user_id`, `new_status`) USING BTREE
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'SD绘图 || 图片预处理任务' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
@@ -207,7 +212,7 @@ CREATE TABLE `sd_user_model`  (
   `remark` varchar(1024) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '模型描述',
   `type` int(11) NULL DEFAULT NULL COMMENT '模型归属类型[0-系统,1-个人]',
   `is_open` int(11) NULL DEFAULT NULL COMMENT '模型是否公开[0-否,1-是]',
-  `belong_user_id` bigint(20) NULL DEFAULT NULL COMMENT '模型归属人ID',
+  `belong_user_id` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '模型归属人ID',
   `publish_status` int(11) NULL DEFAULT 0 COMMENT '发布状态[0-否,1-是]',
   `crt_time` datetime NULL DEFAULT NULL COMMENT '模型创建时间',
   `is_user_del` int(11) NULL DEFAULT 0 COMMENT '用户是否已删除该模型[0-否,1-是]',
@@ -643,7 +648,7 @@ CREATE TABLE `sys_user`  (
   `dept_id` bigint(20) NULL DEFAULT NULL COMMENT '部门ID',
   `wx_open_id` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '微信OpenID',
   `user_name` varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '用户账号',
-  `nick_name` varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '用户昵称',
+  `nick_name` varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '用户昵称',
   `user_type` varchar(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT 'sys_user' COMMENT '用户类型（sys_user系统用户,bs_user-业务用户）',
   `channel_id` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT '1' COMMENT '用户渠道来源ID',
   `channel` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT '系统注册' COMMENT '用户渠道来源',

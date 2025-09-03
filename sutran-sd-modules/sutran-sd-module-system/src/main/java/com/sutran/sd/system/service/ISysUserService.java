@@ -1,9 +1,12 @@
 package com.sutran.sd.system.service;
 
 import com.sutran.sd.common.core.domain.PageQuery;
+import com.sutran.sd.common.core.domain.entity.PayMember;
 import com.sutran.sd.common.core.domain.entity.SysUser;
 import com.sutran.sd.common.core.page.TableDataInfo;
+import com.sutran.sd.system.domain.bo.SysUserMemberBo;
 
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -13,7 +16,13 @@ import java.util.List;
  */
 public interface ISysUserService {
 
-
+    /**
+     * 分页查询用户列表
+     *
+     * @param user      用户信息
+     * @param pageQuery 分页查询对象
+     * @return 用户信息集合信息
+     */
     TableDataInfo<SysUser> selectPageUserList(SysUser user, PageQuery pageQuery);
 
     /**
@@ -27,7 +36,8 @@ public interface ISysUserService {
     /**
      * 根据条件分页查询已分配用户角色列表
      *
-     * @param user 用户信息
+     * @param user      用户信息
+     * @param pageQuery 分页查询对象
      * @return 用户信息集合信息
      */
     TableDataInfo<SysUser> selectAllocatedList(SysUser user, PageQuery pageQuery);
@@ -35,7 +45,8 @@ public interface ISysUserService {
     /**
      * 根据条件分页查询未分配用户角色列表
      *
-     * @param user 用户信息
+     * @param user      用户信息
+     * @param pageQuery 分页查询对象
      * @return 用户信息集合信息
      */
     TableDataInfo<SysUser> selectUnallocatedList(SysUser user, PageQuery pageQuery);
@@ -51,10 +62,10 @@ public interface ISysUserService {
     /**
      * 通过手机号查询用户
      *
-     * @param phonenumber 手机号
+     * @param phoneNumber 手机号
      * @return 用户对象信息
      */
-    SysUser selectUserByPhonenumber(String phonenumber);
+    SysUser selectUserByPhoneNumber(String phoneNumber);
 
     /**
      * 通过用户ID查询用户
@@ -239,4 +250,13 @@ public interface ISysUserService {
      * @param isCloserGuide     是否关闭引导(1-关闭 0-开启)
      */
     void closeGuide(Long userId, Integer isCloserGuide);
+
+    /**
+     * 授权用户会员
+     *
+     * @param bo            授权用户会员实体类
+     * @param payMember     会员信息
+     * @param now           当前时间
+     */
+    void insertAuthMember(SysUserMemberBo bo, PayMember payMember, Date now);
 }

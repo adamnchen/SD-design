@@ -60,6 +60,7 @@
             <artifactId>sutran-sd-module-ai</artifactId>
         </dependency>
 
+        <!-- 对象存储模块 -->
         <dependency>
             <groupId>com.sutran.sd</groupId>
             <artifactId>sutran-sd-module-oss</artifactId>
@@ -69,6 +70,12 @@
         <dependency>
             <groupId>com.sutran.sd</groupId>
             <artifactId>sutran-sd-module-generator</artifactId>
+        </dependency>
+
+        <!-- 支付模块 -->
+        <dependency>
+            <groupId>com.sutran.sd</groupId>
+            <artifactId>sutran-sd-module-pay</artifactId>
         </dependency>
 
         <dependency>

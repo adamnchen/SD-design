@@ -58,6 +58,7 @@ public class SysUser extends BaseEntity {
     @Xss(message = "用户昵称不能包含脚本字符")
     @NotBlank(message = "用户昵称不能为空")
     @Size(min = 0, max = 30, message = "用户昵称长度不能超过{max}个字符")
+    @TableField("nick_name")
     private String nickName;
 
     /**
@@ -175,6 +176,12 @@ public class SysUser extends BaseEntity {
      */
     @TableField(exist = false)
     private Long roleId;
+
+    /**
+     * 当前会员信息
+     */
+    @TableField(exist = false)
+    private SysUserMember member;
 
     public SysUser(Long userId) {
         this.userId = userId;

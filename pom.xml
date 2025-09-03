@@ -286,11 +286,11 @@
                 <version>${ijapy.version}</version>
             </dependency>
             <!-- 支付包支付 -->
-<!--            <dependency>-->
-<!--                <groupId>com.github.javen205</groupId>-->
-<!--                <artifactId>IJPay-AliPay</artifactId>-->
-<!--                <version>${ijapy.version}</version>-->
-<!--            </dependency>-->
+            <dependency>
+                <groupId>com.github.javen205</groupId>
+                <artifactId>IJPay-AliPay</artifactId>
+                <version>${ijapy.version}</version>
+            </dependency>
             <!-- QQ支付 -->
 <!--            <dependency>-->
 <!--                <groupId>com.github.javen205</groupId>-->

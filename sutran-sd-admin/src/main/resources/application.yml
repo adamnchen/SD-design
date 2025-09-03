@@ -234,7 +234,7 @@ xss:
   # 排除链接（多个用逗号分隔）
   excludes: /system/notice
   # 匹配链接
-  urlPatterns: /system/*,/monitor/*,/tool/*,/sd/*,/wx/*,/ai/*
+  urlPatterns: /system/*,/monitor/*,/tool/*,/sd/*,/wx/*,/ai/*,/pay/*
 
 # 全局线程池相关配置
 thread-pool:
@@ -447,7 +447,7 @@ sms:
     territory: ap-guangzhou
     template-id: SMS_492085026
 
---- # 微信公众号 和 微信支付配置
+--- # 微信公众号
 wx:
   mp:
     app-id: wx78ff2a7ea0facd69
@@ -472,17 +472,6 @@ wx:
         port: 6379
         password: 123456
         database: 5
-  pay:
-    v3:
-      appId: wx78ff2a7ea0facd69
-      keyPath: key.pem
-      certPath: cert.pem
-      certP12Path: cert.p12
-      platformCertPath: wx_cert.pem
-      mchId: 微信商户号
-      apiKey: Api 密钥
-      apiKey3: Api-v3 密钥
-      domain: https://ijpay.javen.com
 
 --- # 有道翻译
 translator:
@@ -510,3 +499,43 @@ third:
 ali:
 #  apiKey: sk-79dbbc40fb7a41afa5342f6c93cc4582
   apiKey: sk-7e4c13403937433ab869b32c70036483
+
+--- # 微信支付配置
+wx:
+  pay:
+    v3:
+      appId: wx78ff2a7ea0facd69
+      keyPath: key.pem
+      certPath: cert.pem
+      certP12Path: cert.p12
+      platformCertPath: wx_cert.pem
+      mchId: 微信商户号
+      apiKey: Api 密钥
+      apiKey3: Api-v3 密钥
+      domain: https://ijpay.javen.com
+
+--- # 支付宝支付配置
+ali:
+  pay:
+    # 应用编号
+#    appId: 2021005179655311
+    appId: 2021005185628219
+    # 应用私钥
+#    privateKey: MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCRpC2NbgMrrdQ9REF0iBr+j2ttAbJKopG2MQKgZfEieuu6nV2vtW5W5QTvrGYGDpu9ZCbEnXA87YFLooiKvsxXJRw2wT7T4PJ7YgU2EWmJE/j1QrJiuT/1tIQlRw4uXpWM0N97w4vP8pW7xuba15UKGXQHJ3RaKHl7WMIXY8q4y0YCD4JtfBJ7xrI7pLM+06cMe/ZaDuKsHyqJXSEwI/2IhWVhN5bowwYfdh0xUP8nECOTBz4pIJNUFvSmie8ZiInwhDjLAFfcJASOUvxdVOUg4W+ylLwHU5oOGyYeIsaPJmh1CcZyEGTK2Cs+3/VYQgKqs0kNIuX3ZqWdo6tTuBYvAgMBAAECggEAR7A7p+kl8GMhHIMzgOvZ9cGczExQeYJqHPck5tUnC6Tb0cDSM8InrOgQNPV0Rrj8Gg5pMtCYRbVWtmcrtLfUF3Ux3RXkGiEY2njWPdX2T74gBoGtEwFCpWwUu9Cs/1AZZvYNe3s2n8Y1w/dU/RWuzAjZXwghsptHqNp4t1CsoabQToc4LypS5PyP+VwA4UFnnW9wrvIZpp2FIIOOIdoImrQImk1PGQFB1O50ye63bUaIN3hd3gRaSHSPfwTINrCToC0Pu2XBy8r02ZZjrj3GcnEfrANkvWxCs0v8zLj7xZekeyxD9bkfotJc5qOZvYpmdNjrFIzlwn6DT9INNlpi+QKBgQD8DV0cWPyo5cJcY4WYqX9IU0+jLY816L4coprv12OM5mkqG72pcUCav9f/sYTLvbp7sXrzE5v9A8kRSi6f/tCLXldJUsBHY5elvJvar3DHuBK3goE2i+ug11eyg400ISZITIK1QKh18AkxqlgXwOvO302sEyOKoPgSkzQBS0ID0wKBgQCT7CVXvLE7lHMwvsBC9V2yEOkbpOjuH9x5M199jv/TyOtIAXGRbN9pfcFiTqO1rVw/GuUr1n+LqlhArEJ99BK8yRHZ88RBwW6xhX+SNBbZyXf08WYmjksUEGuaEiFjbfMYMTgjDnbRU37ls3nrX91VJ49bHSczJ9zX66ycUyPWtQKBgQCBzwAdEVdORMYMftTXArQis4VYLKaMxQjkBnp0+yCx+BhBL3hGQ6VaDWNYtDwIEfZwrb78YST88W4kEWhhzgHpRPT/NjcAjTIUkUZTIfebZBl/mR6i0PzRIRZxQX7/UfM9WOoYHuyjkLOreGdWFG1dZXPDIzgytSQNrPIjmHavMQKBgE8J3SI2VtUpCyu+oOimRrxAwO3eff/O0nWId7uVTykQsHc3HkHAVNf/M/edYWhQC3xEmLOF13z/NkzIPncilWh+X6V/1Rv1iXodhP7QCm2wcwJUgmqTmZZM99HJYkHInB4PHpnMvrw2yxVdgwW7oX5Atx7OQwXYhO5ypTaaTgoJAoGAadpN9Z1IfmeQqGUQ/BqyJzx+QKBTJ8+zUMqJCdMBlCqxkzXZSuqyz51Y4nYpGsIm5u6VXajKemldNwIiFgIFz0hoqtTHXtUy7xhuK9pzMfFH2TStzd60jAeMrzQhw+lA9k+txk03PE3WVzyZj0uIbHi2kLwDGGY+cnk/uZkmaZU=
+    privateKey: MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCdT0Z01xN1zKtGAINWdxuEKizNR/V0q0xZ19d4OdMiRPdcoHSjCSFrWcvjltHkuF/NVUIPPJv23ZlNom6gtk3QDbtqVA4RaABO0Sb4ATxdMgwr0WYq8iZSG3k2Sf5xzOuPV7GIMusJDD1sTm3fTtpZzpBqENiRGDlrlb0MEAIIC0Xhel1j+W8Rs2Oi+BX3JlRBVqYOdNy+MPBZyLMMSI1wY8/MzYUzgaiL2ixuaq5N2Y1HB1f9O/hqw6DTyHiYP3WSzhsSLukXEIbVUVMZq34v7fLatE5UhsiyQGbh23uSTeaC5McM73eqiiodLL9R3IbFY5a6lavL380zv2hB/+yxAgMBAAECggEAC7dIxxDxqRdaNjd5kKoESZ6egZd3Z34OjK5vpMuhtu6uAZ8NsMrQS19/uO6VqVQ2BmPwLJRWBVfRwB9139BUEUfEipHCDnfRdg1LurLU3RgKIgVRd6dbRUg4iduO8MjTTnS4iy1Hpf/cX0GkGzqTNpcU2GFyz7OfKy0WzFww2opl95V9SN7OAi9AjlXZXfuOgRbRySn1NDs+2E7fkzXGfY7q4fzeB90VyiFXGmi4x/8vlRURctkRyHJcNq6Y41WDmPS2PJekm4UugXu0u2vGu2+FPVofGzi3H29d1cOkober4cC/Y3CuzF6PLTmdObkXWwqCcgcOs+Rc1OL8eWTvtQKBgQDyahp3KCWZDM2Qjezr1SrD9PMHXTZBQym5R7nPjX8CgIFkUgLl5Wf1jUIxPU/5Fy0b4FYWMYU/do1+2svVqXNZ4aai0zJg2HJyAmJeTgqizTN1vBquGQBdO3s3EsGSigvZ/78Bv4j952CueXGvHrWJWBG301yd8m8IMh+5He1NuwKBgQCmIC5//j+foX6etUB3tmpPEkJtPAk/h2Hk6FL4/qNFbPPB0IFMc2/+qoMlordpzsZ6uQ31LFlHbcduplabl/ltVE305k2AeUQGu6Kh+RMHYO6WP7p8p5Pu8aGB/RLBrVlozIrHVoXGVYbCgiy/W/4uWrUuphuyfLVi6j3L964SgwKBgAZwlSVnNqB7O5bEfm/BaPJttmsSqddP/nLCmggOfTpGyaktmJAc6QcX6pM+SrqWSAd+jSrnw99sudON4m5ZowvXN8MJk0QJW/j1YUGaFyQ+CUjuZ1MKrPzNELfk0qme6zOuXJeiS/RayjG4XjHFwhLU+RuGDObRQuvX0Qns5pnzAoGBAIuv9cm0PUV6IyFKoUnIPj38yZRWbiRYL02uuM4cN6fSBGmNbJufWaXXNO25k+ZJc4WQA5eL0gqI2bBF9/9fW+G9iMuLt9F2pmfO8OKnsIN800HNln7o3jCGR1spNNNccxj3HR6et1/dXLJDiWLi9Kl/pmfyTsnXqSHie1H+EwYHAoGADbOgBK6tVMO/mN6rB5PlSSXVJFyUNIb6DlHRtKYeAOOk3F2i8szxDn2Zd887jYMRaZiFtqvZQo39geF4V0WEcd472crBWtGONWb59bpbufMRkGRtvD9D1RVoKcbLFeAFTnMyqZPKvtUCwatla5Os++4dyzWVs4Cobp/X5ByIr9g=
+    # 支付宝公钥，通过应用公钥上传到支付宝开放平台换取支付宝公钥(如果是证书模式，公钥与私钥在CSR目录)
+    publicKey:
+    # 应用公钥证书 (证书模式必须)
+#    appCertPath: D:\project\java_project\sutran-sd\cert1\appPublicCert.crt
+    appCertPath: D:\project\java_project\sutran-sd\cert\appCertPublicKey.crt
+    # 支付宝公钥证书 (证书模式必须)
+#    aliPayCertPath: D:\project\java_project\sutran-sd\cert1\alipayPublicCert.crt
+    aliPayCertPath: D:\project\java_project\sutran-sd\cert\alipayCertPublicKey.crt
+    # 支付宝根证书 (证书模式必须)
+#    aliPayRootCertPath: D:\project\java_project\sutran-sd\cert1\alipayRootCert.crt
+    aliPayRootCertPath: D:\project\java_project\sutran-sd\cert\alipayRootCert.crt
+    # 支付宝支付网关
+#    serverUrl: https://openapi-sandbox.dl.alipaydev.com/gateway.do
+    serverUrl: https://openapi.alipay.com/gateway.do
+    # 外网访问项目的域名，支付通知中会使用
+    domain: http://47.115.36.4:9002

@@ -23,6 +23,12 @@
             <artifactId>IJPay-WxPay</artifactId>
         </dependency>
 
+        <!-- 支付包支付 -->
+        <dependency>
+            <groupId>com.github.javen205</groupId>
+            <artifactId>IJPay-AliPay</artifactId>
+        </dependency>
+
         <!-- 通用工具-->
         <dependency>
             <groupId>com.sutran.sd</groupId>

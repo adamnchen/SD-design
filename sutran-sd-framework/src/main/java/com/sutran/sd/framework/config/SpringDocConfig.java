@@ -131,7 +131,7 @@ public class SpringDocConfig {
                 Collections.singletonList(new SecurityRequirement().addList(TOKEN_HEADER)))
             )
             // 扫描的包
-            .packagesToScan("com.sutran.sd.generator")
+            .packagesToScan("com.sutran.sd.controller.generator")
             .build();
     }
 
@@ -147,7 +147,7 @@ public class SpringDocConfig {
             .addOperationCustomizer((operation, handlerMethod) -> operation.security(
                 Collections.singletonList(new SecurityRequirement().addList(TOKEN_HEADER)))
             )
-            .packagesToScan("com.sutran.sd.web")
+            .packagesToScan("com.sutran.sd.controller.web")
             .build();
     }
 
@@ -159,7 +159,7 @@ public class SpringDocConfig {
         return GroupedOpenApi.builder()
             .group("认证接口")
             .pathsToMatch("/captchaSms","/v2/captchaSms","/captchaEmail","/captchaImage","/login","/bs-login","/pre-login","/sms-login","/bs-sms-login","/email-login","/bs-email-login","/xcx-login","/wx-mp-login","/logout","/getLoggerLevel","/changeLoggerLevel","/register")
-            .packagesToScan("com.sutran.sd.web")
+            .packagesToScan("com.sutran.sd.controller.web")
             .build();
     }
 
@@ -175,7 +175,7 @@ public class SpringDocConfig {
             .addOperationCustomizer((operation, handlerMethod) -> operation.security(
                 Collections.singletonList(new SecurityRequirement().addList(TOKEN_HEADER)))
             )
-            .packagesToScan("com.sutran.sd.sdapi")
+            .packagesToScan("com.sutran.sd.controller.sdapi")
             .build();
     }
 
@@ -191,7 +191,7 @@ public class SpringDocConfig {
             .addOperationCustomizer((operation, handlerMethod) -> operation.security(
                 Collections.singletonList(new SecurityRequirement().addList(TOKEN_HEADER)))
             )
-            .packagesToScan("com.sutran.sd.ai")
+            .packagesToScan("com.sutran.sd.controller.ai")
             .build();
     }
 
@@ -207,7 +207,23 @@ public class SpringDocConfig {
             .addOperationCustomizer((operation, handlerMethod) -> operation.security(
                 Collections.singletonList(new SecurityRequirement().addList(TOKEN_HEADER)))
             )
-            .packagesToScan("com.sutran.sd.wx")
+            .packagesToScan("com.sutran.sd.controller.wx")
+            .build();
+    }
+
+    /**
+     * 支付宝接口
+     */
+    @Bean
+    public GroupedOpenApi payServiceApi() {
+        return GroupedOpenApi.builder()
+            .group("支付接口")
+            .pathsToMatch("/pay/**")
+            // 添加自定义配置，这里添加了一个用户认证的 header，否则 knife4j 里会没有 header
+            .addOperationCustomizer((operation, handlerMethod) -> operation.security(
+                Collections.singletonList(new SecurityRequirement().addList(TOKEN_HEADER)))
+            )
+            .packagesToScan("com.sutran.sd.controller.pay")
             .build();
     }
 

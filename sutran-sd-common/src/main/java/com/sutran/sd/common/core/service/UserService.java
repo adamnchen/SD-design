@@ -1,5 +1,9 @@
 package com.sutran.sd.common.core.service;
 
+import com.sutran.sd.common.core.domain.entity.PayMember;
+
+import java.util.Date;
+
 /**
  * 通用 用户服务
  *
@@ -67,4 +71,23 @@ public interface UserService {
      * @return 用户ID
      */
     String selectUserIdByPhone(String phone);
+
+    /**
+     * 新增会员
+     *
+     * @param userId     用户ID
+     * @param businessId 会员配置ID
+     * @param startTime  开始时间
+     * @param payMember  会员信息
+     * @param outTradeNo 订单号
+     */
+    void insertMember(Long userId, Long businessId, Date startTime, PayMember payMember, String outTradeNo);
+
+    /**
+     * 获取当前用户已购买且处于生效中的会员ID
+     * @param userId 用户ID
+     * @param now 当前时间
+     * @return 会员ID
+     */
+    String selectMemberIdByUserId(Long userId, Date now);
 }

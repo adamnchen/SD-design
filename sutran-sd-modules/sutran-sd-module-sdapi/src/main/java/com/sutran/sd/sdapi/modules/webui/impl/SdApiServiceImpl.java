@@ -770,14 +770,14 @@ public class SdApiServiceImpl implements SdApiService {
         overrideSettings.put("sd_vae",StrUtil.isEmptyIfStr(dto.getSd_vae())?"Automatic":dto.getSd_vae());
         map.put("override_settings",overrideSettings);
 
-        Map<String,Object> alwayson_scripts = new HashMap<>();
+        Map<String,Object> alwayson_scripts = new HashMap<>(2);
         if (CollectionUtil.isNotEmpty(dto.getControlNetArgs())) {
-            Map<String,Object> ControlNet = new HashMap<>();
+            Map<String,Object> ControlNet = new HashMap<>(2);
             ControlNet.put("args", dto.getControlNetArgs());
             alwayson_scripts.put("ControlNet",ControlNet);
         }
         if (CollectionUtil.isNotEmpty(dto.getRefinerArgs())) {
-            Map<String,Object> Refiner = new HashMap<>();
+            Map<String,Object> Refiner = new HashMap<>(2);
             Refiner.put("args", dto.getControlNetArgs());
             alwayson_scripts.put("Refiner",Refiner);
         }
@@ -894,10 +894,7 @@ public class SdApiServiceImpl implements SdApiService {
             AtomicBoolean gpuIsOverflow = new AtomicBoolean(false);
             // 修改执行中状态
             sdUserTaskService.doingTask(taskId,queueTime);
-            Forest.post(TXT_TO_IMG_API)
-                .address(sdGpuPool.getHost(), sdGpuPool.getPort())
-                .contentTypeJson().addBody(data)
-                .connectTimeout(30, TimeUnit.MINUTES)
+            Forest.post(TXT_TO_IMG_API).address(sdGpuPool.getHost(), sdGpuPool.getPort()).contentTypeJson().addBody(data).connectTimeout(30, TimeUnit.MINUTES)
                 .onSuccess((result, req, res) -> {
                     log.warn("[绘图任务]>>>>>>>>>文生图任务完成，耗时：{} ms", res.getTimeAsMillisecond());
                     Map<String,Object> result1 = null;

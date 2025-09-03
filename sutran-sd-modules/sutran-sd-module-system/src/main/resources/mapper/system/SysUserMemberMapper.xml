@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sutran.sd.system.mapper.SysUserMemberMapper">
+
+    <resultMap type="SysUserMember" id="SysUserMemberResult">
+        <id property="id" column="id"/>
+        <result property="userId" column="user_id"/>
+        <result property="memberId" column="member_id"/>
+        <result property="levelName" column="level_name"/>
+        <result property="startTime" column="start_time"/>
+        <result property="duration" column="duration"/>
+        <result property="endTime" column="end_time"/>
+        <result property="status" column="status"/>
+        <result property="outTradeNo" column="out_trade_no"/>
+        <result property="oldLimitTrainTimes" column="old_limit_train_times"/>
+        <result property="oldLimitDrawNum" column="old_limit_draw_num"/>
+        <result property="limitTrainTimes" column="limit_train_times"/>
+        <result property="limitDrawNum" column="limit_draw_num"/>
+        <result property="useTrainTimes" column="use_train_times"/>
+        <result property="useDrawNum" column="use_draw_num"/>
+        <result property="remark" column="remark"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <sql id="convertMap">
+        id AS id,
+        user_id AS userId,
+        member_id AS memberId,
+        level_name AS levelName,
+        start_time AS startTime,
+        duration AS duration,
+        end_time AS endTime,
+        `status` AS `status`,
+        out_trade_no AS outTradeNo,
+        old_limit_train_times AS oldLimitTrainTimes,
+        old_limit_draw_num AS oldLimitDrawNum,
+        limit_train_times AS limitTrainTimes,
+        limit_draw_num AS limitDrawNum,
+        use_train_times AS useTrainTimes,
+        use_draw_num AS useDrawNum,
+        remark AS remark,
+        create_time AS createTime,
+        update_time AS updateTime
+    </sql>
+
+    <select id="selectMemberInfoByUserIds" resultType="java.util.Map">
+        SELECT <include refid="convertMap"/>
+        FROM (
+            SELECT
+                t.*,
+                @row_num := IF(@prev_user_id = t.user_id, @row_num + 1, 1) AS rn,
+                @prev_user_id := t.user_id
+            FROM sys_user_member t, (SELECT @row_num := 0, @prev_user_id := NULL) AS vars
+            WHERE user_id IN <foreach collection="userIds" item="userId" open="(" close=")" separator=",">#{userId}</foreach>
+            AND `status` = 1  AND end_time &gt;= #{now}
+            ORDER BY t.user_id, t.create_time DESC
+        ) tmp
+        WHERE rn = 1
+    </select>
+
+
+</mapper>

@@ -4,6 +4,7 @@ import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.date.DateTime;
 import cn.hutool.core.date.DateUtil;
 import com.sutran.sd.common.utils.redis.RedisUtils;
+import com.sutran.sd.pay.service.PayOrderService;
 import com.sutran.sd.sdapi.domain.vo.TrainTaskStatusVo;
 import com.sutran.sd.sdapi.modules.system.SdChannelDataService;
 import com.sutran.sd.sdapi.modules.system.SdTrainService;
@@ -33,9 +34,13 @@ public class CommonJobEvent {
     private final SdTrainService sdTrainService;
     private final SdApiService sdApiService;
     private final SdChannelDataService sdChannelDataService;
+    private final PayOrderService payOrderService;
 
-    /** 定时处理训练任务V1 **/
-    @Scheduled(cron="0/10 * * * * ?")   //每10秒执行一次
+    /**
+     * 定时处理训练任务V1
+     * 每10秒执行一次
+     */
+    @Scheduled(cron="0/10 * * * * ?")
     public void executeTrainProgressV1(){
         Map<String, String> cacheMap = RedisUtils.getCacheMap(TRAIN_MODEL_PROGRESS_TASK_MAP_V1);
         if (CollectionUtil.isEmpty(cacheMap)) {
@@ -44,8 +49,11 @@ public class CommonJobEvent {
         cacheMap.forEach((taskId, preTaskId) -> sdTrainService.trainProgress(taskId));
     }
 
-    /** 定时处理训练任务V2 **/
-    @Scheduled(cron="0/10 * * * * ?")   //每10秒执行一次
+    /**
+     * 定时处理训练任务V2
+     * 每10秒执行一次
+     */
+    @Scheduled(cron="0/10 * * * * ?")
     public void executeTrainProgressV2(){
         Map<String, String> cacheMap = RedisUtils.getCacheMap(TRAIN_MODEL_PROGRESS_TASK_MAP_V2);
         if (CollectionUtil.isEmpty(cacheMap)) {
@@ -54,8 +62,11 @@ public class CommonJobEvent {
         cacheMap.forEach((taskId, preTaskId) -> sdTrainService.trainProgressV2(taskId));
     }
 
-    /** 定时处理预处理任务V1 **/
-    @Scheduled(cron="0/10 * * * * ?")   //每10秒执行一次
+    /**
+     * 定时处理预处理任务V1
+     * 每10秒执行一次
+     */
+    @Scheduled(cron="0/10 * * * * ?")
     public void executePreImgProgressV1(){
         List<String> cacheList = RedisUtils.getCacheList(PRE_IMG_TASK_QUEUE_LIST_V1);
         if (CollectionUtil.isEmpty(cacheList)) {
@@ -66,8 +77,11 @@ public class CommonJobEvent {
         }
     }
 
-    /** 定时处理预处理任务V2 **/
-    @Scheduled(cron="0/10 * * * * ?")   //每10秒执行一次
+    /**
+     * 定时处理预处理任务V2
+     * 每10秒执行一次
+     */
+    @Scheduled(cron="0/10 * * * * ?")
     public void executePreImgProgressV2(){
         List<String> cacheList = RedisUtils.getCacheList(PRE_IMG_TASK_QUEUE_LIST_V2);
         if (CollectionUtil.isEmpty(cacheList)) {
@@ -78,14 +92,20 @@ public class CommonJobEvent {
         }
     }
 
-    /** 定时拉取lora模型 **/
-    @Scheduled(cron="0 0/10 * * * ?")   //每10分钟执行一次
+    /**
+     * 定时拉取lora模型
+     * 每10分钟执行一次
+     */
+    @Scheduled(cron="0 0/10 * * * ?")
     public void executeRefreshLora(){
         sdApiService.refreshLoraModels();
     }
 
-    /** 定时清理标签翻译缓存 **/
-    @Scheduled(cron="0 0/5 * * * ?")   //每5分钟执行一次
+    /**
+     * 定时清理标签翻译缓存
+     * 每5分钟执行一次
+     */
+    @Scheduled(cron="0 0/5 * * * ?")
     public void executeClearTranslateMap(){
         Collection<String> keys = RedisUtils.keys(TRAIN_TAG_TRANSLATE_MAP+"*");
         if (CollectionUtil.isEmpty(keys)) {
@@ -100,8 +120,11 @@ public class CommonJobEvent {
         }
     }
 
-    /** 定时推送消息 **/
-    @Scheduled(cron="0 0/1 * * * ?")   //每1分钟执行一次
+    /**
+     * 定时推送消息
+     * 每1分钟执行一次
+     */
+    @Scheduled(cron="0 0/1 * * * ?")
     public void executeSendChannelMsg(){
         try{
             // 5分钟前的数据
@@ -116,6 +139,34 @@ public class CommonJobEvent {
         }
         catch (Exception e) {
             log.error("[定时任务]>>>>>>>>>定时推送渠道数据异常：",e);
+        }
+    }
+
+    /**
+     * 定时处理支付超时的数据
+     * 每1分钟执行一次
+     */
+    @Scheduled(cron="0 0/20 * * * ?")
+    public void executeHandlePayTimeout(){
+        try{
+            payOrderService.handlePayTimeoutOfData(new Date());
+        }
+        catch (Exception e) {
+            log.error("[定时任务]>>>>>>>>>定时处理支付超时数据异常：",e);
+        }
+    }
+
+    /**
+     * 定时处理支付未超时且未支付的数据
+     * 每1分钟执行一次
+     */
+    @Scheduled(cron="0 0/20 * * * ?")
+    public void executeHandleNoPay(){
+        try{
+            payOrderService.handleNoPayOfData(new Date());
+        }
+        catch (Exception e) {
+            log.error("[定时任务]>>>>>>>>>定时处理支付超时数据异常：",e);
         }
     }
 

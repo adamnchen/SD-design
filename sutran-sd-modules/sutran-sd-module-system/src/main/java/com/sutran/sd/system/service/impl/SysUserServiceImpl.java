@@ -1,6 +1,7 @@
 package com.sutran.sd.system.service.impl;
 
 import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.util.ArrayUtil;
 import cn.hutool.core.util.ObjectUtil;
 import cn.hutool.core.util.StrUtil;
@@ -13,6 +14,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.sutran.sd.common.constant.CacheNames;
 import com.sutran.sd.common.constant.UserConstants;
 import com.sutran.sd.common.core.domain.PageQuery;
+import com.sutran.sd.common.core.domain.entity.PayMember;
 import com.sutran.sd.common.core.domain.entity.SysDept;
 import com.sutran.sd.common.core.domain.entity.SysRole;
 import com.sutran.sd.common.core.domain.entity.SysUser;
@@ -24,8 +26,10 @@ import com.sutran.sd.common.helper.LoginHelper;
 import com.sutran.sd.common.utils.StreamUtils;
 import com.sutran.sd.common.utils.StringUtils;
 import com.sutran.sd.system.domain.SysPost;
+import com.sutran.sd.common.core.domain.entity.SysUserMember;
 import com.sutran.sd.system.domain.SysUserPost;
 import com.sutran.sd.system.domain.SysUserRole;
+import com.sutran.sd.system.domain.bo.SysUserMemberBo;
 import com.sutran.sd.system.mapper.*;
 import com.sutran.sd.system.service.ISysUserService;
 import lombok.RequiredArgsConstructor;
@@ -35,9 +39,8 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * 用户 业务层处理
@@ -55,10 +58,16 @@ public class SysUserServiceImpl implements ISysUserService, UserService {
     private final SysPostMapper postMapper;
     private final SysUserRoleMapper userRoleMapper;
     private final SysUserPostMapper userPostMapper;
+    private final SysUserMemberMapper userMemberMapper;
 
     @Override
     public TableDataInfo<SysUser> selectPageUserList(SysUser user, PageQuery pageQuery) {
         Page<SysUser> page = baseMapper.selectPageUserList(pageQuery.build(), this.buildQueryWrapper(user));
+        if (CollUtil.isNotEmpty(page.getRecords())) {
+            List<Long> userIds = page.getRecords().stream().map(SysUser::getUserId).collect(Collectors.toList());
+            Map<Long, SysUserMember> memberMap = userMemberMapper.selectMemberInfoByUserIds(userIds, new Date());
+            page.getRecords().forEach(item -> item.setMember(memberMap.get(item.getUserId())));
+        }
         return TableDataInfo.build(page);
     }
 
@@ -147,12 +156,12 @@ public class SysUserServiceImpl implements ISysUserService, UserService {
     /**
      * 通过手机号查询用户
      *
-     * @param phonenumber 手机号
+     * @param phoneNumber 手机号
      * @return 用户对象信息
      */
     @Override
-    public SysUser selectUserByPhonenumber(String phonenumber) {
-        return baseMapper.selectUserByPhonenumber(phonenumber);
+    public SysUser selectUserByPhoneNumber(String phoneNumber) {
+        return baseMapper.selectUserByPhonenumber(phoneNumber);
     }
 
     /**
@@ -517,6 +526,52 @@ public class SysUserServiceImpl implements ISysUserService, UserService {
         baseMapper.closeGuide(userId,isCloserGuide);
     }
 
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void insertAuthMember(SysUserMemberBo bo, PayMember payMember, Date now) {
+        if (CollUtil.isEmpty(bo.getUserIds()) || ObjectUtil.isNull(bo.getMemberId())) {
+            return;
+        }
+        // 会员时长(天)[不填则已会员设置的时长为准]
+        Integer duration = bo.getDuration();
+        if (ObjectUtil.isNull(duration)) {
+            duration = payMember.getDuration();
+        }
+        // 会员训练次数[不填则已会员设置的训练次数为准]
+        Integer limitTrainTimes = bo.getLimitTrainTimes();
+        if (ObjectUtil.isNull(limitTrainTimes)) {
+            limitTrainTimes = payMember.getLimitTrainTimes();
+        }
+        // 会员绘图次数[不填则已会员设置的绘图次数为准]
+        Integer limitDrawNum = bo.getLimitDrawNum();
+        if (ObjectUtil.isNull(limitDrawNum)) {
+            limitDrawNum = payMember.getLimitDrawNum();
+        }
+
+        for (Long userId : bo.getUserIds()) {
+            // 获取已有生效中的会员用户
+            String memberId = userMemberMapper.selectMemberIdByUserId(userId, now);
+            if (StrUtil.isNotBlank(memberId)) {
+                log.error("[后台][授权会员]>>>>>>>>>用户[{}]已存在生效中的会员[{}]", userId,memberId);
+                continue;
+            }
+            // 新增用户会员
+            SysUserMember sysUserMember = new SysUserMember()
+                .setUserId(userId)
+                .setMemberId(bo.getMemberId())
+                .setLevelName(payMember.getLevelName())
+                .setStartTime(now)
+                .setDuration(duration)
+                .setEndTime(DateUtil.offsetDay(now, duration))
+                .setStatus(1)
+                .setLimitTrainTimes(limitTrainTimes)
+                .setLimitDrawNum(limitDrawNum)
+                .setRemark("后台授权会员")
+                .setCreateTime(now);
+            userMemberMapper.insert(sysUserMember);
+        }
+    }
+
     @Cacheable(cacheNames = CacheNames.SYS_USER_NAME, key = "#userId")
     @Override
     public String selectUserNameById(Long userId) {
@@ -534,22 +589,25 @@ public class SysUserServiceImpl implements ISysUserService, UserService {
 
     @Override
     public Integer selectTrainTimesById(Long userId) {
-        SysUser sysUser = baseMapper.selectOne(new LambdaQueryWrapper<SysUser>()
-            .select(SysUser::getLimitTrainTimes).eq(SysUser::getUserId, userId));
-        return ObjectUtil.isNull(sysUser) ? null : sysUser.getLimitTrainTimes();
+//        SysUser sysUser = baseMapper.selectOne(new LambdaQueryWrapper<SysUser>()
+//            .select(SysUser::getLimitTrainTimes).eq(SysUser::getUserId, userId));
+//        return ObjectUtil.isNull(sysUser) ? null : sysUser.getLimitTrainTimes();
+        return userMemberMapper.selectTrainTimesById(userId,new Date());
     }
 
     @Override
     public Integer selectDrawNumById(Long userId) {
-        SysUser sysUser = baseMapper.selectOne(new LambdaQueryWrapper<SysUser>()
-            .select(SysUser::getLimitDrawNum).eq(SysUser::getUserId, userId));
-        return ObjectUtil.isNull(sysUser) ? null : sysUser.getLimitDrawNum();
+//        SysUser sysUser = baseMapper.selectOne(new LambdaQueryWrapper<SysUser>()
+//            .select(SysUser::getLimitDrawNum).eq(SysUser::getUserId, userId));
+//        return ObjectUtil.isNull(sysUser) ? null : sysUser.getLimitDrawNum();
+        return userMemberMapper.selectDrawNumById(userId,new Date());
     }
 
     @Override
     @Async("threadPoolTaskExecutor")
     public void deductedTrainTimes(Long userId) {
-        baseMapper.deductedTrainTimes(userId);
+//        baseMapper.deductedTrainTimes(userId);
+        userMemberMapper.deductedTrainTimes(userId,new Date());
     }
 
     @Override
@@ -558,13 +616,15 @@ public class SysUserServiceImpl implements ISysUserService, UserService {
         if (userId == null) {
             return;
         }
-        baseMapper.returnedTrainTimes(userId);
+//        baseMapper.returnedTrainTimes(userId);
+        userMemberMapper.returnedTrainTimes(userId,new Date());
     }
 
     @Override
     @Async("threadPoolTaskExecutor")
     public void deductedDrawNum(Long userId, int num) {
-        baseMapper.deductedDrawNum(userId,num);
+//        baseMapper.deductedDrawNum(userId,num);
+        userMemberMapper.deductedDrawNum(userId,num,new Date());
     }
 
     @Override
@@ -577,6 +637,62 @@ public class SysUserServiceImpl implements ISysUserService, UserService {
     @Override
     public String selectUserIdByPhone(String phone) {
         return baseMapper.selectUserIdByPhone(phone);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void insertMember(Long userId, Long businessId, Date startTime, PayMember payMember, String outTradeNo) {
+        // 先查询用户是否已购买且未失效的会员
+        SysUserMember sysUserMember = userMemberMapper.selectOne(new LambdaQueryWrapper<SysUserMember>().eq(SysUserMember::getUserId, userId).eq(SysUserMember::getStatus, 1).ge(SysUserMember::getEndTime,startTime).orderByDesc(SysUserMember::getId).last("limit 1"));
+        // 存在该会员，设置失效，新增叠加
+        if (sysUserMember!=null) {
+            if (outTradeNo.equals(sysUserMember.getOutTradeNo())) {
+                return;
+            }
+            final int limitTrainTimes = sysUserMember.getLimitTrainTimes();
+            final int limitDrawNum = sysUserMember.getLimitDrawNum();
+
+            // 新的会员和之前的会员相同，则备注为“购买相同会员叠加次数,当前会员失效”
+            if (Objects.equals(payMember.getId(), sysUserMember.getMemberId())){
+                sysUserMember.setRemark("购买相同会员叠加次数");
+            }
+            // 新的会员和之前的会员不同(因为设置问题，只能是升级会员)，则备注为“升级会员叠加次数,当前会员失效”
+            else {
+                sysUserMember.setRemark("升级会员叠加次数");
+            }
+            sysUserMember.setStatus(0);
+            userMemberMapper.updateStatusById(sysUserMember);
+
+            // 新增叠加新会员
+            SysUserMember insert = new SysUserMember()
+                .setUserId(userId).setMemberId(businessId).setLevelName(payMember.getLevelName())
+                .setStartTime(startTime).setEndTime(DateUtil.offsetDay(startTime,payMember.getDuration()))
+                .setDuration(payMember.getDuration()).setStatus(1).setOutTradeNo(outTradeNo)
+                .setOldLimitTrainTimes(limitTrainTimes)
+                .setOldLimitDrawNum(limitDrawNum)
+                .setLimitTrainTimes(payMember.getLimitTrainTimes() + limitTrainTimes)
+                .setLimitDrawNum(payMember.getLimitDrawNum()+ limitDrawNum)
+                .setUseTrainTimes(sysUserMember.getUseTrainTimes())
+                .setUseDrawNum(sysUserMember.getUseDrawNum())
+                .setCreateTime(startTime);
+            userMemberMapper.insert(insert);
+        }
+        // 不存在，新增
+        else {
+            sysUserMember = new SysUserMember()
+                .setUserId(userId).setMemberId(businessId).setLevelName(payMember.getLevelName())
+                .setStartTime(startTime).setEndTime(DateUtil.offsetDay(startTime,payMember.getDuration()))
+                .setDuration(payMember.getDuration()).setStatus(1).setOutTradeNo(outTradeNo)
+                .setLimitTrainTimes(payMember.getLimitTrainTimes())
+                .setLimitDrawNum(payMember.getLimitDrawNum())
+                .setCreateTime(startTime);
+            userMemberMapper.insert(sysUserMember);
+        }
+    }
+
+    @Override
+    public String selectMemberIdByUserId(Long userId, Date now) {
+        return userMemberMapper.selectMemberIdByUserId(userId,now);
     }
 
 }

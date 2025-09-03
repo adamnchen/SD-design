@@ -1,0 +1,231 @@
+package com.sutran.sd.controller.web.system;
+
+import cn.dev33.satoken.annotation.SaIgnore;
+import cn.hutool.core.collection.CollectionUtil;
+import com.alibaba.fastjson2.JSONObject;
+import com.sutran.sd.common.core.controller.BaseController;
+import com.sutran.sd.common.core.domain.PageQuery;
+import com.sutran.sd.common.core.domain.R;
+import com.sutran.sd.common.core.domain.dto.BatchRemoveDto;
+import com.sutran.sd.common.core.page.TableDataInfo;
+import com.sutran.sd.common.exception.ServiceException;
+import com.sutran.sd.sdapi.domain.dto.model.SdUserModelDto;
+import com.sutran.sd.sdapi.domain.dto.task.SdUserTaskPageDto;
+import com.sutran.sd.sdapi.domain.dto.txt2img.SdText2ImgDto;
+import com.sutran.sd.sdapi.modules.system.entity.SdGpuPool;
+import com.sutran.sd.sdapi.modules.webui.SdApiService;
+import com.sutran.sd.sdapi.modules.system.SdGpuPoolService;
+import com.sutran.sd.sdapi.modules.system.SdTrainService;
+import com.sutran.sd.sdapi.modules.system.vo.CheckPointVo;
+import com.sutran.sd.sdapi.modules.system.vo.SdUserModelFileVo;
+import com.sutran.sd.sdapi.modules.system.vo.SdUserModelVo;
+import com.sutran.sd.sdapi.modules.system.vo.SdUserTaskVo;
+import lombok.RequiredArgsConstructor;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.*;
+
+import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
+
+/**
+ * [SD]后台API
+ * @author zj
+ * @date 2024-03-09
+ */
+@Validated
+@RequiredArgsConstructor
+@RestController
+@RequestMapping("/system/sd")
+public class SysSdController extends BaseController {
+
+    private final SdApiService sdApiService;
+    private final SdTrainService sdTrainService;
+    private final SdGpuPoolService sdGpuPoolService;
+
+    /**
+     * SD 大模型-获取基础大模型列表
+     */
+    @GetMapping("/checkpoint/list")
+    public R<List<CheckPointVo>> listCheckpointModels() {
+        return R.ok(sdApiService.listCheckpointModels());
+    }
+
+    /**
+     * SD 大模型-切换模基础大模型
+     */
+    @GetMapping("/checkpoint/option")
+    public R<List<CheckPointVo>> checkpointOptions(@RequestParam("title") String title) {
+        sdApiService.checkpointOptions(title);
+        return R.ok();
+    }
+
+    /**
+     * SD Lora模型-查询列表(模型关联的测试任务、xyz数据)
+     */
+    @GetMapping("/lora/list")
+    public TableDataInfo<SdUserModelVo> listLoraModelsOfTestTaskAndTrainData(SdUserModelDto dto) {
+        return sdApiService.listLoraModelsOfTestTaskAndTrainData(dto);
+    }
+
+    /**
+     *  SD Lora模型-取训练模型的数据集
+     */
+    @GetMapping("/model-train-data/list")
+    public R<List<JSONObject>> getModelTrainDateList(@RequestParam String preTaskId) throws IOException {
+        return R.ok(sdTrainService.getModelTrainDateList(preTaskId));
+    }
+
+    /**
+     *  SD Lora模型-删除xyz测试数据
+     */
+    @DeleteMapping("/xyz-data")
+    public R<Void> delXyzData(@RequestParam String taskId) {
+        sdApiService.delXyzData(taskId);
+        return R.ok();
+    }
+
+    /**
+     * SD Lora模型-发布/取消发布模型
+     */
+    @PutMapping("/lora/publish-status")
+    public R<Void> publishModel(@RequestParam String id,@RequestParam Integer publishStatus,@RequestParam(required = false) String modelStrength) {
+        sdApiService.publishModel(id,publishStatus,modelStrength);
+        return R.ok();
+    }
+
+    /**
+     * SD Lora模型-修改模型强度
+     */
+    @PutMapping("/lora/model-strength")
+    public R<Void> modifyModelStrength(@RequestParam String id,@RequestParam String modelStrength) {
+        sdApiService.modifyModelStrength(id,modelStrength);
+        return R.ok();
+    }
+
+    /**
+     * SD Lora模型-删除个人未发布的模型
+     */
+    @DeleteMapping("/lora")
+    public R<Void> removeModel(@RequestParam String id) {
+        sdApiService.removeModelOfAdmin(Collections.singletonList(id));
+        return R.ok();
+    }
+
+    /**
+     * SD Lora模型-批量删除个人未发布的模型
+     */
+    @DeleteMapping("/lora/batch")
+    public R<Void> batchRemoveModel(@RequestBody BatchRemoveDto dto) {
+       sdApiService.removeModelOfAdmin(dto.getIds());
+        return R.ok();
+    }
+
+    /**
+     * SD Lora模型-文生图模型测试
+     */
+    @PostMapping("/lora/txt2img/test")
+    public R<String> testText2ImgLoraModels(@Validated @RequestBody SdText2ImgDto dto) {
+        String taskId = sdApiService.testTxt2ImgOfLoraModel(dto);
+        return R.ok("操作成功",taskId);
+    }
+
+    /**
+     *  SD-获取所有用户任务列表(管理员查询)
+     */
+    @GetMapping("/task/all-list")
+    public TableDataInfo<SdUserTaskVo> allUserTaskList(SdUserTaskPageDto dto) {
+        PageQuery pageQuery = new PageQuery();
+        pageQuery.setPageNum(dto.getPageNum());
+        pageQuery.setPageSize(dto.getPageSize());
+        pageQuery.setOrderByColumn(dto.getOrderByColumn());
+        pageQuery.setIsAsc(dto.getIsAsc());
+        return sdApiService.allUserTaskList(pageQuery,dto.getCategory(),dto.getStatus());
+    }
+
+    /**
+     *  SD-获取指定任务下的全部绘图数据列表
+     */
+    @GetMapping("/model-file/list")
+    public R<List<SdUserModelFileVo>> userModelFileList(@RequestParam String taskId) {
+        return R.ok(sdApiService.listUserModelFile(taskId));
+    }
+
+    /**
+     * SD 任务进度查询
+     */
+    @GetMapping("/process")
+    public R<JSONObject> getProcess(@RequestParam String taskId) {
+        return R.ok(sdApiService.getProcess(taskId));
+    }
+
+    /**
+     * SD 1、查询gpu卡池
+     */
+    @GetMapping("/sync-gpu-pool/list")
+    @SaIgnore
+    public R<List<SdGpuPool>> getGuPoolList(@RequestParam(required = false) Integer type) {
+        List<SdGpuPool> list = sdGpuPoolService.getList(type);
+        if (CollectionUtil.isEmpty(list)){
+            return R.ok(Collections.emptyList());
+        }
+        // 过滤可用的GPU
+        List<SdGpuPool> sdGpuPools = list.stream().filter(e -> e.getIsEnable()==1).collect(Collectors.toList());
+        return R.ok(sdGpuPools);
+    }
+
+    /**
+     * SD 2、同步GPU卡池
+     */
+    @GetMapping("/sync-gpu-pool")
+    @SaIgnore
+    public R<JSONObject> syncGpuPool(@RequestParam Integer type) {
+        return R.ok(sdApiService.syncGpuPool(type));
+    }
+
+    /**
+     * SD 3、下线指定GPU卡
+     */
+    @DeleteMapping("/stop-gpu-pool")
+    @SaIgnore
+    public R<Void> stopGpuPool(@RequestParam String id) {
+        SdGpuPool sdGpuPool = sdGpuPoolService.selectById(id);
+        if (sdGpuPool==null) {
+            throw new ServiceException("当前GPU服务不存在!");
+        }
+        else if (sdGpuPool.getIsEnable()==0) {
+            throw new ServiceException("当前GPU服务是未启用状态!");
+        }
+        if (sdGpuPool.getType()==1) {
+            sdTrainService.stopGpuPool(sdGpuPool);
+        }
+        else {
+            sdApiService.stopGpuPool(sdGpuPool);
+        }
+        return R.ok("GPU停用成功");
+    }
+
+    /**
+     * SD 4、上线指定GPU服务
+     */
+    @GetMapping("/start-gpu-pool")
+    @SaIgnore
+    public R<Void> startGpuPool(@RequestParam String id) {
+        SdGpuPool sdGpuPool = sdGpuPoolService.selectById(id);
+        if (sdGpuPool==null) {
+            throw new ServiceException("当前GPU服务不存在!");
+        }
+        else if (sdGpuPool.getIsEnable()==0) {
+            throw new ServiceException("当前GPU服务是未启用状态!");
+        }
+        if (sdGpuPool.getType()==1) {
+            sdTrainService.startGpuPool(sdGpuPool);
+        }
+        else {
+            sdApiService.startGpuPool(sdGpuPool);
+        }
+        return R.ok("GPU启用用成功");
+    }
+
+}

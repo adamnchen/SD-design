@@ -1,6 +1,7 @@
 package com.sutran.sd.system.service;
 
 import cn.dev33.satoken.secure.BCrypt;
+import cn.hutool.core.util.StrUtil;
 import com.sutran.sd.common.constant.CacheConstants;
 import com.sutran.sd.common.constant.Constants;
 import com.sutran.sd.common.core.domain.entity.SysUser;
@@ -35,7 +36,7 @@ public class SysRegisterService {
      */
     public void register(RegisterBody registerBody) {
         String username = registerBody.getPhoneNumber();
-        String nickname = StringUtils.isBlank(registerBody.getNickname())?registerBody.getNickname():"BS_USER_"+System.currentTimeMillis();
+        String nickName = StrUtil.isBlankIfStr(registerBody.getNickName())?registerBody.getNickName():"BS_USER_"+System.currentTimeMillis();
         String password = registerBody.getPassword();
         String phoneNumber = registerBody.getPhoneNumber();
         // 校验用户类型是否存在
@@ -48,7 +49,7 @@ public class SysRegisterService {
 
         SysUser sysUser = new SysUser();
         sysUser.setUserName(username);
-        sysUser.setNickName(nickname);
+        sysUser.setNickName(nickName);
         sysUser.setPhonenumber(phoneNumber);
         sysUser.setEmail(registerBody.getEmail());
         sysUser.setPassword(BCrypt.hashpw(password));

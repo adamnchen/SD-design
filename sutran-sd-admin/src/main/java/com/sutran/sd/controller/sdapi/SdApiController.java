@@ -1,7 +1,7 @@
 package com.sutran.sd.controller.sdapi;
 
 import cn.hutool.core.util.StrUtil;
-import com.alibaba.fastjson2.JSONObject;
+import com.alibaba.fastjson.JSONObject;
 import com.sutran.sd.common.core.domain.PageQuery;
 import com.sutran.sd.common.core.domain.R;
 import com.sutran.sd.common.core.page.TableDataInfo;

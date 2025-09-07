@@ -15,7 +15,8 @@ import com.alibaba.dashscope.common.ResultCallback;
 import com.alibaba.dashscope.common.Role;
 import com.alibaba.dashscope.exception.NoApiKeyException;
 import com.alibaba.dashscope.utils.Constants;
-import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.dtflys.forest.Forest;
 import com.sutran.sd.common.exception.ServiceException;
@@ -224,7 +225,7 @@ public class AiServiceImpl implements AiService {
                 }
                 contentList.add(Collections.singletonMap("image", fileDto.getFileUrl()));
             }
-            newMsg.setFileUrls(JSON.toJSONString(questionDto.getFiles()));
+            newMsg.setFileUrls(JSONObject.toJSONString(questionDto.getFiles()));
         }
         contentList.add(Collections.singletonMap("text",newMsg.getContent()));
         newMessage.setContent(contentList);
@@ -344,7 +345,7 @@ public class AiServiceImpl implements AiService {
                 }
                 messageManage.add(fileMessage);
             }
-            newMsg.setFileUrls(JSON.toJSONString(questionDto.getFiles()));
+            newMsg.setFileUrls(JSONObject.toJSONString(questionDto.getFiles()));
         }
 
         entityList.add(newMsg);

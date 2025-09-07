@@ -2,13 +2,13 @@ package com.sutran.sd.listener;
 
 import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.util.StrUtil;
-import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson.JSONObject;
 import com.sutran.sd.common.core.service.UserService;
 import com.sutran.sd.sdapi.domain.dto.ImgSendThirdDto;
 import com.sutran.sd.sdapi.events.MsgSendThirdEvent;
 import com.sutran.sd.sdapi.events.RefreshLoraEvent;
-import com.sutran.sd.sdapi.modules.webui.SdApiService;
 import com.sutran.sd.sdapi.modules.system.SdChannelDataService;
+import com.sutran.sd.sdapi.modules.webui.SdApiService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
@@ -42,7 +42,7 @@ public class CommonEventListener {
         if (StrUtil.isBlankIfStr(channelUserId)) {
             return;
         }
-        String picList = JSON.toJSONString(dto.getImgUrlList());
+        String picList = JSONObject.toJSONString(dto.getImgUrlList());
         sdChannelDataService.asyncInsert(picList,channelUserId,String.valueOf(dto.getUserId()));
     }
 

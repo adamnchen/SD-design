@@ -2,9 +2,9 @@ package com.sutran.sd.system.service.impl;
 
 import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.util.StrUtil;
-import com.alibaba.fastjson2.JSON;
-import com.alibaba.fastjson2.JSONObject;
-import com.alibaba.fastjson2.JSONReader;
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson.JSONReader;
 import com.sutran.sd.common.enums.TranslateType;
 import com.sutran.sd.common.utils.translate.AuthV3Util;
 import com.sutran.sd.common.utils.translate.BaiduAuthUtil;
@@ -64,7 +64,7 @@ public class SysSysTranslateServiceImpl implements SysTranslateService {
                 BaiduAuthUtil.buildParams(baiduAppKey, baiduAppSecret, bdParams);
                 JSONObject bdResult = translateApi.baiduTranslate(bdParams);
                 log.info("[百度翻译][汉译英]>>>>>>>>>返回结果：{}",bdResult);
-                return CollectionUtil.isNotEmpty(bdResult) && !"54001".equals(bdResult.getString("error_code"))? JSON.parseArray(bdResult.getString("trans_result"), JSONObject.class, JSONReader.Feature.SupportAutoType).get(0).getString("dst") :null;
+                return CollectionUtil.isNotEmpty(bdResult) && !"54001".equals(bdResult.getString("error_code"))? JSON.parseArray(bdResult.getString("trans_result"), JSONObject.class).get(0).getString("dst") :null;
             default:
                 return null;
         }
@@ -98,7 +98,7 @@ public class SysSysTranslateServiceImpl implements SysTranslateService {
                 BaiduAuthUtil.buildParams(baiduAppKey, baiduAppSecret, bdParams);
                 JSONObject bdResult = translateApi.baiduTranslate(bdParams);
                 log.info("[百度翻译][英译汉]>>>>>>>>>返回结果：{}",bdResult);
-                return CollectionUtil.isNotEmpty(bdResult) && !"54001".equals(bdResult.getString("error_code"))? JSON.parseArray(bdResult.getString("trans_result"), JSONObject.class, JSONReader.Feature.SupportAutoType).get(0).getString("dst") :null;
+                return CollectionUtil.isNotEmpty(bdResult) && !"54001".equals(bdResult.getString("error_code"))? JSON.parseArray(bdResult.getString("trans_result"), JSONObject.class).get(0).getString("dst") :null;
             default:
                 return null;
         }

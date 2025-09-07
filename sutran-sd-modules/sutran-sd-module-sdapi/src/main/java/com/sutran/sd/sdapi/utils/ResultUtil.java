@@ -27,7 +27,7 @@ import static com.sutran.sd.sdapi.constants.CommonKey.SD;
 @Slf4j
 public class ResultUtil {
 
-    public static SdApiResult apiToResult(Map<String,Object> result, OssService ossService, String userName, boolean isTest, String oldGridsUrl, String newGridUrl) {
+    public static SdApiResult apiToResult(Map<String,Object> result, OssService ossService, String userName, boolean isTest, String gridsUrl, String viewGridsPath) {
         List<String> urlList = new ArrayList<>();
         SdApiResult rs = new SdApiResult();
         if (!isTest) {
@@ -67,18 +67,15 @@ public class ResultUtil {
             rs.getImages().clear();
         }
         else {
-            // 从目录中获取所有子
-            File file = FileUtils.getGridFile(oldGridsUrl);
+            // 从grids目录中获取所有子文件
+            File file = FileUtils.getGridFile(gridsUrl);
             try {
-                String gridUrl = newGridUrl + "/" + file.getName();
-                FileInputStream inputStream = new FileInputStream(file);
-                FileOutputStream outputStream = new FileOutputStream(gridUrl);
-                IoUtil.copy(inputStream,outputStream);
-                urlList.add(newGridUrl+"/"+file.getName());
-                log.warn("xyz plot完成>>>>>>>>复制的grid文件[{}]到[{}]",file.getPath(),gridUrl);
+                String viewGridsUrl = viewGridsPath + "/" + file.getName();
+                urlList.add(viewGridsUrl);
+                log.warn("xyz plot完成>>>>>>>>grid图片原始地址：{},访问地址：{}",file.getPath(),viewGridsUrl);
                 FileUtil.del(file);
-            } catch (FileNotFoundException e) {
-                log.error("xyz plot完成>>>>>>>>>需要复制的grid文件不存在：{}",e.getMessage());
+            } catch (Exception e) {
+                log.error("xyz plot完成>>>>>>>>>grid图片处理异常：{}",e.getMessage());
             }
         }
         rs.getImages().addAll(urlList);

@@ -1,14 +1,14 @@
-package com.sutran.sd.sdapi.modules.system.impl;
+package com.sutran.sd.sdapi.modules.train.impl;
 
 import cn.hutool.core.util.StrUtil;
-import com.alibaba.fastjson2.JSON;
-import com.alibaba.fastjson2.JSONObject;
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.sutran.sd.common.core.domain.PageQuery;
 import com.sutran.sd.sdapi.domain.vo.TrainTaskStatusVo;
 import com.sutran.sd.sdapi.mapper.SdTrainTaskMapper;
-import com.sutran.sd.sdapi.modules.system.SdTrainPreTaskService;
+import com.sutran.sd.sdapi.modules.train.SdTrainPreTaskService;
 import com.sutran.sd.sdapi.modules.system.entity.SdGpuPool;
 import com.sutran.sd.sdapi.modules.system.entity.SdTrainTask;
 import lombok.extern.slf4j.Slf4j;
@@ -129,7 +129,7 @@ public class SdTrainPreTaskServiceImpl implements SdTrainPreTaskService {
     @Async("threadPoolTaskExecutor")
     @Override
     public void startTrainTask(String preTaskId, String taskId, Date startTime, SdGpuPool sdGpuPool) {
-        baseMapper.startTrainTask(preTaskId,taskId,startTime,JSON.toJSONString(sdGpuPool));
+        baseMapper.startTrainTask(preTaskId,taskId,startTime,JSONObject.toJSONString(sdGpuPool));
     }
 
     /**
@@ -153,7 +153,7 @@ public class SdTrainPreTaskServiceImpl implements SdTrainPreTaskService {
      */
     @Override
     public void failTrainTask(String preTaskId, String reason, SdGpuPool sdGpuPool, Date endTime) {
-        baseMapper.failTrainTask(preTaskId,reason,sdGpuPool==null?null:JSON.toJSONString(sdGpuPool),endTime);
+        baseMapper.failTrainTask(preTaskId,reason,sdGpuPool==null?null:JSONObject.toJSONString(sdGpuPool),endTime);
     }
 
     @Override

@@ -1,6 +1,6 @@
-package com.sutran.sd.sdapi.modules.system;
+package com.sutran.sd.sdapi.modules.train;
 
-import com.alibaba.fastjson2.JSONObject;
+import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.sutran.sd.common.core.domain.PageQuery;
 import com.sutran.sd.sdapi.domain.vo.TrainTaskStatusVo;

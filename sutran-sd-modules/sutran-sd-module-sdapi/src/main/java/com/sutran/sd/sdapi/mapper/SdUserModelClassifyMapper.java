@@ -1,6 +1,6 @@
 package com.sutran.sd.sdapi.mapper;
 
-import com.alibaba.fastjson2.JSONObject;
+import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.sutran.sd.sdapi.modules.system.entity.SdUserModelClassify;
 import com.sutran.sd.sdapi.modules.system.vo.SdUserModelClassifyVo;

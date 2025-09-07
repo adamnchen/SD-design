@@ -5,8 +5,8 @@ import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.ObjectUtil;
 import cn.hutool.core.util.StrUtil;
-import com.alibaba.fastjson2.JSON;
-import com.alibaba.fastjson2.JSONObject;
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.rabbitmq.client.Channel;
@@ -219,7 +219,7 @@ public class SdUserMsgServiceImpl implements SdUserMsgService {
                         }
                         SdUserMsg userMsg = new SdUserMsg().setId(IdUtil.getSnowflakeNextIdStr()).setCrtTime(new Date()).setIsRead(0)
                             .setUserId(Long.valueOf(e.get("userId"))).setWxOpenId(e.get("wxOpenId")).setTemplateId(modelTestTemplateId)
-                            .setTitle(isComplete?"模型测试完成":"模型测试失败").setMsgBody(JSON.toJSONString(wxMsg))
+                            .setTitle(isComplete?"模型测试完成":"模型测试失败").setMsgBody(JSONObject.toJSONString(wxMsg))
                             .setMsgContent("模型 "+modelName1+(isComplete?" 已完成测试!":" 测试失败!"));
                         try{
                             baseMapper.insert(userMsg);
@@ -254,7 +254,7 @@ public class SdUserMsgServiceImpl implements SdUserMsgService {
                         }
                         SdUserMsg userMsg = new SdUserMsg().setId(IdUtil.getSnowflakeNextIdStr()).setCrtTime(new Date()).setIsRead(0)
                             .setUserId(Long.valueOf(e.get("userId"))).setWxOpenId(e.get("wxOpenId")).setTemplateId(gpuAlertTemplateId)
-                            .setTitle("GPU内存溢出").setMsgBody(JSON.toJSONString(wxMsg))
+                            .setTitle("GPU内存溢出").setMsgBody(JSONObject.toJSONString(wxMsg))
                             .setMsgContent("GPU_"+deviceId+"内存溢出,急需重启!");
                         try{
                             baseMapper.insert(userMsg);
@@ -292,7 +292,7 @@ public class SdUserMsgServiceImpl implements SdUserMsgService {
                     }
                     SdUserMsg userMsg = new SdUserMsg().setId(IdUtil.getSnowflakeNextIdStr()).setCrtTime(new Date()).setIsRead(0)
                         .setUserId(userId).setWxOpenId(wxOpenId).setTemplateId(publishTemplateId)
-                        .setTitle("模型发布成功").setMsgBody(JSON.toJSONString(wxMsg))
+                        .setTitle("模型发布成功").setMsgBody(JSONObject.toJSONString(wxMsg))
                         .setMsgContent("您训练的模型"+modelName+"已完成审核并发布!");
                     try{
                         baseMapper.insert(userMsg);
@@ -335,7 +335,7 @@ public class SdUserMsgServiceImpl implements SdUserMsgService {
                 }
                 SdUserMsg userMsg = new SdUserMsg().setId(IdUtil.getSnowflakeNextIdStr()).setCrtTime(new Date()).setIsRead(0)
                     .setUserId(Long.valueOf(belongUserId)).setWxOpenId(openId).setTemplateId(publishTemplateId)
-                    .setTitle("模型训练完成").setMsgBody(JSON.toJSONString(wxMsg)).setPreTaskId(preTaskId)
+                    .setTitle("模型训练完成").setMsgBody(JSONObject.toJSONString(wxMsg)).setPreTaskId(preTaskId)
                     .setMsgContent("您训练的模型 ["+modelName+"] 已完成训练,等待管理员审核!");
                 try{
                     baseMapper.insert(userMsg);
@@ -375,7 +375,7 @@ public class SdUserMsgServiceImpl implements SdUserMsgService {
                         }
                         SdUserMsg userMsg1 = new SdUserMsg().setId(IdUtil.getSnowflakeNextIdStr()).setCrtTime(new Date()).setIsRead(0)
                             .setUserId(Long.valueOf(e.get("userId"))).setWxOpenId(openId).setTemplateId(publishTemplateId)
-                            .setTitle("模型待审核").setMsgBody(JSON.toJSONString(wxMsg))
+                            .setTitle("模型待审核").setMsgBody(JSONObject.toJSONString(wxMsg))
                             .setMsgContent("有新的模型 ["+modelName+"] 需要您审核!");
                         try{
                             baseMapper.insert(userMsg1);

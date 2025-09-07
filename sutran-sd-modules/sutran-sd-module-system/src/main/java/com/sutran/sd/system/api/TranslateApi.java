@@ -1,6 +1,6 @@
 package com.sutran.sd.system.api;
 
-import com.alibaba.fastjson2.JSONObject;
+import com.alibaba.fastjson.JSONObject;
 import com.dtflys.forest.annotation.Get;
 import com.dtflys.forest.annotation.Query;
 

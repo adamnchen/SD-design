@@ -6,10 +6,8 @@ import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.io.IoUtil;
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.StrUtil;
-import com.alibaba.fastjson2.JSON;
-import com.alibaba.fastjson2.JSONObject;
-import com.alibaba.fastjson2.JSONReader;
-import com.alibaba.fastjson2.JSONWriter;
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
 import com.dtflys.forest.Forest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.type.TypeFactory;
@@ -43,6 +41,7 @@ import com.sutran.sd.sdapi.modules.system.entity.SdTrainTask;
 import com.sutran.sd.sdapi.modules.system.entity.SdUserModel;
 import com.sutran.sd.sdapi.modules.system.entity.SdUserModelClassify;
 import com.sutran.sd.sdapi.modules.system.vo.*;
+import com.sutran.sd.sdapi.modules.train.SdTrainPreTaskService;
 import com.sutran.sd.sdapi.modules.webui.SdApiService;
 import com.sutran.sd.sdapi.utils.ResultUtil;
 import lombok.RequiredArgsConstructor;
@@ -74,6 +73,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 
+import static com.alibaba.fastjson.serializer.SerializerFeature.WriteMapNullValue;
 import static com.sutran.sd.common.constant.CacheConstants.*;
 import static com.sutran.sd.sdapi.constants.CommonKey.CHECK_POINT;
 import static com.sutran.sd.sdapi.constants.CommonKey.PNG;
@@ -85,7 +85,7 @@ import static com.sutran.sd.sdapi.mq.MqConstant.*;
  * @author zj
  * @date 2024-03-02
  */
-@SuppressWarnings({"AlibabaLowerCamelCaseVariableNaming", "unchecked", "LoggingSimilarMessage"})
+@SuppressWarnings({"AlibabaLowerCamelCaseVariableNaming", "unchecked", "LoggingSimilarMessage", "AlibabaUndefineMagicConstant"})
 @Slf4j
 @Service("SdApiService")
 @RequiredArgsConstructor
@@ -209,7 +209,7 @@ public class SdApiServiceImpl implements SdApiService {
         List<String> hashList = sdUserModelService.selectHashList();
         // 过滤掉已存在的
         loraModelVos = loraModelVos.stream().filter(e->{
-            String hash = JSONObject.parseObject(JSON.toJSONString(e.get("metadata"))).getString("sshs_model_hash");
+            String hash = JSONObject.parseObject(JSONObject.toJSONString(e.get("metadata"))).getString("sshs_model_hash");
             return !hashList.contains(hash);
         }).collect(Collectors.toList());
         if (CollectionUtil.isEmpty(loraModelVos)) {
@@ -222,14 +222,15 @@ public class SdApiServiceImpl implements SdApiService {
             SdLoraModelVo lora = gson.fromJson(json, SdLoraModelVo.class);
             SdUserModel model = new SdUserModel().setId(IdUtil.getSnowflakeNextId()).setTitle(lora.getAlias()).setModelName(lora.getName()).setModelNameZh(lora.getName())
                 .setHash(lora.getMetadata().getSshsModelHash()).setFileName(lora.getPath()).setCrtTime(new Date()).setIsOpen(1).setType(0).setPublishStatus(1)
-                .setConfig(JSONObject.toJSONString(lora.getMetadata(), JSONWriter.Feature.WriteMapNullValue));
+                .setConfig(JSONObject.toJSONString(lora.getMetadata(), WriteMapNullValue));
             // 获取的模型，判断时用户训练模型还是自带模型，user_preTaskId
-            String imgUrl;
-            String oldImgUrl;
+            String imgUrl = "/lora-img/";
+            String oldImgUrl = "/home/stable-diffusion-webui/models/Lora/";
+
             // 用户训练的模型(携带user_)
             if (lora.getAlias().contains("user_")) {
-                imgUrl = "/lora-img/" + lora.getAlias();
-                oldImgUrl = "/models/" + lora.getAlias();
+                imgUrl += lora.getAlias();
+                oldImgUrl += lora.getAlias();
                 final String preTaskId = lora.getAlias().replace("user_", "");
                 SdTrainTask task = sdTrainPreTaskService.selectDetailById(preTaskId);
                 if (task!=null && StrUtil.isNotEmpty(task.getModelName())) {
@@ -240,8 +241,8 @@ public class SdApiServiceImpl implements SdApiService {
                 }
             }
             else {
-                imgUrl = "/lora-img/" + lora.getName();
-                oldImgUrl = "/models/" + lora.getName();
+                imgUrl += lora.getName();
+                oldImgUrl += lora.getName();
             }
             if (judgeImgIsExist(oldImgUrl + ".jpg")) {
                 model.setUrl(imgUrl + ".jpg");
@@ -363,8 +364,8 @@ public class SdApiServiceImpl implements SdApiService {
             sdUserModelService.removeShareModelById(id,userId);
             return;
         }
-        // 拼接模型路径(当前容器的挂载目录下：/models/user_xxxxxx.safetensors)
-        File delFile = new File("/models"+model.getFileName().substring(model.getFileName().lastIndexOf("/")));
+        // 拼接模型路径(lora模型所属目录下：model.getFileName() = /home/stable-diffusion-webui/models/Lora/user_xxxxxx.safetensors)
+        File delFile = new File(model.getFileName());
         log.warn("[模型删除]>>>>>>>>>[{}]删除了lora模型路径：{}",userId,delFile.getPath());
         if (FileUtil.del(delFile)) {
             // 删除成功后移除模型
@@ -392,8 +393,8 @@ public class SdApiServiceImpl implements SdApiService {
                 errorMsgList.add("["+model.getModelNameZh()+"]是已发布的个人模型,不可删除!");
                 continue;
             }
-            // 拼接模型路径(当前容器的挂载目录下：/models/user_xxxxxx.safetensors)
-            FileUtil.del(new File("/models"+model.getFileName().substring(model.getFileName().lastIndexOf("/"))));
+            // 拼接模型路径(lora模型所属目录下：model.getFileName() = /home/stable-diffusion-webui/models/Lora/user_xxxxxx.safetensors)
+            FileUtil.del(new File(model.getFileName()));
             sdUserModelService.removeModelOfAdminById(model.getId());
             RedisUtils.deleteObject("UserModel:" + model.getId());
         }
@@ -885,7 +886,7 @@ public class SdApiServiceImpl implements SdApiService {
         String negativePrompt = msg.getString("negativePrompt");
         String negativePromptZh = msg.getString("negativePromptZh");
         // 获取模型数据信息集合
-        List<JSONObject> loraInfo = JSON.parseArray(msg.getString("loraInfo"),JSONObject.class, JSONReader.Feature.AllowUnQuotedFieldNames);
+        List<JSONObject> loraInfo = JSON.parseArray(msg.getString("loraInfo"),JSONObject.class);
 
         JSONObject data = msg.getJSONObject("data");
         boolean isTest = msg.getBooleanValue("isTest");
@@ -1000,7 +1001,7 @@ public class SdApiServiceImpl implements SdApiService {
 
         // 获取多模型数据和多模型强度
         List<SdUserModel> models = new ArrayList<>();
-        Map<String,String> modelStrengthMap = new HashMap<>();
+        Map<String,String> modelStrengthMap = new HashMap<>(32);
         dealMultiModelAndModelStrength(dto, models,modelStrengthMap);
 
         // 生成绘图任务ID 和 绘图参数
@@ -1019,9 +1020,8 @@ public class SdApiServiceImpl implements SdApiService {
         if (StrUtil.isEmptyIfStr(dto.getInitImage())) {
             throw new ServiceException("缺少参考图片!");
         }
-        // 提示词原文
+        // 提示词
         String promptZh = dto.getPromptZh();
-        // 提示词译文
         String prompt = dto.getPrompt();
         // 召唤词
         String summonWord = dto.getSummonWord();
@@ -1057,20 +1057,20 @@ public class SdApiServiceImpl implements SdApiService {
         dto.setCfg_scale(dto.getCfg_scale()==null?7:dto.getCfg_scale());
 
         Map<String, Object> map = new HashMap<>(Objects.requireNonNull(BeanCopyUtils.copyToMap(dto)));
-        Map<String,Object> overrideSettings = new HashMap<>();
+        Map<String,Object> overrideSettings = new HashMap<>(4);
         overrideSettings.put("sd_model_checkpoint",checkpoint);
         overrideSettings.put("CLIP_stop_at_last_layers",dto.getCLIP_stop_at_last_layers());
         overrideSettings.put("sd_vae",StrUtil.isEmptyIfStr(dto.getSd_vae())?"Automatic":dto.getSd_vae());
         map.put("override_settings",overrideSettings);
 
-        Map<String,Object> alwayson_scripts = new HashMap<>();
+        Map<String,Object> alwayson_scripts = new HashMap<>(2);
         if (CollectionUtil.isNotEmpty(dto.getControlNetArgs())) {
-            Map<String,Object> ControlNet = new HashMap<>();
+            Map<String,Object> ControlNet = new HashMap<>(2);
             ControlNet.put("args", dto.getControlNetArgs());
             alwayson_scripts.put("ControlNet",ControlNet);
         }
         if (CollectionUtil.isNotEmpty(dto.getRefinerArgs())) {
-            Map<String,Object> Refiner = new HashMap<>();
+            Map<String,Object> Refiner = new HashMap<>(2);
             Refiner.put("args", dto.getControlNetArgs());
             alwayson_scripts.put("Refiner",Refiner);
         }
@@ -1196,7 +1196,7 @@ public class SdApiServiceImpl implements SdApiService {
         String negativePromptZh = msg.getString("negativePromptZh");
         String initImg = msg.getString("initImg");
         // 获取模型数据信息集合
-        List<JSONObject> loraInfo = JSON.parseArray(msg.getString("loraInfo"),JSONObject.class, JSONReader.Feature.AllowUnQuotedFieldNames);
+        List<JSONObject> loraInfo = JSON.parseArray(msg.getString("loraInfo"),JSONObject.class);
         try {
             JSONObject data = msg.getJSONObject("data");
             boolean isTest = msg.getBooleanValue("isTest");

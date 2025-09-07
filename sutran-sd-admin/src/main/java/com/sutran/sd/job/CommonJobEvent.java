@@ -7,7 +7,7 @@ import com.sutran.sd.common.utils.redis.RedisUtils;
 import com.sutran.sd.pay.service.PayOrderService;
 import com.sutran.sd.sdapi.domain.vo.TrainTaskStatusVo;
 import com.sutran.sd.sdapi.modules.system.SdChannelDataService;
-import com.sutran.sd.sdapi.modules.system.SdTrainService;
+import com.sutran.sd.sdapi.modules.train.SdTrainService;
 import com.sutran.sd.sdapi.modules.system.entity.SdChannelData;
 import com.sutran.sd.sdapi.modules.webui.SdApiService;
 import lombok.RequiredArgsConstructor;

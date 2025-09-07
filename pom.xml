@@ -42,6 +42,7 @@
         <forest.version>1.5.33</forest.version>
         <wx-mp.version>4.6.0</wx-mp.version>
         <fastjson2.version>2.0.19</fastjson2.version>
+        <fastjson.version>1.2.83</fastjson.version>
         <thumbnail.version>0.4.19</thumbnail.version>
 
         <!-- OSS 配置 -->
@@ -310,10 +311,16 @@
 <!--                <version>${ijapy.version}</version>-->
 <!--            </dependency>-->
 
+<!--            <dependency>-->
+<!--                <groupId>com.alibaba.fastjson2</groupId>-->
+<!--                <artifactId>fastjson2</artifactId>-->
+<!--                <version>${fastjson2.version}</version>-->
+<!--            </dependency>-->
+
             <dependency>
-                <groupId>com.alibaba.fastjson2</groupId>
-                <artifactId>fastjson2</artifactId>
-                <version>${fastjson2.version}</version>
+                <groupId>com.alibaba</groupId>
+                <artifactId>fastjson</artifactId>
+                <version>${fastjson.version}</version>
             </dependency>
 
             <!-- 离线IP地址定位库 ip2region -->

@@ -3,10 +3,10 @@ package com.sutran.sd.sdapi.modules.system.impl;
 import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.StrUtil;
-import com.alibaba.fastjson2.JSON;
-import com.alibaba.fastjson2.JSONArray;
-import com.alibaba.fastjson2.JSONObject;
-import com.alibaba.fastjson2.JSONWriter;
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson.JSONWriter;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.sutran.sd.common.core.domain.PageQuery;
 import com.sutran.sd.common.core.page.TableDataInfo;
@@ -31,6 +31,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static com.alibaba.fastjson.serializer.SerializerFeature.WriteMapNullValue;
 import static com.sutran.sd.common.constant.CacheConstants.TRANSLATE_EN_TO_ZH_MAP;
 
 /**
@@ -57,10 +58,10 @@ public class SdUserModelFileServiceImpl implements SdUserModelFileService {
         Integer isRedrawEntity = isRedraw==null?0:isRedraw;
         List<SdUserModelFile> list = rs.getImages().stream().map(url -> new SdUserModelFile().setIsRedraw(isRedrawEntity).setId(IdUtil.getSnowflakeNextId()).setTaskId(Long.parseLong(taskId))
             .setPrompt(prompt).setPromptZh(promptZh).setPromptDesc(promptDesc).setSummonWord(summonWord).setNegativePrompt(negativePrompt).setNegativePromptZh(negativePromptZh)
-            .setFileInfo(JSONObject.toJSONString(rs.getInfo(), JSONWriter.Feature.WriteMapNullValue)).setInitImg(initImg).setCategory(category).setFileUrl(url)
-            .setFileParameters(JSONObject.toJSONString(rs.getParameters(), JSONWriter.Feature.WriteMapNullValue)).setBelongUserId(userId).setBelongUserName(userName)
+            .setFileInfo(JSONObject.toJSONString(rs.getInfo(), WriteMapNullValue)).setInitImg(initImg).setCategory(category).setFileUrl(url)
+            .setFileParameters(JSONObject.toJSONString(rs.getParameters(), WriteMapNullValue)).setBelongUserId(userId).setBelongUserName(userName)
             .setLoraTitle(loraInfos.get(0).getString("loraTitle")).setLoraTitle(loraInfos.get(0).getString("loraTitleZh")).setLoraModelId(loraInfos.get(0).getLongValue("loraModelId")).setModelStrength(loraInfos.get(0).getString("modelStrength"))
-            .setModelName(modelName).setLoraInfo(CollectionUtil.isNotEmpty(loraInfos)? JSON.toJSONString(loraInfos):null).setCrtTime(new Date())).collect(Collectors.toList());
+            .setModelName(modelName).setLoraInfo(CollectionUtil.isNotEmpty(loraInfos)? JSONObject.toJSONString(loraInfos):null).setCrtTime(new Date())).collect(Collectors.toList());
         baseMapper.insertBatch(list);
     }
 

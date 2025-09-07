@@ -2,7 +2,7 @@ package com.sutran.sd.controller.web.system;
 
 import cn.dev33.satoken.annotation.SaIgnore;
 import cn.hutool.core.collection.CollectionUtil;
-import com.alibaba.fastjson2.JSONObject;
+import com.alibaba.fastjson.JSONObject;
 import com.sutran.sd.common.core.controller.BaseController;
 import com.sutran.sd.common.core.domain.PageQuery;
 import com.sutran.sd.common.core.domain.R;
@@ -15,7 +15,7 @@ import com.sutran.sd.sdapi.domain.dto.txt2img.SdText2ImgDto;
 import com.sutran.sd.sdapi.modules.system.entity.SdGpuPool;
 import com.sutran.sd.sdapi.modules.webui.SdApiService;
 import com.sutran.sd.sdapi.modules.system.SdGpuPoolService;
-import com.sutran.sd.sdapi.modules.system.SdTrainService;
+import com.sutran.sd.sdapi.modules.train.SdTrainService;
 import com.sutran.sd.sdapi.modules.system.vo.CheckPointVo;
 import com.sutran.sd.sdapi.modules.system.vo.SdUserModelFileVo;
 import com.sutran.sd.sdapi.modules.system.vo.SdUserModelVo;

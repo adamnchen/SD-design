@@ -1,6 +1,6 @@
 package com.sutran.sd.sdapi.mapper;
 
-import com.alibaba.fastjson2.JSONObject;
+import com.alibaba.fastjson.JSONObject;
 import com.sutran.sd.common.core.mapper.BaseMapperPlus;
 import com.sutran.sd.sdapi.domain.vo.TrainTaskStatusVo;
 import com.sutran.sd.sdapi.modules.system.entity.SdTrainTask;

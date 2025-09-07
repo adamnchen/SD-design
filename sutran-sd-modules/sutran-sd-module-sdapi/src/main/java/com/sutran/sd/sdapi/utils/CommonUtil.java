@@ -19,6 +19,7 @@ import java.util.stream.Stream;
  * @author zj
  * @date 2025年06月22日 10:33
  */
+@SuppressWarnings("AlibabaUndefineMagicConstant")
 @Slf4j
 public class CommonUtil {
 
@@ -101,8 +102,7 @@ public class CommonUtil {
     public static Map<String, Object> createSdTrainParam(SdTrainLoraDto dto, String path, String preTaskId) {
         Map<String,Object> map = new HashMap<>();
         map.put("model_train_type","sdxl-lora");
-        //TODO windows
-        map.put("pretrained_model_name_or_path","/lora-scripts/sd-models/sd_xl_base_1.0_0.9vae.safetensors");
+        map.put("pretrained_model_name_or_path","/home/lora-scripts/sd-models/sd_xl_base_1.0_0.9vae.safetensors");
 //        map.put("pretrained_model_name_or_path","D:\\project\\ai_project\\models\\StableDiffusion\\sd_xl_base_1.0_0.9vae.safetensors");
         map.put("v2",false);
         map.put("train_data_dir",path);
@@ -113,8 +113,7 @@ public class CommonUtil {
         map.put("max_bucket_reso",1024);
         map.put("bucket_reso_steps",64);
         map.put("output_name","user_"+preTaskId);
-        //TODO windows
-        map.put("output_dir","/lora-scripts/output/"+preTaskId);
+        map.put("output_dir","/home/lora-scripts/output/"+preTaskId);
 //        map.put("output_dir","D:\\project\\ai_project\\models\\Lora\\train\\"+preTaskId);
         map.put("save_model_as","safetensors");
         map.put("save_precision","bf16");
@@ -135,7 +134,7 @@ public class CommonUtil {
         map.put("network_dim",32);
         map.put("network_alpha",32);
         map.put("log_with","tensorboard");
-        map.put("logging_dir","/lora-scripts/logs");
+        map.put("logging_dir","/home/lora-scripts/logs");
         map.put("caption_extension",".txt");
         map.put("shuffle_caption",true);
         map.put("keep_tokens",0);

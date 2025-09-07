@@ -1,4 +1,4 @@
-package com.sutran.sd.sdapi.modules.system.impl;
+package com.sutran.sd.sdapi.modules.train.impl;
 
 import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.date.DateUtil;
@@ -9,8 +9,8 @@ import cn.hutool.core.io.watch.WatchMonitor;
 import cn.hutool.core.util.CharsetUtil;
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.StrUtil;
-import com.alibaba.fastjson2.JSON;
-import com.alibaba.fastjson2.JSONObject;
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.dtflys.forest.Forest;
 import com.rabbitmq.client.Channel;
@@ -27,8 +27,8 @@ import com.sutran.sd.sdapi.domain.vo.*;
 import com.sutran.sd.sdapi.events.RefreshLoraEvent;
 import com.sutran.sd.sdapi.modules.system.SdCommonConfigService;
 import com.sutran.sd.sdapi.modules.system.SdGpuPoolService;
-import com.sutran.sd.sdapi.modules.system.SdTrainService;
-import com.sutran.sd.sdapi.modules.system.SdTrainPreTaskService;
+import com.sutran.sd.sdapi.modules.train.SdTrainService;
+import com.sutran.sd.sdapi.modules.train.SdTrainPreTaskService;
 import com.sutran.sd.sdapi.modules.system.entity.SdCommonConfig;
 import com.sutran.sd.sdapi.modules.system.entity.SdGpuPool;
 import com.sutran.sd.sdapi.modules.system.entity.SdTrainTask;
@@ -174,9 +174,9 @@ public class SdTrainServiceImpl implements SdTrainService {
 
         // 出来预处理任务参数
         JSONObject params = JSONObject.parseObject(task.getPreParams());
-        File preImgDir = new File(params.getString("path").replace("/lora-scripts","")+CommonUtil.suggestNumRepeat());
+        File preImgDir = new File(params.getString("path")+CommonUtil.suggestNumRepeat());
         if (!preImgDir.exists()) {
-            preImgDir = new File(params.getString("path").replace("/lora-scripts",""));
+            preImgDir = new File(params.getString("path"));
         }
 
         // 判断文件夹是否存在
@@ -222,9 +222,9 @@ public class SdTrainServiceImpl implements SdTrainService {
 
         // 出来预处理任务参数
         JSONObject params = JSONObject.parseObject(task.getPreParams());
-        File preImgDir = new File(params.getString("path").replace("/lora-scripts","")+CommonUtil.suggestNumRepeat());
+        File preImgDir = new File(params.getString("path")+CommonUtil.suggestNumRepeat());
         if (!preImgDir.exists()) {
-            preImgDir = new File(params.getString("path").replace("/lora-scripts",""));
+            preImgDir = new File(params.getString("path"));
         }
 
         // 判断文件夹是否存在
@@ -255,14 +255,9 @@ public class SdTrainServiceImpl implements SdTrainService {
     }
 
     /*
-     * 旧版
-     * 训练数据目录挂载情况：系统容器(/train-data/*) -> 宿主机(/home/train/train-data/*) -> 训练器容器(/lora-scripts/train-data)
-     * 训练后的模型输出目录挂载情况：系统容器(/output/*) -> 宿主机(/home/train/out/*) -> 训练器容器(/lora-scripts/output)
-     * SD模型存储目录挂载情况：系统容器(/models/*) -> 宿主机(/home/sd/data/models/Lora/*) -> SD容器(/stable-diffusion-webui/models/Lora/*)
-     * 新版
-     * 训练数据目录挂载情况：系统容器(/train-data/*) -> 宿主机(/home/sd-train/lora-scripts/train-data/*) -> 训练器容器(/lora-scripts/train-data)
-     * 训练后的模型输出目录挂载情况：系统容器(/output/*) -> 宿主机(/home/sd-train/lora-scripts/output/*) -> 训练器容器(/lora-scripts/output)
-     * SD模型存储目录挂载情况：系统容器(/models/*) -> 宿主机(/home/sd/data/models/Lora/*) -> SD容器(/stable-diffusion-webui/models/Lora/*)
+     * 训练数据目录挂载情况：/home/lora-scripts/train-data/*
+     * 训练后的模型输出目录挂载情况：/home/lora-scripts/output/*
+     * SD模型存储目录挂载情况：/home/stable-diffusion-webui/models/Lora/*
      */
 
     /**
@@ -305,11 +300,11 @@ public class SdTrainServiceImpl implements SdTrainService {
         else if (task==null || task.getNewStatus()==3 || task.getNewStatus()==4 || task.getNewStatus()==5 || task.getNewStatus()==6) {
             String username = LoginHelper.getUsername();
             String preTaskId = IdUtil.getSnowflakeNextIdStr();
-            // 系统服务器的容器中创建上传的图片数据集，例如现在的系统容器会在根目录下创建 train-data目录
-            // 目录挂载情况：系统容器(/train-data/*) -> 宿主机(/home/train/train-data/*) -> 训练器容器(/lora-scripts/train-data)
-            // 将图片保存到指定的文件夹下；如果父文件夹不存在，就创建
-            String parentFileUrl = "/train-data/"+DateUtil.formatDate(new Date())+"/"+userId+"/"+preTaskId;
+            // 目录挂载情况：/home/lora-scripts/train-data
+            String trainDataDir = "/home/lora-scripts/train-data/";
+            String parentFileUrl = trainDataDir+DateUtil.formatDate(new Date())+"/"+userId+"/"+preTaskId;
             File parent = new File(parentFileUrl);
+            // 将图片保存到指定的文件夹下；如果父文件夹不存在，就创建
             if (!parent.exists()) {
                 parent.mkdirs();
             }
@@ -330,7 +325,7 @@ public class SdTrainServiceImpl implements SdTrainService {
             params.put("batch_output_action_on_conflict", StrUtil.isEmptyIfStr(batchOutputActionOnConflict)?"copy":batchOutputActionOnConflict);
             params.put("escape_tag",true);
             params.put("interrogator_model",StrUtil.isEmptyIfStr(interrogatorModel)?"wd14-convnextv2-v2":interrogatorModel);
-            params.put("path","/lora-scripts"+parentFileUrl);
+            params.put("path",parentFileUrl);
             params.put("replace_underscore",true);
             params.put("threshold",threshold!=null?threshold:0.5d);
             // 提交预处理任务
@@ -386,13 +381,12 @@ public class SdTrainServiceImpl implements SdTrainService {
         }
         // 预处理任务ID
         String preTaskId = IdUtil.getSnowflakeNextIdStr();
-        // 系统服务器的容器中创建上传的图片数据集，例如现在的系统容器会在根目录下创建 train-data目录
-        // 目录挂载情况：系统容器(/train-data/*) -> 宿主机(/home/train/train-data/*) -> 训练器容器(/lora-scripts/train-data)
-        // 将图片保存到指定的文件夹下；如果父文件夹不存在，就创建
-        //TODO windows
-        String parentFileUrl = "/train-data/"+DateUtil.formatDate(new Date())+"/"+userId+"/"+preTaskId;
-//        String parentFileUrl = "D:\\project\\ai_project\\train-data\\"+DateUtil.formatDate(new Date())+"\\"+userId+"\\"+preTaskId;
+        // 目录挂载情况：/home/lora-scripts/train-data
+        String trainDataDir = "/home/lora-scripts/train-data/";
+//        String trainDataDir = "D:\\project\\ai_project\\train-data\\";
+        String parentFileUrl = trainDataDir+DateUtil.formatDate(new Date())+"/"+userId+"/"+preTaskId;
         File parent = new File(parentFileUrl);
+        // 将图片保存到指定的文件夹下；如果父文件夹不存在，就创建
         if (!parent.exists()) {
             parent.mkdirs();
         }
@@ -413,9 +407,7 @@ public class SdTrainServiceImpl implements SdTrainService {
         params.put("batch_output_action_on_conflict", StrUtil.isEmptyIfStr(batchOutputActionOnConflict)?"copy":batchOutputActionOnConflict);
         params.put("escape_tag",true);
         params.put("interrogator_model",StrUtil.isEmptyIfStr(interrogatorModel)?"wd-convnext-v3":interrogatorModel);
-        //TODO windows
-        params.put("path","/lora-scripts"+parentFileUrl);
-//        params.put("path",parentFileUrl);
+        params.put("path",parentFileUrl);
         params.put("replace_underscore",true);
         params.put("threshold",threshold!=null?threshold:0.5d);
         // 提交预处理任务
@@ -453,7 +445,7 @@ public class SdTrainServiceImpl implements SdTrainService {
             }
             return;
         }
-        // 数据集图片目录：path -> /lora-scripts/train-data/{userId}/{preTaskId}
+        // 数据集图片目录：path -> /home/lora-scripts/train-data/{userId}/{preTaskId}
         try{
             // 通过gpu卡池中的训练数据集目录
             log.warn("图片预处理>>>>>>>>>任务ID[{}],开始进行预处理图片", preTaskId);
@@ -686,7 +678,7 @@ public class SdTrainServiceImpl implements SdTrainService {
         }
         // 添加共性词
         JSONObject paramsJson = JSONObject.parseObject(sdTrainTask.getPreParams());
-        String path = paramsJson.getString("path").replace("/lora-scripts","");
+        String path = paramsJson.getString("path");
         File preImgDir = new File(path);
         List<File> allFileList = CommonUtil.getAllFile(preImgDir);
         if (CollectionUtil.isNotEmpty(allFileList)) {
@@ -711,7 +703,7 @@ public class SdTrainServiceImpl implements SdTrainService {
         RedisUtils.setCacheSet(TRAIN_ADDITION_LIST+ preTaskId,Collections.singleton(additionTagEn));
         // 将共性词更新到数据库
         tagSet.add(additionTagEn);
-        sdTrainPreTaskService.updateAdditionTag(preTaskId,JSON.toJSONString(tagSet));
+        sdTrainPreTaskService.updateAdditionTag(preTaskId,JSONObject.toJSONString(tagSet));
     }
 
     /** 删除标签 **/
@@ -803,7 +795,7 @@ public class SdTrainServiceImpl implements SdTrainService {
             throw new ServiceException("存在未完成的训练任务!");
         }
         JSONObject paramsJson = JSONObject.parseObject(sdTrainTask.getPreParams());
-        // path -> /lora-scripts/train-data/{userId}/{preTaskId}
+        // path -> /home/lora-scripts/train-data/{userId}/{preTaskId}
         String path = paramsJson.getString("path");
         if (StringUtils.isBlank(path)) {
             throw new ServiceException("缺少图片预处理后的数据集路径!");
@@ -843,7 +835,7 @@ public class SdTrainServiceImpl implements SdTrainService {
         }
 
         JSONObject paramsJson = JSONObject.parseObject(sdTrainTask.getPreParams());
-        // path -> /lora-scripts/train-data/{userId}/{preTaskId}
+        // path -> /home/lora-scripts/train-data/{userId}/{preTaskId}
         String path = paramsJson.getString("path");
         if (StringUtils.isBlank(path)) {
             throw new ServiceException("缺少前置任务的数据集路径!");
@@ -1138,11 +1130,10 @@ public class SdTrainServiceImpl implements SdTrainService {
      * @param oldModelName 训练的模型原始名称
      */
     private void dealModelImg(String path, long preTaskId, String oldModelName) {
-        // 获取数据集中的第一张图片作为训练模型的封面，移除训练器容器中的目录前缀
-        // path -> /lora-scripts/train-data/{userId}/{preTaskId}/*
-        File[] imgs = FileUtil.ls(path.replace("/lora-scripts","")+CommonUtil.suggestNumRepeat());
-        //TODO windows
-        String modelImgDir = "/models/";
+        // 获取数据集中的第一张图片作为训练模型的封面
+        // path -> /home/lora-scripts/train-data/{userId}/{preTaskId}/*
+        File[] imgs = FileUtil.ls(path+CommonUtil.suggestNumRepeat());
+        String modelImgDir = "/home/stable-diffusion-webui/models/Lora/";
 //        String modelImgDir = "D:\\project\\ai_project\\models\\Lora\\train\\"+preTaskId+"\\";
         if (imgs != null) {
             Optional<File> first = Arrays.stream(imgs).filter(e ->
@@ -1175,9 +1166,9 @@ public class SdTrainServiceImpl implements SdTrainService {
             return Collections.emptyList();
         }
         JSONObject params = JSONObject.parseObject(task.getPreParams());
-        File preImgDir = new File(params.getString("path").replace("/lora-scripts","")+CommonUtil.suggestNumRepeat());
+        File preImgDir = new File(params.getString("path")+CommonUtil.suggestNumRepeat());
         if (!preImgDir.exists()) {
-            preImgDir = new File(params.getString("path").replace("/lora-scripts",""));
+            preImgDir = new File(params.getString("path"));
         }
         // 判断文件夹是否存在
         if (!preImgDir.exists()) {

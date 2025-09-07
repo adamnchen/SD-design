@@ -111,7 +111,7 @@
         ORDER BY A.crt_time DESC,A.use_times DESC LIMIT #{limit}
     </select>
 
-    <select id="selectInfosByIds" resultType="com.alibaba.fastjson2.JSONObject">
+    <select id="selectInfosByIds" resultType="com.alibaba.fastjson.JSONObject">
         select id,config,addition_tag AS additionTag
         FROM sd_user_model
         WHERE id IN <foreach collection="ids" open="(" item="id" separator="," close=")">#{id}</foreach>
@@ -122,14 +122,14 @@
     </select>
 
     <!-- 发布/取消发布 时获取模型拥有者进行消息通知 -->
-    <select id="selectUserOpenIdAndPhoneById" resultType="com.alibaba.fastjson2.JSONObject">
+    <select id="selectUserOpenIdAndPhoneById" resultType="com.alibaba.fastjson.JSONObject">
         SELECT DISTINCT B.wx_open_id AS wxOpenId,B.phonenumber,B.user_id AS userId
         FROM sd_user_model AS A,sys_user AS B
         WHERE A.belong_user_id=B.user_id AND A.id=#{id}
     </select>
 
     <!-- 根据任务获取模型信息 -->
-    <select id="selectLoraModelNameByTaskId" resultType="com.alibaba.fastjson2.JSONObject">
+    <select id="selectLoraModelNameByTaskId" resultType="com.alibaba.fastjson.JSONObject">
         SELECT DISTINCT B.model_name_zh AS modelNameZh,DATE_FORMAT(C.crt_time,'%Y-%m-%d %H:%i:%s') AS startTime,DATE_FORMAT(C.upd_time,'%Y-%m-%d %H:%i:%s') AS endTime
         FROM sd_user_model_file AS A
             LEFT JOIN sd_user_model AS B ON A.lora_model_id=B.id

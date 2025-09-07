@@ -15,7 +15,7 @@ import com.sutran.sd.sdapi.domain.vo.TrainPreImgTaskVo;
 import com.sutran.sd.sdapi.domain.vo.TrainProcessDataVo;
 import com.sutran.sd.sdapi.domain.vo.TrainTaskStatusVo;
 import com.sutran.sd.sdapi.domain.vo.TrainTaskVo;
-import com.sutran.sd.sdapi.modules.system.SdTrainService;
+import com.sutran.sd.sdapi.modules.train.SdTrainService;
 import lombok.RequiredArgsConstructor;
 import me.chanjar.weixin.common.error.WxErrorException;
 import me.chanjar.weixin.mp.api.WxMpService;

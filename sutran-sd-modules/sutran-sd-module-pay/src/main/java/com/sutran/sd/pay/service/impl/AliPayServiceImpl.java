@@ -101,6 +101,7 @@ public class AliPayServiceImpl implements AliPayService {
         // 获取当前用户在当前支付应用下是否存在未超时且未完成的支付
         PayOrder payOrder = payOrderService.isExistNoDealOrder(userId,appId);
         if (payOrder != null) {
+//            return payOrder.getQrCode();
             throw new ServiceException("当前用户在当前支付应用下存在未完成的订单",500,payOrder.getId().toString());
         }
 

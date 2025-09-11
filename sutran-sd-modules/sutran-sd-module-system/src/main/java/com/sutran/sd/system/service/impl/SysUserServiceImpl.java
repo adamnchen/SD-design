@@ -21,6 +21,7 @@ import com.sutran.sd.common.core.domain.entity.SysUser;
 import com.sutran.sd.common.core.page.TableDataInfo;
 import com.sutran.sd.common.core.service.UserService;
 import com.sutran.sd.common.exception.ServiceException;
+import com.sutran.sd.common.exception.TaskErrorException;
 import com.sutran.sd.common.helper.DataBaseHelper;
 import com.sutran.sd.common.helper.LoginHelper;
 import com.sutran.sd.common.utils.StreamUtils;
@@ -693,6 +694,14 @@ public class SysUserServiceImpl implements ISysUserService, UserService {
     @Override
     public String selectMemberIdByUserId(Long userId, Date now) {
         return userMemberMapper.selectMemberIdByUserId(userId,now);
+    }
+
+    @Override
+    public void checkDrawNumOfMember(Long userId, Integer drawNum) {
+        final Integer drawNumOfMember = userMemberMapper.selectDrawNumById(userId,new Date());
+        if (drawNumOfMember==null || drawNumOfMember<drawNum) {
+            throw new TaskErrorException("会员绘图数量不足");
+        }
     }
 
 }

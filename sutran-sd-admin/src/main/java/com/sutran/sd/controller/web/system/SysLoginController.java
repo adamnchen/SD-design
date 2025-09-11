@@ -15,8 +15,8 @@ import com.sutran.sd.common.enums.EncodeType;
 import com.sutran.sd.common.exception.ServiceException;
 import com.sutran.sd.common.helper.LoginHelper;
 import com.sutran.sd.framework.manager.EncryptorManager;
-import com.sutran.sd.sdapi.modules.system.entity.SdUserMsg;
-import com.sutran.sd.sdapi.modules.system.SdUserMsgService;
+import com.sutran.sd.draw.domain.SdUserMsg;
+import com.sutran.sd.draw.service.SdUserMsgService;
 import com.sutran.sd.system.domain.vo.RouterVo;
 import com.sutran.sd.system.service.*;
 import lombok.RequiredArgsConstructor;
@@ -35,7 +35,7 @@ import java.util.Map;
  * 登录验证
  * @author Lion Li
  */
-@SuppressWarnings("LoggingSimilarMessage")
+@SuppressWarnings({"LoggingSimilarMessage", "AlibabaUndefineMagicConstant"})
 @Validated
 @RequiredArgsConstructor
 @RestController
@@ -65,7 +65,7 @@ public class SysLoginController {
     @SaIgnore
     @PostMapping("/login")
     public R<Map<String, Object>> login(@Validated @RequestBody LoginBody loginBody) {
-        Map<String, Object> ajax = new HashMap<>();
+        Map<String, Object> ajax = new HashMap<>(4);
         // 生成令牌
         loginService.login(loginBody.getUsername(), loginBody.getPassword(), loginBody.getCode(), loginBody.getUuid(), DeviceType.PC, ajax);
         return R.ok(ajax);
@@ -80,7 +80,7 @@ public class SysLoginController {
     @SaIgnore
     @PostMapping("/bs-login")
     public R<Map<String, Object>> bsLogin(@Validated @RequestBody LoginBody loginBody) {
-        Map<String, Object> ajax = new HashMap<>();
+        Map<String, Object> ajax = new HashMap<>(4);
         // 生成令牌
         loginService.login(loginBody.getUsername(), loginBody.getPassword(), loginBody.getCode(), loginBody.getUuid(), DeviceType.BS_PC, ajax);
         // 查询当前用户是否关注微信公众号
@@ -146,7 +146,7 @@ public class SysLoginController {
             throw new ServiceException("当前渠道用户不支持,登录失败!");
         }
 
-        Map<String, Object> ajax = new HashMap<>();
+        Map<String, Object> ajax = new HashMap<>(4);
         // 生成令牌
         loginService.registerOrLogin(phone, thirdUserId, userChannel, sysUserChannelId, DeviceType.BS_PC, ajax);
 
@@ -175,7 +175,7 @@ public class SysLoginController {
     @SaIgnore
     @PostMapping("/sms-login")
     public R<Map<String, Object>> smsLogin(@Validated @RequestBody SmsLoginBody smsLoginBody) {
-        Map<String, Object> ajax = new HashMap<>();
+        Map<String, Object> ajax = new HashMap<>(4);
         // 生成令牌
         loginService.smsLogin(smsLoginBody.getPhonenumber(), smsLoginBody.getSmsCode(), DeviceType.PC, ajax);
         return R.ok(ajax);
@@ -190,7 +190,7 @@ public class SysLoginController {
     @SaIgnore
     @PostMapping("/bs-sms-login")
     public R<Map<String, Object>> bsSmsLogin(@Validated @RequestBody SmsLoginBody smsLoginBody) {
-        Map<String, Object> ajax = new HashMap<>();
+        Map<String, Object> ajax = new HashMap<>(4);
         // 生成令牌
         loginService.smsLogin(smsLoginBody.getPhonenumber(), smsLoginBody.getSmsCode(), DeviceType.BS_PC, ajax);
         return R.ok(ajax);
@@ -204,7 +204,7 @@ public class SysLoginController {
      */
     @PostMapping("/email-login")
     public R<Map<String, Object>> emailLogin(@Validated @RequestBody EmailLoginBody body) {
-        Map<String, Object> ajax = new HashMap<>();
+        Map<String, Object> ajax = new HashMap<>(4);
         // 生成令牌
         loginService.emailLogin(body.getEmail(), body.getEmailCode(), DeviceType.PC, ajax);
         return R.ok(ajax);
@@ -218,7 +218,7 @@ public class SysLoginController {
      */
     @PostMapping("/bs-email-login")
     public R<Map<String, Object>> bsEmailLogin(@Validated @RequestBody EmailLoginBody body) {
-        Map<String, Object> ajax = new HashMap<>();
+        Map<String, Object> ajax = new HashMap<>(4);
         // 生成令牌
         loginService.emailLogin(body.getEmail(), body.getEmailCode(), DeviceType.BS_PC, ajax);
         return R.ok(ajax);
@@ -233,7 +233,7 @@ public class SysLoginController {
     @SaIgnore
     @PostMapping("/xcx-login")
     public R<Map<String, Object>> xcxLogin(@NotBlank(message = "{xcx.code.not.blank}") String xcxCode) {
-        Map<String, Object> ajax = new HashMap<>();
+        Map<String, Object> ajax = new HashMap<>(4);
         // 生成令牌
         loginService.xcxLogin(xcxCode,ajax);
         return R.ok(ajax);
@@ -248,7 +248,7 @@ public class SysLoginController {
     @SaIgnore
     @PostMapping("/wx-mp-login")
     public R<Map<String, Object>> bsWxMpLogin(@NotBlank(message = "{xcx.code.not.blank}") @RequestParam String code) throws WxErrorException {
-        Map<String, Object> ajax = new HashMap<>();
+        Map<String, Object> ajax = new HashMap<>(4);
         // 生成令牌
         loginService.wxMpLogin(code, DeviceType.BS_PC,ajax);
         return R.ok(ajax);
@@ -296,7 +296,7 @@ public class SysLoginController {
         LoginUser loginUser = LoginHelper.getLoginUser();
         assert loginUser != null;
         SysUser user = userService.selectUserById(loginUser.getUserId());
-        Map<String, Object> ajax = new HashMap<>();
+        Map<String, Object> ajax = new HashMap<>(4);
         ajax.put("user", user);
         ajax.put("roles", loginUser.getRolePermission());
         ajax.put("permissions", loginUser.getMenuPermission());

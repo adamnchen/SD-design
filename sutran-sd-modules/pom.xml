@@ -16,8 +16,11 @@
         <module>sutran-sd-module-oss</module>
         <module>sutran-sd-module-sms</module>
         <module>sutran-sd-module-generator</module>
-        <module>sutran-sd-module-sdapi</module>
         <module>sutran-sd-module-ai</module>
         <module>sutran-sd-module-pay</module>
+        <module>sutran-sd-module-draw</module>
+        <module>sutran-sd-module-webui</module>
+        <module>sutran-sd-module-comfyui</module>
+        <module>sutran-sd-module-train</module>
     </modules>
 </project>

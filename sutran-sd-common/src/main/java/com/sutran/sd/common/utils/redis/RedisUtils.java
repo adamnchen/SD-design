@@ -440,6 +440,17 @@ public class RedisUtils {
     }
 
     /**
+     * 获取Hash中的数据
+     *
+     * @param key  Redis键
+     * @param hKey Hash键
+     * @return Hash中的对象
+     */
+    public static boolean hasCacheMapKey(final String key, final String hKey) {
+        return CLIENT.getMap(key).containsKey(hKey);
+    }
+
+    /**
      * 删除Hash中的数据
      *
      * @param key  Redis键

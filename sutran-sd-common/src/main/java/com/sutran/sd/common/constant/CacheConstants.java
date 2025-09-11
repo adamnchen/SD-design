@@ -130,4 +130,13 @@ public interface CacheConstants {
     String DRAW_GPU_USAGE_FREQUENCY = "DRAW_GPU_USAGE_FREQUENCY";
     String DRAW_GPU_TASK = "DRAW_GPU_TASK:";
 
+    /**
+     * 绘图节点和任务映射关系
+     */
+    String DRAW_NODE_TASK_MAP = "DRAW_NODE_TASK_MAP";
+    /**
+     * 绘图任务进度
+     */
+    String DRAW_TASK_PROGRESS = "DRAW_TASK_PROGRESS";
+
 }

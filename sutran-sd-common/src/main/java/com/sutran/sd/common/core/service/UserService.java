@@ -90,4 +90,11 @@ public interface UserService {
      * @return 会员ID
      */
     String selectMemberIdByUserId(Long userId, Date now);
+
+    /**
+     * 校验用户会员是否有足够的绘图数量
+     * @param userId 用户ID
+     * @param drawNum 绘图数量
+     */
+    void checkDrawNumOfMember(Long userId, Integer drawNum);
 }

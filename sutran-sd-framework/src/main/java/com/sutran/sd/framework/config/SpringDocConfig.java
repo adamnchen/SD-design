@@ -164,12 +164,12 @@ public class SpringDocConfig {
     }
 
     /**
-     * 系统接口
+     * SD接口
      */
     @Bean
     public GroupedOpenApi sdServiceApi() {
         return GroupedOpenApi.builder()
-            .group("SD接口")
+            .group("SD绘图接口")
             .pathsToMatch("/sd/**")
             // 添加自定义配置，这里添加了一个用户认证的 header，否则 knife4j 里会没有 header
             .addOperationCustomizer((operation, handlerMethod) -> operation.security(
@@ -180,7 +180,7 @@ public class SpringDocConfig {
     }
 
     /**
-     * 系统接口
+     * AI接口
      */
     @Bean
     public GroupedOpenApi aiServiceApi() {

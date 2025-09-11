@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sutran.sd.draw.mapper.SdUserModelMapper">
+
+    <resultMap type="com.sutran.sd.draw.domain.vo.SdUserModelVo" id="BaseModelVo">
+        <id property="id" column="id"/>
+        <result property="title" column="title"/>
+        <result property="classifyId" column="classify_id"/>
+        <result property="classifyName" column="classify_name"/>
+        <result property="modelName" column="model_name"/>
+        <result property="modelNameZh" column="model_name_zh"/>
+        <result property="modelStrength" column="model_strength"/>
+        <result property="additionTag" column="addition_tag"/>
+        <result property="hash" column="hash"/>
+        <result property="fileName" column="file_name"/>
+        <result property="config" column="config"/>
+        <result property="url" column="url"/>
+        <result property="remark" column="remark"/>
+        <result property="type" column="type"/>
+        <result property="isOpen" column="is_open"/>
+        <result property="publishStatus" column="publish_status"/>
+        <result property="belongUserId" column="belong_user_id"/>
+        <result property="belongUserName" column="belong_user_name"/>
+        <result property="crtTime" column="crt_time"/>
+        <result property="isUserDel" column="is_user_del"/>
+    </resultMap>
+
+    <insert id="insertData">
+        INSERT INTO sd_user_model (id, title, model_name, model_name_zh, addition_tag, hash, file_name, url, config, type, belong_user_id, is_open, publish_status, crt_time)
+        VALUE (#{id},#{title},#{modelName},#{modelNameZh},#{additionTag},#{hash},#{fileName},#{url},#{config},#{type},#{belongUserId},#{isOpen},#{publishStatus},#{crtTime})
+        ON DUPLICATE KEY UPDATE title=VALUES(title),model_name=VALUES(model_name),file_name=VALUES(file_name),config=VALUES(config)
+    </insert>
+
+    <insert id="shareModel">
+        INSERT IGNORE INTO sd_user_model_share (model_id, user_id, crt_user_id, crt_time)
+        VALUES (#{dto.modelId},#{dto.toShareUserId},#{userId},#{crtTime})
+    </insert>
+
+    <update id="publishModel">
+        UPDATE sd_user_model
+        SET publish_status=#{publishStatus}
+          <if test="isUserDel!=null">,is_user_del=#{isUserDel}</if>
+          <if test="modelStrength!='' and modelStrength!=null">,model_strength=#{modelStrength}</if>
+        WHERE id=#{id}
+    </update>
+
+    <update id="modifyModelStrength">
+        UPDATE sd_user_model SET model_strength=#{modelStrength} WHERE id=#{id}
+    </update>
+
+    <select id="selectAllList" resultMap="BaseModelVo">
+        SELECT DISTINCT A.id, A.classify_id, A.title, A.model_name, A.model_name_zh, A.model_strength, A.addition_tag, A.hash, A.file_name, A.url, A.remark, A.type, A.is_open, A.belong_user_id, A.publish_status, A.crt_time, A.is_user_del,B.user_name AS belong_user_name
+        FROM sd_user_model AS A
+            LEFT JOIN sys_user AS B ON A.belong_user_id=B.user_id
+            LEFT JOIN sd_user_model_classify_tmp AS C ON A.id=C.model_id
+            LEFT JOIN sd_user_model_share AS D ON A.id=D.model_id
+        WHERE A.publish_status=1
+        <choose>
+            <when test="dto.shareModel!=null and dto.shareModel">AND D.user_id=#{userId})</when>
+            <otherwise>AND (A.type=0 OR A.is_open=1 OR (A.type=1 AND A.belong_user_id=#{userId}) OR D.user_id=#{userId})</otherwise>
+        </choose>
+        <if test="dto.classifyId!=null and dto.classifyId!=''">
+            <choose>
+                <when test="dto.classifyId==1">AND A.classify_id=1</when>
+                <otherwise>AND C.classify_id=#{dto.classifyId}</otherwise>
+            </choose>
+        </if>
+        <if test="dto.searchValue!=null and dto.searchValue!=''">AND A.model_name_zh LIKE CONCAT('%',#{dto.searchValue},'%')</if>
+        ORDER BY A.id DESC
+    </select>
+
+    <select id="selectAllListOfAdmin" resultMap="BaseModelVo">
+        SELECT DISTINCT A.*,B.user_name AS belong_user_name
+        FROM sd_user_model AS A
+             LEFT JOIN sys_user AS B ON A.belong_user_id=B.user_id
+        <where>
+            <if test="dto.publishStatus!=null and dto.publishStatus!=''">
+                AND A.publish_status=#{dto.publishStatus}
+            </if>
+            <if test="dto.modelNameZh!=null and dto.modelNameZh!=''">
+                AND A.model_name_zh LIKE CONCAT('%',#{dto.modelNameZh},'%')
+            </if>
+            <if test="dto.belongUserName!=null and dto.belongUserName!=''">
+                AND B.user_name LIKE CONCAT(#{dto.belongUserName},'%')
+            </if>
+            <if test="dto.startDate!=null and dto.startDate!='' and dto.endDate!=null and dto.endDate!=''">
+                AND A.crt_time BETWEEN CONCAT(#{dto.startDate},' 00:00:00') AND CONCAT(#{dto.endDate},' 23:59:59')
+            </if>
+        </where>
+        ORDER BY A.id DESC
+    </select>
+
+    <select id="getModelInfo" resultMap="BaseModelVo">
+        SELECT DISTINCT A.*,B.user_name AS belong_user_name
+        FROM sd_user_model AS A
+             LEFT JOIN sys_user AS B ON A.belong_user_id=B.user_id
+             LEFT JOIN sd_user_model_share AS C ON A.id=C.model_id
+        WHERE A.id=#{id} AND (A.type=0 OR A.is_open=1 OR (A.type=1 AND A.belong_user_id=#{userId}) OR C.user_id=#{userId})
+    </select>
+
+
+    <select id="getLatestModelInfo" resultMap="BaseModelVo">
+        SELECT DISTINCT B.id, A.crt_time, A.use_times, B.classify_id, B.title, B.model_name, B.model_name_zh, B.hash, B.file_name, B.config, B.url, B.remark, B.type, IFNULL(A.model_strength,B.model_strength) AS model_strength, B.is_open, B.belong_user_id, B.publish_status,C.user_name AS belong_user_name,B.config,B.addition_tag
+        FROM sd_user_model_log AS A
+            LEFT JOIN sd_user_model AS B ON A.lora_model_id=B.id
+            LEFT JOIN sys_user AS C ON B.belong_user_id=C.user_id
+            LEFT JOIN sd_user_model_share AS D ON B.id=D.model_id
+        WHERE A.user_id=#{userId} AND (B.type=0 OR B.is_open=1 OR (B.type=1 AND B.belong_user_id=#{userId}) OR D.user_id=#{userId})
+        ORDER BY A.crt_time DESC,A.use_times DESC LIMIT #{limit}
+    </select>
+
+    <select id="selectInfosByIds" resultType="com.alibaba.fastjson.JSONObject">
+        select id,config,addition_tag AS additionTag
+        FROM sd_user_model
+        WHERE id IN <foreach collection="ids" open="(" item="id" separator="," close=")">#{id}</foreach>
+    </select>
+
+    <select id="selectHashList" resultType="java.lang.String">
+        SELECT DISTINCT hash FROM sd_user_model
+    </select>
+
+    <!-- 发布/取消发布 时获取模型拥有者进行消息通知 -->
+    <select id="selectUserOpenIdAndPhoneById" resultType="com.alibaba.fastjson.JSONObject">
+        SELECT DISTINCT B.wx_open_id AS wxOpenId,B.phonenumber,B.user_id AS userId
+        FROM sd_user_model AS A,sys_user AS B
+        WHERE A.belong_user_id=B.user_id AND A.id=#{id}
+    </select>
+
+    <!-- 根据任务获取模型信息 -->
+    <select id="selectLoraModelNameByTaskId" resultType="com.alibaba.fastjson.JSONObject">
+        SELECT DISTINCT B.model_name_zh AS modelNameZh,DATE_FORMAT(C.crt_time,'%Y-%m-%d %H:%i:%s') AS startTime,DATE_FORMAT(C.upd_time,'%Y-%m-%d %H:%i:%s') AS endTime
+        FROM sd_user_model_file AS A
+            LEFT JOIN sd_user_model AS B ON A.lora_model_id=B.id
+            LEFT JOIN sd_user_task AS C ON A.task_id=C.task_id
+        WHERE A.task_id=#{taskId}
+    </select>
+
+</mapper>

@@ -6,9 +6,9 @@ import com.sutran.sd.common.core.domain.PageQuery;
 import com.sutran.sd.common.core.domain.R;
 import com.sutran.sd.common.core.page.TableDataInfo;
 import com.sutran.sd.common.core.domain.dto.BatchRemoveDto;
-import com.sutran.sd.sdapi.domain.dto.SdUserModelFilePageDto;
-import com.sutran.sd.sdapi.modules.webui.SdApiService;
-import com.sutran.sd.sdapi.modules.system.vo.SdUserModelFileVo;
+import com.sutran.sd.draw.domain.dto.SdUserModelFilePageDto;
+import com.sutran.sd.webui.service.SdApiService;
+import com.sutran.sd.draw.domain.vo.SdUserModelFileVo;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 

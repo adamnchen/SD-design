@@ -24,7 +24,7 @@ import java.util.Map;
  * @date 2024-04-07
  */
 @Slf4j
-@Service("sysTranslateService")
+@Service
 public class SysSysTranslateServiceImpl implements SysTranslateService {
 
     @Resource
@@ -89,7 +89,7 @@ public class SysSysTranslateServiceImpl implements SysTranslateService {
                 }
                 return null;
             case BAIDU:
-                Map<String, String> bdParams = new HashMap<String, String>() {{
+                Map<String, String> bdParams = new HashMap<String, String>(8) {{
                     put("q", content);
                     put("from", "en");
                     put("to", "zh");
@@ -97,7 +97,7 @@ public class SysSysTranslateServiceImpl implements SysTranslateService {
                 // 添加鉴权相关参数
                 BaiduAuthUtil.buildParams(baiduAppKey, baiduAppSecret, bdParams);
                 JSONObject bdResult = translateApi.baiduTranslate(bdParams);
-                log.info("[百度翻译][英译汉]>>>>>>>>>返回结果：{}",bdResult);
+                log.warn("[百度翻译][英译汉]>>>>>>>>>返回结果：{}",bdResult);
                 return CollectionUtil.isNotEmpty(bdResult) && !"54001".equals(bdResult.getString("error_code"))? JSON.parseArray(bdResult.getString("trans_result"), JSONObject.class).get(0).getString("dst") :null;
             default:
                 return null;

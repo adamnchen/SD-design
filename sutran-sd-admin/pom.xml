@@ -44,14 +44,22 @@
             <artifactId>sutran-sd-framework</artifactId>
         </dependency>
 
+        <!-- 系统模块-->
         <dependency>
             <groupId>com.sutran.sd</groupId>
             <artifactId>sutran-sd-module-system</artifactId>
         </dependency>
 
+        <!-- webui模块-->
         <dependency>
             <groupId>com.sutran.sd</groupId>
-            <artifactId>sutran-sd-module-sdapi</artifactId>
+            <artifactId>sutran-sd-module-webui</artifactId>
+        </dependency>
+
+        <!-- comfyui模块-->
+        <dependency>
+            <groupId>com.sutran.sd</groupId>
+            <artifactId>sutran-sd-module-comfyui</artifactId>
         </dependency>
 
         <!-- AI模块-->
@@ -70,12 +78,6 @@
         <dependency>
             <groupId>com.sutran.sd</groupId>
             <artifactId>sutran-sd-module-generator</artifactId>
-        </dependency>
-
-        <!-- 支付模块 -->
-        <dependency>
-            <groupId>com.sutran.sd</groupId>
-            <artifactId>sutran-sd-module-pay</artifactId>
         </dependency>
 
         <dependency>

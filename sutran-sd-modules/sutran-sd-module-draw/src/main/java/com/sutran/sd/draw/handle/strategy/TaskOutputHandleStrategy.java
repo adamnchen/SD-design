@@ -63,14 +63,14 @@ public class TaskOutputHandleStrategy implements IComfyWebSocketTextHandleStrate
         if (CollectionUtil.isEmpty(currentOutputImages)) {
             return;
         }
-        SdUserTaskVo sdUserTaskVo = sdUserTaskService.getDrawTaskInfoByTaskId(taskId);
-        if (sdUserTaskVo == null || StringUtils.isBlank(sdUserTaskVo.getNodeUrl())) {
+        SdUserTaskVo task = sdUserTaskService.getDrawTaskInfoByTaskId(taskId);
+        if (task == null || StringUtils.isBlank(task.getNodeUrl())) {
             return;
         }
         List<String> urlList = new ArrayList<>();
         for (ComfyTaskImage image : currentOutputImages) {
             try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-                UrlBuilder builder = UrlBuilder.of(sdUserTaskVo.getNodeUrl()).addPath("/view")
+                UrlBuilder builder = UrlBuilder.of(task.getNodeUrl()).addPath("/view")
                     .addQuery("filename", image.getFileName())
                     .addQuery("type", image.getFolder())
                     .addQuery("subfolder", image.getSubFolder());
@@ -78,13 +78,13 @@ public class TaskOutputHandleStrategy implements IComfyWebSocketTextHandleStrate
                 OssClient storage = OssFactory.instance();
                 UploadResult uploadResult = storage.uploadSuffix(out.toByteArray(),JPG,"image/jpeg");
                 urlList.add(uploadResult.getUrl());
-                ossService.insertOssData(SD+ DateUtil.format(new Date(),"yyyyMMdd")+"_"+ IdUtil.getSnowflakeNextIdStr()+JPG,JPG,storage.getConfigKey(),uploadResult.getUrl(),uploadResult.getFilename(),userName);
+                ossService.insertOssData(SD + DateUtil.format(new Date(),"yyyyMMdd")+"_"+ IdUtil.getSnowflakeNextIdStr()+JPG,JPG,storage.getConfigKey(),uploadResult.getUrl(),uploadResult.getFilename(),task.getBelongUserName());
             } catch (Exception e) {
                 log.error("任务输出的图片上传失败,任务id: {},comfyui内部任务id: {},节点id: {}", taskId, promptId, dataNode.get("node").asText(),e);
             }
         }
         if (CollectionUtil.isNotEmpty(urlList)) {
-            sdUserModelFileService.asyncBatchInsert(sdUserTaskVo,urlList,null);
+            sdUserModelFileService.asyncBatchInsert(task,urlList,null);
         }
     }
 }

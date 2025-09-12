@@ -11,7 +11,7 @@
  Target Server Version : 80023 (8.0.23)
  File Encoding         : 65001
 
- Date: 11/09/2025 23:49:28
+ Date: 12/09/2025 11:10:31
 */
 
 SET NAMES utf8mb4;
@@ -1253,6 +1253,28 @@ INSERT INTO `sys_user` VALUES ('1', 103, NULL, 'admin', '系统管理员', 'sys_
 INSERT INTO `sys_user` VALUES ('1838096394063040512', 103, NULL, '18852862861', '朱军', 'bs_user', '1', '系统注册', NULL, 'zhujun19950922@163.com', '18852862861', '0', NULL, '$2a$10$7YIRQRx5WYM4taFN3cVJleyW8Xn9FO2.cjPwm0bpeIZXshHr9syiK', '0', '0', '0:0:0:0:0:0:0:1', '2025-07-17 23:18:35', NULL, '2024-09-23 14:01:45', '18852862861', '2025-07-17 23:18:35', '管理员', NULL, NULL, NULL, 1);
 
 -- ----------------------------
+-- Table structure for sys_user_address
+-- ----------------------------
+DROP TABLE IF EXISTS `sys_user_address`;
+CREATE TABLE `sys_user_address`  (
+  `id` bigint NOT NULL COMMENT '标签ID',
+  `user_id` bigint NULL DEFAULT NULL COMMENT '用户ID',
+  `name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '标签名称',
+  `province` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '省(直辖市)',
+  `city` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '市(直辖市区)',
+  `county` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '区(直辖市县)',
+  `address` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '详细地址',
+  `is_default` tinyint NULL DEFAULT NULL COMMENT '是否默认地址[0-否,1-是]',
+  `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
+  PRIMARY KEY (`id`) USING BTREE,
+  INDEX `user_id`(`user_id` ASC) USING BTREE
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '用户物流地址关联表' ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Records of sys_user_address
+-- ----------------------------
+
+-- ----------------------------
 -- Table structure for sys_user_member
 -- ----------------------------
 DROP TABLE IF EXISTS `sys_user_member`;
@@ -1279,7 +1301,7 @@ CREATE TABLE `sys_user_member`  (
   INDEX `end_time`(`end_time` ASC) USING BTREE,
   INDEX `status`(`status` ASC) USING BTREE,
   INDEX `user_id`(`user_id` ASC, `status` ASC, `member_id` ASC) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '系统用户会员' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '用户会员关联表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of sys_user_member
@@ -1296,7 +1318,7 @@ CREATE TABLE `sys_user_post`  (
   `user_id` bigint NOT NULL COMMENT '用户ID',
   `post_id` bigint NOT NULL COMMENT '岗位ID',
   PRIMARY KEY (`user_id`, `post_id`) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '用户与岗位关联表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '用户岗位关联表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of sys_user_post
@@ -1312,12 +1334,30 @@ CREATE TABLE `sys_user_role`  (
   `user_id` bigint NOT NULL COMMENT '用户ID',
   `role_id` bigint NOT NULL COMMENT '角色ID',
   PRIMARY KEY (`user_id`, `role_id`) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '用户和角色关联表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '用户角色关联表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of sys_user_role
 -- ----------------------------
 INSERT INTO `sys_user_role` VALUES (1, 1);
 INSERT INTO `sys_user_role` VALUES (2, 2);
+
+-- ----------------------------
+-- Table structure for sys_user_tag
+-- ----------------------------
+DROP TABLE IF EXISTS `sys_user_tag`;
+CREATE TABLE `sys_user_tag`  (
+  `id` bigint NOT NULL COMMENT '标签ID',
+  `user_id` bigint NULL DEFAULT NULL COMMENT '用户ID',
+  `name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '标签名称',
+  `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
+  `source` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '标签来源[DEFINE-自定义,SYSTEM-系统]',
+  PRIMARY KEY (`id`) USING BTREE,
+  INDEX `user_id`(`user_id` ASC) USING BTREE
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '用户标签关联表' ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Records of sys_user_tag
+-- ----------------------------
 
 SET FOREIGN_KEY_CHECKS = 1;

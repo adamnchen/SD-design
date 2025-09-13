@@ -13,6 +13,7 @@ import com.sutran.sd.draw.domain.dto.model.SdUserModelDto;
 import com.sutran.sd.draw.domain.dto.task.SdUserTaskPageDto;
 import com.sutran.sd.draw.domain.dto.txt2img.SdText2ImgDto;
 import com.sutran.sd.draw.domain.SdGpuPool;
+import com.sutran.sd.system.service.SdTranslationService;
 import com.sutran.sd.webui.service.SdApiService;
 import com.sutran.sd.draw.service.SdGpuPoolService;
 import com.sutran.sd.train.service.SdTrainService;
@@ -43,6 +44,7 @@ public class SysSdController extends BaseController {
     private final SdApiService sdApiService;
     private final SdTrainService sdTrainService;
     private final SdGpuPoolService sdGpuPoolService;
+    private final SdTranslationService sdTranslationService;
 
     /**
      * SD 大模型-获取基础大模型列表
@@ -226,6 +228,28 @@ public class SysSdController extends BaseController {
             sdApiService.startGpuPool(sdGpuPool);
         }
         return R.ok("GPU启用用成功");
+    }
+
+    /**
+     * SD 5、从redis同步翻译字典到数据库
+     * @param type 类型[0-提示词英译中,1-tag标签中译英]
+     */
+    @GetMapping("/redis/sync-translation")
+    @SaIgnore
+    public R<Void> syncTranslationFromRedisToDb(@RequestParam Integer type) {
+        sdTranslationService.syncTranslationFromRedisToDb(type);
+        return R.ok("同步成功");
+    }
+
+    /**
+     * SD 6、从数据库同步翻译字典到redis
+     * @param type 类型[0-提示词英译中,1-tag标签中译英]
+     */
+    @GetMapping("/db/sync-translation")
+    @SaIgnore
+    public R<Void> syncTranslationFromDbToRedis(@RequestParam Integer type) {
+        sdTranslationService.syncTranslationFromDbToRedis(type);
+        return R.ok("同步成功");
     }
 
 }

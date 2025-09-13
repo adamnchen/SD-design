@@ -3,12 +3,15 @@ package com.sutran.sd.comfyapi.service.impl;
 import cn.hutool.core.util.IdUtil;
 import com.alibaba.fastjson.JSONObject;
 import com.sutran.sd.comfyapi.domain.DrawingTaskInfo;
+import com.sutran.sd.comfyapi.service.ComfyApiService;
 import com.sutran.sd.comfyapi.service.ComfyTaskService;
 import com.sutran.sd.common.core.service.UserService;
 import com.sutran.sd.common.exception.TaskErrorException;
 import com.sutran.sd.common.utils.StringUtils;
+import com.sutran.sd.common.utils.redis.RedisUtils;
 import com.sutran.sd.draw.domain.SdFlow;
 import com.sutran.sd.draw.domain.bo.ComfyModelTaskSubmitBo;
+import com.sutran.sd.draw.domain.pojo.ComfyTaskHistoryInfo;
 import com.sutran.sd.draw.service.SdFlowService;
 import com.sutran.sd.draw.service.SdUserTaskService;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +21,7 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import static com.sutran.sd.common.constant.CacheConstants.DRAW_TASK_PROGRESS;
 import static com.sutran.sd.draw.mq.MqConstant.SD_COMFY_DRAW_EXCHANGE;
 import static com.sutran.sd.draw.mq.MqConstant.SD_COMFY_DRAW_ROUTING_KEY;
 
@@ -34,6 +38,7 @@ public class ComfyTaskServiceImpl implements ComfyTaskService {
     private final UserService userService;
     private final SdUserTaskService sdUserTaskService;
     private final RabbitTemplate rabbitTemplate;
+    private final ComfyApiService comfyApiService;
 
     /**
      * 提交模型任务
@@ -61,14 +66,27 @@ public class ComfyTaskServiceImpl implements ComfyTaskService {
         // 替换lora模型和强度
         String flow = sdFlow.getFlow().replace("{{lora_model}}",modelTaskBo.getModelName())
             .replace("\"{{lora_model_strength}}\"",modelTaskBo.getModelStrength());
+        if (StringUtils.isNotBlank(modelTaskBo.getPrompt())) {
+            flow = flow.replace("{{prompt}}",modelTaskBo.getPrompt());
+        }
 
         // 生图任务落库
         final String taskId = IdUtil.getSnowflakeNextIdStr();
-        sdUserTaskService.addComfyTask(taskId,userId,userName,flow);
+        sdUserTaskService.addComfyTask(taskId,userId,userName,flow,modelTaskBo.getPrompt(),modelTaskBo.getPromptZh());
         // 生图任务存放到MQ队列
         DrawingTaskInfo taskInfo = new DrawingTaskInfo(taskId, JSONObject.parseObject(flow),10);
         submitComfyTaskToQueue(taskInfo);
         return taskId;
+    }
+
+    @Override
+    public ComfyTaskHistoryInfo getComfyModelHistoryTask(String promptId) {
+        return comfyApiService.getTaskInfoById(promptId);
+    }
+
+    @Override
+    public Integer getComfyTaskProgress(String taskId) {
+        return RedisUtils.getCacheMapValue(DRAW_TASK_PROGRESS, taskId);
     }
 
     /**

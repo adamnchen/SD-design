@@ -53,6 +53,15 @@ public interface ComfyApiService {
     ComfyTaskHistoryInfo getTaskInfoById(String promptId, SdDrawNode node);
 
     /**
+     * api: /history/{promptId}<br>
+     * 获得某一个任务信息
+     *
+     * @param promptId comfyUI内部任务id
+     * @return 历史任务信息
+     */
+    ComfyTaskHistoryInfo getTaskInfoById(String promptId);
+
+    /**
      * api: /queue
      * 获得当前队列状态
      *
@@ -116,4 +125,11 @@ public interface ComfyApiService {
      * @return 图片文件二进制数组
      */
     byte[] getOutputImageFile(String imageName, SdDrawNode node);
+
+    /**
+     * 自动处理Comfy任务
+     * @param nodeId 节点id
+     * @param taskId 任务id
+     */
+    void autoDealComfyTask(String nodeId, String taskId);
 }

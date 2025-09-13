@@ -2,7 +2,9 @@ package com.sutran.sd.draw.service;
 
 import com.sutran.sd.common.core.domain.PageQuery;
 import com.sutran.sd.common.core.page.TableDataInfo;
+import com.sutran.sd.draw.domain.SdUserTask;
 import com.sutran.sd.draw.domain.vo.SdUserTaskVo;
+import org.apache.ibatis.annotations.Param;
 
 import java.util.Date;
 
@@ -14,12 +16,15 @@ public interface SdUserTaskService {
 
     /**
      * 新增ComfyUI任务
-     * @param taskId    任务ID
-     * @param userId    用户ID
-     * @param userName  用户名
-     * @param flow      工作流
+     *
+     * @param taskId   任务ID
+     * @param userId   用户ID
+     * @param userName 用户名
+     * @param flow     工作流
+     * @param prompt     英文提示词
+     * @param promptZh   中文提示词
      */
-    void addComfyTask(String taskId, Long userId, String userName, String flow);
+    void addComfyTask(String taskId, Long userId, String userName, String flow, String prompt, String promptZh);
     /**
      * 新增用户任务
      * @param taskId    任务ID
@@ -135,4 +140,19 @@ public interface SdUserTaskService {
      * @return          节点URL
      */
     SdUserTaskVo getDrawTaskInfoByTaskId(String taskId);
+
+    /**
+     * 根据promptID查询任务ID
+     * @param promptId  promptID
+     * @return          任务ID
+     */
+    String getTaskIdByPromptId(@Param("promptId") String promptId);
+
+    /**
+     * 根据promptID查询任务信息
+     * @param promptId  promptID
+     * @return          任务信息
+     */
+    SdUserTask getTaskInfoByPromptId(String promptId);
+
 }

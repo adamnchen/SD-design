@@ -3,11 +3,12 @@ package com.sutran.sd.draw.handle.strategy;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.sutran.sd.common.utils.StringUtils;
 import com.sutran.sd.common.utils.redis.RedisUtils;
-import com.sutran.sd.draw.enums.ComfyWebSocketMessageType;
+import com.sutran.sd.draw.domain.SdUserTask;
 import com.sutran.sd.draw.service.SdUserTaskService;
 import com.sutran.sd.draw.websocket.ComfyWebsocketClient;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 import java.util.Date;
@@ -21,7 +22,7 @@ import static com.sutran.sd.common.constant.CacheConstants.DRAW_TASK_PROGRESS;
  */
 @Slf4j
 @Service("COMPLETE")
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Lazy)
 public class TaskCompleteHandleStrategy implements IComfyWebSocketTextHandleStrategy {
 
     private final SdUserTaskService sdUserTaskService;
@@ -30,26 +31,26 @@ public class TaskCompleteHandleStrategy implements IComfyWebSocketTextHandleStra
     /**
      * 任务完成
      *
-     * @param msgType       消息类型
      * @param dataNode      消息内容
-     * @param taskId        任务id
-     * @param promptId      comfyui内部任务ID
      */
     @Override
-    public void handleMessage(ComfyWebSocketMessageType msgType, JsonNode dataNode, String taskId, String promptId) {
+    public void handleMessage(JsonNode dataNode) {
         // 任务完成
-        log.warn("[任务完成]>>>>>>>>>任务id: {},comfyui内部任务id: {}", taskId, promptId);
-        // 获取任务关联的节点ID
-        String nodeId = sdUserTaskService.getNodeIdByTaskId(taskId);
+        log.warn("[任务完成]>>>>>>>>>节点信息: {}", dataNode);
+        String promptId = dataNode.get("prompt_id").asText();
+        SdUserTask task = sdUserTaskService.getTaskInfoByPromptId(promptId);
+        if (task == null) {
+            return;
+        }
         // 任务完成后，更新任务状态
-        sdUserTaskService.completeComfyTask(taskId, new Date());
+        sdUserTaskService.completeComfyTask(task.getTaskId().toString(), new Date());
         // 清除缓存中的节点任务
-        if (StringUtils.isNotBlank(nodeId)) {
-            RedisUtils.delCacheMapValue(DRAW_NODE_TASK_MAP, nodeId);
+        if (StringUtils.isNotBlank(task.getNodeId().toString())) {
+            RedisUtils.delCacheMapValue(DRAW_NODE_TASK_MAP, task.getNodeId().toString());
         }
         // 清除缓存中的任务进度
-        RedisUtils.delCacheMapValue(DRAW_TASK_PROGRESS, taskId);
+        RedisUtils.delCacheMapValue(DRAW_TASK_PROGRESS, task.getTaskId().toString());
         // 关闭节点的websocket连接
-        comfyWebsocketClient.closeComfyUiWebSocket(taskId);
+        comfyWebsocketClient.closeComfyUiWebSocket(task.getTaskId().toString());
     }
 }

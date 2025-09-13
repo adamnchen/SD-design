@@ -15,7 +15,6 @@ import java.util.Date;
 /**
 * SD绘图 || 用户生图文件数据记录
 * @author zj
-* @TableName sd_user_model_file
 */
 @Data
 @TableName("sd_user_model_file")

@@ -52,6 +52,16 @@ public class SdUserTask implements Serializable {
     @Schema(name = "promptId", description = "comfy内部任务ID")
     private String promptId;
     /**
+     * 英文提示词
+     */
+    @Schema(name = "prompt", description = "英文提示词")
+    private String prompt;
+    /**
+     * 中文提示词
+     */
+    @Schema(name = "promptZh", description = "中文提示词")
+    private String promptZh;
+    /**
      * comfy任务执行的节点ID
      */
     @Schema(name = "nodeId", description = "comfy任务执行的节点ID")

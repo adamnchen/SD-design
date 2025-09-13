@@ -3,6 +3,7 @@ package com.sutran.sd.job;
 import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.date.DateTime;
 import cn.hutool.core.date.DateUtil;
+import com.sutran.sd.comfyapi.service.ComfyApiService;
 import com.sutran.sd.common.utils.redis.RedisUtils;
 import com.sutran.sd.draw.service.SdDrawNodeService;
 import com.sutran.sd.pay.service.AliPayService;
@@ -39,12 +40,13 @@ public class CommonJobEvent {
     private final SdDrawNodeService sdDrawNodeService;
     private final PayOrderService payOrderService;
     private final AliPayService aliPayService;
+    private final ComfyApiService comfyApiService;
 
     /**
      * 定时处理训练任务V1
      * 每10秒执行一次
      */
-//    @Scheduled(cron="0/10 * * * * ?")
+    @Scheduled(cron="0/10 * * * * ?")
     public void executeTrainProgressV1(){
         Map<String, String> cacheMap = RedisUtils.getCacheMap(TRAIN_MODEL_PROGRESS_TASK_MAP_V1);
         if (CollectionUtil.isEmpty(cacheMap)) {
@@ -57,7 +59,7 @@ public class CommonJobEvent {
      * 定时处理训练任务V2
      * 每10秒执行一次
      */
-//    @Scheduled(cron="0/10 * * * * ?")
+    @Scheduled(cron="0/10 * * * * ?")
     public void executeTrainProgressV2(){
         Map<String, String> cacheMap = RedisUtils.getCacheMap(TRAIN_MODEL_PROGRESS_TASK_MAP_V2);
         if (CollectionUtil.isEmpty(cacheMap)) {
@@ -70,7 +72,7 @@ public class CommonJobEvent {
      * 定时处理预处理任务V1
      * 每10秒执行一次
      */
-//    @Scheduled(cron="0/10 * * * * ?")
+    @Scheduled(cron="0/10 * * * * ?")
     public void executePreImgProgressV1(){
         List<String> cacheList = RedisUtils.getCacheList(PRE_IMG_TASK_QUEUE_LIST_V1);
         if (CollectionUtil.isEmpty(cacheList)) {
@@ -85,7 +87,7 @@ public class CommonJobEvent {
      * 定时处理预处理任务V2
      * 每10秒执行一次
      */
-//    @Scheduled(cron="0/10 * * * * ?")
+    @Scheduled(cron="0/10 * * * * ?")
     public void executePreImgProgressV2(){
         List<String> cacheList = RedisUtils.getCacheList(PRE_IMG_TASK_QUEUE_LIST_V2);
         if (CollectionUtil.isEmpty(cacheList)) {
@@ -100,7 +102,7 @@ public class CommonJobEvent {
      * 定时拉取lora模型
      * 每10分钟执行一次
      */
-//    @Scheduled(cron="0 0/10 * * * ?")
+    @Scheduled(cron="0 0/10 * * * ?")
     public void executeRefreshLora(){
         sdApiService.refreshLoraModels();
     }
@@ -109,7 +111,7 @@ public class CommonJobEvent {
      * 定时清理标签翻译缓存
      * 每5分钟执行一次
      */
-//    @Scheduled(cron="0 0/5 * * * ?")
+    @Scheduled(cron="0 0/5 * * * ?")
     public void executeClearTranslateMap(){
         Collection<String> keys = RedisUtils.keys(TRAIN_TAG_TRANSLATE_MAP+"*");
         if (CollectionUtil.isEmpty(keys)) {
@@ -128,7 +130,7 @@ public class CommonJobEvent {
      * 定时推送消息
      * 每1分钟执行一次
      */
-//    @Scheduled(cron="0 0/1 * * * ?")
+    @Scheduled(cron="0 0/1 * * * ?")
     public void executeSendChannelMsg(){
         try{
             // 5分钟前的数据
@@ -182,6 +184,19 @@ public class CommonJobEvent {
     @Scheduled(cron="0/10 * * * * ?")
     public void executeNodePerformHealthCheck(){
         sdDrawNodeService.performHealthCheck();
+    }
+
+    /**
+     * 定时处理节点任务
+     * 每10秒执行一次
+     */
+    @Scheduled(cron="0/10 * * * * ?")
+    public void executeComfyTask(){
+        Map<String, String> cacheMap = RedisUtils.getCacheMap(DRAW_NODE_TASK_MAP);
+        if (CollectionUtil.isEmpty(cacheMap)) {
+            return;
+        }
+        cacheMap.forEach(comfyApiService::autoDealComfyTask);
     }
 
 }

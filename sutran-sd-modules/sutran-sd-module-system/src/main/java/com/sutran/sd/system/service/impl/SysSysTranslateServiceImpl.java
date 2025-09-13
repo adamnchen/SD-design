@@ -4,7 +4,6 @@ import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.util.StrUtil;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
-import com.alibaba.fastjson.JSONReader;
 import com.sutran.sd.common.enums.TranslateType;
 import com.sutran.sd.common.utils.translate.AuthV3Util;
 import com.sutran.sd.common.utils.translate.BaiduAuthUtil;
@@ -55,7 +54,7 @@ public class SysSysTranslateServiceImpl implements SysTranslateService {
                 JSONObject ydResult = translateApi.youdaoTranslate(ydParams);
                 return CollectionUtil.isNotEmpty(ydResult) && "0".equals(ydResult.getString("errorCode"))?String.valueOf(ydResult.getJSONArray("translation").get(0)):null;
             case BAIDU:
-                Map<String, String> bdParams = new HashMap<String, String>() {{
+                Map<String, String> bdParams = new HashMap<String, String>(4) {{
                     put("q", content);
                     put("from", "zh");
                     put("to", "en");
@@ -64,7 +63,7 @@ public class SysSysTranslateServiceImpl implements SysTranslateService {
                 BaiduAuthUtil.buildParams(baiduAppKey, baiduAppSecret, bdParams);
                 JSONObject bdResult = translateApi.baiduTranslate(bdParams);
                 log.info("[百度翻译][汉译英]>>>>>>>>>返回结果：{}",bdResult);
-                return CollectionUtil.isNotEmpty(bdResult) && !"54001".equals(bdResult.getString("error_code"))? JSON.parseArray(bdResult.getString("trans_result"), JSONObject.class).get(0).getString("dst") :null;
+                return CollectionUtil.isNotEmpty(bdResult) && ("0".equals(bdResult.getString("error_code")) || "52000".equals(bdResult.getString("error_code"))) ? JSON.parseArray(bdResult.getString("trans_result"), JSONObject.class).get(0).getString("dst") :null;
             default:
                 return null;
         }
@@ -74,7 +73,7 @@ public class SysSysTranslateServiceImpl implements SysTranslateService {
     public String enToZh(String content, TranslateType type) throws NoSuchAlgorithmException {
         switch (type) {
             case YOUDAO:
-                Map<String, String> ydParams = new HashMap<String, String>() {{
+                Map<String, String> ydParams = new HashMap<String, String>(4) {{
                     put("q", content);
                     put("from", "en");
                     put("to", "zh-CHS");
@@ -89,7 +88,7 @@ public class SysSysTranslateServiceImpl implements SysTranslateService {
                 }
                 return null;
             case BAIDU:
-                Map<String, String> bdParams = new HashMap<String, String>(8) {{
+                Map<String, String> bdParams = new HashMap<String, String>(4) {{
                     put("q", content);
                     put("from", "en");
                     put("to", "zh");
@@ -98,7 +97,7 @@ public class SysSysTranslateServiceImpl implements SysTranslateService {
                 BaiduAuthUtil.buildParams(baiduAppKey, baiduAppSecret, bdParams);
                 JSONObject bdResult = translateApi.baiduTranslate(bdParams);
                 log.warn("[百度翻译][英译汉]>>>>>>>>>返回结果：{}",bdResult);
-                return CollectionUtil.isNotEmpty(bdResult) && !"54001".equals(bdResult.getString("error_code"))? JSON.parseArray(bdResult.getString("trans_result"), JSONObject.class).get(0).getString("dst") :null;
+                return CollectionUtil.isNotEmpty(bdResult) && ("0".equals(bdResult.getString("error_code")) || "52000".equals(bdResult.getString("error_code"))) ? JSON.parseArray(bdResult.getString("trans_result"), JSONObject.class).get(0).getString("dst") :null;
             default:
                 return null;
         }

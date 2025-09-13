@@ -64,7 +64,7 @@ public class ComfyWebsocketClient {
                             }
                             else if (msgType == ComfyWebSocketMessageType.TASK_NUMBER || Objects.equals(dataNode.get("prompt_id").asText(), promptId)) {
                                 //ComfyUI状态更新消息直接进行处理
-                                messageHandler.handleMessage(msgType, dataNode, null, null);
+                                messageHandler.handleMessage(msgType, dataNode);
                             }
                         }
                         catch (Exception e) {

@@ -1,6 +1,7 @@
 package com.sutran.sd.comfyapi.service;
 
 import com.sutran.sd.draw.domain.bo.ComfyModelTaskSubmitBo;
+import com.sutran.sd.draw.domain.pojo.ComfyTaskHistoryInfo;
 
 /**
  * @author zj
@@ -15,4 +16,17 @@ public interface ComfyTaskService {
      */
     String submitModelTask(ComfyModelTaskSubmitBo modelTaskBo);
 
+    /**
+     * 获取模型任务详情
+     * @param promptId 任务id
+     * @return 任务详情
+     */
+    ComfyTaskHistoryInfo getComfyModelHistoryTask(String promptId);
+
+    /**
+     * 获取任务进度
+     * @param taskId 任务id
+     * @return 任务进度
+     */
+    Integer getComfyTaskProgress(String taskId);
 }

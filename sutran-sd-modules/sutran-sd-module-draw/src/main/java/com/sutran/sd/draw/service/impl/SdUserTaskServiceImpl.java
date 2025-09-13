@@ -35,13 +35,16 @@ public class SdUserTaskServiceImpl implements SdUserTaskService {
 
     /**
      * 新增ComfyUI任务
-     * @param taskId    任务ID
-     * @param userId    用户ID
-     * @param userName  用户名
-     * @param flow      工作流
+     *
+     * @param taskId   任务ID
+     * @param userId   用户ID
+     * @param userName 用户名
+     * @param flow     工作流
+     * @param prompt     英文提示词
+     * @param promptZh   中文提示词
      */
     @Override
-    public void addComfyTask(String taskId, Long userId, String userName, String flow) {
+    public void addComfyTask(String taskId, Long userId, String userName, String flow, String prompt, String promptZh) {
         Date now = new Date();
         SdUserTask task = new SdUserTask()
             .setTaskId(Long.parseLong(taskId))
@@ -51,6 +54,8 @@ public class SdUserTaskServiceImpl implements SdUserTaskService {
             .setCategory(3)
             .setBelongUserId(userId)
             .setBelongUserName(userName)
+            .setPrompt(prompt)
+            .setPromptZh(promptZh)
             .setCrtTime(now)
             .setUpdTime(now)
             .setFlow(flow);
@@ -281,5 +286,25 @@ public class SdUserTaskServiceImpl implements SdUserTaskService {
     @Override
     public SdUserTaskVo getDrawTaskInfoByTaskId(String taskId) {
         return baseMapper.getDrawTaskInfoByTaskId(taskId);
+    }
+
+    /**
+     * 获取任务关联的promptID
+     * @param promptId  promptID
+     * @return          任务ID
+     */
+    @Override
+    public String getTaskIdByPromptId(String promptId) {
+        return baseMapper.getTaskIdByPromptId(promptId);
+    }
+
+    /**
+     * 根据promptID查询任务信息
+     * @param promptId  promptID
+     * @return          任务信息
+     */
+    @Override
+    public SdUserTask getTaskInfoByPromptId(String promptId) {
+        return baseMapper.selectOne(new LambdaQueryWrapper<SdUserTask>().eq(SdUserTask::getPromptId,promptId));
     }
 }

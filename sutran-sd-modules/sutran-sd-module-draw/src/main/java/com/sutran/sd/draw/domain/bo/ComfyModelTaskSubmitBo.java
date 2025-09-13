@@ -14,4 +14,6 @@ public class ComfyModelTaskSubmitBo {
     private String modelType;
     private String modelName;
     private String modelStrength;
+    private String prompt;
+    private String promptZh;
 }

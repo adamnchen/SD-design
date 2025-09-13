@@ -3,6 +3,7 @@ package com.sutran.sd.controller.sdapi;
 import cn.dev33.satoken.annotation.SaIgnore;
 import cn.hutool.core.util.StrUtil;
 import com.alibaba.fastjson.JSONObject;
+import com.sutran.sd.comfyapi.domain.ComfyModelTaskBo;
 import com.sutran.sd.comfyapi.service.ComfyTaskService;
 import com.sutran.sd.common.core.domain.PageQuery;
 import com.sutran.sd.common.core.domain.R;
@@ -14,6 +15,7 @@ import com.sutran.sd.draw.domain.bo.ComfyModelTaskSubmitBo;
 import com.sutran.sd.draw.domain.dto.img2img.SdImg2ImgDto;
 import com.sutran.sd.draw.domain.dto.task.SdUserTaskPageDto;
 import com.sutran.sd.draw.domain.dto.txt2img.SdText2ImgDto;
+import com.sutran.sd.draw.domain.pojo.ComfyTaskHistoryInfo;
 import com.sutran.sd.draw.domain.vo.SdUserModelFileVo;
 import com.sutran.sd.draw.domain.vo.SdUserTaskVo;
 import com.sutran.sd.draw.service.SdUserModelService;
@@ -145,25 +147,47 @@ public class SdApiController {
 
     /**
      * [ComfyUI]提交模型生图任务
-     * @param modelId 模型id[必填]
-     * @param modelStrength 模型强度[非必填]
+     * @param bo 模型任务提交参数[必填]
      * @return 任务id
      */
     @GetMapping("/comfy/model/submit-task")
     @SaIgnore
-    public R<String> submitComfyModelTask(@RequestParam String modelId,@RequestParam(required = false) String modelStrength) {
+    public R<String> submitComfyModelTask(@RequestBody ComfyModelTaskBo bo) {
         // 校验模型是否存在
-        SdUserModel model = sdUserModelService.selectById(modelId);
+        SdUserModel model = sdUserModelService.selectById(bo.getModelId());
         if (model == null) {
             throw new TaskErrorException("模型不存在或已被删除!");
         }
         ComfyModelTaskSubmitBo modelTaskBo = new ComfyModelTaskSubmitBo()
-            .setModelId(modelId)
+            .setModelId(bo.getModelId()).setPrompt(bo.getPrompt())
+            .setPromptZh(bo.getPromptZh())
             .setModelType(model.getModelType())
             .setModelName(model.getModelName())
-            .setModelStrength(StringUtils.isNotBlank(modelStrength)?modelStrength:model.getModelStrength());
+            .setModelStrength(StringUtils.isNotBlank(bo.getModelStrength())?bo.getModelStrength():model.getModelStrength());
         String taskId = comfyTaskService.submitModelTask(modelTaskBo);
         return R.ok(taskId);
+    }
+
+    /**
+     * [ComfyUI]获取指定生图任务详情
+     * @param promptId 内部任务ID[必填]
+     * @return 任务详情
+     */
+    @GetMapping("/comfy/model/history-task")
+    @SaIgnore
+    public R<ComfyTaskHistoryInfo> getComfyModelHistoryTask(@RequestParam String promptId) {
+        return R.ok(comfyTaskService.getComfyModelHistoryTask(promptId));
+    }
+
+    /**
+     * [ComfyUI]获取指定任务生成进度
+     * @param taskId 任务ID[必填]
+     * @return 任务进度
+     */
+    @GetMapping("/comfy/model/task-progress")
+    @SaIgnore
+    public R<Integer> getComfyTaskProgress(@RequestParam String taskId) {
+        return R.ok(comfyTaskService.getComfyTaskProgress(taskId));
     }
 
 }

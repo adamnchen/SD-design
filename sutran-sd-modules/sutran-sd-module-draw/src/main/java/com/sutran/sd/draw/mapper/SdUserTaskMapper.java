@@ -77,4 +77,12 @@ public interface SdUserTaskMapper extends BaseMapperPlus<SdUserTaskMapper, SdUse
      * @return          节点URL
      */
     SdUserTaskVo getDrawTaskInfoByTaskId(@Param("taskId") String taskId);
+
+    /**
+     * 根据promptID查询任务ID
+     * @param promptId  promptID
+     * @return          任务ID
+     */
+    @Select("select task_id from sd_user_task where prompt_id = #{promptId}")
+    String getTaskIdByPromptId(@Param("promptId") String promptId);
 }

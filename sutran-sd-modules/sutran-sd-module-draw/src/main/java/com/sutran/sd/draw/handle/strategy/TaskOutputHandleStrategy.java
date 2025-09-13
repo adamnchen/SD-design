@@ -10,7 +10,6 @@ import com.sutran.sd.common.core.service.OssService;
 import com.sutran.sd.common.utils.StringUtils;
 import com.sutran.sd.draw.domain.pojo.ComfyTaskImage;
 import com.sutran.sd.draw.domain.vo.SdUserTaskVo;
-import com.sutran.sd.draw.enums.ComfyWebSocketMessageType;
 import com.sutran.sd.draw.service.SdUserModelFileService;
 import com.sutran.sd.draw.service.SdUserTaskService;
 import com.sutran.sd.draw.utils.JsonUtils;
@@ -45,14 +44,13 @@ public class TaskOutputHandleStrategy implements IComfyWebSocketTextHandleStrate
     /**
      * 处理消息
      *
-     * @param msgType       消息类型
      * @param dataNode      消息内容
-     * @param taskId        任务id
-     * @param promptId      comfyui内部任务ID
      */
     @Override
-    public void handleMessage(ComfyWebSocketMessageType msgType, JsonNode dataNode, String taskId, String promptId) {
-        log.warn("[任务输出的图片]>>>>>>>>>任务id: {},comfyui内部任务id: {},节点id: {}", taskId, promptId, dataNode.get("node").asText());
+    public void handleMessage(JsonNode dataNode) {
+        log.warn("[任务输出的图片]>>>>>>>>>节点: {}", dataNode);
+        String promptId = dataNode.get("prompt_id").asText();
+        String taskId = sdUserTaskService.getTaskIdByPromptId(promptId);
         JsonNode imagesNode = dataNode.get("output").get("images");
         //获取上下文输出的图片信息
         List<ComfyTaskImage> currentOutputImages = new ArrayList<>();
@@ -80,7 +78,7 @@ public class TaskOutputHandleStrategy implements IComfyWebSocketTextHandleStrate
                 urlList.add(uploadResult.getUrl());
                 ossService.insertOssData(SD + DateUtil.format(new Date(),"yyyyMMdd")+"_"+ IdUtil.getSnowflakeNextIdStr()+JPG,JPG,storage.getConfigKey(),uploadResult.getUrl(),uploadResult.getFilename(),task.getBelongUserName());
             } catch (Exception e) {
-                log.error("任务输出的图片上传失败,任务id: {},comfyui内部任务id: {},节点id: {}", taskId, promptId, dataNode.get("node").asText(),e);
+                log.error("[任务输出图片][上传失败]>>>>>>>>>任务id: {},comfyui内部任务id: {},异常原因: ", taskId, promptId,e);
             }
         }
         if (CollectionUtil.isNotEmpty(urlList)) {

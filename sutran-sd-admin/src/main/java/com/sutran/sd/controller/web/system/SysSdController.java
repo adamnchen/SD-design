@@ -13,7 +13,7 @@ import com.sutran.sd.draw.domain.dto.model.SdUserModelDto;
 import com.sutran.sd.draw.domain.dto.task.SdUserTaskPageDto;
 import com.sutran.sd.draw.domain.dto.txt2img.SdText2ImgDto;
 import com.sutran.sd.draw.domain.SdGpuPool;
-import com.sutran.sd.system.service.SdTranslationService;
+import com.sutran.sd.draw.service.SdTranslationService;
 import com.sutran.sd.webui.service.SdApiService;
 import com.sutran.sd.draw.service.SdGpuPoolService;
 import com.sutran.sd.train.service.SdTrainService;

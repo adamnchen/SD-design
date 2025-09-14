@@ -1,11 +1,11 @@
-package com.sutran.sd.system.service.impl;
+package com.sutran.sd.draw.service.impl;
 
 import cn.hutool.core.collection.CollectionUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.sutran.sd.common.utils.redis.RedisUtils;
-import com.sutran.sd.system.domain.SdTranslation;
-import com.sutran.sd.system.mapper.SdTranslationMapper;
-import com.sutran.sd.system.service.SdTranslationService;
+import com.sutran.sd.draw.domain.SdTranslation;
+import com.sutran.sd.draw.mapper.SdTranslationMapper;
+import com.sutran.sd.draw.service.SdTranslationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
@@ -23,6 +23,7 @@ import static com.sutran.sd.common.constant.CacheConstants.*;
  * @author zj
  * @date 2025年09月13日 23:19
  */
+@SuppressWarnings("AlibabaUndefineMagicConstant")
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -95,8 +96,8 @@ public class SdTranslationServiceImpl implements SdTranslationService {
                 Map<String, String> cacheMap = RedisUtils.getCacheMap(trainTaskId);
                 cacheMap.forEach((k, v)->{
                     SdTranslation sdTranslation = new SdTranslation();
-                    sdTranslation.setZh(k);
-                    sdTranslation.setEn(v);
+                    sdTranslation.setEn(k);
+                    sdTranslation.setZh(v);
                     sdTranslation.setType(3);
                     sdTranslation.setTrainTaskId(Long.valueOf(trainTaskId));
                     sdTranslationMapper.insert(sdTranslation);

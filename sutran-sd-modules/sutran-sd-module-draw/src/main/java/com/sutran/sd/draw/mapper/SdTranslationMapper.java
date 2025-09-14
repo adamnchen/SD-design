@@ -1,7 +1,7 @@
-package com.sutran.sd.system.mapper;
+package com.sutran.sd.draw.mapper;
 
 import com.sutran.sd.common.core.mapper.BaseMapperPlus;
-import com.sutran.sd.system.domain.SdTranslation;
+import com.sutran.sd.draw.domain.SdTranslation;
 import org.apache.ibatis.annotations.Mapper;
 
 /**

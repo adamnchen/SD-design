@@ -1,4 +1,4 @@
-package com.sutran.sd.system.domain;
+package com.sutran.sd.draw.domain;
 
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;

@@ -77,7 +77,11 @@
     </select>
 
     <select id="selectModelTestDataAndTaskInfo" resultType="com.alibaba.fastjson.JSONObject">
-        SELECT A.file_url AS gridImgUrl,B.task_id AS taskId,B.status AS taskStatus,B.consume_time AS consumeTime,B.queue_time AS queueTime,B.reason AS failReason
+        SELECT A.file_url AS gridImgUrl,B.task_id AS taskId,B.status AS taskStatus,
+               DATE_FORMAT(B.start_time,'%Y-%m-%d %H:%i:%s') AS startTime,
+               DATE_FORMAT(B.end_time,'%Y-%m-%d %H:%i:%s') AS endTime,
+               DATE_FORMAT(B.crt_time,'%Y-%m-%d %H:%i:%s') AS createTime,
+               B.reason AS failReason
         FROM sd_user_model_file AS A LEFT JOIN sd_user_task AS B ON A.task_id=B.task_id AND B.category=2
         WHERE A.lora_model_id=#{loraModelId} AND A.category=2
         ORDER BY A.id DESC

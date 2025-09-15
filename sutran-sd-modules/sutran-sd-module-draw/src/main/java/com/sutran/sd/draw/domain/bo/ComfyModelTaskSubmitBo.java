@@ -16,4 +16,5 @@ public class ComfyModelTaskSubmitBo {
     private String modelStrength;
     private String prompt;
     private String promptZh;
+    private String batchSize="1";
 }

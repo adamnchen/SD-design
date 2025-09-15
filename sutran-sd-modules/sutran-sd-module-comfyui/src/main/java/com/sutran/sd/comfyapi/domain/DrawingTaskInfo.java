@@ -30,14 +30,28 @@ public class DrawingTaskInfo implements Serializable {
     private final long timeout;
 
     /**
+     * 用户ID
+     */
+    private long userId;
+
+    /**
+     * 绘图次数
+     */
+    private int drawNum;
+
+    /**
      * @param taskId  自定义的任务id
      * @param flow    绘图任务工作流
      * @param timeout 任务超时时间
+     * @param userId    用户ID
+     * @param drawNum   绘图次数
      */
     @ConstructorProperties({"taskId", "flow", "timeout"})
-    public DrawingTaskInfo(String taskId, JSONObject flow, long timeout) {
+    public DrawingTaskInfo(String taskId, JSONObject flow, long timeout, Long userId, Integer drawNum) {
         this.taskId = taskId;
         this.flow = flow;
         this.timeout = timeout;
+        this.userId = userId;
+        this.drawNum = drawNum;
     }
 }

@@ -133,7 +133,7 @@ public class SdApiServiceImpl implements SdApiService {
             vos = objectMapper.readValue(response, TypeFactory.defaultInstance().constructCollectionType(List.class, CheckPointVo.class));
         }
         catch (Exception e) {
-            log.error("获取大模型异常：{}",e.getMessage());
+            log.error("获取大模型异常：",e);
         }
         if (CollectionUtil.isEmpty(vos)) {
             return Collections.emptyList();

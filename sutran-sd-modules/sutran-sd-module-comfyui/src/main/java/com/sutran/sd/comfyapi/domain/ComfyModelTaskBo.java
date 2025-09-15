@@ -13,5 +13,6 @@ public class ComfyModelTaskBo {
     private String modelId;
     private String prompt;
     private String promptZh;
-    private String modelStrength;
+    private String modelStrength="0.8";
+    private String batchSize="1";
 }

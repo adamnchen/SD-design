@@ -3,6 +3,7 @@ package com.sutran.sd.system.mapper;
 import com.sutran.sd.common.core.mapper.BaseMapperPlus;
 import com.sutran.sd.common.core.domain.entity.SysUserMember;
 import org.apache.ibatis.annotations.*;
+import org.apache.ibatis.annotations.Param;
 
 import java.util.Date;
 import java.util.List;
@@ -82,4 +83,12 @@ public interface SysUserMemberMapper extends BaseMapperPlus<SysUserMemberMapper,
      */
     @Update("UPDATE sys_user_member SET use_draw_num = use_draw_num + #{num} WHERE user_id = #{userId} and status = 1 AND end_time >= #{now} ORDER BY id DESC LIMIT 1")
     void deductedDrawNum(@Param("userId") Long userId, @Param("num") int num, @Param("now") Date now);
+
+    /**
+     * 已会使用绘图次数-1
+     * @param userId 用户ID
+     * @param num 绘图次数
+     */
+    @Update("UPDATE sys_user_member SET use_draw_num = use_draw_num - #{num} WHERE user_id = #{userId} and status = 1 AND end_time >= #{now} ORDER BY id DESC LIMIT 1")
+    void returnedDrawNum(@Param("userId") Long userId, @Param("num") int num);
 }

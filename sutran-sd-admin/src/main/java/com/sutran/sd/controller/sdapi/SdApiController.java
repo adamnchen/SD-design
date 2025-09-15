@@ -150,7 +150,7 @@ public class SdApiController {
      * @param bo 模型任务提交参数[必填]
      * @return 任务id
      */
-    @GetMapping("/comfy/model/submit-task")
+    @PostMapping("/comfy/model/submit-task")
     @SaIgnore
     public R<String> submitComfyModelTask(@RequestBody ComfyModelTaskBo bo) {
         // 校验模型是否存在
@@ -163,20 +163,33 @@ public class SdApiController {
             .setPromptZh(bo.getPromptZh())
             .setModelType(model.getModelType())
             .setModelName(model.getModelName())
-            .setModelStrength(StringUtils.isNotBlank(bo.getModelStrength())?bo.getModelStrength():model.getModelStrength());
+            .setModelStrength(StringUtils.isNotBlank(bo.getModelStrength())?bo.getModelStrength():model.getModelStrength())
+            .setBatchSize(bo.getBatchSize());
         String taskId = comfyTaskService.submitModelTask(modelTaskBo);
         return R.ok(taskId);
     }
 
     /**
+     * [ComfyUI]提交工作流生图任务
+     * @param flowId 工作流ID[必填]
+     * @return 任务id
+     */
+    @GetMapping("/comfy/flow/submit-task")
+    @SaIgnore
+    public R<String> submitComfyFlowTask(@RequestParam String flowId) {
+        String taskId = comfyTaskService.submitComfyFlowTask(flowId);
+        return R.ok(taskId);
+    }
+
+    /**
      * [ComfyUI]获取指定生图任务详情
-     * @param promptId 内部任务ID[必填]
+     * @param taskId 任务ID[必填]
      * @return 任务详情
      */
     @GetMapping("/comfy/model/history-task")
     @SaIgnore
-    public R<ComfyTaskHistoryInfo> getComfyModelHistoryTask(@RequestParam String promptId) {
-        return R.ok(comfyTaskService.getComfyModelHistoryTask(promptId));
+    public R<ComfyTaskHistoryInfo> getComfyModelHistoryTask(@RequestParam String taskId) {
+        return R.ok(comfyTaskService.getComfyModelHistoryTask(taskId));
     }
 
     /**

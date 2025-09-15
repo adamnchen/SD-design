@@ -8,6 +8,8 @@
         <result property="status" column="status" jdbcType="INTEGER"/>
         <result property="category" column="category" jdbcType="INTEGER"/>
         <result property="promptId" column="promptId" jdbcType="INTEGER"/>
+        <result property="prompt" column="prompt" jdbcType="VARCHAR"/>
+        <result property="promptZh" column="prompt_zh" jdbcType="VARCHAR"/>
         <result property="nodeId" column="node_id" jdbcType="INTEGER"/>
         <result property="nodeUrl" column="node_url" jdbcType="VARCHAR"/>
         <result property="isRedraw" column="is_redraw" jdbcType="INTEGER"/>

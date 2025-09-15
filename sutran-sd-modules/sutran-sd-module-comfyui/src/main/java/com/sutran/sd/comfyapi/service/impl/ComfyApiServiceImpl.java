@@ -14,6 +14,7 @@ import com.rabbitmq.client.Channel;
 import com.sutran.sd.comfyapi.domain.DrawingTaskInfo;
 import com.sutran.sd.comfyapi.service.ComfyApiService;
 import com.sutran.sd.common.core.service.OssService;
+import com.sutran.sd.common.core.service.UserService;
 import com.sutran.sd.common.exception.TaskErrorException;
 import com.sutran.sd.common.exception.WorkFlowErrorException;
 import com.sutran.sd.common.utils.StringUtils;
@@ -65,7 +66,8 @@ public class ComfyApiServiceImpl implements ComfyApiService {
     private final SdDrawNodeService sdDrawNodeService;
     private final SdUserTaskService sdUserTaskService;
     private final ComfyWebsocketClient comfyWebsocketClient;
-    private final OssService  ossService;
+    private final OssService ossService;
+    private final UserService userService;
     private final SdUserModelFileService sdUserModelFileService;
 
     /**
@@ -83,12 +85,15 @@ public class ComfyApiServiceImpl implements ComfyApiService {
             SdUserTaskVo task = sdUserTaskService.getDrawTaskInfoByTaskId(taskId);
             if (task == null) {
                 log.error("[MQ消息消费]>>>>>>>>>任务不存在,任务ID: {}", taskId);
+                // 归还绘图次数
+                userService.returnedDrawNum(taskInfo.getUserId(), taskInfo.getDrawNum());
+                return;
             }
             else {
                 // 获取可用节点 以及 锁定节点任务
                 SdDrawNode node = sdDrawNodeService.selectNodeAndLockNodeTask(LoadBalanceStrategy.WEIGHTED_LEAST_LOAD, taskId);
                 if (node == null) {
-                    // 没有可用节点
+                    // 没有可用节点,重新放回队列
                     log.warn("[MQ消息消费]>>>>>>>>>没有可用节点,任务ID: {}", taskId);
                     try {
                         channel.basicNack(deliveryTag, false, true);
@@ -111,6 +116,8 @@ public class ComfyApiServiceImpl implements ComfyApiService {
                         // 任务已完成
                         sdUserTaskService.completeComfyTask(taskId, new Date());
                         if (CollectionUtil.isEmpty(historyInfo.getOutputs())) {
+                            // 归还绘图次数
+                            userService.returnedDrawNum(taskInfo.getUserId(), taskInfo.getDrawNum());
                             return;
                         }
                         List<String> urlList = new ArrayList<>();
@@ -127,6 +134,8 @@ public class ComfyApiServiceImpl implements ComfyApiService {
                                 ossService.insertOssData(SD + DateUtil.format(new Date(),"yyyyMMdd")+"_"+ IdUtil.getSnowflakeNextIdStr()+JPG,JPG,storage.getConfigKey(),uploadResult.getUrl(),uploadResult.getFilename(),task.getBelongUserName());
                             } catch (Exception e) {
                                 log.error("[任务输出图片][上传失败]>>>>>>>>>任务id: {},comfyui内部任务id: {},异常原因: ", taskId, promptId,e);
+                                // 归还绘图次数
+                                userService.returnedDrawNum(taskInfo.getUserId(), taskInfo.getDrawNum());
                             }
                         }
                         if (CollectionUtil.isNotEmpty(urlList)) {

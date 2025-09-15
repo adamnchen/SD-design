@@ -48,8 +48,13 @@ public class SdFlowServiceImpl implements SdFlowService {
      * @return 工作流
      */
     @Override
-    public SdFlow getFlow(String modelType) {
-        return sdFlowMapper.selectOne(new LambdaQueryWrapper<SdFlow>().eq(SdFlow::getModelType, modelType).eq(SdFlow::getIsOpen, 1).last("limit 1"));
+    public SdFlow getNoFixedFlow(String modelType) {
+        return sdFlowMapper.selectOne(new LambdaQueryWrapper<SdFlow>().eq(SdFlow::getModelType, modelType).eq(SdFlow::getIsOpen, 1).eq(SdFlow::getIsFixed, 0).last("limit 1"));
+    }
+
+    @Override
+    public SdFlow getFixedFlowById(String flowId) {
+        return sdFlowMapper.selectOne(new LambdaQueryWrapper<SdFlow>().eq(SdFlow::getId, flowId).eq(SdFlow::getIsFixed, 1));
     }
 }
 

@@ -516,17 +516,33 @@ public class SysUserServiceImpl implements ISysUserService, UserService {
         return baseMapper.deleteBatchIds(ids);
     }
 
+    /**
+     * 检查用户是否关注了微信公众号
+     * @param userId 用户ID
+     * @return true 关注了 false 未关注
+     */
     @Override
     public boolean isFollowWxMp(Long userId) {
         SysUser sysUser = baseMapper.selectById(userId);
         return sysUser != null && StrUtil.isNotBlank(sysUser.getWxOpenId());
     }
 
+    /**
+     * 关闭引导
+     * @param userId 用户ID
+     * @param isCloserGuide 是否关闭引导
+     */
     @Override
     public void closeGuide(Long userId, Integer isCloserGuide) {
         baseMapper.closeGuide(userId,isCloserGuide);
     }
 
+    /**
+     * 授权会员
+     * @param bo 授权会员参数
+     * @param payMember 会员信息
+     * @param now 当前时间
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void insertAuthMember(SysUserMemberBo bo, PayMember payMember, Date now) {
@@ -573,6 +589,11 @@ public class SysUserServiceImpl implements ISysUserService, UserService {
         }
     }
 
+    /**
+     * 获取当前用户的用户名
+     * @param userId 用户ID
+     * @return 用户名
+     */
     @Cacheable(cacheNames = CacheNames.SYS_USER_NAME, key = "#userId")
     @Override
     public String selectUserNameById(Long userId) {
@@ -581,6 +602,11 @@ public class SysUserServiceImpl implements ISysUserService, UserService {
         return ObjectUtil.isNull(sysUser) ? null : sysUser.getUserName();
     }
 
+    /**
+     * 获取当前用户的微信OpenId
+     * @param userId 用户ID
+     * @return wxOpenId
+     */
     @Override
     public String selectOpenIdById(Long userId) {
         SysUser sysUser = baseMapper.selectOne(new LambdaQueryWrapper<SysUser>()
@@ -588,6 +614,11 @@ public class SysUserServiceImpl implements ISysUserService, UserService {
         return ObjectUtil.isNull(sysUser) ? null : sysUser.getWxOpenId();
     }
 
+    /**
+     * 获取用户训练次数
+     * @param userId 用户ID
+     * @return 训练次数
+     */
     @Override
     public Integer selectTrainTimesById(Long userId) {
 //        SysUser sysUser = baseMapper.selectOne(new LambdaQueryWrapper<SysUser>()
@@ -596,6 +627,11 @@ public class SysUserServiceImpl implements ISysUserService, UserService {
         return userMemberMapper.selectTrainTimesById(userId,new Date());
     }
 
+    /**
+     * 获取用户绘图次数
+     * @param userId 用户ID
+     * @return 绘图次数
+     */
     @Override
     public Integer selectDrawNumById(Long userId) {
 //        SysUser sysUser = baseMapper.selectOne(new LambdaQueryWrapper<SysUser>()
@@ -604,6 +640,10 @@ public class SysUserServiceImpl implements ISysUserService, UserService {
         return userMemberMapper.selectDrawNumById(userId,new Date());
     }
 
+    /**
+     * 异步减少用户训练次数
+     * @param userId 用户ID
+     */
     @Override
     @Async("threadPoolTaskExecutor")
     public void deductedTrainTimes(Long userId) {
@@ -611,6 +651,10 @@ public class SysUserServiceImpl implements ISysUserService, UserService {
         userMemberMapper.deductedTrainTimes(userId,new Date());
     }
 
+    /**
+     * 异步归还用户训练次数
+     * @param userId 用户ID
+     */
     @Override
     @Async("threadPoolTaskExecutor")
     public void returnedTrainTimes(Long userId) {
@@ -621,6 +665,11 @@ public class SysUserServiceImpl implements ISysUserService, UserService {
         userMemberMapper.returnedTrainTimes(userId,new Date());
     }
 
+    /**
+     * 异步减少用户绘图次数
+     * @param userId 用户ID
+     * @param num 减少次数
+     */
     @Override
     @Async("threadPoolTaskExecutor")
     public void deductedDrawNum(Long userId, int num) {
@@ -629,17 +678,40 @@ public class SysUserServiceImpl implements ISysUserService, UserService {
     }
 
     @Override
+    public void returnedDrawNum(Long userId, int num) {
+        userMemberMapper.returnedDrawNum(userId,num);
+    }
+
+    /**
+     * 获取用户渠道用户ID
+     * @param userId 用户ID
+     * @return 渠道用户ID
+     */
+    @Override
     public String selectChannelUserIdById(Long userId) {
         SysUser sysUser = baseMapper.selectOne(new LambdaQueryWrapper<SysUser>()
             .select(SysUser::getChannelUserId).eq(SysUser::getUserId, userId));
         return ObjectUtil.isNull(sysUser) ? null : sysUser.getChannelUserId();
     }
 
+    /**
+     * 获取用户ID
+     * @param phone 手机号
+     * @return 用户ID
+     */
     @Override
     public String selectUserIdByPhone(String phone) {
         return baseMapper.selectUserIdByPhone(phone);
     }
 
+    /**
+     * 新增用户会员
+     * @param userId     用户ID
+     * @param businessId 会员配置ID
+     * @param startTime  开始时间
+     * @param payMember  会员信息
+     * @param outTradeNo 订单号
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void insertMember(Long userId, Long businessId, Date startTime, PayMember payMember, String outTradeNo) {
@@ -691,17 +763,30 @@ public class SysUserServiceImpl implements ISysUserService, UserService {
         }
     }
 
+    /**
+     * 获取用户当前有效的会员ID
+     * @param userId 用户ID
+     * @param now 当前时间
+     * @return 有效会员ID
+     */
     @Override
     public String selectMemberIdByUserId(Long userId, Date now) {
         return userMemberMapper.selectMemberIdByUserId(userId,now);
     }
 
+    /**
+     * 校验用户会员是否有足够的绘图数量 并 扣除本次绘图数量
+     * @param userId 用户ID
+     * @param drawNum 绘图数量
+     */
     @Override
     public void checkDrawNumOfMember(Long userId, Integer drawNum) {
         final Integer drawNumOfMember = userMemberMapper.selectDrawNumById(userId,new Date());
         if (drawNumOfMember==null || drawNumOfMember<drawNum) {
             throw new TaskErrorException("会员绘图数量不足");
         }
+        // 扣除会员绘图数量
+        userMemberMapper.deductedDrawNum(userId,drawNum,new Date());
     }
 
 }

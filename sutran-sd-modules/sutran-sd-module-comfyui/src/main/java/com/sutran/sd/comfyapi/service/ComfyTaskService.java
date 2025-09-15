@@ -10,18 +10,25 @@ import com.sutran.sd.draw.domain.pojo.ComfyTaskHistoryInfo;
 public interface ComfyTaskService {
 
     /**
-     * 提交模型任务
+     * 提交模型生图任务
      * @param modelTaskBo 任务参数
      * @return 任务id
      */
     String submitModelTask(ComfyModelTaskSubmitBo modelTaskBo);
 
     /**
-     * 获取模型任务详情
-     * @param promptId 任务id
+     * 提交工作流生图任务
+     * @param flowId 工作流id
+     * @return 任务id
+     */
+    String submitComfyFlowTask(String flowId);
+
+    /**
+     * 获取模型指定历史任务详情
+     * @param taskId 任务id
      * @return 任务详情
      */
-    ComfyTaskHistoryInfo getComfyModelHistoryTask(String promptId);
+    ComfyTaskHistoryInfo getComfyModelHistoryTask(String taskId);
 
     /**
      * 获取任务进度

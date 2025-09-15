@@ -52,6 +52,10 @@ public class SdFlow {
      * 模型类型[SDXL,FLUX]
      */
     private String modelType;
+    /**
+     * 是否固定[0-否,1-是]
+     */
+    private Integer isFixed;
 
 }
 

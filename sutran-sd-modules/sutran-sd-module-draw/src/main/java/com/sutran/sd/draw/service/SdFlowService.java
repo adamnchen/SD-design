@@ -1,7 +1,6 @@
 package com.sutran.sd.draw.service;
 
 import com.sutran.sd.draw.domain.SdFlow;
-import com.sutran.sd.draw.domain.pojo.ComfyWorkFlow;
 
 /**
  * SD绘图 || 工作流(SdFlow)表服务接口
@@ -36,9 +35,16 @@ public interface SdFlowService {
     SdFlow findById(Long id);
 
     /**
-     * 根据模型类型获取工作流
+     * 根据模型类型获取非固定工作流
      * @param modelType 模型类型
      * @return 工作流
      */
-    SdFlow getFlow(String modelType);
+    SdFlow getNoFixedFlow(String modelType);
+
+    /**
+     * 根据ID获取固定工作流
+     * @param flowId 工作流ID
+     * @return 工作流
+     */
+    SdFlow getFixedFlowById(String flowId);
 }

@@ -134,7 +134,21 @@ public interface SdTrainService {
      * @return                              进度
      */
     TrainProcessDataVo trainProgressV2(String taskId);
+    /**
+     * 停止GPU卡池
+     * @param sdGpuPool GPU卡池
+     */
     void stopGpuPool(SdGpuPool sdGpuPool);
+    /**
+     * 启动GPU卡池
+     * @param sdGpuPool GPU卡池
+     */
     void startGpuPool(SdGpuPool sdGpuPool);
+    /**
+     * 获取取训练模型的数据集
+     * @param preTaskId 训练任务ID
+     * @exception IOException IO异常
+     * @return 数据集
+     */
     List<JSONObject> getModelTrainDateList(String preTaskId) throws IOException;
 }

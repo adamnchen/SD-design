@@ -72,7 +72,7 @@ public class SysSdController extends BaseController {
     }
 
     /**
-     *  SD Lora模型-取训练模型的数据集
+     *  SD Lora模型-获取取训练模型的数据集
      */
     @GetMapping("/model-train-data/list")
     public R<List<JSONObject>> getModelTrainDateList(@RequestParam String preTaskId) throws IOException {

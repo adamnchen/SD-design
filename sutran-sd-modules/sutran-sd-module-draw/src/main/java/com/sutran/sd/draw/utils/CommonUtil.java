@@ -100,7 +100,7 @@ public class CommonUtil {
 
     /** 创建训练参数 **/
     public static Map<String, Object> createSdTrainParam(SdTrainLoraDto dto, String path, String preTaskId) {
-        Map<String,Object> map = new HashMap<>();
+        Map<String,Object> map = new HashMap<>(64);
         map.put("model_train_type","sdxl-lora");
         map.put("pretrained_model_name_or_path","/home/lora-scripts/sd-models/sd_xl_base_1.0_0.9vae.safetensors");
 //        map.put("pretrained_model_name_or_path","D:\\project\\ai_project\\models\\StableDiffusion\\sd_xl_base_1.0_0.9vae.safetensors");

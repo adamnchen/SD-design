@@ -174,9 +174,10 @@ public class SdTrainServiceImpl implements SdTrainService {
 
         // 出来预处理任务参数
         JSONObject params = JSONObject.parseObject(task.getPreParams());
-        File preImgDir = new File(params.getString("path")+CommonUtil.suggestNumRepeat());
+        String path = dealTrainDataSetPath(params.getString("path"));
+        File preImgDir = new File(path+CommonUtil.suggestNumRepeat());
         if (!preImgDir.exists()) {
-            preImgDir = new File(params.getString("path"));
+            preImgDir = new File(path);
         }
 
         // 判断文件夹是否存在
@@ -222,9 +223,10 @@ public class SdTrainServiceImpl implements SdTrainService {
 
         // 出来预处理任务参数
         JSONObject params = JSONObject.parseObject(task.getPreParams());
-        File preImgDir = new File(params.getString("path")+CommonUtil.suggestNumRepeat());
+        String path = dealTrainDataSetPath(params.getString("path"));
+        File preImgDir = new File(path+CommonUtil.suggestNumRepeat());
         if (!preImgDir.exists()) {
-            preImgDir = new File(params.getString("path"));
+            preImgDir = new File(path);
         }
 
         // 判断文件夹是否存在
@@ -678,7 +680,7 @@ public class SdTrainServiceImpl implements SdTrainService {
         }
         // 添加共性词
         JSONObject paramsJson = JSONObject.parseObject(sdTrainTask.getPreParams());
-        String path = paramsJson.getString("path");
+        String path = dealTrainDataSetPath(paramsJson.getString("path"));
         File preImgDir = new File(path);
         List<File> allFileList = CommonUtil.getAllFile(preImgDir);
         if (CollectionUtil.isNotEmpty(allFileList)) {
@@ -796,7 +798,7 @@ public class SdTrainServiceImpl implements SdTrainService {
         }
         JSONObject paramsJson = JSONObject.parseObject(sdTrainTask.getPreParams());
         // path -> /home/lora-scripts/train-data/{userId}/{preTaskId}
-        String path = paramsJson.getString("path");
+        String path = dealTrainDataSetPath(paramsJson.getString("path"));
         if (StringUtils.isBlank(path)) {
             throw new ServiceException("缺少图片预处理后的数据集路径!");
         }
@@ -836,7 +838,7 @@ public class SdTrainServiceImpl implements SdTrainService {
 
         JSONObject paramsJson = JSONObject.parseObject(sdTrainTask.getPreParams());
         // path -> /home/lora-scripts/train-data/{userId}/{preTaskId}
-        String path = paramsJson.getString("path");
+        String path = dealTrainDataSetPath(paramsJson.getString("path"));
         if (StringUtils.isBlank(path)) {
             throw new ServiceException("缺少前置任务的数据集路径!");
         }
@@ -1055,7 +1057,8 @@ public class SdTrainServiceImpl implements SdTrainService {
         // 预处理参数
         JSONObject preParams = JSONObject.parseObject(sdTrainTask.getPreParams());
         // 处理模型封面图片
-        dealModelImg(preParams.getString("path"),preTaskId,oldModelName);
+        String path = dealTrainDataSetPath(preParams.getString("path"));
+        dealModelImg(path,preTaskId,oldModelName);
 
         // 训练后的模型所在目录
         //TODO windows
@@ -1166,9 +1169,12 @@ public class SdTrainServiceImpl implements SdTrainService {
             return Collections.emptyList();
         }
         JSONObject params = JSONObject.parseObject(task.getPreParams());
-        File preImgDir = new File(params.getString("path")+CommonUtil.suggestNumRepeat());
+        // 兼容容器路径
+        String path = dealTrainDataSetPath(params.getString("path"));
+
+        File preImgDir = new File(path +CommonUtil.suggestNumRepeat());
         if (!preImgDir.exists()) {
-            preImgDir = new File(params.getString("path"));
+            preImgDir = new File(path);
         }
         // 判断文件夹是否存在
         if (!preImgDir.exists()) {
@@ -1216,6 +1222,17 @@ public class SdTrainServiceImpl implements SdTrainService {
             list.add(data);
         }
         return list;
+    }
+
+    /** 处理训练数据集路径 **/
+    private String dealTrainDataSetPath(String path) {
+        if (path.startsWith("/train-data")) {
+            path = "/home/lora-scripts"+path;
+        }
+        else if (path.startsWith("/lora-scripts")) {
+            path = "/home"+path;
+        }
+        return path;
     }
 
     /** 创建文件夹监听器 **/

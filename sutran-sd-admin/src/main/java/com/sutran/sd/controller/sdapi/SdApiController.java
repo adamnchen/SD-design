@@ -151,7 +151,7 @@ public class SdApiController {
      * @return 任务id
      */
     @PostMapping("/comfy/model/submit-task")
-    @SaIgnore
+//    @SaIgnore
     public R<String> submitComfyModelTask(@RequestBody ComfyModelTaskBo bo) {
         // 校验模型是否存在
         SdUserModel model = sdUserModelService.selectById(bo.getModelId());
@@ -175,7 +175,7 @@ public class SdApiController {
      * @return 任务id
      */
     @GetMapping("/comfy/flow/submit-task")
-    @SaIgnore
+//    @SaIgnore
     public R<String> submitComfyFlowTask(@RequestParam String flowId) {
         String taskId = sdComfyuiTaskService.submitComfyFlowTask(flowId);
         return R.ok(taskId);
@@ -187,7 +187,7 @@ public class SdApiController {
      * @return 任务详情
      */
     @GetMapping("/comfy/model/history-task")
-    @SaIgnore
+//    @SaIgnore
     public R<ComfyTaskHistoryInfo> getComfyModelHistoryTask(@RequestParam String taskId) {
         return R.ok(sdComfyuiTaskService.getComfyModelHistoryTask(taskId));
     }
@@ -198,7 +198,7 @@ public class SdApiController {
      * @return 任务进度
      */
     @GetMapping("/comfy/model/task-progress")
-    @SaIgnore
+//    @SaIgnore
     public R<Integer> getComfyTaskProgress(@RequestParam String taskId) {
         return R.ok(sdComfyuiTaskService.getComfyTaskProgress(taskId));
     }

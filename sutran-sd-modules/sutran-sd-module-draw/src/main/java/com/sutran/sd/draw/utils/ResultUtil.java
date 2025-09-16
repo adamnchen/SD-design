@@ -74,7 +74,7 @@ public class ResultUtil {
                 log.warn("xyz plot完成>>>>>>>>grid图片原始地址：{},访问地址：{}",file.getPath(),viewGridsUrl);
                 FileUtil.del(file);
             } catch (Exception e) {
-                log.error("xyz plot完成>>>>>>>>>grid图片处理异常：{}",e.getMessage());
+                log.error("xyz plot完成>>>>>>>>>grid图片处理异常：",e);
             }
         }
         rs.getImages().addAll(urlList);

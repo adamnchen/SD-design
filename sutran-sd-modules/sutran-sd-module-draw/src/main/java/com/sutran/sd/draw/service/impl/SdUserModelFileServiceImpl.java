@@ -187,9 +187,12 @@ public class SdUserModelFileServiceImpl implements SdUserModelFileService {
                     loraInfo.put("loraModelId",vo.getLoraModelId());
                     loraInfo.put("loraModelUrl",vo.getLoraModelUrl());
                     loraInfo.put("modelStrength",vo.getModelStrength());
-                    JSONObject tag = map.get(loraInfo.getString("loraModelId")).getJSONObject("config").getJSONObject("ss_tag_frequency");
-                    JSONArray additionTag = map.get(loraInfo.getString("loraModelId")).getJSONArray("additionTag");
+                    JSONObject object = map.get(loraInfo.getString("loraModelId"));
+                    JSONObject config = object.getJSONObject("config");
+                    JSONObject tag = config.containsKey("ss_tag_frequency")?config.getJSONObject("ss_tag_frequency"):config.getJSONObject("ssTagFrequency");
                     JSONObject tagTranslate = dealTagTranslate(tag);
+
+                    JSONArray additionTag = object.getJSONArray("additionTag");
                     loraInfo.put("ss_tag_frequency", tag);
                     loraInfo.put("ss_tag_frequency_translate_map", tagTranslate);
                     loraInfo.put("additionTag", CollectionUtil.isEmpty(additionTag)?Collections.emptyList():additionTag);

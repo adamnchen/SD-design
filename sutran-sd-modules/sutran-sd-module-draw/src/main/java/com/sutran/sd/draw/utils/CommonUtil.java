@@ -7,9 +7,12 @@ import com.sutran.sd.draw.domain.dto.train.SdTrainLoraDto;
 import com.sutran.sd.draw.domain.vo.TrianImgDataVo;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.text.StringEscapeUtils;
+import org.mozilla.universalchardet.UniversalDetector;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.*;
@@ -46,11 +49,22 @@ public class CommonUtil {
     /** 获取指定目录下的全部文件（图片文件 和 图片标签参数文件）并分组 **/
     public static Map<String, List<File>> getAllFileAndGroup(File preImgDir) {
         List<File> allFileList = getAllFile(preImgDir);
-        // 将数据分组
-        return allFileList.stream().collect(Collectors.groupingBy(e -> e.getName()
-            .replace(".jpg", "").replace(".JPG", "")
-            .replace(".jpeg", "").replace(".JPEG", "")
-            .replace(".png", "").replace(".PNG", "").replace(".txt", "")));
+        // 将数据分组，key为文件名（不包含扩展名），value为文件列表，文件列表按照名称排序
+        return allFileList.stream().collect(
+            Collectors.groupingBy(
+            e -> {
+                String fileName = e.getName();
+                int dotIndex = fileName.lastIndexOf('.');
+                return (dotIndex == -1) ? fileName : fileName.substring(0, dotIndex);
+            },
+            Collectors.collectingAndThen(
+                Collectors.toList(),
+                list -> {
+                    list.sort(Comparator.comparing(File::getName));
+                    return list;
+                })
+            )
+        );
     }
 
     /** 读取txt文件中的标签数组 和 图片路径 **/
@@ -65,13 +79,17 @@ public class CommonUtil {
             // 因为图片打标签后，一个图片对应一个标签文件且是同名，且txt文件一定是在图片文件后面，所以这里只取第一个文件作为图片路径
             File jpgFile = files.get(0);
             if (jpgFile.isFile()) {
+                log.info("[预处理任务][数据]>>>>>>>>>获取图片文件路径，文件：{}，路径：{}",jpgFile.getName(),jpgFile.getPath());
                 imgDataVo.setImg(jpgFile.getPath());
             }
             // 如果当前文件名分组下存在2个及以上文件，则认为是标签文件，且标签文件一定是在图片文件后面，所以这里只取第二个文件作为标签文件
             if (files.size() >= 2) {
                 File txtFile = files.get(1);
+                log.info("[预处理任务][数据]>>>>>>>>>获取标签文件路径，文件：{}，路径：{}",txtFile.getName(),txtFile.getPath());
                 // 读取txt文件中的标签
-                try (Stream<String> lines = Files.lines(txtFile.toPath(), StandardCharsets.UTF_8)) {
+                // 自动检测文件编码
+                Charset detectedCharset = detectCharset(txtFile);
+                try (Stream<String> lines = Files.lines(txtFile.toPath(), detectedCharset)) {
                     Optional<String> first1 = lines.findFirst();
                     if (first1.isPresent()) {
                         List<String> tags = new ArrayList<>(Arrays.asList(StringEscapeUtils.unescapeJava(first1.get()).split(", ")));
@@ -156,6 +174,33 @@ public class CommonUtil {
             }
         }
         return map;
+    }
+
+    public static Charset detectCharset(File file) {
+        byte[] buf = new byte[4096];
+        Charset detectedCharset = StandardCharsets.UTF_8;
+        try (FileInputStream fis = new FileInputStream(file)) {
+            UniversalDetector detector = new UniversalDetector(null);
+
+            int nread;
+            while ((nread = fis.read(buf)) > 0 && !detector.isDone()) {
+                detector.handleData(buf, 0, nread);
+            }
+            detector.dataEnd();
+
+            String encoding = detector.getDetectedCharset();
+            detector.reset();
+
+            if (encoding != null) {
+                detectedCharset =  Charset.forName(encoding);
+            }
+        }
+        catch (IOException e) {
+            log.error("[标签文件][数据]>>>>>>>>>检测文件编码异常：",e);
+        }
+
+        log.info("[标签文件][数据]>>>>>>>>>检测文件编码，文件：{}，编码：{}",file.getName(),detectedCharset);
+        return detectedCharset;
     }
 
 }

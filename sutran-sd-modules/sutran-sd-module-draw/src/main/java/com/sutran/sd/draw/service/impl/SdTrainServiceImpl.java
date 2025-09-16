@@ -1176,10 +1176,20 @@ public class SdTrainServiceImpl implements SdTrainService {
         }
         List<File> allFileList = CommonUtil.getAllFile(preImgDir);
         // 将数据分组
-        Map<String, List<File>> group = allFileList.stream().collect(Collectors.groupingBy(e -> e.getName()
-            .replace(".jpg", "").replace(".JPG", "")
-            .replace(".jpeg", "").replace(".JPEG", "")
-            .replace(".png", "").replace(".PNG", "").replace(".txt", "")));
+        Map<String, List<File>> group = allFileList.stream().collect(Collectors.groupingBy(
+            e -> {
+                String fileName = e.getName();
+                int dotIndex = fileName.lastIndexOf('.');
+                return (dotIndex == -1) ? fileName : fileName.substring(0, dotIndex);
+            },
+            Collectors.collectingAndThen(
+                Collectors.toList(),
+                list -> {
+                    list.sort(Comparator.comparing(File::getName));
+                    return list;
+                }
+            )
+        ));
         List<JSONObject> list = new ArrayList<>();
         for (String key : group.keySet()) {
             List<File> files = group.get(key);

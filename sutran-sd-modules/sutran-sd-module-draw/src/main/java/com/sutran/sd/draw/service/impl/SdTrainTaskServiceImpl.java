@@ -1,4 +1,4 @@
-package com.sutran.sd.train.service.impl;
+package com.sutran.sd.draw.service.impl;
 
 import cn.hutool.core.util.StrUtil;
 import com.alibaba.fastjson.JSON;
@@ -8,7 +8,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.sutran.sd.common.core.domain.PageQuery;
 import com.sutran.sd.draw.domain.vo.TrainTaskStatusVo;
 import com.sutran.sd.draw.mapper.SdTrainTaskMapper;
-import com.sutran.sd.train.service.SdTrainPreTaskService;
+import com.sutran.sd.draw.service.SdTrainTaskService;
 import com.sutran.sd.draw.domain.SdGpuPool;
 import com.sutran.sd.draw.domain.SdTrainTask;
 import lombok.RequiredArgsConstructor;
@@ -16,7 +16,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
-import javax.annotation.Resource;
 import java.util.Date;
 import java.util.Map;
 
@@ -27,7 +26,7 @@ import java.util.Map;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class SdTrainPreTaskServiceImpl implements SdTrainPreTaskService {
+public class SdTrainTaskServiceImpl implements SdTrainTaskService {
 
     private final SdTrainTaskMapper baseMapper;
 

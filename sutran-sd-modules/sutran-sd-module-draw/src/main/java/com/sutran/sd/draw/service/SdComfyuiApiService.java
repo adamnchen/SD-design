@@ -1,4 +1,4 @@
-package com.sutran.sd.comfyapi.service;
+package com.sutran.sd.draw.service;
 
 import com.alibaba.fastjson.JSONObject;
 import com.sutran.sd.draw.domain.SdDrawNode;
@@ -11,7 +11,7 @@ import java.util.Map;
  * 定义ComfyUI接口方法
  * @author zj
  */
-public interface ComfyApiService {
+public interface SdComfyuiApiService {
 
     /**
      * api: /prompt<br>

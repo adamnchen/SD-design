@@ -5,10 +5,10 @@ import cn.hutool.core.util.StrUtil;
 import com.alibaba.fastjson.JSONObject;
 import com.sutran.sd.common.core.service.UserService;
 import com.sutran.sd.draw.domain.dto.ImgSendThirdDto;
-import com.sutran.sd.train.events.MsgSendThirdEvent;
-import com.sutran.sd.train.events.RefreshLoraEvent;
+import com.sutran.sd.draw.events.MsgSendThirdEvent;
+import com.sutran.sd.draw.events.RefreshLoraEvent;
 import com.sutran.sd.draw.service.SdChannelDataService;
-import com.sutran.sd.webui.service.SdApiService;
+import com.sutran.sd.draw.service.SdWebuiApiService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
@@ -23,7 +23,7 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class CommonEventListener {
 
-    private final SdApiService sdApiService;
+    private final SdWebuiApiService sdWebuiApiService;
     private final UserService userService;
     private final SdChannelDataService sdChannelDataService;
 
@@ -52,7 +52,7 @@ public class CommonEventListener {
     @EventListener(classes = {RefreshLoraEvent.class})
     @Async("threadPoolTaskExecutor")
     public void refreshLoraModels() {
-        sdApiService.refreshLoraModels();
+        sdWebuiApiService.refreshLoraModels();
     }
 
 }

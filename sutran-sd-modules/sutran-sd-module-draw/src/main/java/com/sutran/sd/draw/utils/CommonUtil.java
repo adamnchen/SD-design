@@ -10,6 +10,7 @@ import org.apache.commons.text.StringEscapeUtils;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -70,7 +71,7 @@ public class CommonUtil {
             if (files.size() >= 2) {
                 File txtFile = files.get(1);
                 // 读取txt文件中的标签
-                try (Stream<String> lines = Files.lines(txtFile.toPath())) {
+                try (Stream<String> lines = Files.lines(txtFile.toPath(), StandardCharsets.UTF_8)) {
                     Optional<String> first1 = lines.findFirst();
                     if (first1.isPresent()) {
                         List<String> tags = new ArrayList<>(Arrays.asList(StringEscapeUtils.unescapeJava(first1.get()).split(", ")));

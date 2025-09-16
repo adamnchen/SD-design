@@ -1,4 +1,4 @@
-package com.sutran.sd.comfyapi.service.impl;
+package com.sutran.sd.draw.service.impl;
 
 import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.date.DateUtil;
@@ -11,8 +11,8 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.rabbitmq.client.Channel;
-import com.sutran.sd.comfyapi.domain.DrawingTaskInfo;
-import com.sutran.sd.comfyapi.service.ComfyApiService;
+import com.sutran.sd.draw.domain.bo.DrawingTaskInfo;
+import com.sutran.sd.draw.service.SdComfyuiApiService;
 import com.sutran.sd.common.core.service.OssService;
 import com.sutran.sd.common.core.service.UserService;
 import com.sutran.sd.common.exception.TaskErrorException;
@@ -61,7 +61,7 @@ import static com.sutran.sd.draw.mq.MqConstant.SD_COMFY_DRAW_QUEUE;
 @Service
 @Slf4j
 @RequiredArgsConstructor
-public class ComfyApiServiceImpl implements ComfyApiService {
+public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
 
     private final SdDrawNodeService sdDrawNodeService;
     private final SdUserTaskService sdUserTaskService;

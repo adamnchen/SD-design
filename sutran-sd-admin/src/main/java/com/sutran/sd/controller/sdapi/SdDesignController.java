@@ -7,7 +7,7 @@ import com.sutran.sd.common.core.domain.R;
 import com.sutran.sd.common.core.page.TableDataInfo;
 import com.sutran.sd.common.core.domain.dto.BatchRemoveDto;
 import com.sutran.sd.draw.domain.dto.SdUserModelFilePageDto;
-import com.sutran.sd.webui.service.SdApiService;
+import com.sutran.sd.draw.service.SdWebuiApiService;
 import com.sutran.sd.draw.domain.vo.SdUserModelFileVo;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -27,7 +27,7 @@ import java.io.IOException;
 public class SdDesignController {
 
     @Resource
-    private SdApiService sdApiService;
+    private SdWebuiApiService sdWebuiApiService;
 
     /**
      * [业务接口]SD设计库-获取当前用户绘图数据列表
@@ -39,7 +39,7 @@ public class SdDesignController {
         pageQuery.setPageSize(dto.getPageSize());
         pageQuery.setOrderByColumn(dto.getOrderByColumn());
         pageQuery.setIsAsc(dto.getIsAsc());
-        return sdApiService.listUserModelFile(pageQuery,dto);
+        return sdWebuiApiService.listUserModelFile(pageQuery,dto);
     }
 
     /**
@@ -47,7 +47,7 @@ public class SdDesignController {
      */
     @DeleteMapping("/model-file/remove")
     public R<Void> removeUserModelFile(@RequestBody BatchRemoveDto dto) {
-        sdApiService.removeUserModelFile(dto.getIds());
+        sdWebuiApiService.removeUserModelFile(dto.getIds());
         return R.ok();
     }
 
@@ -59,7 +59,7 @@ public class SdDesignController {
         if (CollectionUtil.isEmpty(dto.getIds())) {
             return;
         }
-        sdApiService.batchDownloadUserModelFile(dto.getIds(),response);
+        sdWebuiApiService.batchDownloadUserModelFile(dto.getIds(),response);
     }
 
     /**
@@ -70,7 +70,7 @@ public class SdDesignController {
         if (StrUtil.isEmpty(imgUrl)) {
             return;
         }
-        sdApiService.downloadUserModelFile(imgUrl,response);
+        sdWebuiApiService.downloadUserModelFile(imgUrl,response);
     }
 
 }

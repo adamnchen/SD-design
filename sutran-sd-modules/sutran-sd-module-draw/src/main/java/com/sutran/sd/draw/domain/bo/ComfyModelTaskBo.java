@@ -1,4 +1,4 @@
-package com.sutran.sd.comfyapi.domain;
+package com.sutran.sd.draw.domain.bo;
 
 import lombok.Data;
 import lombok.experimental.Accessors;

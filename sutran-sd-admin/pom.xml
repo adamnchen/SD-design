@@ -21,6 +21,7 @@
         <dependency>
             <groupId>com.mysql</groupId>
             <artifactId>mysql-connector-j</artifactId>
+            <version>8.2.0</version>
         </dependency>
         <!-- Oracle -->
         <dependency>
@@ -31,6 +32,7 @@
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
+            <version>42.7.7</version>
         </dependency>
         <!-- SqlServer -->
         <dependency>
@@ -50,16 +52,15 @@
             <artifactId>sutran-sd-module-system</artifactId>
         </dependency>
 
-        <!-- webui模块-->
+        <!-- 绘图模块 -->
         <dependency>
             <groupId>com.sutran.sd</groupId>
-            <artifactId>sutran-sd-module-webui</artifactId>
+            <artifactId>sutran-sd-module-draw</artifactId>
         </dependency>
 
-        <!-- comfyui模块-->
         <dependency>
             <groupId>com.sutran.sd</groupId>
-            <artifactId>sutran-sd-module-comfyui</artifactId>
+            <artifactId>sutran-sd-module-pay</artifactId>
         </dependency>
 
         <!-- AI模块-->

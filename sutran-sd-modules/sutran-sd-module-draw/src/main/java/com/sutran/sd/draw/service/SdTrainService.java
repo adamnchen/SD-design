@@ -1,4 +1,4 @@
-package com.sutran.sd.train.service;
+package com.sutran.sd.draw.service;
 
 import com.alibaba.fastjson.JSONObject;
 import com.sutran.sd.common.core.domain.PageQuery;
@@ -147,7 +147,7 @@ public interface SdTrainService {
     /**
      * 获取取训练模型的数据集
      * @param preTaskId 训练任务ID
-     * @exception IOException IO异常
+     * @throws IOException IO异常
      * @return 数据集
      */
     List<JSONObject> getModelTrainDateList(String preTaskId) throws IOException;

@@ -1,4 +1,4 @@
-package com.sutran.sd.webui.service;
+package com.sutran.sd.draw.service;
 
 import com.alibaba.fastjson.JSONObject;
 import com.sutran.sd.common.core.domain.PageQuery;
@@ -19,7 +19,7 @@ import java.util.List;
  * @author zj
  * @date 2024-03-02
  */
-public interface SdApiService {
+public interface SdWebuiApiService {
     /**
      * 获取基础大模型列表
      * @return  List<CheckPointVo>

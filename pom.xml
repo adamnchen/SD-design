@@ -358,31 +358,10 @@
                 <version>${sutran-sd.version}</version>
             </dependency>
 
-            <!-- SD绘图模块-->
+            <!-- SD绘图/训练模块-->
             <dependency>
                 <groupId>com.sutran.sd</groupId>
                 <artifactId>sutran-sd-module-draw</artifactId>
-                <version>${sutran-sd.version}</version>
-            </dependency>
-
-            <!-- 模型训练模块-->
-            <dependency>
-                <groupId>com.sutran.sd</groupId>
-                <artifactId>sutran-sd-module-train</artifactId>
-                <version>${sutran-sd.version}</version>
-            </dependency>
-
-            <!-- WebUI模块-->
-            <dependency>
-                <groupId>com.sutran.sd</groupId>
-                <artifactId>sutran-sd-module-webui</artifactId>
-                <version>${sutran-sd.version}</version>
-            </dependency>
-
-            <!-- ComfyUI模块-->
-            <dependency>
-                <groupId>com.sutran.sd</groupId>
-                <artifactId>sutran-sd-module-comfyui</artifactId>
                 <version>${sutran-sd.version}</version>
             </dependency>
 

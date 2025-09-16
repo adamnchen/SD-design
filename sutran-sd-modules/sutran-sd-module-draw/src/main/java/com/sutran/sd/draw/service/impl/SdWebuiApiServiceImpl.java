@@ -1,4 +1,4 @@
-package com.sutran.sd.webui.service.impl;
+package com.sutran.sd.draw.service.impl;
 
 import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.date.DateUtil;
@@ -35,13 +35,13 @@ import com.sutran.sd.draw.domain.dto.model.*;
 import com.sutran.sd.draw.domain.dto.task.SdInternalProgressDto;
 import com.sutran.sd.draw.domain.dto.txt2img.SdApiModelParamDto;
 import com.sutran.sd.draw.domain.dto.txt2img.SdText2ImgDto;
-import com.sutran.sd.train.service.SdTrainPreTaskService;
-import com.sutran.sd.train.events.MsgSendThirdEvent;
+import com.sutran.sd.draw.service.SdTrainTaskService;
+import com.sutran.sd.draw.events.MsgSendThirdEvent;
 import com.sutran.sd.draw.domain.SdGpuPool;
 import com.sutran.sd.draw.domain.SdTrainTask;
 import com.sutran.sd.draw.domain.SdUserModel;
 import com.sutran.sd.draw.domain.SdUserModelClassify;
-import com.sutran.sd.webui.service.SdApiService;
+import com.sutran.sd.draw.service.SdWebuiApiService;
 import com.sutran.sd.draw.utils.ResultUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -88,7 +88,7 @@ import static com.sutran.sd.draw.mq.MqConstant.*;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class SdApiServiceImpl implements SdApiService {
+public class SdWebuiApiServiceImpl implements SdWebuiApiService {
 
     private final SdUserModelService sdUserModelService;
     private final SdUserModelLogService sdUserModelLogService;
@@ -96,7 +96,7 @@ public class SdApiServiceImpl implements SdApiService {
     private final SdUserTaskService sdUserTaskService;
     private final SdUserModelClassifyService sdUserModelClassifyService;
     private final OssService ossService;
-    private final SdTrainPreTaskService sdTrainPreTaskService;
+    private final SdTrainTaskService sdTrainTaskService;
     private final RabbitTemplate rabbitTemplate;
     private final SdGpuPoolService sdGpuPoolService;
     private final UserService userService;
@@ -230,7 +230,7 @@ public class SdApiServiceImpl implements SdApiService {
                 imgUrl += lora.getAlias();
                 oldImgUrl += lora.getAlias();
                 final String preTaskId = lora.getAlias().replace("user_", "");
-                SdTrainTask task = sdTrainPreTaskService.selectDetailById(preTaskId);
+                SdTrainTask task = sdTrainTaskService.selectDetailById(preTaskId);
                 if (task!=null && StrUtil.isNotEmpty(task.getModelName())) {
                     model.setModelNameZh(task.getModelName()+(lora.getName().contains("-")?"-"+lora.getName().split("-")[1]:""));
                 }
@@ -677,7 +677,7 @@ public class SdApiServiceImpl implements SdApiService {
 
         // 获取多模型数据和多模型强度
         List<SdUserModel> models = new ArrayList<>();
-        Map<String,String> modelStrengthMap = new HashMap<>();
+        Map<String,String> modelStrengthMap = new HashMap<>(8);
         dealMultiModelAndModelStrength(dto, models,modelStrengthMap);
 
         // 生成绘图任务ID 和 绘图参数
@@ -703,7 +703,7 @@ public class SdApiServiceImpl implements SdApiService {
 
         // 获取多模型数据和多模型强度
         List<SdUserModel> models = new ArrayList<>();
-        Map<String,String> modelStrengthMap = new HashMap<>();
+        Map<String,String> modelStrengthMap = new HashMap<>(8);
         dealMultiModelAndModelStrength(dto, models,modelStrengthMap);
 
         JSONObject msg = dealTxt2ImgParam(dto,taskId,models, modelStrengthMap, checkpoint,userId,userName,true);
@@ -763,7 +763,7 @@ public class SdApiServiceImpl implements SdApiService {
         dto.setCfg_scale(dto.getCfg_scale()==null?7:dto.getCfg_scale());
 
         Map<String, Object> map = new HashMap<>(Objects.requireNonNull(BeanCopyUtils.copyToMap(dto)));
-        Map<String,Object> overrideSettings = new HashMap<>();
+        Map<String,Object> overrideSettings = new HashMap<>(4);
         overrideSettings.put("sd_model_checkpoint",checkpoint);
         overrideSettings.put("CLIP_stop_at_last_layers",dto.getCLIP_stop_at_last_layers());
         overrideSettings.put("sd_vae",StrUtil.isEmptyIfStr(dto.getSd_vae())?"Automatic":dto.getSd_vae());
@@ -1343,7 +1343,7 @@ public class SdApiServiceImpl implements SdApiService {
                 }
             }
 
-            Map<SdGpuPool, Long> usageFrequencyMap = new HashMap<>();
+            Map<SdGpuPool, Long> usageFrequencyMap = new HashMap<>(pools.size());
             for (SdGpuPool pool : pools) {
                 Long frequency = RedisUtils.getCacheMapValue(DRAW_GPU_USAGE_FREQUENCY, String.valueOf(pool.getDeviceId()));
                 usageFrequencyMap.put(pool, frequency == null ? 0L : frequency);

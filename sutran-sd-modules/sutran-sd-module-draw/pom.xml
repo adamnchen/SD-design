@@ -17,16 +17,28 @@
 
     <dependencies>
 
-        <!-- 支付模块 -->
-        <dependency>
-            <groupId>com.sutran.sd</groupId>
-            <artifactId>sutran-sd-module-pay</artifactId>
-        </dependency>
-
         <!-- forest依赖 -->
         <dependency>
             <groupId>com.dtflys.forest</groupId>
             <artifactId>forest-spring-boot-starter</artifactId>
+        </dependency>
+
+        <!-- common依赖 -->
+        <dependency>
+            <groupId>com.sutran.sd</groupId>
+            <artifactId>sutran-sd-common</artifactId>
+        </dependency>
+
+        <!-- OSS功能模块 -->
+        <dependency>
+            <groupId>com.sutran.sd</groupId>
+            <artifactId>sutran-sd-module-oss</artifactId>
+        </dependency>
+
+        <!-- system模块 -->
+        <dependency>
+            <groupId>com.sutran.sd</groupId>
+            <artifactId>sutran-sd-module-system</artifactId>
         </dependency>
 
         <!-- MQ依赖 -->
@@ -35,10 +47,10 @@
             <artifactId>spring-boot-starter-amqp</artifactId>
         </dependency>
 
-        <!--        <dependency>-->
-        <!--            <groupId>com.alibaba.fastjson2</groupId>-->
-        <!--            <artifactId>fastjson2</artifactId>-->
-        <!--        </dependency>-->
+<!--        <dependency>-->
+<!--            <groupId>com.alibaba.fastjson2</groupId>-->
+<!--            <artifactId>fastjson2</artifactId>-->
+<!--        </dependency>-->
 
         <dependency>
             <groupId>com.alibaba</groupId>

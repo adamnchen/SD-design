@@ -1,4 +1,4 @@
-package com.sutran.sd.comfyapi.domain;
+package com.sutran.sd.draw.domain.bo;
 
 import com.alibaba.fastjson.JSONObject;
 import lombok.Getter;

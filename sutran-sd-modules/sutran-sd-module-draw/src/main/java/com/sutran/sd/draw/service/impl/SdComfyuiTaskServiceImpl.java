@@ -1,10 +1,11 @@
-package com.sutran.sd.comfyapi.service.impl;
+package com.sutran.sd.draw.service.impl;
 
 import cn.hutool.core.util.IdUtil;
 import com.alibaba.fastjson.JSONObject;
-import com.sutran.sd.comfyapi.domain.DrawingTaskInfo;
-import com.sutran.sd.comfyapi.service.ComfyApiService;
-import com.sutran.sd.comfyapi.service.ComfyTaskService;
+import com.sutran.sd.common.helper.LoginHelper;
+import com.sutran.sd.draw.domain.bo.DrawingTaskInfo;
+import com.sutran.sd.draw.service.SdComfyuiApiService;
+import com.sutran.sd.draw.service.SdComfyuiTaskService;
 import com.sutran.sd.common.core.service.UserService;
 import com.sutran.sd.common.exception.TaskErrorException;
 import com.sutran.sd.common.utils.StringUtils;
@@ -32,13 +33,13 @@ import static com.sutran.sd.draw.mq.MqConstant.SD_COMFY_DRAW_ROUTING_KEY;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class ComfyTaskServiceImpl implements ComfyTaskService {
+public class SdComfyuiTaskServiceImpl implements SdComfyuiTaskService {
 
     private final SdFlowService sdFlowService;
     private final UserService userService;
     private final SdUserTaskService sdUserTaskService;
     private final RabbitTemplate rabbitTemplate;
-    private final ComfyApiService comfyApiService;
+    private final SdComfyuiApiService sdComfyuiApiService;
 
     /**
      * 提交模型生图任务
@@ -48,10 +49,10 @@ public class ComfyTaskServiceImpl implements ComfyTaskService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public String submitModelTask(ComfyModelTaskSubmitBo modelTaskBo) {
-//        final Long userId = LoginHelper.getUserId();
-        final Long userId = 1838096394063040512L;
-//        final String userName = LoginHelper.getUsername();
-        final String userName = "18852862861";
+        final Long userId = LoginHelper.getUserId();
+//        final Long userId = 1838096394063040512L;
+        final String userName = LoginHelper.getUsername();
+//        final String userName = "18852862861";
         if (StringUtils.isBlank(modelTaskBo.getBatchSize()) || Integer.parseInt(modelTaskBo.getBatchSize())<=0) {
             throw new TaskErrorException("生图数量至少1张");
         }
@@ -88,10 +89,10 @@ public class ComfyTaskServiceImpl implements ComfyTaskService {
      */
     @Override
     public String submitComfyFlowTask(String flowId) {
-//        final Long userId = LoginHelper.getUserId();
-        final Long userId = 1838096394063040512L;
-//        final String userName = LoginHelper.getUsername();
-        final String userName = "18852862861";
+        final Long userId = LoginHelper.getUserId();
+//        final Long userId = 1838096394063040512L;
+        final String userName = LoginHelper.getUsername();
+//        final String userName = "18852862861";
         // 根据模型类型获取工作流
         SdFlow sdFlow = sdFlowService.getFixedFlowById(flowId);
         if (sdFlow == null || StringUtils.isBlank(sdFlow.getFlow())) {
@@ -123,7 +124,7 @@ public class ComfyTaskServiceImpl implements ComfyTaskService {
         if (StringUtils.isBlank(promptId)) {
             throw new TaskErrorException("未找到任务");
         }
-        return comfyApiService.getTaskInfoById(promptId);
+        return sdComfyuiApiService.getTaskInfoById(promptId);
     }
 
     /**

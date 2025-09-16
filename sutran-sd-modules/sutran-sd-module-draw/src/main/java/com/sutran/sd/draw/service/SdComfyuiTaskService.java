@@ -1,4 +1,4 @@
-package com.sutran.sd.comfyapi.service;
+package com.sutran.sd.draw.service;
 
 import com.sutran.sd.draw.domain.bo.ComfyModelTaskSubmitBo;
 import com.sutran.sd.draw.domain.pojo.ComfyTaskHistoryInfo;
@@ -7,7 +7,7 @@ import com.sutran.sd.draw.domain.pojo.ComfyTaskHistoryInfo;
  * @author zj
  * @date 2025年09月09日 22:02
  */
-public interface ComfyTaskService {
+public interface SdComfyuiTaskService {
 
     /**
      * 提交模型生图任务

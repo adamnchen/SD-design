@@ -1,4 +1,4 @@
-package com.sutran.sd.train.events;
+package com.sutran.sd.draw.events;
 
 import com.sutran.sd.draw.domain.dto.ImgSendThirdDto;
 import org.springframework.context.ApplicationEvent;

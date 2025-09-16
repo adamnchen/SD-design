@@ -10,7 +10,7 @@ import com.sutran.sd.draw.domain.dto.model.SdUserModelClassifyDto;
 import com.sutran.sd.draw.domain.dto.model.SdUserModelModifyDto;
 import com.sutran.sd.draw.domain.dto.model.SdUserModelPageDto;
 import com.sutran.sd.draw.domain.dto.model.SdUserModelShareDto;
-import com.sutran.sd.webui.service.SdApiService;
+import com.sutran.sd.draw.service.SdWebuiApiService;
 import com.sutran.sd.draw.domain.vo.SdUserModelClassifyVo;
 import com.sutran.sd.draw.domain.vo.SdUserModelVo;
 import lombok.RequiredArgsConstructor;
@@ -30,14 +30,14 @@ import java.util.List;
 public class SdModelController {
 
     @Resource
-    private SdApiService sdApiService;
+    private SdWebuiApiService sdWebuiApiService;
 
     /**
      * [业务接口]SD Lora模型-获取lora模型分类列表
      */
     @GetMapping("/lora/classify/list")
     public R<List<SdUserModelClassifyVo>> listModelClassify() {
-        return R.ok(sdApiService.listModelClassify());
+        return R.ok(sdWebuiApiService.listModelClassify());
     }
 
     /**
@@ -45,7 +45,7 @@ public class SdModelController {
      */
     @PostMapping("/lora/classify/add")
     public R<Void> addModelClassify(@RequestBody SdUserModelClassifyDto dto) {
-        sdApiService.addModelClassify(dto);
+        sdWebuiApiService.addModelClassify(dto);
         return R.ok();
     }
 
@@ -57,7 +57,7 @@ public class SdModelController {
         if ("1".equals(dto.getId())) {
             throw new ServiceException("当前分类不可修改!");
         }
-        sdApiService.modifyModelClassify(dto);
+        sdWebuiApiService.modifyModelClassify(dto);
         return R.ok();
     }
 
@@ -69,7 +69,7 @@ public class SdModelController {
         if ("1".equals(id)) {
             throw new ServiceException("当前分类不可删除!");
         }
-        sdApiService.removeModelClassify(id);
+        sdWebuiApiService.removeModelClassify(id);
         return R.ok();
     }
 
@@ -83,7 +83,7 @@ public class SdModelController {
         pageQuery.setPageSize(dto.getPageSize());
         pageQuery.setOrderByColumn(dto.getOrderByColumn());
         pageQuery.setIsAsc(dto.getIsAsc());
-        return sdApiService.listLoraModels(dto,pageQuery);
+        return sdWebuiApiService.listLoraModels(dto,pageQuery);
     }
 
     /**
@@ -91,7 +91,7 @@ public class SdModelController {
      */
     @PutMapping("/lora")
     public R<Void> modifyModel(@RequestBody SdUserModelModifyDto dto) {
-        sdApiService.modifyModel(dto);
+        sdWebuiApiService.modifyModel(dto);
         return R.ok();
     }
 
@@ -100,7 +100,7 @@ public class SdModelController {
      */
     @DeleteMapping("/lora/remove")
     public R<Void> removeModel(@RequestParam String id) {
-        sdApiService.removeModel(id);
+        sdWebuiApiService.removeModel(id);
         return R.ok();
     }
 
@@ -109,7 +109,7 @@ public class SdModelController {
      */
     @GetMapping("/lora/info")
     public R<SdUserModelVo> getModelInfo(@RequestParam String id) {
-        return R.ok(sdApiService.getModelInfo(id));
+        return R.ok(sdWebuiApiService.getModelInfo(id));
     }
 
     /**
@@ -117,7 +117,7 @@ public class SdModelController {
      */
     @GetMapping("/lora/latest")
     public R<List<SdUserModelVo>> getLatestModelInfo() {
-        return R.ok(sdApiService.getLatestModelInfo(5));
+        return R.ok(sdWebuiApiService.getLatestModelInfo(5));
     }
 
     /**
@@ -133,7 +133,7 @@ public class SdModelController {
         if (StrUtil.isBlankIfStr(dto.getToShareUserId()) && StrUtil.isBlankIfStr(dto.getToSharePhone())){
             throw new ServiceException("请选择要分享的用户或者手机号!");
         }
-        sdApiService.shareModel(dto);
+        sdWebuiApiService.shareModel(dto);
         return R.ok();
     }
 

@@ -14,9 +14,9 @@ import com.sutran.sd.draw.domain.dto.task.SdUserTaskPageDto;
 import com.sutran.sd.draw.domain.dto.txt2img.SdText2ImgDto;
 import com.sutran.sd.draw.domain.SdGpuPool;
 import com.sutran.sd.draw.service.SdTranslationService;
-import com.sutran.sd.webui.service.SdApiService;
+import com.sutran.sd.draw.service.SdWebuiApiService;
 import com.sutran.sd.draw.service.SdGpuPoolService;
-import com.sutran.sd.train.service.SdTrainService;
+import com.sutran.sd.draw.service.SdTrainService;
 import com.sutran.sd.draw.domain.vo.CheckPointVo;
 import com.sutran.sd.draw.domain.vo.SdUserModelFileVo;
 import com.sutran.sd.draw.domain.vo.SdUserModelVo;
@@ -41,7 +41,7 @@ import java.util.stream.Collectors;
 @RequestMapping("/system/sd")
 public class SysSdController extends BaseController {
 
-    private final SdApiService sdApiService;
+    private final SdWebuiApiService sdWebuiApiService;
     private final SdTrainService sdTrainService;
     private final SdGpuPoolService sdGpuPoolService;
     private final SdTranslationService sdTranslationService;
@@ -51,7 +51,7 @@ public class SysSdController extends BaseController {
      */
     @GetMapping("/checkpoint/list")
     public R<List<CheckPointVo>> listCheckpointModels() {
-        return R.ok(sdApiService.listCheckpointModels());
+        return R.ok(sdWebuiApiService.listCheckpointModels());
     }
 
     /**
@@ -59,7 +59,7 @@ public class SysSdController extends BaseController {
      */
     @GetMapping("/checkpoint/option")
     public R<List<CheckPointVo>> checkpointOptions(@RequestParam("title") String title) {
-        sdApiService.checkpointOptions(title);
+        sdWebuiApiService.checkpointOptions(title);
         return R.ok();
     }
 
@@ -68,7 +68,7 @@ public class SysSdController extends BaseController {
      */
     @GetMapping("/lora/list")
     public TableDataInfo<SdUserModelVo> listLoraModelsOfTestTaskAndTrainData(SdUserModelDto dto) {
-        return sdApiService.listLoraModelsOfTestTaskAndTrainData(dto);
+        return sdWebuiApiService.listLoraModelsOfTestTaskAndTrainData(dto);
     }
 
     /**
@@ -84,7 +84,7 @@ public class SysSdController extends BaseController {
      */
     @DeleteMapping("/xyz-data")
     public R<Void> delXyzData(@RequestParam String taskId) {
-        sdApiService.delXyzData(taskId);
+        sdWebuiApiService.delXyzData(taskId);
         return R.ok();
     }
 
@@ -93,7 +93,7 @@ public class SysSdController extends BaseController {
      */
     @PutMapping("/lora/publish-status")
     public R<Void> publishModel(@RequestParam String id,@RequestParam Integer publishStatus,@RequestParam(required = false) String modelStrength) {
-        sdApiService.publishModel(id,publishStatus,modelStrength);
+        sdWebuiApiService.publishModel(id,publishStatus,modelStrength);
         return R.ok();
     }
 
@@ -102,7 +102,7 @@ public class SysSdController extends BaseController {
      */
     @PutMapping("/lora/model-strength")
     public R<Void> modifyModelStrength(@RequestParam String id,@RequestParam String modelStrength) {
-        sdApiService.modifyModelStrength(id,modelStrength);
+        sdWebuiApiService.modifyModelStrength(id,modelStrength);
         return R.ok();
     }
 
@@ -111,7 +111,7 @@ public class SysSdController extends BaseController {
      */
     @DeleteMapping("/lora")
     public R<Void> removeModel(@RequestParam String id) {
-        sdApiService.removeModelOfAdmin(Collections.singletonList(id));
+        sdWebuiApiService.removeModelOfAdmin(Collections.singletonList(id));
         return R.ok();
     }
 
@@ -120,7 +120,7 @@ public class SysSdController extends BaseController {
      */
     @DeleteMapping("/lora/batch")
     public R<Void> batchRemoveModel(@RequestBody BatchRemoveDto dto) {
-       sdApiService.removeModelOfAdmin(dto.getIds());
+       sdWebuiApiService.removeModelOfAdmin(dto.getIds());
         return R.ok();
     }
 
@@ -129,7 +129,7 @@ public class SysSdController extends BaseController {
      */
     @PostMapping("/lora/txt2img/test")
     public R<String> testText2ImgLoraModels(@Validated @RequestBody SdText2ImgDto dto) {
-        String taskId = sdApiService.testTxt2ImgOfLoraModel(dto);
+        String taskId = sdWebuiApiService.testTxt2ImgOfLoraModel(dto);
         return R.ok("操作成功",taskId);
     }
 
@@ -143,7 +143,7 @@ public class SysSdController extends BaseController {
         pageQuery.setPageSize(dto.getPageSize());
         pageQuery.setOrderByColumn(dto.getOrderByColumn());
         pageQuery.setIsAsc(dto.getIsAsc());
-        return sdApiService.allUserTaskList(pageQuery,dto.getCategory(),dto.getStatus());
+        return sdWebuiApiService.allUserTaskList(pageQuery,dto.getCategory(),dto.getStatus());
     }
 
     /**
@@ -151,7 +151,7 @@ public class SysSdController extends BaseController {
      */
     @GetMapping("/model-file/list")
     public R<List<SdUserModelFileVo>> userModelFileList(@RequestParam String taskId) {
-        return R.ok(sdApiService.listUserModelFile(taskId));
+        return R.ok(sdWebuiApiService.listUserModelFile(taskId));
     }
 
     /**
@@ -159,7 +159,7 @@ public class SysSdController extends BaseController {
      */
     @GetMapping("/process")
     public R<JSONObject> getProcess(@RequestParam String taskId) {
-        return R.ok(sdApiService.getProcess(taskId));
+        return R.ok(sdWebuiApiService.getProcess(taskId));
     }
 
     /**
@@ -183,7 +183,7 @@ public class SysSdController extends BaseController {
     @GetMapping("/sync-gpu-pool")
     @SaIgnore
     public R<JSONObject> syncGpuPool(@RequestParam Integer type) {
-        return R.ok(sdApiService.syncGpuPool(type));
+        return R.ok(sdWebuiApiService.syncGpuPool(type));
     }
 
     /**
@@ -203,7 +203,7 @@ public class SysSdController extends BaseController {
             sdTrainService.stopGpuPool(sdGpuPool);
         }
         else {
-            sdApiService.stopGpuPool(sdGpuPool);
+            sdWebuiApiService.stopGpuPool(sdGpuPool);
         }
         return R.ok("GPU停用成功");
     }
@@ -225,7 +225,7 @@ public class SysSdController extends BaseController {
             sdTrainService.startGpuPool(sdGpuPool);
         }
         else {
-            sdApiService.startGpuPool(sdGpuPool);
+            sdWebuiApiService.startGpuPool(sdGpuPool);
         }
         return R.ok("GPU启用用成功");
     }

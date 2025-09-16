@@ -1,4 +1,4 @@
-package com.sutran.sd.train.service;
+package com.sutran.sd.draw.service;
 
 import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -14,7 +14,7 @@ import java.util.Map;
  * @author zj
  * @date 2024-03-24
  */
-public interface SdTrainPreTaskService {
+public interface SdTrainTaskService {
 
     /**
      * 按用户ID和任务状态查询列表
@@ -102,23 +102,71 @@ public interface SdTrainPreTaskService {
      */
     void failTrainTask(String preTaskId, String reason, SdGpuPool sdGpuPool, Date endTime);
 
+    /**
+     * 查询训练任务详情
+     * @param preTaskId 预处理任务ID
+     * @return 训练任务详情
+     */
     SdTrainTask selectDetailById(String preTaskId);
 
+    /**
+     * 查询训练任务详情
+     * @param preTaskId 预处理任务ID
+     * @return 训练任务详情
+     */
     SdTrainTask selectDetailByUserId(Long preTaskId);
 
+    /**
+     * 查询训练任务详情
+     * @param taskId 训练任务ID
+     * @return 训练任务详情
+     */
     SdTrainTask selectDetailByTaskId(String taskId);
 
+    /**
+     * 减少图片数量
+     * @param preTaskId 预处理任务ID
+     */
     void reduceImgNum(String preTaskId);
 
+    /**
+     * 删除训练任务
+     * @param preTaskId 预处理任务ID
+     */
     void deleteById(String preTaskId);
 
+    /**
+     * 查询训练任务状态
+     * @param preTaskId 预处理任务ID
+     * @return 训练任务状态
+     */
     Integer selectNewStatusById(String preTaskId);
 
+    /**
+     * 查询训练任务状态
+     * @param taskId 训练任务ID
+     * @return 训练任务状态
+     */
     JSONObject selectNewStatusByTaskId(String taskId);
 
+    /**
+     * 查询训练任务GPU池
+     * @param taskId 训练任务ID
+     * @return GPU 池
+     */
     SdGpuPool selectGpuPoolByTaskId(String taskId);
 
+    /**
+     * 删除训练任务
+     * @param preTaskId 预处理任务ID
+     * @return 是否删除成功
+     */
     boolean deleteByIdAndPicNumIsZero(String preTaskId);
 
+    /**
+     * 查询训练任务创建用户ID
+     * @param preTaskId 预处理任务ID
+     * @return 创建用户ID
+     */
     Long selectCrtUserIdById(String preTaskId);
 }

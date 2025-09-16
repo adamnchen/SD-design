@@ -3,8 +3,8 @@ package com.sutran.sd.controller.sdapi;
 import cn.dev33.satoken.annotation.SaIgnore;
 import cn.hutool.core.util.StrUtil;
 import com.alibaba.fastjson.JSONObject;
-import com.sutran.sd.comfyapi.domain.ComfyModelTaskBo;
-import com.sutran.sd.comfyapi.service.ComfyTaskService;
+import com.sutran.sd.draw.domain.bo.ComfyModelTaskBo;
+import com.sutran.sd.draw.service.SdComfyuiTaskService;
 import com.sutran.sd.common.core.domain.PageQuery;
 import com.sutran.sd.common.core.domain.R;
 import com.sutran.sd.common.core.page.TableDataInfo;
@@ -19,7 +19,7 @@ import com.sutran.sd.draw.domain.pojo.ComfyTaskHistoryInfo;
 import com.sutran.sd.draw.domain.vo.SdUserModelFileVo;
 import com.sutran.sd.draw.domain.vo.SdUserTaskVo;
 import com.sutran.sd.draw.service.SdUserModelService;
-import com.sutran.sd.webui.service.SdApiService;
+import com.sutran.sd.draw.service.SdWebuiApiService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -39,8 +39,8 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SdApiController {
 
-    private final SdApiService sdApiService;
-    private final ComfyTaskService comfyTaskService;
+    private final SdWebuiApiService sdWebuiApiService;
+    private final SdComfyuiTaskService sdComfyuiTaskService;
     private final SdUserModelService sdUserModelService;
 
     /**
@@ -48,7 +48,7 @@ public class SdApiController {
      */
     @PostMapping("/txt2img")
     public R<String> txt2img(@Validated @RequestBody SdText2ImgDto dto) {
-        String taskId = sdApiService.txt2img(dto);
+        String taskId = sdWebuiApiService.txt2img(dto);
         return R.ok("操作成功",taskId);
     }
 
@@ -57,7 +57,7 @@ public class SdApiController {
      */
     @PostMapping("/img2img")
     public R<String> img2img(@Validated @RequestBody SdImg2ImgDto dto) {
-        String taskId = sdApiService.img2img(dto);
+        String taskId = sdWebuiApiService.img2img(dto);
         return R.ok("操作成功",taskId);
     }
 
@@ -66,7 +66,7 @@ public class SdApiController {
      */
     @PostMapping("/img2img/mask")
     public R<String> img2imgOfMask(@Validated @RequestBody SdImg2ImgDto dto) {
-        String taskId = sdApiService.img2img(dto);
+        String taskId = sdWebuiApiService.img2img(dto);
         return R.ok("操作成功",taskId);
     }
 
@@ -80,7 +80,7 @@ public class SdApiController {
         pageQuery.setPageSize(dto.getPageSize());
         pageQuery.setOrderByColumn(dto.getOrderByColumn());
         pageQuery.setIsAsc(dto.getIsAsc());
-        return sdApiService.userDrawTaskList(pageQuery,dto.getCategory(), dto.getStatus());
+        return sdWebuiApiService.userDrawTaskList(pageQuery,dto.getCategory(), dto.getStatus());
     }
 
     /**
@@ -88,7 +88,7 @@ public class SdApiController {
      */
     @GetMapping("/model-file/list")
     public R<List<SdUserModelFileVo>> userModelFileList(@RequestParam String taskId) {
-        return R.ok(sdApiService.listUserModelFile(taskId));
+        return R.ok(sdWebuiApiService.listUserModelFile(taskId));
     }
 
     /**
@@ -96,7 +96,7 @@ public class SdApiController {
      */
     @GetMapping("/task/download")
     public void batchDownloadModelFile(@RequestParam String taskId, HttpServletResponse response) throws IOException {
-        sdApiService.batchDownloadModelFile(taskId,response);
+        sdWebuiApiService.batchDownloadModelFile(taskId,response);
     }
 
     /**
@@ -107,7 +107,7 @@ public class SdApiController {
         if (StrUtil.isEmpty(imgUrl)) {
             return;
         }
-        sdApiService.downloadUserModelFile(imgUrl,response);
+        sdWebuiApiService.downloadUserModelFile(imgUrl,response);
     }
 
     /**
@@ -115,7 +115,7 @@ public class SdApiController {
      */
     @DeleteMapping("/model-file")
     public R<Void> deleteModelFile(@RequestParam String id) {
-        sdApiService.removeUserModelFile(Collections.singletonList(id));
+        sdWebuiApiService.removeUserModelFile(Collections.singletonList(id));
         return R.ok();
     }
 
@@ -124,7 +124,7 @@ public class SdApiController {
      */
     @GetMapping("/doing-task")
     public R<String> getDoingTask(@RequestParam Integer category) {
-        return R.ok("操作成功",sdApiService.getDoingTaskId(category));
+        return R.ok("操作成功", sdWebuiApiService.getDoingTaskId(category));
     }
 
     /**
@@ -132,7 +132,7 @@ public class SdApiController {
      */
     @DeleteMapping("/task")
     public R<String> deleteTask(@RequestParam String taskId) {
-        sdApiService.deleteTaskById(taskId);
+        sdWebuiApiService.deleteTaskById(taskId);
         return R.ok();
     }
 
@@ -141,7 +141,7 @@ public class SdApiController {
      */
     @GetMapping("/process")
     public R<JSONObject> getProcess(@RequestParam String taskId) {
-        return R.ok(sdApiService.getProcess(taskId));
+        return R.ok(sdWebuiApiService.getProcess(taskId));
     }
 
 
@@ -165,7 +165,7 @@ public class SdApiController {
             .setModelName(model.getModelName())
             .setModelStrength(StringUtils.isNotBlank(bo.getModelStrength())?bo.getModelStrength():model.getModelStrength())
             .setBatchSize(bo.getBatchSize());
-        String taskId = comfyTaskService.submitModelTask(modelTaskBo);
+        String taskId = sdComfyuiTaskService.submitModelTask(modelTaskBo);
         return R.ok(taskId);
     }
 
@@ -177,7 +177,7 @@ public class SdApiController {
     @GetMapping("/comfy/flow/submit-task")
     @SaIgnore
     public R<String> submitComfyFlowTask(@RequestParam String flowId) {
-        String taskId = comfyTaskService.submitComfyFlowTask(flowId);
+        String taskId = sdComfyuiTaskService.submitComfyFlowTask(flowId);
         return R.ok(taskId);
     }
 
@@ -189,7 +189,7 @@ public class SdApiController {
     @GetMapping("/comfy/model/history-task")
     @SaIgnore
     public R<ComfyTaskHistoryInfo> getComfyModelHistoryTask(@RequestParam String taskId) {
-        return R.ok(comfyTaskService.getComfyModelHistoryTask(taskId));
+        return R.ok(sdComfyuiTaskService.getComfyModelHistoryTask(taskId));
     }
 
     /**
@@ -200,7 +200,7 @@ public class SdApiController {
     @GetMapping("/comfy/model/task-progress")
     @SaIgnore
     public R<Integer> getComfyTaskProgress(@RequestParam String taskId) {
-        return R.ok(comfyTaskService.getComfyTaskProgress(taskId));
+        return R.ok(sdComfyuiTaskService.getComfyTaskProgress(taskId));
     }
 
 }

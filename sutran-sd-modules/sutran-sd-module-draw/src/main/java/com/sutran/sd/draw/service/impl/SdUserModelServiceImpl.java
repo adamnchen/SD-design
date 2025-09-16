@@ -12,17 +12,17 @@ import com.sutran.sd.common.enums.TranslateType;
 import com.sutran.sd.common.exception.ServiceException;
 import com.sutran.sd.common.helper.LoginHelper;
 import com.sutran.sd.common.utils.redis.RedisUtils;
+import com.sutran.sd.draw.domain.SdUserModel;
 import com.sutran.sd.draw.domain.dto.model.SdUserModelDto;
 import com.sutran.sd.draw.domain.dto.model.SdUserModelModifyDto;
 import com.sutran.sd.draw.domain.dto.model.SdUserModelPageDto;
 import com.sutran.sd.draw.domain.dto.model.SdUserModelShareDto;
-import com.sutran.sd.draw.domain.SdUserModel;
+import com.sutran.sd.draw.domain.vo.SdLoraModelVo;
+import com.sutran.sd.draw.domain.vo.SdUserModelVo;
 import com.sutran.sd.draw.mapper.SdUserModelClassifyMapper;
 import com.sutran.sd.draw.mapper.SdUserModelMapper;
 import com.sutran.sd.draw.service.SdUserModelService;
 import com.sutran.sd.system.service.SysTranslateService;
-import com.sutran.sd.draw.domain.vo.SdLoraModelVo;
-import com.sutran.sd.draw.domain.vo.SdUserModelVo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.text.StringEscapeUtils;
@@ -116,10 +116,6 @@ public class SdUserModelServiceImpl implements SdUserModelService {
         pageQuery.setOrderByColumn(dto.getOrderByColumn());
         pageQuery.setIsAsc(dto.getIsAsc());
         Page<SdUserModelVo> page = baseMapper.selectAllListOfAdmin(pageQuery.build(),dto);
-        if (CollectionUtil.isEmpty(page.getRecords())) {
-            return TableDataInfo.build(page);
-        }
-        page.getRecords().forEach(e-> e.setConfig(JSONObject.parseObject(String.valueOf(e.getConfig()), SdLoraModelVo.MetadataVo.class)));
         return TableDataInfo.build(page);
     }
 

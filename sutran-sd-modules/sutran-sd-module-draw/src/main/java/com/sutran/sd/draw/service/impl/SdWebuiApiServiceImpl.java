@@ -335,6 +335,7 @@ public class SdWebuiApiServiceImpl implements SdWebuiApiService {
         TableDataInfo<SdUserModelVo> info = sdUserModelService.listLoraModelsInTaskAndTrainData(dto);
         if (CollectionUtil.isNotEmpty(info.getRows())) {
             for (SdUserModelVo vo : info.getRows()) {
+                vo.setConfig(JSONObject.parseObject(String.valueOf(vo.getConfig()), SdLoraModelVo.MetadataVo.class));
                 // 获取xyz测试数据集
                 List<JSONObject> taskList = sdUserModelFileService.selectModelTestDataAndTaskInfo(vo.getId());
                 vo.setTaskList(taskList);

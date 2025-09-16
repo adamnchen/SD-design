@@ -1061,7 +1061,7 @@ public class SdTrainServiceImpl implements SdTrainService {
 
         // 训练后的模型所在目录
         //TODO windows
-        String oldModelDir = "/output/"+ preTaskId;
+        String oldModelDir = "/home/lora-scripts/output/"+ preTaskId;
 //        String oldModelDir = "D:\\project\\ai_project\\models\\Lora\\train\\"+ preTaskId;
         // 原始模型名称
         String modelName = oldModelName+"."+trainParams.getString("save_model_as");
@@ -1080,25 +1080,20 @@ public class SdTrainServiceImpl implements SdTrainService {
 
         // 全部模型移动到sd的models/Lora目录下
         //TODO windows
-        String modelDir = "/models/";
+        String modelDir = "/home/stable-diffusion-webui/models/Lora/";
 //        String modelDir = "D:\\project\\ai_project\\models\\Lora\\sd\\";
-        log.warn("训练完成>>>>>>>>>拷贝训练模型到SdWebUI的lora目录下：{}->{}",oldModelDir,modelDir);
+        log.warn("训练完成>>>>>>>>>移动模型文件到sd的models/Lora目录下：{}->{}",oldModelDir,modelDir);
         try{
             File[] files = FileUtil.ls(oldModelDir);
             if (files != null) {
-                for (File file : files) {
-                    try {
-                        FileInputStream inputStream = new FileInputStream(file);
-                        FileOutputStream outputStream = new FileOutputStream(modelDir+file.getName());
-                        IoUtil.copy(inputStream,outputStream);
-                    } catch (FileNotFoundException e) {
-                        log.error("训练完成>>>>>>>>>需要复制的模型文件不存在：{}",e.getMessage());
-                    }
+                File destDir = new File(modelDir);
+                for (File srcFil : files) {
+                    FileUtil.move(srcFil,destDir,true);
                 }
             }
         }
         catch (Exception e) {
-            log.error("训练完成>>>>>>>>>拷贝训练模型到SdWebUI的lora目录下：{}->{}报错：{}",oldModelDir,modelDir,e.getMessage());
+            log.error("训练完成>>>>>>>>>移动模型文件到sd的models/Lora目录下：{}->{}报错：{}",oldModelDir,modelDir,e.getMessage());
         }
 
         // 删除原始lora模型目录

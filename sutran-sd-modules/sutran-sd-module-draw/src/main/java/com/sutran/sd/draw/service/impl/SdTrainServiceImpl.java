@@ -899,6 +899,7 @@ public class SdTrainServiceImpl implements SdTrainService {
         String taskId = null;
         try{
             Map<String,Object> trainParams = JSONObject.parseObject(params.getString("trainParams"), Map.class);
+            trainParams.put("gpu_ids", Collections.singletonList(sdGpuPool.getDeviceId().toString()));
             log.info("模型训练任务>>>>>>>>>任务ID[{}],开始进行模型训练任务,训练参数：{}",preTaskId,trainParams);
 
             JSONObject run = Forest.post("/api/run").address(sdGpuPool.getHost(), sdGpuPool.getPort()).contentTypeJson().addBody(trainParams).execute(JSONObject.class);

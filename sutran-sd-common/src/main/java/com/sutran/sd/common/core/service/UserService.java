@@ -27,11 +27,10 @@ public interface UserService {
     String selectOpenIdById(Long userId);
 
     /**
-     * 获取当前用户的剩余训练次数
+     * 校验用户训练次数
      * @param userId 用户ID
-     * @return 剩余训练次数
      */
-    Integer selectTrainTimesById(Long userId);
+    void checkTrainTimesOfMember(Long userId);
 
     /**
      * 获取当前用户的剩余绘图图片数量

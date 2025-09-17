@@ -277,12 +277,10 @@ public class SdTrainServiceImpl implements SdTrainService {
         if(images==null || images.length==0){
             throw new ServiceException("训练数据不能为空!");
         }
-        // 获取当前用户的剩余训练次数
+        // 校验用户训练次数
         Long userId = LoginHelper.getUserId();
-        Integer trainTimes = userService.selectTrainTimesById(userId);
-        if (trainTimes!=null && trainTimes<=0) {
-            throw new ServiceException("暂无可用训练次数,请联系管理员!");
-        }
+        userService.checkTrainTimesOfMember(userId);
+
         // 获取通用配置
         SdCommonConfig config = sdCommonConfigService.selectOne();
         int canMoreSubmitPreImgNum = config==null||config.getPreImgMaxNum()==null||config.getPreImgMaxNum()<=0?50:config.getPreImgMaxNum();
@@ -365,12 +363,10 @@ public class SdTrainServiceImpl implements SdTrainService {
         if(images==null || images.length==0){
             throw new ServiceException("训练数据不能为空!");
         }
-        // 获取当前用户的剩余训练次数
+        // 校验用户训练次数
         Long userId = LoginHelper.getUserId();
-        Integer trainTimes = userService.selectTrainTimesById(userId);
-        if (trainTimes!=null && trainTimes<=0) {
-            throw new ServiceException("暂无可用训练次数,请联系管理员!");
-        }
+        userService.checkTrainTimesOfMember(userId);
+
         // 获取通用配置
         SdCommonConfig config = sdCommonConfigService.selectOne();
         int canMoreSubmitPreImgNum = config==null||config.getPreImgMaxNum()==null||config.getPreImgMaxNum()<=0?50:config.getPreImgMaxNum();
@@ -783,11 +779,10 @@ public class SdTrainServiceImpl implements SdTrainService {
         if (preTaskId==null || StrUtil.isEmptyIfStr(preTaskId)) {
             throw new ServiceException("缺少图片预处理任务ID!");
         }
-        // 获取当前用户的剩余训练次数
-        Integer trainTimes = userService.selectTrainTimesById(LoginHelper.getUserId());
-        if (trainTimes!=null && trainTimes<=0) {
-            throw new ServiceException("余额不足,请联系管理员!");
-        }
+        // 校验用户训练次数
+        Long userId = LoginHelper.getUserId();
+        userService.checkTrainTimesOfMember(userId);
+
         SdTrainTask sdTrainTask = sdTrainTaskService.selectDetailById(preTaskId);
         if (sdTrainTask==null || sdTrainTask.getNewStatus()<2) {
             throw new ServiceException("图片预处理任务不存在或未完成!");
@@ -825,11 +820,10 @@ public class SdTrainServiceImpl implements SdTrainService {
         if (preTaskId==null || StrUtil.isEmptyIfStr(preTaskId)) {
             throw new ServiceException("缺少图片预处理任务ID!");
         }
-        // 获取当前用户的剩余训练次数
-        Integer trainTimes = userService.selectTrainTimesById(LoginHelper.getUserId());
-        if (trainTimes!=null && trainTimes<=0) {
-            throw new ServiceException("余额不足,请联系管理员!");
-        }
+        // 校验用户训练次数
+        Long userId = LoginHelper.getUserId();
+        userService.checkTrainTimesOfMember(userId);
+
         SdTrainTask sdTrainTask = sdTrainTaskService.selectDetailById(preTaskId);
         if (sdTrainTask==null) {
             throw new ServiceException("前置任务不存在,不可进行训练!");

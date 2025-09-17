@@ -147,4 +147,21 @@ public interface SysUserMapper extends BaseMapperPlus<SysUserMapper, SysUser, Sy
 
     @Update("UPDATE sys_user SET del_flag=#{delFlag} WHERE user_id=#{userId} AND del_flag='2'")
     int recoverDel(@Param("userId") Long userId, @Param("delFlag") String delFlag);
+
+
+    /**
+     * 查询用户绘图数量
+     * @param userId 用户ID
+     * @return 绘图数量
+     */
+    @Select("SELECT limit_draw_num FROM sys_user WHERE user_id=#{userId}")
+    Integer selectDrawNumById(@Param("userId") Long userId);
+
+    /**
+     * 查询用户训练次数
+     * @param userId 用户ID
+     * @return 训练次数
+     */
+    @Select("SELECT limit_train_times FROM sys_user WHERE user_id=#{userId}")
+    Integer selectTrainTimesById(@Param("userId") Long userId);
 }

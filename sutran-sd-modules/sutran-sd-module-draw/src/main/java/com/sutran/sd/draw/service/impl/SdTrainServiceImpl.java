@@ -686,7 +686,7 @@ public class SdTrainServiceImpl implements SdTrainService {
                     first1 = lines.findFirst();
                 }
                 catch (IOException ex) {
-                    log.error("获取文件[{}]内容失败：{}",e.getPath(),ex.getMessage());
+                    log.error("获取文件[{}]内容失败：",e.getPath(),ex);
                 }
                 first1.ifPresent(s -> {
                     s = StringEscapeUtils.unescapeJava(s);
@@ -737,7 +737,7 @@ public class SdTrainServiceImpl implements SdTrainService {
                         first1 = lines.findFirst();
                     }
                     catch (IOException ex) {
-                        log.error("获取文件[{}]内容失败：{}",e.getPath(),ex.getMessage());
+                        log.error("获取文件[{}]内容失败：",e.getPath(),ex);
                     }
                     // 将需要删除的标签替换成空
                     first1.ifPresent(s -> {
@@ -760,7 +760,7 @@ public class SdTrainServiceImpl implements SdTrainService {
                 first1 = lines.findFirst();
             }
             catch (IOException ex) {
-                log.error("获取文件[{}]内容失败：{}",imgUrl.getPath(),ex.getMessage());
+                log.error("获取文件[{}]内容失败：",imgUrl.getPath(),ex);
             }
             first1.ifPresent(s -> {
                 s = StringEscapeUtils.unescapeJava(s);
@@ -1270,7 +1270,7 @@ public class SdTrainServiceImpl implements SdTrainService {
                     }
                 }
                 catch (IOException ex) {
-                    log.error("获取文件[{}]内容失败：{}",path,ex.getMessage());
+                    log.error("获取文件[{}]内容失败：",path,ex);
                 }
             }
         });
@@ -1315,7 +1315,7 @@ public class SdTrainServiceImpl implements SdTrainService {
                     }
                 }
                 catch (IOException ex) {
-                    log.error("获取文件[{}]内容失败：{}",path,ex.getMessage());
+                    log.error("获取文件[{}]内容失败：",path,ex);
                 }
             }
         });

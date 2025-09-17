@@ -71,10 +71,10 @@ public class ResultUtil {
             try {
                 String viewGridsUrl = viewGridsPath + "/" + file.getName();
                 urlList.add(viewGridsUrl);
-                log.warn("xyz plot完成>>>>>>>>grid图片原始地址：{},访问地址：{}",file.getPath(),viewGridsUrl);
+                log.warn("[绘图任务]>>>>>>>>xyz plot完成，grid图片原始地址：{},访问地址：{}",file.getPath(),viewGridsUrl);
                 FileUtil.del(file);
             } catch (Exception e) {
-                log.error("xyz plot完成>>>>>>>>>grid图片处理异常：",e);
+                log.error("[绘图任务]>>>>>>>>xyz plot完成，grid图片处理异常：",e);
             }
         }
         rs.getImages().addAll(urlList);

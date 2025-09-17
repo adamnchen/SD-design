@@ -128,7 +128,7 @@ public class SdUserMsgServiceImpl implements SdUserMsgService {
         CompletableFuture.runAsync(()->{
             SseEmitter sseEmitter = SSE_EMITTER_MAP.get(userId);
             if (sseEmitter==null) {
-                log.error("[SSE消息推送]>>>>>>>>>推送失败,当前用户没有连接SSE!");
+                log.info("[SSE消息推送]>>>>>>>>>推送失败,当前用户没有连接SSE!");
                 return;
             }
             int total = baseMapper.userMsgTotal(userId,0);
@@ -185,209 +185,21 @@ public class SdUserMsgServiceImpl implements SdUserMsgService {
         // 模型测试完成消息通知
         try{
             WxMpTemplateMessage wxMsg = WxMpTemplateMessage.builder().url(null).build();
-            // 模型测试结束提醒
-            if ("MODEL_TEST".equals(type)) {
-                String taskId = msg.getString("taskId");
-                // 获取测试的模型
-                JSONObject info = sdUserModelMapper.selectLoraModelNameByTaskId(taskId);
-                if (info==null) {
-                    return;
-                }
-                // 获取管理员openId
-                List<Map<String,String>> openIds = sysUserRoleMapper.selectAdminUserOpenId();
-                if (CollectionUtil.isNotEmpty(openIds)) {
-                    boolean isComplete = msg.getBooleanValue("isComplete");
-                    wxMsg.setTemplateId(modelTestTemplateId);
-                    wxMsg.addData(new WxMpTemplateData("thing7", isComplete?"模型测试完成":"模型测试失败"));
-                    String modelName1 = info.getString("modelNameZh").substring(0, info.getString("modelNameZh").lastIndexOf("-"));
-                    String modelName = modelName1.length()>11?modelName1.substring(0,7)+"...":modelName1;
-                    wxMsg.addData(new WxMpTemplateData("thing12", modelName));
-                    wxMsg.addData(new WxMpTemplateData("time21", info.getString("startTime")));
-                    wxMsg.addData(new WxMpTemplateData("time11", info.getString("endTime")));
-
-                    MsgVo msgVo = new MsgVo();
-                    for (Map<String,String> e : openIds) {
-                        wxMsg.setToUser(e.get("wxOpenId"));
-                        try{
-                            if (StrUtil.isNotEmpty(e.get("wxOpenId"))) {
-                                wxMpService.getTemplateMsgService().sendTemplateMsg(wxMsg);
-                            }
-                        }
-                        catch (WxErrorException ex) {
-                            log.error("微信消息提醒发送失败>>>>>>>>>{}",ex.getMessage());
-                        }
-                        SdUserMsg userMsg = new SdUserMsg().setId(IdUtil.getSnowflakeNextIdStr()).setCrtTime(new Date()).setIsRead(0)
-                            .setUserId(Long.valueOf(e.get("userId"))).setWxOpenId(e.get("wxOpenId")).setTemplateId(modelTestTemplateId)
-                            .setTitle(isComplete?"模型测试完成":"模型测试失败").setMsgBody(JSONObject.toJSONString(wxMsg))
-                            .setMsgContent("模型 "+modelName1+(isComplete?" 已完成测试!":" 测试失败!"));
-                        try{
-                            baseMapper.insert(userMsg);
-                        }
-                        catch (Exception e1) {
-                            log.error("存储消息异常：{}",e1.getMessage());
-                        }
-
-                        // 推送消息
-                        msgVo.setId(userMsg.getId()).setType(1).setTitle(userMsg.getTitle()).setMsgContent(userMsg.getMsgContent()).setCrtTime(DateUtil.format(userMsg.getCrtTime(),"yyyy-MM-dd HH:mm"));
-                        asyncSendMessage(msgVo,Long.valueOf(e.get("userId")));
-                    }
-                }
-            }
-            // GPU重启提醒
-            else if ("GPU_RESTART".equals(type)) {
-                int deviceId = msg.getIntValue("deviceId");
-                wxMsg.setTemplateId(gpuAlertTemplateId);
-                wxMsg.addData(new WxMpTemplateData("thing4", "GPU内存溢出"));
-                wxMsg.addData(new WxMpTemplateData("thing9", "GPU_"+deviceId+"内存溢出,急需重启"));
-                List<Map<String,String>> openIds = sysUserRoleMapper.selectAdminUserOpenId();
-                if (CollectionUtil.isNotEmpty(openIds)) {
-
-                    MsgVo msgVo = new MsgVo();
-                    for (Map<String,String> e : openIds) {
-                        wxMsg.setToUser(e.get("wxOpenId"));
-                        try{
-                            wxMpService.getTemplateMsgService().sendTemplateMsg(wxMsg);
-                        }
-                        catch (WxErrorException ex) {
-                            log.error("微信消息提醒发送失败>>>>>>>>>{}",ex.getMessage());
-                        }
-                        SdUserMsg userMsg = new SdUserMsg().setId(IdUtil.getSnowflakeNextIdStr()).setCrtTime(new Date()).setIsRead(0)
-                            .setUserId(Long.valueOf(e.get("userId"))).setWxOpenId(e.get("wxOpenId")).setTemplateId(gpuAlertTemplateId)
-                            .setTitle("GPU内存溢出").setMsgBody(JSONObject.toJSONString(wxMsg))
-                            .setMsgContent("GPU_"+deviceId+"内存溢出,急需重启!");
-                        try{
-                            baseMapper.insert(userMsg);
-                        }
-                        catch (Exception e1) {
-                            log.error("存储消息异常：{}",e1.getMessage());
-                        }
-
-                        // 推送消息
-                        msgVo.setId(userMsg.getId()).setType(1).setTitle(userMsg.getTitle()).setMsgContent(userMsg.getMsgContent()).setCrtTime(DateUtil.format(userMsg.getCrtTime(),"yyyy-MM-dd HH:mm"));
-                        asyncSendMessage(msgVo,Long.valueOf(e.get("userId")));
-                    }
-                }
-            }
-            // 发布模型
-            else if ("PUBLISH_MODEL".equals(type)) {
-                String modelId = msg.getString("modelId");
-                long userId = msg.getLongValue("userId");
-                String wxOpenId = msg.getString("openId");
-                SdUserModel model = sdUserModelMapper.selectById(modelId);
-                if (model!=null) {
-                    wxMsg.setTemplateId(publishTemplateId);
-                    wxMsg.addData(new WxMpTemplateData("thing7", "模型发布成功"));
-                    String modelName = model.getModelNameZh().substring(0, model.getModelNameZh().lastIndexOf("-"));
-                    modelName = modelName.length()>9?modelName.substring(0,6)+"...":modelName;
-                    wxMsg.addData(new WxMpTemplateData("thing12", "您训练的模型"+modelName+"已审核发布"));
-                    wxMsg.setToUser(wxOpenId);
-                    try{
-                        if (StrUtil.isNotEmpty(wxOpenId)) {
-                            wxMpService.getTemplateMsgService().sendTemplateMsg(wxMsg);
-                        }
-                    }
-                    catch (WxErrorException e) {
-                        log.error("微信消息提醒发送失败>>>>>>>>>{}",e.getMessage());
-                    }
-                    SdUserMsg userMsg = new SdUserMsg().setId(IdUtil.getSnowflakeNextIdStr()).setCrtTime(new Date()).setIsRead(0)
-                        .setUserId(userId).setWxOpenId(wxOpenId).setTemplateId(publishTemplateId)
-                        .setTitle("模型发布成功").setMsgBody(JSONObject.toJSONString(wxMsg))
-                        .setMsgContent("您训练的模型"+modelName+"已完成审核并发布!");
-                    try{
-                        baseMapper.insert(userMsg);
-                    }
-                    catch (Exception e1) {
-                        log.error("存储消息异常：{}",e1.getMessage());
-                    }
-
-                    // 推送消息
-                    MsgVo msgVo = new MsgVo().setId(userMsg.getId()).setType(1).setTitle(userMsg.getTitle()).setMsgContent(userMsg.getMsgContent()).setCrtTime(DateUtil.format(userMsg.getCrtTime(),"yyyy-MM-dd HH:mm"));
-                    asyncSendMessage(msgVo,userId);
-                }
-            }
-            // 模型训练完成
-            else if ("MODEL_TRAIN".equals(type)) {
-                // 发送给模型拥有者
-                String belongUserId = msg.getString("belongUserId");
-                String preTaskId = msg.getString("preTaskId");
-                String belongUserName = msg.getString("belongUserName");
-                String modelName = msg.getString("modelName");
-                String oldModelName = msg.getString("oldModelName");
-                String startTime = msg.getString("startTime");
-                String endTime = msg.getString("endTime");
-                String openId = getOpenId(Long.valueOf(belongUserId));
-                wxMsg.setTemplateId(templateId);
-                wxMsg.addData(new WxMpTemplateData("thing7", "模型训练完成,等待管理员审核!"));
-                modelName = StrUtil.isNotEmpty(modelName) ? modelName : oldModelName;
-                String modelName1 = modelName.length() > 11 ? modelName.substring(0, 7) + "..." : modelName;
-                wxMsg.addData(new WxMpTemplateData("thing3", modelName1));
-                wxMsg.addData(new WxMpTemplateData("time21", startTime));
-                wxMsg.addData(new WxMpTemplateData("time11", endTime));
-                wxMsg.setToUser(openId);
-                try{
-                    if (StrUtil.isNotEmpty(openId)){
-                        wxMpService.getTemplateMsgService().sendTemplateMsg(wxMsg);
-                    }
-                }
-                catch (WxErrorException e) {
-                    log.error("微信消息提醒发送失败>>>>>>>>>{}",e.getMessage());
-                }
-                SdUserMsg userMsg = new SdUserMsg().setId(IdUtil.getSnowflakeNextIdStr()).setCrtTime(new Date()).setIsRead(0)
-                    .setUserId(Long.valueOf(belongUserId)).setWxOpenId(openId).setTemplateId(publishTemplateId)
-                    .setTitle("模型训练完成").setMsgBody(JSONObject.toJSONString(wxMsg)).setPreTaskId(preTaskId)
-                    .setMsgContent("您训练的模型 ["+modelName+"] 已完成训练,等待管理员审核!");
-                try{
-                    baseMapper.insert(userMsg);
-                }
-                catch (Exception e1) {
-                    log.error("存储消息异常：{}",e1.getMessage());
-                }
-
-                // 推送消息
-                MsgVo msgVo = new MsgVo();
-
-                msgVo.setId(userMsg.getId()).setType(1).setTitle(userMsg.getTitle()).setMsgContent(userMsg.getMsgContent()).setCrtTime(DateUtil.format(userMsg.getCrtTime(),"yyyy-MM-dd HH:mm"));
-                asyncSendMessage(msgVo,Long.valueOf(belongUserId));
-
-                // 发送给管理员
-                List<Map<String,String>> openIds = sysUserRoleMapper.selectAdminUserOpenId();
-                if (CollectionUtil.isNotEmpty(openIds)) {
-                    WxMpTemplateMessage wxMsg1 = WxMpTemplateMessage.builder().url(null).build();
-                    wxMsg1.setTemplateId(approveTemplateId);
-                    wxMsg1.addData(new WxMpTemplateData("thing2", "模型待审核"));
-                    // modelName的长度大于20，则取前17个字符+...
-                    String modelName2 = modelName.length() > 20? modelName.substring(0, 17) + "..." : modelName;
-                    wxMsg1.addData(new WxMpTemplateData("thing22", modelName2));
-                    wxMsg1.addData(new WxMpTemplateData("thing16", "有新的模型需要您审核!"));
-                    wxMsg1.addData(new WxMpTemplateData("thing19", StrUtil.isEmptyIfStr(belongUserName)? belongUserId :belongUserName));
-                    wxMsg1.addData(new WxMpTemplateData("time4", endTime));
-
-                    for (Map<String,String> e : openIds) {
-                        wxMsg1.setToUser(e.get("wxOpenId"));
-                        try{
-                            if (StrUtil.isNotEmpty(e.get("wxOpenId"))) {
-                                wxMpService.getTemplateMsgService().sendTemplateMsg(wxMsg1);
-                            }
-                        }
-                        catch (WxErrorException ex) {
-                            log.error("微信消息提醒发送失败>>>>>>>>>{}",ex.getMessage());
-                        }
-                        SdUserMsg userMsg1 = new SdUserMsg().setId(IdUtil.getSnowflakeNextIdStr()).setCrtTime(new Date()).setIsRead(0)
-                            .setUserId(Long.valueOf(e.get("userId"))).setWxOpenId(openId).setTemplateId(publishTemplateId)
-                            .setTitle("模型待审核").setMsgBody(JSONObject.toJSONString(wxMsg))
-                            .setMsgContent("有新的模型 ["+modelName+"] 需要您审核!");
-                        try{
-                            baseMapper.insert(userMsg1);
-                        }
-                        catch (Exception e1) {
-                            log.error("存储消息异常：{}",e1.getMessage());
-                        }
-
-                        // 推送消息
-                        msgVo.setId(userMsg.getId()).setType(1).setTitle(userMsg.getTitle()).setMsgContent(userMsg.getMsgContent()).setCrtTime(DateUtil.format(userMsg.getCrtTime(),"yyyy-MM-dd HH:mm"));
-                        asyncSendMessage(msgVo,Long.valueOf(e.get("userId")));
-                    }
-                }
+            switch (type){
+                case "MODEL_TEST":
+                    sendModelTestMsg(msg,wxMsg);
+                    break;
+                case "GPU_RESTART":
+                    sendGpuServerRestartMsg(msg,wxMsg);
+                    break;
+                case "PUBLISH_MODEL":
+                    sendPublishModelMsg(msg,wxMsg);
+                    break;
+                case "MODEL_TRAIN":
+                    sendTrainEndMsg(msg,wxMsg);
+                    break;
+                default:
+                    break;
             }
         }
         catch (Exception e) {
@@ -398,6 +210,216 @@ public class SdUserMsgServiceImpl implements SdUserMsgService {
         }
     }
 
+    /** 模型训练完成 **/
+    private void sendTrainEndMsg(JSONObject msg, WxMpTemplateMessage wxMsg) {
+        // 发送给模型拥有者
+        final String belongUserId = msg.getString("belongUserId");
+        final String preTaskId = msg.getString("preTaskId");
+        final String belongUserName = msg.getString("belongUserName");
+        final String startTime = msg.getString("startTime");
+        final String endTime = msg.getString("endTime");
+        final String oldModelName = msg.getString("oldModelName");
+        final String openId = getOpenId(Long.valueOf(belongUserId));
+        String modelName = msg.getString("modelName");
+
+        wxMsg.setTemplateId(templateId);
+        wxMsg.addData(new WxMpTemplateData("thing7", "模型训练完成,等待管理员审核!"));
+        modelName = StrUtil.isNotEmpty(modelName) ? modelName : oldModelName;
+        String modelName1 = modelName.length() > 11 ? modelName.substring(0, 7) + "..." : modelName;
+        wxMsg.addData(new WxMpTemplateData("thing3", modelName1));
+        wxMsg.addData(new WxMpTemplateData("time21", startTime));
+        wxMsg.addData(new WxMpTemplateData("time11", endTime));
+        wxMsg.setToUser(openId);
+        try{
+            if (StrUtil.isNotEmpty(openId)){
+                wxMpService.getTemplateMsgService().sendTemplateMsg(wxMsg);
+            }
+        }
+        catch (WxErrorException e) {
+            log.error("微信消息提醒发送失败>>>>>>>>>{}",e.getMessage());
+        }
+        SdUserMsg userMsg = new SdUserMsg().setId(IdUtil.getSnowflakeNextIdStr()).setCrtTime(new Date()).setIsRead(0)
+            .setUserId(Long.valueOf(belongUserId)).setWxOpenId(openId).setTemplateId(publishTemplateId)
+            .setTitle("模型训练完成").setMsgBody(JSONObject.toJSONString(wxMsg)).setPreTaskId(preTaskId)
+            .setMsgContent("您训练的模型 ["+modelName+"] 已完成训练,等待管理员审核!");
+        try{
+            baseMapper.insert(userMsg);
+        }
+        catch (Exception e1) {
+            log.error("存储消息异常：{}",e1.getMessage());
+        }
+
+        // 推送消息
+        MsgVo msgVo = new MsgVo();
+
+        msgVo.setId(userMsg.getId()).setType(1).setTitle(userMsg.getTitle()).setMsgContent(userMsg.getMsgContent()).setCrtTime(DateUtil.format(userMsg.getCrtTime(),"yyyy-MM-dd HH:mm"));
+        asyncSendMessage(msgVo,Long.valueOf(belongUserId));
+
+        // 发送给管理员
+        List<Map<String,String>> openIds = sysUserRoleMapper.selectAdminUserOpenId();
+        if (CollectionUtil.isNotEmpty(openIds)) {
+            WxMpTemplateMessage wxMsg1 = WxMpTemplateMessage.builder().url(null).build();
+            wxMsg1.setTemplateId(approveTemplateId);
+            wxMsg1.addData(new WxMpTemplateData("thing2", "模型待审核"));
+            // modelName的长度大于20，则取前17个字符+...
+            String modelName2 = modelName.length() > 20? modelName.substring(0, 17) + "..." : modelName;
+            wxMsg1.addData(new WxMpTemplateData("thing22", modelName2));
+            wxMsg1.addData(new WxMpTemplateData("thing16", "有新的模型需要您审核!"));
+            wxMsg1.addData(new WxMpTemplateData("thing19", StrUtil.isEmptyIfStr(belongUserName)? belongUserId :belongUserName));
+            wxMsg1.addData(new WxMpTemplateData("time4", endTime));
+
+            for (Map<String,String> e : openIds) {
+                wxMsg1.setToUser(e.get("wxOpenId"));
+                try{
+                    if (StrUtil.isNotEmpty(e.get("wxOpenId"))) {
+                        wxMpService.getTemplateMsgService().sendTemplateMsg(wxMsg1);
+                    }
+                }
+                catch (WxErrorException ex) {
+                    log.error("微信消息提醒发送失败>>>>>>>>>{}",ex.getMessage());
+                }
+                SdUserMsg userMsg1 = new SdUserMsg().setId(IdUtil.getSnowflakeNextIdStr()).setCrtTime(new Date()).setIsRead(0)
+                    .setUserId(Long.valueOf(e.get("userId"))).setWxOpenId(openId).setTemplateId(publishTemplateId)
+                    .setTitle("模型待审核").setMsgBody(JSONObject.toJSONString(wxMsg))
+                    .setMsgContent("有新的模型 ["+modelName+"] 需要您审核!");
+                try{
+                    baseMapper.insert(userMsg1);
+                }
+                catch (Exception e1) {
+                    log.error("存储消息异常：{}",e1.getMessage());
+                }
+
+                // 推送消息
+                msgVo.setId(userMsg.getId()).setType(1).setTitle(userMsg.getTitle()).setMsgContent(userMsg.getMsgContent()).setCrtTime(DateUtil.format(userMsg.getCrtTime(),"yyyy-MM-dd HH:mm"));
+                asyncSendMessage(msgVo,Long.valueOf(e.get("userId")));
+            }
+        }
+    }
+
+    /** 发布模型提醒 **/
+    private void sendPublishModelMsg(JSONObject msg, WxMpTemplateMessage wxMsg) {
+        String modelId = msg.getString("modelId");
+        long userId = msg.getLongValue("userId");
+        String wxOpenId = msg.getString("openId");
+        SdUserModel model = sdUserModelMapper.selectById(modelId);
+        if (model!=null) {
+            wxMsg.setTemplateId(publishTemplateId);
+            wxMsg.addData(new WxMpTemplateData("thing7", "模型发布成功"));
+            String modelName = model.getModelNameZh().substring(0, model.getModelNameZh().lastIndexOf("-"));
+            modelName = modelName.length()>9?modelName.substring(0,6)+"...":modelName;
+            wxMsg.addData(new WxMpTemplateData("thing12", "您训练的模型"+modelName+"已审核发布"));
+            wxMsg.setToUser(wxOpenId);
+            try{
+                if (StrUtil.isNotEmpty(wxOpenId)) {
+                    wxMpService.getTemplateMsgService().sendTemplateMsg(wxMsg);
+                }
+            }
+            catch (WxErrorException e) {
+                log.error("微信消息提醒发送失败>>>>>>>>>{}",e.getMessage());
+            }
+            SdUserMsg userMsg = new SdUserMsg().setId(IdUtil.getSnowflakeNextIdStr()).setCrtTime(new Date()).setIsRead(0)
+                .setUserId(userId).setWxOpenId(wxOpenId).setTemplateId(publishTemplateId)
+                .setTitle("模型发布成功").setMsgBody(JSONObject.toJSONString(wxMsg))
+                .setMsgContent("您训练的模型"+modelName+"已完成审核并发布!");
+            try{
+                baseMapper.insert(userMsg);
+            }
+            catch (Exception e1) {
+                log.error("存储消息异常：{}",e1.getMessage());
+            }
+
+            // 推送消息
+            MsgVo msgVo = new MsgVo().setId(userMsg.getId()).setType(1).setTitle(userMsg.getTitle()).setMsgContent(userMsg.getMsgContent()).setCrtTime(DateUtil.format(userMsg.getCrtTime(),"yyyy-MM-dd HH:mm"));
+            asyncSendMessage(msgVo,userId);
+        }
+    }
+
+    /** GPU重启提醒 **/
+    private void sendGpuServerRestartMsg(JSONObject msg, WxMpTemplateMessage wxMsg) {
+        int deviceId = msg.getIntValue("deviceId");
+        wxMsg.setTemplateId(gpuAlertTemplateId);
+        wxMsg.addData(new WxMpTemplateData("thing4", "GPU内存溢出"));
+        wxMsg.addData(new WxMpTemplateData("thing9", "GPU_"+deviceId+"内存溢出,急需重启"));
+        List<Map<String,String>> openIds = sysUserRoleMapper.selectAdminUserOpenId();
+        if (CollectionUtil.isNotEmpty(openIds)) {
+
+            MsgVo msgVo = new MsgVo();
+            for (Map<String,String> e : openIds) {
+                wxMsg.setToUser(e.get("wxOpenId"));
+                try{
+                    wxMpService.getTemplateMsgService().sendTemplateMsg(wxMsg);
+                }
+                catch (WxErrorException ex) {
+                    log.error("微信消息提醒发送失败>>>>>>>>>{}",ex.getMessage());
+                }
+                SdUserMsg userMsg = new SdUserMsg().setId(IdUtil.getSnowflakeNextIdStr()).setCrtTime(new Date()).setIsRead(0)
+                    .setUserId(Long.valueOf(e.get("userId"))).setWxOpenId(e.get("wxOpenId")).setTemplateId(gpuAlertTemplateId)
+                    .setTitle("GPU内存溢出").setMsgBody(JSONObject.toJSONString(wxMsg))
+                    .setMsgContent("GPU_"+deviceId+"内存溢出,急需重启!");
+                try{
+                    baseMapper.insert(userMsg);
+                }
+                catch (Exception e1) {
+                    log.error("存储消息异常：{}",e1.getMessage());
+                }
+
+                // 推送消息
+                msgVo.setId(userMsg.getId()).setType(1).setTitle(userMsg.getTitle()).setMsgContent(userMsg.getMsgContent()).setCrtTime(DateUtil.format(userMsg.getCrtTime(),"yyyy-MM-dd HH:mm"));
+                asyncSendMessage(msgVo,Long.valueOf(e.get("userId")));
+            }
+        }
+    }
+
+    /** 模型测试结束提醒 **/
+    private void sendModelTestMsg(JSONObject msg, WxMpTemplateMessage wxMsg) {
+        String taskId = msg.getString("taskId");
+        // 获取测试的模型
+        JSONObject info = sdUserModelMapper.selectLoraModelNameByTaskId(taskId);
+        if (info==null) {
+            return;
+        }
+        // 获取管理员openId
+        List<Map<String,String>> openIds = sysUserRoleMapper.selectAdminUserOpenId();
+        if (CollectionUtil.isNotEmpty(openIds)) {
+            boolean isComplete = msg.getBooleanValue("isComplete");
+            wxMsg.setTemplateId(modelTestTemplateId);
+            wxMsg.addData(new WxMpTemplateData("thing7", isComplete?"模型测试完成":"模型测试失败"));
+            String modelName1 = info.getString("modelNameZh").substring(0, info.getString("modelNameZh").lastIndexOf("-"));
+            String modelName = modelName1.length()>11?modelName1.substring(0,7)+"...":modelName1;
+            wxMsg.addData(new WxMpTemplateData("thing12", modelName));
+            wxMsg.addData(new WxMpTemplateData("time21", info.getString("startTime")));
+            wxMsg.addData(new WxMpTemplateData("time11", info.getString("endTime")));
+
+            MsgVo msgVo = new MsgVo();
+            for (Map<String,String> e : openIds) {
+                wxMsg.setToUser(e.get("wxOpenId"));
+                try{
+                    if (StrUtil.isNotEmpty(e.get("wxOpenId"))) {
+                        wxMpService.getTemplateMsgService().sendTemplateMsg(wxMsg);
+                    }
+                }
+                catch (WxErrorException ex) {
+                    log.error("微信消息提醒发送失败>>>>>>>>>{}",ex.getMessage());
+                }
+                SdUserMsg userMsg = new SdUserMsg().setId(IdUtil.getSnowflakeNextIdStr()).setCrtTime(new Date()).setIsRead(0)
+                    .setUserId(Long.valueOf(e.get("userId"))).setWxOpenId(e.get("wxOpenId")).setTemplateId(modelTestTemplateId)
+                    .setTitle(isComplete?"模型测试完成":"模型测试失败").setMsgBody(JSONObject.toJSONString(wxMsg))
+                    .setMsgContent("模型 "+modelName1+(isComplete?" 已完成测试!":" 测试失败!"));
+                try{
+                    baseMapper.insert(userMsg);
+                }
+                catch (Exception e1) {
+                    log.error("存储消息异常：{}",e1.getMessage());
+                }
+
+                // 推送消息
+                msgVo.setId(userMsg.getId()).setType(1).setTitle(userMsg.getTitle()).setMsgContent(userMsg.getMsgContent()).setCrtTime(DateUtil.format(userMsg.getCrtTime(),"yyyy-MM-dd HH:mm"));
+                asyncSendMessage(msgVo,Long.valueOf(e.get("userId")));
+            }
+        }
+    }
+
+    /** 获取用户的openId **/
     private String getOpenId(Long belongUserId) {
         SysUser sysUser = sysUserMapper.selectOne(new LambdaQueryWrapper<SysUser>().select(SysUser::getWxOpenId).eq(SysUser::getUserId, belongUserId));
         return ObjectUtil.isNull(sysUser) ? null : sysUser.getWxOpenId();

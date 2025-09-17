@@ -1069,14 +1069,14 @@ public class SdTrainServiceImpl implements SdTrainService {
         //TODO windows
         File renameFile = new File(oldModelDir+"/"+newModelName);
 //        File renameFile = new File(oldModelDir+"\\"+newModelName);
-        log.warn("训练完成>>>>>>>>>修改最后一轮训练的模型名称：{}->{}",startFile.getPath(),renameFile.getPath());
+        log.warn("[训练完成][任务ID：{}]>>>>>>>>>修改最后一轮训练的模型名称：{}->{}",preTaskId,startFile.getPath(),renameFile.getPath());
         startFile.renameTo(renameFile);
 
         // 全部模型移动到sd的models/Lora目录下
         //TODO windows
         String modelDir = "/home/stable-diffusion-webui/models/Lora/";
 //        String modelDir = "D:\\project\\ai_project\\models\\Lora\\sd\\";
-        log.warn("训练完成>>>>>>>>>移动模型文件到sd的models/Lora目录下：{}->{}",oldModelDir,modelDir);
+        log.warn("[训练完成][任务ID：{}]>>>>>>>>>移动模型文件到sd的models/Lora目录下：{}->{}",preTaskId,oldModelDir,modelDir);
         try{
             File[] files = FileUtil.ls(oldModelDir);
             if (files != null) {
@@ -1087,12 +1087,12 @@ public class SdTrainServiceImpl implements SdTrainService {
             }
         }
         catch (Exception e) {
-            log.error("训练完成>>>>>>>>>移动模型文件到sd的models/Lora目录下：{}->{}报错：{}",oldModelDir,modelDir,e.getMessage());
+            log.error("[训练完成][任务ID：{}]>>>>>>>>>移动模型文件到sd的models/Lora目录下：{}->{}报错：{}",preTaskId,oldModelDir,modelDir,e.getMessage());
         }
 
         // 删除原始lora模型目录
         File outputDir = new File(oldModelDir);
-        log.warn("训练完成>>>>>>>>>删除训练模型[{}]的所在原目录：{}",modelName,outputDir.getPath());
+        log.warn("[训练完成][任务ID：{}]>>>>>>>>>删除训练模型[{}]的所在原目录：{}",preTaskId,modelName,outputDir.getPath());
         FileUtil.del(outputDir);
         // 删除redis
         RedisUtils.deleteMultiObject(TRAIN_ADDITION_LIST+ preTaskId,TRAIN_TAG_TRANSLATE_MAP+ preTaskId);
@@ -1117,7 +1117,7 @@ public class SdTrainServiceImpl implements SdTrainService {
      * 处理数据集的第一张图片作为模型图片
      *
      * @param path         训练数据集目录
-     * @param preTaskId
+     * @param preTaskId    系统内训练任务ID
      * @param oldModelName 训练的模型原始名称
      */
     private void dealModelImg(String path, long preTaskId, String oldModelName) {
@@ -1135,13 +1135,13 @@ public class SdTrainServiceImpl implements SdTrainService {
             if (first.isPresent()) {
                 File img = first.get();
                 String newModelImgPath = modelImgDir+oldModelName+img.getName().substring(img.getName().lastIndexOf("."));
-                log.warn("训练完成>>>>>>>>>复制数据集中的第一张图片作为模型图片：{}->{}",img.getPath(),newModelImgPath);
+                log.warn("[训练完成][任务ID：{}]>>>>>>>>>复制数据集中的第一张图片作为模型图片：{}->{}",preTaskId,img.getPath(),newModelImgPath);
                 try {
                     FileInputStream inputStream = new FileInputStream(img);
                     FileOutputStream outputStream = new FileOutputStream(newModelImgPath);
                     IoUtil.copy(inputStream,outputStream);
                 } catch (FileNotFoundException e) {
-                    log.error("训练完成>>>>>>>>>需要复制的模型图片不存在：{}",e.getMessage());
+                    log.error("[训练完成][任务ID：{}]>>>>>>>>>需要复制的模型图片不存在：{}",preTaskId,e.getMessage());
                 }
             }
         }

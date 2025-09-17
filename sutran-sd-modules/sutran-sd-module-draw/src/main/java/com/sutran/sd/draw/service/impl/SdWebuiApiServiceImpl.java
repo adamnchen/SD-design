@@ -84,7 +84,7 @@ import static com.sutran.sd.draw.mq.MqConstant.*;
  * @author zj
  * @date 2024-03-02
  */
-@SuppressWarnings({"AlibabaLowerCamelCaseVariableNaming", "unchecked", "LoggingSimilarMessage", "AlibabaUndefineMagicConstant"})
+@SuppressWarnings({"AlibabaLowerCamelCaseVariableNaming", "unchecked", "LoggingSimilarMessage", "AlibabaUndefineMagicConstant", "AlibabaMethodTooLong"})
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -852,7 +852,7 @@ public class SdWebuiApiServiceImpl implements SdWebuiApiService {
         // 获取绘图GPU服务
         final SdGpuPool sdGpuPool = getGpuFromDrawGpuPool(taskId, null, null);
         if (sdGpuPool == null) {
-            log.error("绘图任务>>>>>>>>>绘图卡池中暂无可使用的GPU服务,请等待!");
+            log.error("[绘图任务][任务ID:{}]>>>>>>>>>绘图卡池中暂无可使用的GPU服务,请等待!",taskId);
             Long startTime = RedisUtils.getCacheMapValue(DRAW_TASK_TIME_IN_QUEUE_MAP, taskId);
             if (startTime == null) {
                 // 记录在队列中的时间
@@ -896,7 +896,7 @@ public class SdWebuiApiServiceImpl implements SdWebuiApiService {
             sdUserTaskService.startWebuiTask(taskId,queueTime);
             Forest.post(TXT_TO_IMG_API).address(sdGpuPool.getHost(), sdGpuPool.getPort()).contentTypeJson().addBody(data).connectTimeout(30, TimeUnit.MINUTES)
                 .onSuccess((result, req, res) -> {
-                    log.warn("[绘图任务]>>>>>>>>>文生图任务完成，耗时：{} ms", res.getTimeAsMillisecond());
+                    log.warn("[绘图任务][任务ID:{}]>>>>>>>>>文生图任务完成，耗时：{} ms",taskId, res.getTimeAsMillisecond());
                     Map<String,Object> result1 = null;
                     if (!isTest) {
                         result1 = JSONObject.parseObject(JSONObject.toJSONString(result),Map.class);
@@ -931,12 +931,12 @@ public class SdWebuiApiServiceImpl implements SdWebuiApiService {
                     }
                 })
                 .onError((ex,req,res)->{
-                    log.error("[绘图任务]>>>>>>>>>文生图任务失败，请求参数：{}，耗时：{} ms，失败原因{}", data, res.getTimeAsMillisecond(), ex.getMessage());
+                    log.error("[绘图任务][任务ID:{}]>>>>>>>>>文生图任务失败，请求参数：{}，耗时：{} ms，失败原因{}", taskId, data, res.getTimeAsMillisecond(), ex.getMessage());
                     // 更新进度状态
                     if (ex.getMessage().contains("OutOfMemoryError") || ex.getMessage().contains("cpu and cuda:0") || ex.getMessage().contains("CUDA out of memory")) {
                         // 当前GPU显存溢出，需要重启
                         // 自动下架该GPU服务
-                        log.error("[GPU服务自动下线]============>deviceId[{}]===>{}",sdGpuPool.getDeviceId(),sdGpuPool);
+                        log.error("[GPU服务自动下线]>>>>>>>>>deviceId[{}]===>{}",sdGpuPool.getDeviceId(),sdGpuPool);
                         getGpuFromDrawGpuPool(null, sdGpuPool, false);
                         gpuIsOverflow.set(true);
                         // 发送消息GPU服务需要重启
@@ -1160,7 +1160,7 @@ public class SdWebuiApiServiceImpl implements SdWebuiApiService {
 
         final SdGpuPool sdGpuPool = getGpuFromDrawGpuPool(taskId, null, null);
         if (sdGpuPool == null) {
-            log.error("绘图任务>>>>>>>>>绘图卡池中暂无可使用的GPU服务,请等待!");
+            log.error("[绘图任务][任务ID:{}]>>>>>>>>>绘图卡池中暂无可使用的GPU服务,请等待!",taskId);
             Long startTime = RedisUtils.getCacheMapValue(DRAW_TASK_TIME_IN_QUEUE_MAP, taskId);
             if (startTime == null) {
                 // 记录在队列中的时间
@@ -1214,7 +1214,7 @@ public class SdWebuiApiServiceImpl implements SdWebuiApiService {
                 .addBody(data)
                 .connectTimeout(30, TimeUnit.MINUTES)
                 .onSuccess((result, req, res) -> {
-                    log.warn("[绘图任务]>>>>>>>>>图生图任务完成，耗时：{} ms", res.getTimeAsMillisecond());
+                    log.warn("[绘图任务][任务ID:{}]>>>>>>>>>图生图任务完成，耗时：{} ms", taskId, res.getTimeAsMillisecond());
                     Map<String,Object> result1 = null;
                     if (!isTest) {
                         result1 = JSONObject.parseObject(JSONObject.toJSONString(result),Map.class);
@@ -1241,7 +1241,7 @@ public class SdWebuiApiServiceImpl implements SdWebuiApiService {
                     }
                 })
                 .onError((ex,req,res)->{
-                    log.warn("[绘图任务]>>>>>>>>>图生图任务失败，请求参数：{}，耗时：{} ms，失败原因{}", data, res.getTimeAsMillisecond(), ex.getMessage());
+                    log.warn("[绘图任务][任务ID:{}]>>>>>>>>>图生图任务失败，请求参数：{}，耗时：{} ms，失败原因{}", taskId, data, res.getTimeAsMillisecond(), ex.getMessage());
                     // 更新进度状态
                     sdUserTaskService.failWebuiTask(taskId,ex.getMessage(),queueTime);
                     if (ex.getMessage().contains("OutOfMemoryError") || ex.getMessage().contains("cpu and cuda:0")) {

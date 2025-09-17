@@ -69,11 +69,14 @@ public class ResultUtil {
             // 从grids目录中获取所有子文件
             File file = FileUtils.getGridFile(gridsUrl);
             try {
-//                String viewGridsUrl = viewGridsPath + "/" + file.getName();
-                String viewGridsUrl = viewGridsPath + file.getPath().replace(gridsUrl, "");
+                String newGridsPath = "/home/sutran-sd" + viewGridsPath;
+                log.warn("[绘图任务]>>>>>>>>xyz plot完成，移动grid图片：{} 到 {}",file.getPath(),newGridsPath+file.getName());
+                FileUtil.move(file,new File(newGridsPath),true);
+                FileUtil.del(file);
+
+                String viewGridsUrl = viewGridsPath + file.getName();
                 urlList.add(viewGridsUrl);
                 log.warn("[绘图任务]>>>>>>>>xyz plot完成，grid图片原始地址：{},访问地址：{}",file.getPath(),viewGridsUrl);
-                FileUtil.del(file);
             } catch (Exception e) {
                 log.error("[绘图任务]>>>>>>>>xyz plot完成，grid图片处理异常：",e);
             }

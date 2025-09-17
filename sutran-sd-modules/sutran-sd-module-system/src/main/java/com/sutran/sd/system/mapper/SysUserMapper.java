@@ -129,6 +129,7 @@ public interface SysUserMapper extends BaseMapperPlus<SysUserMapper, SysUser, Sy
     /**
      * 扣除绘图图片数量
      * @param userId 用户ID
+     * @param num 绘图数量
      */
     @Update("UPDATE sys_user SET limit_draw_num=limit_draw_num-#{num} WHERE user_id=#{userId} AND limit_draw_num IS NOT NULL")
     void deductedDrawNum(@Param("userId") Long userId, @Param("num") int num);

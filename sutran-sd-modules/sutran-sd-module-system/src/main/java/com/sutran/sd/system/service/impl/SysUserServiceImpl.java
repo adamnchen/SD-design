@@ -806,7 +806,7 @@ public class SysUserServiceImpl implements ISysUserService, UserService {
         }
         else {
             final Integer drawNumOfMember = baseMapper.selectDrawNumById(userId);
-            if (drawNumOfMember==null || drawNumOfMember<drawNum) {
+            if (drawNumOfMember!=null && drawNumOfMember<drawNum) {
                 throw new TaskErrorException("会员绘图数量不足");
             }
             // 没有生效中的会员，异步减少用户绘图次数
@@ -830,7 +830,7 @@ public class SysUserServiceImpl implements ISysUserService, UserService {
         }
         else {
             final Integer trainTimes = baseMapper.selectDrawNumById(userId);
-            if (trainTimes==null || trainTimes<1) {
+            if (trainTimes!=null && trainTimes<1) {
                 throw new TaskErrorException("会员训练次数不足");
             }
         }

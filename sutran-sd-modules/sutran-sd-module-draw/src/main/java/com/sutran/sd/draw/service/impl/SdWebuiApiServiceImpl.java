@@ -902,7 +902,7 @@ public class SdWebuiApiServiceImpl implements SdWebuiApiService {
                         result1 = JSONObject.parseObject(JSONObject.toJSONString(result),Map.class);
                     }
                     // 请求成功，处理响应结果
-                    SdApiResult rs = ResultUtil.apiToResult(result1,ossService,userName,isTest, sdGpuPool.getTxtGridDir(),"/grids");
+                    SdApiResult rs = ResultUtil.apiToResult(result1,ossService,userName,isTest, sdGpuPool.getTxtGridDir(),"/grids/txt2img");
                     if (CollectionUtil.isNotEmpty(loraInfo) && !isTest) {
                         for (JSONObject e : loraInfo) {
                             // 新增模型使用日志
@@ -1220,7 +1220,7 @@ public class SdWebuiApiServiceImpl implements SdWebuiApiService {
                         result1 = JSONObject.parseObject(JSONObject.toJSONString(result),Map.class);
                     }
                     // 请求成功，处理响应结果
-                    SdApiResult rs = ResultUtil.apiToResult(result1,ossService,userName, isTest,sdGpuPool.getImgGridDir(),"/grids");
+                    SdApiResult rs = ResultUtil.apiToResult(result1,ossService,userName, isTest,sdGpuPool.getImgGridDir(),"/grids/img2img");
                     if (CollectionUtil.isNotEmpty(loraInfo) && !isTest) {
                         for (JSONObject e : loraInfo) {
                             // 新增模型使用日志

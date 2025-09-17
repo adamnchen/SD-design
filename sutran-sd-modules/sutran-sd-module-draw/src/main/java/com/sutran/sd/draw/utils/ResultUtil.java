@@ -69,7 +69,8 @@ public class ResultUtil {
             // 从grids目录中获取所有子文件
             File file = FileUtils.getGridFile(gridsUrl);
             try {
-                String viewGridsUrl = viewGridsPath + "/" + file.getName();
+//                String viewGridsUrl = viewGridsPath + "/" + file.getName();
+                String viewGridsUrl = viewGridsPath + file.getPath().replace(gridsUrl, "");
                 urlList.add(viewGridsUrl);
                 log.warn("[绘图任务]>>>>>>>>xyz plot完成，grid图片原始地址：{},访问地址：{}",file.getPath(),viewGridsUrl);
                 FileUtil.del(file);

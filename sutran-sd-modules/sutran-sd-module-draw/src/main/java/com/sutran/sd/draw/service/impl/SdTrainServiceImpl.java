@@ -557,15 +557,18 @@ public class SdTrainServiceImpl implements SdTrainService {
             delPreTaskData(preTaskId);
         }
 
-        String txtUrl = imgUrl
+        // 处理图片地址
+        String imgUrlString = dealTrainDataSetPath(imgUrl);
+
+        String txtUrl = imgUrlString
             .replace(".jpg", ".txt").replace(".JPG", ".txt")
             .replace(".jpeg", ".txt").replace(".JPEG", ".txt")
             .replace(".png", ".txt").replace(".PNG", ".txt");
-        String npzUrl = imgUrl
+        String npzUrl = imgUrlString
             .replace(".jpg", ".npz").replace(".JPG", ".npz")
             .replace(".jpeg", ".npz").replace(".JPEG", ".npz")
             .replace(".png", ".npz").replace(".PNG", ".npz");
-        FileUtil.del(new File(imgUrl));
+        FileUtil.del(new File(imgUrlString));
         FileUtil.del(new File(txtUrl));
         FileUtil.del(new File(npzUrl));
     }
@@ -619,7 +622,10 @@ public class SdTrainServiceImpl implements SdTrainService {
         else if (sdTrainTask.getNewStatus()>2) {
             throw new ServiceException("模型训练已开始,不可进行添加标签操作!");
         }
-        String txtUrl = dto.getImgUrl()
+        // 处理图片地址
+        String imgUrlString = dealTrainDataSetPath(dto.getImgUrl());
+
+        String txtUrl = imgUrlString
             .replace(".jpg", ".txt").replace(".JPG", ".txt")
             .replace(".jpeg", ".txt").replace(".JPEG", ".txt")
             .replace(".png", ".txt").replace(".PNG", ".txt");
@@ -720,12 +726,16 @@ public class SdTrainServiceImpl implements SdTrainService {
         else if (sdTrainTask.getNewStatus()>2) {
             throw new ServiceException("模型训练任务已开始,不可进行删除标签操作!");
         }
+
+        // 处理图片地址
+        String imgUrlString = dealTrainDataSetPath(dto.getImgUrl());
+
         // 判断删除的标签是否是共性词
         Set<Object> tagSet = RedisUtils.getCacheSet(TRAIN_ADDITION_LIST + preTaskId);
         String removeTag = dto.getTag();
         // 删除共性词
         if (CollectionUtil.isNotEmpty(tagSet) && tagSet.contains(removeTag)) {
-            String dir = dto.getImgUrl().substring(0, dto.getImgUrl().lastIndexOf("/"));
+            String dir = imgUrlString.substring(0, imgUrlString.lastIndexOf("/"));
             File preImgDir = new File(dir);
             // 获取当前图片所属的文件夹下的全部文件
             List<File> allFileList = CommonUtil.getAllFile(preImgDir);
@@ -751,7 +761,7 @@ public class SdTrainServiceImpl implements SdTrainService {
         }
         // 删除标签
         else {
-            File imgUrl = new File(dto.getImgUrl()
+            File imgUrl = new File(imgUrlString
                 .replace(".jpg", ".txt").replace(".JPG", ".txt")
                 .replace(".jpeg", ".txt").replace(".JPEG", ".txt")
                 .replace(".png", ".txt").replace(".PNG", ".txt"));

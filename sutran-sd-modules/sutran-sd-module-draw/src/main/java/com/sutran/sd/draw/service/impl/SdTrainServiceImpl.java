@@ -511,6 +511,10 @@ public class SdTrainServiceImpl implements SdTrainService {
         if (progress>=100 || "FAILED".equals(status)) {
             try{
                 sdTrainTaskService.completePreTask(preTaskId, reason, new Date());
+                Thread.sleep(500);
+            }
+            catch (InterruptedException e) {
+                log.error("图片预处理>>>>>>>>>任务ID[{}],休眠0.5s：{}", preTaskId,e.getMessage());
             }
             finally {
                 delPreTaskData(preTaskId);

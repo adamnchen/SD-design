@@ -632,7 +632,7 @@ public class SdWebuiApiServiceImpl implements SdWebuiApiService {
     @Override
     public JSONObject getProcess(String taskId) {
         // 先判断当前任务是否已失败
-        Integer status = sdUserTaskService.selectStatusByTaskId(taskId,LoginHelper.getUserId());
+        Integer status = sdUserTaskService.selectStatusByTaskIdAndUserId(taskId,LoginHelper.getUserId());
         if (status==null || status==3) {
             throw new ServiceException("当前绘图任务不存在或已失败!");
         }
@@ -843,7 +843,7 @@ public class SdWebuiApiServiceImpl implements SdWebuiApiService {
         Date now = DateUtil.parseDateTime(msg.getString("now"));
         Date time = new Date();
         long queueTime = DateUtil.betweenMs(now, time);
-        Integer status = sdUserTaskService.selectStatusByTaskId(taskId, Long.parseLong(userId));
+        Integer status = sdUserTaskService.selectStatusByTaskIdAndUserId(taskId, Long.parseLong(userId));
         // 判断队列任务是否已被删除结束掉
         if (status==null) {
             channel.basicAck(deliveryTag, false);
@@ -1153,7 +1153,7 @@ public class SdWebuiApiServiceImpl implements SdWebuiApiService {
         Date now = DateUtil.parseDateTime(msg.getString("now"));
         Date time = new Date();
         long queueTime = DateUtil.betweenMs(now, time);
-        if (sdUserTaskService.selectStatusByTaskId(taskId, Long.parseLong(userId))==null) {
+        if (sdUserTaskService.selectStatusByTaskIdAndUserId(taskId, Long.parseLong(userId))==null) {
             channel.basicAck(deliveryTag, false);
             return;
         }

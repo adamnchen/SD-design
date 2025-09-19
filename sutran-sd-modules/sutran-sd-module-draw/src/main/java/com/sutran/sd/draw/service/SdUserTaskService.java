@@ -105,7 +105,14 @@ public interface SdUserTaskService {
      * @param userId    用户ID
      * @return          任务状态
      */
-    Integer selectStatusByTaskId(String taskId, Long userId);
+    Integer selectStatusByTaskIdAndUserId(String taskId, Long userId);
+
+    /**
+     * 查询指定任务状态
+     * @param taskId    任务ID
+     * @return          任务状态
+     */
+    Integer selectStatusByTaskId(String taskId);
 
     /**
      * 删除用户任务

@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.sutran.sd.common.core.mapper.BaseMapperPlus;
 import com.sutran.sd.draw.domain.SdUserTask;
 import com.sutran.sd.draw.domain.vo.SdUserTaskVo;
+import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
@@ -32,20 +33,31 @@ public interface SdUserTaskMapper extends BaseMapperPlus<SdUserTaskMapper, SdUse
      * @param category  任务类型
      * @return          任务ID
      */
+    @Select("SELECT task_id FROM sd_user_task WHERE category=#{category} AND belong_user_id=#{userId} AND status IN (0,1) ORDER BY task_id DESC LIMIT 1")
     String getDoingTask(@Param("userId") Long userId, @Param("category") Integer category);
 
     /**
-     * 查询任务状态
+     * 查询指定人的指定任务状态
      * @param taskId    任务ID
      * @param userId    用户ID
      * @return          任务状态
      */
-    Integer selectStatusByTaskId(@Param("taskId") String taskId, @Param("userId") Long userId);
+    @Select("SELECT status FROM sd_user_task WHERE task_id=#{taskId} AND belong_user_id=#{userId}")
+    Integer selectStatusByTaskIdAndUserId(@Param("taskId") String taskId, @Param("userId") Long userId);
+
+    /**
+     * 查询指定任务状态
+     * @param taskId    任务ID
+     * @return          任务状态
+     */
+    @Select("SELECT status FROM sd_user_task WHERE task_id=#{taskId}")
+    Integer selectStatusByTaskId(String taskId);
 
     /**
      * 删除任务
      * @param taskId    任务ID
      */
+    @Delete("DELETE FROM sd_user_task WHERE task_id=#{taskId} AND status IN (0,1,2,3)")
     void deleteTaskByTaskId(@Param("taskId") String taskId);
 
     /**
@@ -53,6 +65,7 @@ public interface SdUserTaskMapper extends BaseMapperPlus<SdUserTaskMapper, SdUse
      * @param taskId    任务ID
      * @return          网格URL
      */
+    @Select("SELECT file_url FROM sd_user_model_file WHERE task_id=#{taskId} AND category=2 LIMIT 1")
     String selectGridUrlByTaskId(@Param("taskId") String taskId);
 
     /**

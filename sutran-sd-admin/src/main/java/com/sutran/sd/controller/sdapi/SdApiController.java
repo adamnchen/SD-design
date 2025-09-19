@@ -1,10 +1,9 @@
 package com.sutran.sd.controller.sdapi;
 
-import cn.dev33.satoken.annotation.SaIgnore;
 import cn.hutool.core.util.StrUtil;
 import com.alibaba.fastjson.JSONObject;
 import com.sutran.sd.draw.domain.bo.ComfyModelTaskBo;
-import com.sutran.sd.draw.service.SdComfyuiTaskService;
+import com.sutran.sd.draw.service.SdComfyuiApiService;
 import com.sutran.sd.common.core.domain.PageQuery;
 import com.sutran.sd.common.core.domain.R;
 import com.sutran.sd.common.core.page.TableDataInfo;
@@ -40,7 +39,7 @@ import java.util.List;
 public class SdApiController {
 
     private final SdWebuiApiService sdWebuiApiService;
-    private final SdComfyuiTaskService sdComfyuiTaskService;
+    private final SdComfyuiApiService sdComfyuiApiService;
     private final SdUserModelService sdUserModelService;
 
     /**
@@ -152,7 +151,7 @@ public class SdApiController {
      */
     @PostMapping("/comfy/model/submit-task")
 //    @SaIgnore
-    public R<String> submitComfyModelTask(@RequestBody ComfyModelTaskBo bo) {
+    public R<String> submitComfyModelTask(@Validated @RequestBody ComfyModelTaskBo bo) {
         // 校验模型是否存在
         SdUserModel model = sdUserModelService.selectById(bo.getModelId());
         if (model == null) {
@@ -165,7 +164,7 @@ public class SdApiController {
             .setModelName(model.getModelName())
             .setModelStrength(StringUtils.isNotBlank(bo.getModelStrength())?bo.getModelStrength():model.getModelStrength())
             .setBatchSize(bo.getBatchSize());
-        String taskId = sdComfyuiTaskService.submitModelTask(modelTaskBo);
+        String taskId = sdComfyuiApiService.submitComfyModelTask(modelTaskBo);
         return R.ok(taskId);
     }
 
@@ -177,7 +176,7 @@ public class SdApiController {
     @GetMapping("/comfy/flow/submit-task")
 //    @SaIgnore
     public R<String> submitComfyFlowTask(@RequestParam String flowId) {
-        String taskId = sdComfyuiTaskService.submitComfyFlowTask(flowId);
+        String taskId = sdComfyuiApiService.submitComfyFlowTask(flowId);
         return R.ok(taskId);
     }
 
@@ -189,7 +188,7 @@ public class SdApiController {
     @GetMapping("/comfy/model/history-task")
 //    @SaIgnore
     public R<ComfyTaskHistoryInfo> getComfyModelHistoryTask(@RequestParam String taskId) {
-        return R.ok(sdComfyuiTaskService.getComfyModelHistoryTask(taskId));
+        return R.ok(sdComfyuiApiService.getComfyModelHistoryTask(taskId));
     }
 
     /**
@@ -200,7 +199,7 @@ public class SdApiController {
     @GetMapping("/comfy/model/task-progress")
 //    @SaIgnore
     public R<Integer> getComfyTaskProgress(@RequestParam String taskId) {
-        return R.ok(sdComfyuiTaskService.getComfyTaskProgress(taskId));
+        return R.ok(sdComfyuiApiService.getComfyTaskProgress(taskId));
     }
 
 }

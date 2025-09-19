@@ -11,8 +11,11 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.rabbitmq.client.Channel;
+import com.sutran.sd.common.helper.LoginHelper;
+import com.sutran.sd.draw.domain.SdFlow;
+import com.sutran.sd.draw.domain.bo.ComfyModelTaskSubmitBo;
 import com.sutran.sd.draw.domain.bo.DrawingTaskInfo;
-import com.sutran.sd.draw.service.SdComfyuiApiService;
+import com.sutran.sd.draw.service.*;
 import com.sutran.sd.common.core.service.OssService;
 import com.sutran.sd.common.core.service.UserService;
 import com.sutran.sd.common.exception.TaskErrorException;
@@ -24,9 +27,6 @@ import com.sutran.sd.draw.domain.SdUserTask;
 import com.sutran.sd.draw.domain.pojo.*;
 import com.sutran.sd.draw.domain.vo.SdUserTaskVo;
 import com.sutran.sd.draw.enums.LoadBalanceStrategy;
-import com.sutran.sd.draw.service.SdDrawNodeService;
-import com.sutran.sd.draw.service.SdUserModelFileService;
-import com.sutran.sd.draw.service.SdUserTaskService;
 import com.sutran.sd.draw.utils.JsonUtils;
 import com.sutran.sd.draw.websocket.ComfyWebsocketClient;
 import com.sutran.sd.oss.core.OssClient;
@@ -36,8 +36,11 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.amqp.rabbit.connection.CorrelationData;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -51,7 +54,7 @@ import static com.sutran.sd.common.constant.CacheConstants.DRAW_NODE_TASK_MAP;
 import static com.sutran.sd.common.constant.CacheConstants.DRAW_TASK_PROGRESS;
 import static com.sutran.sd.draw.constants.CommonKey.JPG;
 import static com.sutran.sd.draw.constants.CommonKey.SD;
-import static com.sutran.sd.draw.mq.MqConstant.SD_COMFY_DRAW_QUEUE;
+import static com.sutran.sd.draw.mq.MqConstant.*;
 
 /**
  * ComfyUI客户端
@@ -66,9 +69,156 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
     private final SdDrawNodeService sdDrawNodeService;
     private final SdUserTaskService sdUserTaskService;
     private final ComfyWebsocketClient comfyWebsocketClient;
+    private final SdUserModelFileService sdUserModelFileService;
     private final OssService ossService;
     private final UserService userService;
-    private final SdUserModelFileService sdUserModelFileService;
+    private final SdFlowService sdFlowService;
+    private final RabbitTemplate rabbitTemplate;
+
+    /**
+     * 提交模型生图任务
+     * @param modelTaskBo 任务参数
+     * @return 任务id
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public String submitComfyModelTask(ComfyModelTaskSubmitBo modelTaskBo) {
+        final Long userId = LoginHelper.getUserId();
+//        final Long userId = 1838096394063040512L;
+        final String userName = LoginHelper.getUsername();
+//        final String userName = "18852862861";
+        if (StringUtils.isBlank(modelTaskBo.getBatchSize()) || Integer.parseInt(modelTaskBo.getBatchSize())<=0) {
+            throw new TaskErrorException("生图数量至少1张");
+        }
+        final int batchSize = Integer.parseInt(modelTaskBo.getBatchSize());
+        // 根据模型类型获取工作流
+        SdFlow sdFlow = sdFlowService.getNoFixedFlow(modelTaskBo.getModelType());
+        if (sdFlow == null || StringUtils.isBlank(sdFlow.getFlow())) {
+            throw new TaskErrorException(String.format("未找到模型类型为[%s]的工作流", modelTaskBo.getModelType()));
+        }
+        // 校验生图数量,获取当前用户对应的会员的剩余数量并扣除本次绘图数量
+        userService.checkDrawNumOfMember(userId,batchSize);
+
+        // 替换lora模型和强度
+        String flow = sdFlow.getFlow().replace("{{lora_model}}",modelTaskBo.getModelName())
+            .replace("\"{{lora_model_strength}}\"",modelTaskBo.getModelStrength())
+            .replace("\"{{batch_size}}\"",modelTaskBo.getBatchSize());
+        if (StringUtils.isNotBlank(modelTaskBo.getPrompt())) {
+            flow = flow.replace("{{prompt}}",modelTaskBo.getPrompt());
+        }
+
+        // 生图任务落库
+        final String taskId = IdUtil.getSnowflakeNextIdStr();
+        sdUserTaskService.addComfyTask(taskId,userId,userName,flow,modelTaskBo.getPrompt(),modelTaskBo.getPromptZh());
+        // 生图任务存放到MQ队列
+        DrawingTaskInfo taskInfo = new DrawingTaskInfo(taskId, JSONObject.parseObject(flow),10,userId,batchSize);
+        submitComfyTaskToQueue(taskInfo);
+        return taskId;
+    }
+
+    /**
+     * 提交工作流生图任务
+     * @param flowId 工作流id
+     * @return 任务id
+     */
+    @Override
+    public String submitComfyFlowTask(String flowId) {
+        final Long userId = LoginHelper.getUserId();
+//        final Long userId = 1838096394063040512L;
+        final String userName = LoginHelper.getUsername();
+//        final String userName = "18852862861";
+        // 根据模型类型获取工作流
+        SdFlow sdFlow = sdFlowService.getFixedFlowById(flowId);
+        if (sdFlow == null || StringUtils.isBlank(sdFlow.getFlow())) {
+            throw new TaskErrorException("未找到工作流");
+        }
+        if (sdFlow.getDrawNum() == null || sdFlow.getDrawNum() <= 0) {
+            throw new TaskErrorException(String.format("工作流[%s]未配置生图数量", sdFlow.getName()));
+        }
+        // 校验生图数量,获取当前用户对应的会员的剩余数量并扣除本次绘图数量
+        userService.checkDrawNumOfMember(userId, sdFlow.getDrawNum());
+
+        // 生图任务落库
+        final String taskId = IdUtil.getSnowflakeNextIdStr();
+        sdUserTaskService.addComfyTask(taskId, userId, userName, sdFlow.getFlow(), null, null);
+        // 生图任务存放到MQ队列
+        DrawingTaskInfo taskInfo = new DrawingTaskInfo(taskId, JSONObject.parseObject(sdFlow.getFlow()), 10, userId, sdFlow.getDrawNum());
+        submitComfyTaskToQueue(taskInfo);
+        return taskId;
+    }
+
+    /**
+     * 获取模型指定历史任务详情
+     * @param taskId 任务id
+     * @return 任务详情
+     */
+    @Override
+    public ComfyTaskHistoryInfo getComfyModelHistoryTask(String taskId) {
+        // 检查任务状态[0-排队等待中,1-执行中,2-执行成功,3-执行失败]
+        Long userId = LoginHelper.getUserId();
+//        long userId = 1838096394063040512L;
+        Integer status = sdUserTaskService.selectStatusByTaskIdAndUserId(taskId, userId);
+        if (status==null) {
+            throw new TaskErrorException("未找到任务");
+        }
+        if (status==0) {
+            throw new TaskErrorException("任务处于队列中");
+        }
+        if (status==1) {
+            throw new TaskErrorException("任务处于执行中");
+        }
+        String promptId = sdUserTaskService.getPromptIdByTaskId(taskId);
+        if (StringUtils.isBlank(promptId)) {
+            throw new TaskErrorException("任内务处于队列中");
+        }
+        return getTaskInfoById(promptId);
+    }
+
+    /**
+     * 获取任务进度
+     * @param taskId 任务id
+     * @return 任务进度
+     */
+    @Override
+    public Integer getComfyTaskProgress(String taskId) {
+        // 检查任务状态[0-排队等待中,1-执行中,2-执行成功,3-执行失败]
+        Long userId = LoginHelper.getUserId();
+//        long userId = 1838096394063040512L;
+        Integer status = sdUserTaskService.selectStatusByTaskIdAndUserId(taskId, userId);
+        if (status==null) {
+            throw new TaskErrorException("未找到任务");
+        }
+        else if (status==0) {
+            return 0;
+        }
+        else if (status==1) {
+            Integer progress = RedisUtils.getCacheMapValue(DRAW_TASK_PROGRESS, taskId);
+            return progress!=null?progress:0;
+        }
+        else {
+            return 100;
+        }
+    }
+
+    /**
+     * 提交任务到队列
+     * @param taskInfo 任务信息
+     */
+    private void submitComfyTaskToQueue(DrawingTaskInfo taskInfo) {
+        try {
+            rabbitTemplate.convertAndSend(SD_COMFY_DRAW_EXCHANGE,SD_COMFY_DRAW_ROUTING_KEY,taskInfo,new CorrelationData(taskInfo.getTaskId()));
+        }
+        catch (Exception e) {
+            //重试次数
+            int retryCount = 5;
+            for (int i = 0; i < retryCount; i++) {
+                try {
+                    rabbitTemplate.convertAndSend(SD_COMFY_DRAW_EXCHANGE,SD_COMFY_DRAW_ROUTING_KEY,taskInfo,new CorrelationData(taskInfo.getTaskId()));
+                }
+                catch (Exception ignored) {}
+            }
+        }
+    }
 
     /**
      * 接收到绘图任务
@@ -175,8 +325,7 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
      * @param sdDrawNode  节点信息
      * @return ComfyUI内部任务id(promptId)
      */
-    @Override
-    public String submitDrawTask(String taskId, JSONObject flow, SdDrawNode sdDrawNode) {
+    private String submitDrawTask(String taskId, JSONObject flow, SdDrawNode sdDrawNode) {
         try{
             JSONObject param =  new JSONObject();
             param.put("client_id", taskId);
@@ -200,6 +349,22 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
             sdUserTaskService.failComfyTask(taskId, e.getMessage(), new Date());
             return null;
         }
+    }
+
+    /**
+     * api: /history/{promptId}<br>
+     * 获得某一个任务信息
+     *
+     * @param promptId comfyUI内部任务id
+     * @return 历史任务信息
+     */
+    private ComfyTaskHistoryInfo getTaskInfoById(String promptId) {
+        SdUserTask task = sdUserTaskService.getTaskInfoByPromptId(promptId);
+        if (task == null) {
+            throw new TaskErrorException("任务不存在!");
+        }
+        SdDrawNode node = sdDrawNodeService.findById(task.getNodeId());
+        return getTaskInfoById(promptId, node);
     }
 
     /**
@@ -243,23 +408,6 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
         String historyInfo = execHttpRequest(request);
         JsonNode taskNode = JsonUtils.toJsonNode(historyInfo).get(promptId);
         return JsonUtils.toObject(taskNode, ComfyTaskHistoryInfo.class);
-    }
-
-    /**
-     * api: /history/{promptId}<br>
-     * 获得某一个任务信息
-     *
-     * @param promptId comfyUI内部任务id
-     * @return 历史任务信息
-     */
-    @Override
-    public ComfyTaskHistoryInfo getTaskInfoById(String promptId) {
-        SdUserTask task = sdUserTaskService.getTaskInfoByPromptId(promptId);
-        if (task == null) {
-            throw new TaskErrorException("任务不存在!");
-        }
-        SdDrawNode node = sdDrawNodeService.findById(task.getNodeId());
-        return getTaskInfoById(promptId, node);
     }
 
     /**

@@ -1,7 +1,7 @@
 package com.sutran.sd.draw.service;
 
-import com.alibaba.fastjson.JSONObject;
 import com.sutran.sd.draw.domain.SdDrawNode;
+import com.sutran.sd.draw.domain.bo.ComfyModelTaskSubmitBo;
 import com.sutran.sd.draw.domain.pojo.*;
 
 import java.io.File;
@@ -14,15 +14,32 @@ import java.util.Map;
 public interface SdComfyuiApiService {
 
     /**
-     * api: /prompt<br>
-     * 提交图片生成任务
-     *
-     * @param taskId 自定义的任务id
-     * @param flow   工作流
-     * @param node   节点信息
-     * @return ComfyUI内部任务id
+     * 提交模型生图任务
+     * @param modelTaskBo 任务参数
+     * @return 任务id
      */
-    String submitDrawTask(String taskId, JSONObject flow, SdDrawNode node);
+    String submitComfyModelTask(ComfyModelTaskSubmitBo modelTaskBo);
+
+    /**
+     * 提交工作流生图任务
+     * @param flowId 工作流id
+     * @return 任务id
+     */
+    String submitComfyFlowTask(String flowId);
+
+    /**
+     * 获取模型指定历史任务详情
+     * @param taskId 任务id
+     * @return 任务详情
+     */
+    ComfyTaskHistoryInfo getComfyModelHistoryTask(String taskId);
+
+    /**
+     * 获取任务进度
+     * @param taskId 任务id
+     * @return 任务进度
+     */
+    Integer getComfyTaskProgress(String taskId);
 
     /**
      * api: /prompt<br>
@@ -51,15 +68,6 @@ public interface SdComfyuiApiService {
      * @return 历史任务信息
      */
     ComfyTaskHistoryInfo getTaskInfoById(String promptId, SdDrawNode node);
-
-    /**
-     * api: /history/{promptId}<br>
-     * 获得某一个任务信息
-     *
-     * @param promptId comfyUI内部任务id
-     * @return 历史任务信息
-     */
-    ComfyTaskHistoryInfo getTaskInfoById(String promptId);
 
     /**
      * api: /queue

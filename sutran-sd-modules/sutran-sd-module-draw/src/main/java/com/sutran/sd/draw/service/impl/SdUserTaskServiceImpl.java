@@ -235,8 +235,18 @@ public class SdUserTaskServiceImpl implements SdUserTaskService {
      * @return          任务状态
      */
     @Override
-    public Integer selectStatusByTaskId(String taskId,Long userId) {
-        return baseMapper.selectStatusByTaskId(taskId,userId);
+    public Integer selectStatusByTaskIdAndUserId(String taskId, Long userId) {
+        return baseMapper.selectStatusByTaskIdAndUserId(taskId,userId);
+    }
+
+    /**
+     * 查询指定任务状态
+     * @param taskId    任务ID
+     * @return          任务状态
+     */
+    @Override
+    public Integer selectStatusByTaskId(String taskId) {
+        return baseMapper.selectStatusByTaskId(taskId);
     }
 
     /**

@@ -23,26 +23,23 @@ import com.sutran.sd.common.utils.BeanCopyUtils;
 import com.sutran.sd.common.utils.StringUtils;
 import com.sutran.sd.common.utils.file.FileUtils;
 import com.sutran.sd.common.utils.redis.RedisUtils;
-import com.sutran.sd.draw.domain.vo.*;
-import com.sutran.sd.draw.service.*;
-import com.sutran.sd.oss.core.OssClient;
-import com.sutran.sd.oss.entity.UploadResult;
-import com.sutran.sd.oss.factory.OssFactory;
-import com.sutran.sd.draw.domain.dto.ImgSendThirdDto;
-import com.sutran.sd.draw.domain.dto.SdUserModelFilePageDto;
-import com.sutran.sd.draw.domain.dto.img2img.SdImg2ImgDto;
-import com.sutran.sd.draw.domain.dto.model.*;
-import com.sutran.sd.draw.domain.dto.task.SdInternalProgressDto;
-import com.sutran.sd.draw.domain.dto.txt2img.SdApiModelParamDto;
-import com.sutran.sd.draw.domain.dto.txt2img.SdText2ImgDto;
-import com.sutran.sd.draw.service.SdTrainTaskService;
-import com.sutran.sd.draw.events.MsgSendThirdEvent;
 import com.sutran.sd.draw.domain.SdGpuPool;
 import com.sutran.sd.draw.domain.SdTrainTask;
 import com.sutran.sd.draw.domain.SdUserModel;
 import com.sutran.sd.draw.domain.SdUserModelClassify;
-import com.sutran.sd.draw.service.SdWebuiApiService;
+import com.sutran.sd.draw.domain.dto.ImgSendThirdDto;
+import com.sutran.sd.draw.domain.dto.SdUserModelFilePageDto;
+import com.sutran.sd.draw.domain.dto.img2img.SdImg2ImgDto;
+import com.sutran.sd.draw.domain.dto.model.*;
+import com.sutran.sd.draw.domain.dto.txt2img.SdApiModelParamDto;
+import com.sutran.sd.draw.domain.dto.txt2img.SdText2ImgDto;
+import com.sutran.sd.draw.domain.vo.*;
+import com.sutran.sd.draw.events.MsgSendThirdEvent;
+import com.sutran.sd.draw.service.*;
 import com.sutran.sd.draw.utils.ResultUtil;
+import com.sutran.sd.oss.core.OssClient;
+import com.sutran.sd.oss.entity.UploadResult;
+import com.sutran.sd.oss.factory.OssFactory;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.compress.archivers.ArchiveEntry;
@@ -630,7 +627,7 @@ public class SdWebuiApiServiceImpl implements SdWebuiApiService {
 
     /** 获取任务进度 **/
     @Override
-    public JSONObject getProcess(String taskId) {
+    public SdWebuiProgressVo getProcess(String taskId) {
         // 先判断当前任务是否已失败
         Integer status = sdUserTaskService.selectStatusByTaskIdAndUserId(taskId,LoginHelper.getUserId());
         if (status==null || status==3) {
@@ -638,20 +635,13 @@ public class SdWebuiApiServiceImpl implements SdWebuiApiService {
         }
         SdGpuPool sdGpuPool = RedisUtils.getCacheObject(DRAW_GPU_TASK + taskId);
         if (sdGpuPool==null) {
-            JSONObject data = new JSONObject();
-            data.put("active",false);
-            data.put("completed",true);
-            data.put("eta",null);
-            data.put("id_live_preview",-1);
-            data.put("live_preview",null);
-            data.put("progress",null);
-            data.put("queued",false);
-            return data;
+            return new SdWebuiProgressVo().setActive(false).setCompleted(true).setEta(null).setId_live_preview(-1).setLive_preview(null).setProgress(null).setQueued(false);
         }
-        SdInternalProgressDto dto = new SdInternalProgressDto().setIdTask(taskId).setIdLivePreview(2).setLivePreview(false);
-        Map<String,Object> map = JSONObject.parseObject(JSONObject.toJSONString(dto));
-        map.put("taskId",taskId);
-        return Forest.post("/internal/progress").address(sdGpuPool.getHost(), sdGpuPool.getPort()).contentTypeJson().addBody(map).execute(JSONObject.class);
+        Map<String,Object> map1 = new HashMap<>(4);
+        map1.put("id_task",taskId);
+        map1.put("id_live_preview",2);
+        map1.put("live_preview",false);
+        return Forest.post("/internal/progress").address(sdGpuPool.getHost(), sdGpuPool.getPort()).contentTypeJson().addBody(map1).execute(SdWebuiProgressVo.class);
     }
 
 

@@ -13,10 +13,7 @@ import com.sutran.sd.draw.domain.SdGpuPool;
 import com.sutran.sd.draw.domain.dto.model.SdUserModelDto;
 import com.sutran.sd.draw.domain.dto.task.SdUserTaskPageDto;
 import com.sutran.sd.draw.domain.dto.txt2img.SdText2ImgDto;
-import com.sutran.sd.draw.domain.vo.CheckPointVo;
-import com.sutran.sd.draw.domain.vo.SdUserModelFileVo;
-import com.sutran.sd.draw.domain.vo.SdUserModelVo;
-import com.sutran.sd.draw.domain.vo.SdUserTaskVo;
+import com.sutran.sd.draw.domain.vo.*;
 import com.sutran.sd.draw.service.SdGpuPoolService;
 import com.sutran.sd.draw.service.SdTrainService;
 import com.sutran.sd.draw.service.SdTranslationService;
@@ -158,7 +155,7 @@ public class SysSdController extends BaseController {
      * SD 任务进度查询
      */
     @GetMapping("/process")
-    public R<JSONObject> getProcess(@RequestParam String taskId) {
+    public R<SdWebuiProgressVo> getProcess(@RequestParam String taskId) {
         return R.ok(sdWebuiApiService.getProcess(taskId));
     }
 

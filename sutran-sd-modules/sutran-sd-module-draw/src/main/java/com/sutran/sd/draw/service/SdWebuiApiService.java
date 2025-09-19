@@ -179,7 +179,7 @@ public interface SdWebuiApiService {
      * @param taskId    任务ID
      * @return  JSONObject
      */
-    JSONObject getProcess(String taskId);
+    SdWebuiProgressVo getProcess(String taskId);
 
     /**
      * 发布模型

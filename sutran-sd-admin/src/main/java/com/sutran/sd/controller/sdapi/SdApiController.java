@@ -1,15 +1,13 @@
 package com.sutran.sd.controller.sdapi;
 
 import cn.hutool.core.util.StrUtil;
-import com.alibaba.fastjson.JSONObject;
-import com.sutran.sd.draw.domain.bo.ComfyModelTaskBo;
-import com.sutran.sd.draw.service.SdComfyuiApiService;
 import com.sutran.sd.common.core.domain.PageQuery;
 import com.sutran.sd.common.core.domain.R;
 import com.sutran.sd.common.core.page.TableDataInfo;
 import com.sutran.sd.common.exception.TaskErrorException;
 import com.sutran.sd.common.utils.StringUtils;
 import com.sutran.sd.draw.domain.SdUserModel;
+import com.sutran.sd.draw.domain.bo.ComfyModelTaskBo;
 import com.sutran.sd.draw.domain.bo.ComfyModelTaskSubmitBo;
 import com.sutran.sd.draw.domain.dto.img2img.SdImg2ImgDto;
 import com.sutran.sd.draw.domain.dto.task.SdUserTaskPageDto;
@@ -17,6 +15,8 @@ import com.sutran.sd.draw.domain.dto.txt2img.SdText2ImgDto;
 import com.sutran.sd.draw.domain.pojo.ComfyTaskHistoryInfo;
 import com.sutran.sd.draw.domain.vo.SdUserModelFileVo;
 import com.sutran.sd.draw.domain.vo.SdUserTaskVo;
+import com.sutran.sd.draw.domain.vo.SdWebuiProgressVo;
+import com.sutran.sd.draw.service.SdComfyuiApiService;
 import com.sutran.sd.draw.service.SdUserModelService;
 import com.sutran.sd.draw.service.SdWebuiApiService;
 import lombok.RequiredArgsConstructor;
@@ -139,7 +139,7 @@ public class SdApiController {
      * [WebUI]进度查询
      */
     @GetMapping("/process")
-    public R<JSONObject> getProcess(@RequestParam String taskId) {
+    public R<SdWebuiProgressVo> getProcess(@RequestParam String taskId) {
         return R.ok(sdWebuiApiService.getProcess(taskId));
     }
 

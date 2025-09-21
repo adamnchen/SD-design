@@ -633,6 +633,15 @@ public class SdWebuiApiServiceImpl implements SdWebuiApiService {
         if (status==null || status==3) {
             throw new ServiceException("当前绘图任务不存在或已失败!");
         }
+        // 队列中
+        if (status==0) {
+            return new SdWebuiProgressVo().setActive(false).setCompleted(false).setEta(null).setId_live_preview(-1).setLive_preview(null).setProgress(0d).setQueued(true);
+        }
+        // 已完成
+        if (status==2) {
+            return new SdWebuiProgressVo().setActive(false).setCompleted(true).setEta(null).setId_live_preview(-1).setLive_preview(null).setProgress(100d).setQueued(false);
+        }
+        // 获取当前任务的GPU池
         SdGpuPool sdGpuPool = RedisUtils.getCacheObject(DRAW_GPU_TASK + taskId);
         if (sdGpuPool==null) {
             return new SdWebuiProgressVo().setActive(false).setCompleted(true).setEta(null).setId_live_preview(-1).setLive_preview(null).setProgress(null).setQueued(false);
@@ -843,22 +852,30 @@ public class SdWebuiApiServiceImpl implements SdWebuiApiService {
         final SdGpuPool sdGpuPool = getGpuFromDrawGpuPool(taskId, null, null);
         if (sdGpuPool == null) {
             log.error("[绘图任务][任务ID:{}]>>>>>>>>>绘图卡池中暂无可使用的GPU服务,请等待!",taskId);
-            Long startTime = RedisUtils.getCacheMapValue(DRAW_TASK_TIME_IN_QUEUE_MAP, taskId);
-            if (startTime == null) {
-                // 记录在队列中的时间
-                RedisUtils.setCacheMapValue(DRAW_TASK_TIME_IN_QUEUE_MAP, taskId, System.currentTimeMillis()/1000);
-                return;
+            try{
+                Thread.sleep(1000);
             }
-            // 在队列中的时间小于25分钟
-            else if (System.currentTimeMillis()/1000 - startTime < 1500) {
-                return;
+            catch (InterruptedException e) {
+                log.error("[绘图任务][任务ID:{}]>>>>>>>>>绘图卡池中暂无可使用的GPU服务,cpu等待1秒，异常：!",taskId,e);
             }
-            else {
-                // 重新进入队列，防止30分钟超时
-                rabbitTemplate.convertAndSend(SD_TXT_TO_IMG_DRAW_EXCHANGE,SD_TXT_TO_IMG_DRAW_ROUTING_KEY,msg,new CorrelationData(taskId));
-                channel.basicAck(deliveryTag, false);
-                return;
-            }
+            channel.basicNack(deliveryTag, false, true);
+            return;
+//            Long startTime = RedisUtils.getCacheMapValue(DRAW_TASK_TIME_IN_QUEUE_MAP, taskId);
+//            if (startTime == null) {
+//                // 记录在队列中的时间
+//                RedisUtils.setCacheMapValue(DRAW_TASK_TIME_IN_QUEUE_MAP, taskId, System.currentTimeMillis()/1000);
+//                return;
+//            }
+//            // 在队列中的时间小于25分钟
+//            else if (System.currentTimeMillis()/1000 - startTime < 1500) {
+//                return;
+//            }
+//            else {
+//                // 重新进入队列，防止30分钟超时
+//                rabbitTemplate.convertAndSend(SD_TXT_TO_IMG_DRAW_EXCHANGE,SD_TXT_TO_IMG_DRAW_ROUTING_KEY,msg,new CorrelationData(taskId));
+//                channel.basicAck(deliveryTag, false);
+//                return;
+//            }
         }
         // 确认消费
         // 异步处理绘图请求

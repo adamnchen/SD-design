@@ -169,4 +169,11 @@ public interface SdTrainTaskService {
      * @return 创建用户ID
      */
     Long selectCrtUserIdById(String preTaskId);
+
+    /**
+     * 查询用户正在运行的训练任务数量
+     * @param userId 用户ID
+     * @return 训练任务数量
+     */
+    Integer countRunningTaskByUserId(Long userId);
 }

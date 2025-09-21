@@ -209,5 +209,10 @@ public class SdTrainTaskServiceImpl implements SdTrainTaskService {
         return baseMapper.selectCrtUserIdById(preTaskId);
     }
 
+    @Override
+    public Integer countRunningTaskByUserId(Long userId) {
+        return baseMapper.countRunningTaskByUserId(userId);
+    }
+
 
 }

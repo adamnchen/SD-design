@@ -17,7 +17,7 @@ import java.util.Date;
 @Mapper
 public interface SdTrainTaskMapper extends BaseMapperPlus<SdTrainTaskMapper, SdTrainTask, SdTrainTask> {
 
-    @Select("SELECT id, pre_params AS preParams,task_id AS taskId, img_num AS imgNum, status, model_name AS modelName, train_params AS trainParams, new_status AS newStatus, addition_tag AS additionTag, crt_user_id AS crtUserId, crt_user_name AS crtUserName, crt_time AS crtTime, start_time AS startTime, end_time AS endTime FROM sd_train_task WHERE crt_user_id=#{userId} AND status IN (0,1) ORDER BY id DESC LIMIT 1")
+    @Select("SELECT id, pre_params AS preParams,task_id AS taskId, img_num AS imgNum, status, model_name AS modelName, train_params AS trainParams, new_status AS newStatus, addition_tag AS additionTag, crt_user_id AS crtUserId, crt_user_name AS crtUserName, crt_time AS crtTime, start_time AS startTime, end_time AS endTime FROM sd_train_task WHERE crt_user_id=#{userId} AND new_status IN (0,1,2) ORDER BY id DESC LIMIT 1")
     SdTrainTask selectDetailByUserId(@Param("userId") Long userId);
 
     @Update("UPDATE sd_train_task SET task_id=#{taskId},train_params=#{trainParams},model_name=#{modelName},start_time=#{startTime},new_status=#{newStatus},gpu_pool=#{gupPool} WHERE id=#{preTaskId}")
@@ -120,4 +120,12 @@ public interface SdTrainTaskMapper extends BaseMapperPlus<SdTrainTaskMapper, SdT
 
     @Select("SELECT crt_user_id FROM sd_train_task WHERE id=#{preTaskId}")
     Long selectCrtUserIdById(@Param("preTaskId") String preTaskId);
+
+    /**
+     * 查询用户正在运行的训练任务数量
+     * @param userId 用户ID
+     * @return 训练任务数量
+     */
+    @Select("SELECT COUNT(*) FROM sd_train_task WHERE crt_user_id=#{userId} AND new_status IN (3,4)")
+    Integer countRunningTaskByUserId(@Param("userId") Long userId);
 }

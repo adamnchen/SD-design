@@ -297,7 +297,7 @@ public class SdTrainServiceImpl implements SdTrainService {
             throw new ServiceException("请至少填入一个共性词[缺少共性词]!");
         }
         // 不存在训练任务 或者 已提交训练（训练队列中、训练中、已完成、已失败）
-        else if (task==null || task.getNewStatus()==3 || task.getNewStatus()==4 || task.getNewStatus()==5 || task.getNewStatus()==6) {
+        if (task==null || task.getNewStatus()==3 || task.getNewStatus()==4 || task.getNewStatus()==5 || task.getNewStatus()==6) {
             String username = LoginHelper.getUsername();
             String preTaskId = IdUtil.getSnowflakeNextIdStr();
             // 目录挂载情况：/home/lora-scripts/train-data
@@ -377,6 +377,17 @@ public class SdTrainServiceImpl implements SdTrainService {
         else if (images.length>canMoreSubmitPreImgNum) {
             throw new ServiceException("预处理图最多能提交"+canMoreSubmitPreImgNum+"张!");
         }
+        SdTrainTask task = sdTrainTaskService.selectDetailByUserId(userId);
+        if (task!=null && task.getNewStatus()==0) {
+            throw new ServiceException("当前用户已存在[排队中]的[预处理]任务!");
+        }
+        else if (task!=null && task.getNewStatus()==1) {
+            throw new ServiceException("当前用户已存在[进行中]的[预处理]任务!");
+        }
+        else if (task!=null && task.getNewStatus()==2){
+            throw new ServiceException("当前用户已存在已完成的预处理任务,请先提交训练!");
+        }
+
         // 预处理任务ID
         String preTaskId = IdUtil.getSnowflakeNextIdStr();
         // 目录挂载情况：/home/lora-scripts/train-data
@@ -510,8 +521,9 @@ public class SdTrainServiceImpl implements SdTrainService {
         // 完成预处理任务
         if (progress>=100 || "FAILED".equals(status)) {
             try{
+                // 休眠1秒，确保任务状态更新到数据库
+                Thread.sleep(1000);
                 sdTrainTaskService.completePreTask(preTaskId, reason, new Date());
-                Thread.sleep(500);
             }
             catch (InterruptedException e) {
                 log.error("图片预处理>>>>>>>>>任务ID[{}],休眠0.5s：{}", preTaskId,e.getMessage());
@@ -621,10 +633,10 @@ public class SdTrainServiceImpl implements SdTrainService {
             throw new ServiceException("图片预处理任务不存在!");
         }
         else if (sdTrainTask.getNewStatus()<2) {
-            throw new ServiceException("图片预处理任务已开始,不可进行添加标签操作!");
+            throw new ServiceException("图片预处理进行中,不可进行添加标签操作!");
         }
         else if (sdTrainTask.getNewStatus()>2) {
-            throw new ServiceException("模型训练已开始,不可进行添加标签操作!");
+            throw new ServiceException("图片预处理已完成,不可进行添加标签操作!");
         }
         // 处理图片地址
         String imgUrlString = dealTrainDataSetPath(dto.getImgUrl());
@@ -841,6 +853,11 @@ public class SdTrainServiceImpl implements SdTrainService {
         SdTrainTask sdTrainTask = sdTrainTaskService.selectDetailById(preTaskId);
         if (sdTrainTask==null) {
             throw new ServiceException("前置任务不存在,不可进行训练!");
+        }
+        // 查询是否存在队列或进行中的三个以上的任务
+        Integer runningTaskCount = sdTrainTaskService.countRunningTaskByUserId(userId);
+        if (runningTaskCount!=null && runningTaskCount>=3) {
+            throw new ServiceException("当前可提交的训练任务数量已达上限,请先等待训练完成!");
         }
 
         JSONObject paramsJson = JSONObject.parseObject(sdTrainTask.getPreParams());

@@ -361,7 +361,12 @@ public class SdWebuiApiServiceImpl implements SdWebuiApiService {
             return;
         }
         // 拼接模型路径(lora模型所属目录下：model.getFileName() = /home/stable-diffusion-webui/models/Lora/user_xxxxxx.safetensors)
-        File delFile = new File(model.getFileName());
+        String fileName = model.getFileName();
+        if (StringUtils.isBlank(fileName)) {
+            return;
+        }
+        fileName = fileName.startsWith("/home")?fileName:("/home"+fileName);
+        File delFile = new File(fileName);
         log.warn("[模型删除]>>>>>>>>>[{}]删除了lora模型路径：{}",userId,delFile.getPath());
         if (FileUtil.del(delFile)) {
             // 删除成功后移除模型
@@ -390,7 +395,12 @@ public class SdWebuiApiServiceImpl implements SdWebuiApiService {
                 continue;
             }
             // 拼接模型路径(lora模型所属目录下：model.getFileName() = /home/stable-diffusion-webui/models/Lora/user_xxxxxx.safetensors)
-            FileUtil.del(new File(model.getFileName()));
+            String fileName = model.getFileName();
+            if (StringUtils.isBlank(fileName)) {
+                return;
+            }
+            fileName = fileName.startsWith("/home")?fileName:("/home"+fileName);
+            FileUtil.del(new File(fileName));
             sdUserModelService.removeModelOfAdminById(model.getId());
             RedisUtils.deleteObject("UserModel:" + model.getId());
         }

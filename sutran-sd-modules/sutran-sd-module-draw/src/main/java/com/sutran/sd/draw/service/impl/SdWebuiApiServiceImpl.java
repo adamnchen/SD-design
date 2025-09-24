@@ -887,9 +887,9 @@ public class SdWebuiApiServiceImpl implements SdWebuiApiService {
 //                return;
 //            }
         }
-        // 确认消费
         // 异步处理绘图请求
         CompletableFuture.runAsync(()-> executeTxtToImgDrawTask(sdGpuPool,taskId,msg,queueTime),executor);
+        // 确认消费
         channel.basicAck(deliveryTag, false);
     }
     /** 文生图>>>>>>>>>执行绘图任务 **/

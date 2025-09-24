@@ -299,7 +299,7 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
                     // 添加任务进度缓存
                     RedisUtils.setCacheMapValue(DRAW_TASK_PROGRESS, taskId, 0);
                     // 连接comfyui的websocket获取进度
-                    String wsUrl = node.getBaseUrl().replace("https", "ws").replace("http", "ws") + "/ws?clientId=" + taskId;
+                    String wsUrl = node.getBaseUrl().replace("https", "wss").replace("http", "ws") + "/ws?clientId=" + taskId;
                     comfyWebsocketClient.createComfyUiWebSocket(wsUrl, promptId, taskId);
                 }
             }

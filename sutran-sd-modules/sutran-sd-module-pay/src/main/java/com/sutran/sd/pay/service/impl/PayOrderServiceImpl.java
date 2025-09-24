@@ -55,8 +55,14 @@ public class PayOrderServiceImpl implements PayOrderService {
             .eq(StringUtils.isNotBlank(order.getBusinessType()), PayOrder::getBusinessType, order.getBusinessType())
             .eq(StringUtils.isNotBlank(order.getChannelType()), PayOrder::getChannelType, order.getChannelType())
             .eq(ObjectUtil.isNotNull(order.getBusinessId()), PayOrder::getBusinessId, order.getBusinessId())
-            .eq(ObjectUtil.isNotNull(order.getStatus()), PayOrder::getStatus, order.getStatus())
             .between(params.get("beginTime") != null && params.get("endTime") != null, PayOrder::getCreateTime, params.get("beginTime"), params.get("endTime"));
+        if (ObjectUtil.isNotNull(order.getStatus())) {
+            lqw.eq(ObjectUtil.isNotNull(order.getStatus()), PayOrder::getStatus, order.getStatus());
+        }
+        // 没有状态查询条件，默认查询待支付+已支付的
+        else {
+            lqw.in(PayOrder::getStatus,0,1);
+        }
         if (StringUtils.isBlank(pageQuery.getOrderByColumn())) {
             pageQuery.setOrderByColumn("id");
             pageQuery.setIsAsc("desc");

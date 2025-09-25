@@ -2,6 +2,7 @@ package com.sutran.sd.system.service;
 
 import com.sutran.sd.common.core.domain.PageQuery;
 import com.sutran.sd.common.core.domain.entity.PayMember;
+import com.sutran.sd.common.core.domain.entity.SysAddress;
 import com.sutran.sd.common.core.domain.entity.SysUser;
 import com.sutran.sd.common.core.page.TableDataInfo;
 import com.sutran.sd.system.domain.bo.SysUserMemberBo;
@@ -259,4 +260,5 @@ public interface ISysUserService {
      * @param now           当前时间
      */
     void insertAuthMember(SysUserMemberBo bo, PayMember payMember, Date now);
+
 }

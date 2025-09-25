@@ -1,10 +1,13 @@
 package com.sutran.sd.controller.web.system;
 
+import cn.dev33.satoken.annotation.SaCheckLogin;
+import cn.dev33.satoken.annotation.SaCheckPermission;
 import cn.dev33.satoken.secure.BCrypt;
 import cn.hutool.core.io.FileUtil;
 import com.sutran.sd.common.annotation.Log;
 import com.sutran.sd.common.core.controller.BaseController;
 import com.sutran.sd.common.core.domain.R;
+import com.sutran.sd.common.core.domain.entity.SysAddress;
 import com.sutran.sd.common.core.domain.entity.SysUser;
 import com.sutran.sd.common.enums.BusinessType;
 import com.sutran.sd.common.helper.LoginHelper;
@@ -12,6 +15,7 @@ import com.sutran.sd.common.utils.StringUtils;
 import com.sutran.sd.common.utils.file.MimeTypeUtils;
 import com.sutran.sd.system.domain.vo.SysOssVo;
 import com.sutran.sd.system.service.ISysOssService;
+import com.sutran.sd.system.service.ISysUserAddressService;
 import com.sutran.sd.system.service.ISysUserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
@@ -21,6 +25,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -36,6 +41,9 @@ public class SysProfileController extends BaseController {
 
     private final ISysUserService userService;
     private final ISysOssService iSysOssService;
+    private final ISysUserAddressService sysUserAddressService;
+    private final ISysUserAddressService addressService;
+    @SaCheckLogin
 
     /**
      * 个人信息
@@ -120,5 +128,68 @@ public class SysProfileController extends BaseController {
             }
         }
         return R.fail("上传图片异常，请联系管理员");
+    }
+    /**
+     *用户地址管理
+     */
+    @Log(title = "用户地址管理", businessType = BusinessType.INSERT)
+    @PostMapping("/addAddress")
+    public R<Void> addAddress(@RequestBody SysAddress address) {
+        addressService.addAddress(address);
+        return R.ok();
+    }
+
+    /**
+     * 删除用户地址
+     */
+    @Log(title = "用户地址管理", businessType = BusinessType.DELETE)
+    @DeleteMapping("/deleteAddress/{addressId}")
+    public R<Void> deleteAddress(@PathVariable Long addressId) {
+        addressService.deleteAddress(addressId);
+        return R.ok();
+    }
+
+    /**
+     * 修改用户地址
+     */
+    @Log(title = "用户地址管理", businessType = BusinessType.UPDATE)
+    @PutMapping("/updateAddress")
+    public R<Void> updateAddress(@RequestBody SysAddress address) {
+        addressService.updateAddress(address);
+        return R.ok();
+    }
+    /**
+     * 获取用户地址
+     */
+    @Log(title = "用户地址管理")
+    @GetMapping("/getAddress/{addressId}")
+    public R<SysAddress> getAddress(@PathVariable Long addressId) {
+        return R.ok(addressService.getAddress(addressId));
+    }
+
+    /**
+     * 获取用户所有地址
+     * @return
+     */
+
+    @Log(title = "用户地址管理")
+    @GetMapping("/getAddressList")
+    public R<List<SysAddress>> getAddressList() {
+        Long currentUserId = LoginHelper.getUserId();
+
+        if (currentUserId == null) {
+            return R.fail("用户未登录或Token无效");
+        }
+        return R.ok(addressService.selectAddressList(currentUserId));
+    }
+    /**
+     * 设置默认地址
+     */
+    @SaCheckLogin
+    @Log(title = "用户地址管理", businessType = BusinessType.UPDATE)
+    @PutMapping("/setDefaultAddress/{addressId}")
+    public R<Void> setDefaultAddress(@PathVariable Long addressId) {
+        addressService.setDefaultAddress(addressId);
+        return R.ok();
     }
 }

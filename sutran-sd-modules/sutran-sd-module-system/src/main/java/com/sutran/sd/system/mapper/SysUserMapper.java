@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.core.toolkit.Constants;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.sutran.sd.common.annotation.DataColumn;
 import com.sutran.sd.common.annotation.DataPermission;
+import com.sutran.sd.common.core.domain.entity.SysAddress;
 import com.sutran.sd.common.core.domain.entity.SysUser;
 import com.sutran.sd.common.core.mapper.BaseMapperPlus;
 import org.apache.ibatis.annotations.Mapper;
@@ -21,6 +22,8 @@ import java.util.List;
  */
 @Mapper
 public interface SysUserMapper extends BaseMapperPlus<SysUserMapper, SysUser, SysUser> {
+
+
 
     @DataPermission({
         @DataColumn(key = "deptName", value = "d.dept_id"),

@@ -14,10 +14,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.sutran.sd.common.constant.CacheNames;
 import com.sutran.sd.common.constant.UserConstants;
 import com.sutran.sd.common.core.domain.PageQuery;
-import com.sutran.sd.common.core.domain.entity.PayMember;
-import com.sutran.sd.common.core.domain.entity.SysDept;
-import com.sutran.sd.common.core.domain.entity.SysRole;
-import com.sutran.sd.common.core.domain.entity.SysUser;
+import com.sutran.sd.common.core.domain.entity.*;
 import com.sutran.sd.common.core.page.TableDataInfo;
 import com.sutran.sd.common.core.service.UserService;
 import com.sutran.sd.common.exception.ServiceException;
@@ -27,9 +24,9 @@ import com.sutran.sd.common.helper.LoginHelper;
 import com.sutran.sd.common.utils.StreamUtils;
 import com.sutran.sd.common.utils.StringUtils;
 import com.sutran.sd.system.domain.SysPost;
-import com.sutran.sd.common.core.domain.entity.SysUserMember;
 import com.sutran.sd.system.domain.SysUserPost;
 import com.sutran.sd.system.domain.SysUserRole;
+import com.sutran.sd.common.core.domain.entity.SysAddress;
 import com.sutran.sd.system.domain.bo.SysUserMemberBo;
 import com.sutran.sd.system.mapper.*;
 import com.sutran.sd.system.service.ISysUserService;
@@ -60,6 +57,7 @@ public class SysUserServiceImpl implements ISysUserService, UserService {
     private final SysUserRoleMapper userRoleMapper;
     private final SysUserPostMapper userPostMapper;
     private final SysUserMemberMapper userMemberMapper;
+    private final SysUserAddressMapper addressMapper;
 
     @Override
     public TableDataInfo<SysUser> selectPageUserList(SysUser user, PageQuery pageQuery) {
@@ -589,6 +587,8 @@ public class SysUserServiceImpl implements ISysUserService, UserService {
         }
     }
 
+
+
     /**
      * 获取当前用户的用户名
      * @param userId 用户ID
@@ -836,4 +836,9 @@ public class SysUserServiceImpl implements ISysUserService, UserService {
         }
     }
 
+
+
 }
+
+
+

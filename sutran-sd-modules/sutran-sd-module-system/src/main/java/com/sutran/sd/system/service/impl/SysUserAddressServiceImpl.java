@@ -1,0 +1,166 @@
+package com.sutran.sd.system.service.impl;
+
+import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.date.DateUtil;
+import cn.hutool.core.util.ArrayUtil;
+import cn.hutool.core.util.ObjectUtil;
+import cn.hutool.core.util.StrUtil;
+import com.baomidou.mybatisplus.core.conditions.Wrapper;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.sutran.sd.common.constant.CacheNames;
+import com.sutran.sd.common.constant.UserConstants;
+import com.sutran.sd.common.core.domain.PageQuery;
+import com.sutran.sd.common.core.domain.entity.*;
+import com.sutran.sd.common.core.page.TableDataInfo;
+import com.sutran.sd.common.core.service.UserService;
+import com.sutran.sd.common.exception.ServiceException;
+import com.sutran.sd.common.exception.TaskErrorException;
+import com.sutran.sd.common.helper.DataBaseHelper;
+import com.sutran.sd.common.helper.LoginHelper;
+import com.sutran.sd.common.utils.StreamUtils;
+import com.sutran.sd.common.utils.StringUtils;
+import com.sutran.sd.system.domain.SysPost;
+import com.sutran.sd.system.domain.SysUserPost;
+import com.sutran.sd.system.domain.SysUserRole;
+import com.sutran.sd.system.domain.bo.SysUserMemberBo;
+import com.sutran.sd.system.mapper.*;
+import com.sutran.sd.system.service.ISysUserAddressService;
+import com.sutran.sd.system.service.ISysUserService;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.scheduling.annotation.Async;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.*;
+import java.util.stream.Collectors;
+
+/**
+ * 用户 业务层处理
+ *
+ * @author Lion Li
+ */
+@Slf4j
+@RequiredArgsConstructor
+@Service
+public class SysUserAddressServiceImpl implements ISysUserAddressService {
+
+
+    private final SysUserAddressMapper addressMapper;
+
+
+    /**
+     * 添加地址
+     * @param address
+     */
+    @Override
+    public void addAddress(SysAddress address) {
+        // 使用优化后的方法获取用户ID
+        Long userId = LoginHelper.getUserId();
+
+        // 自动设置用户ID，防止前端篡改
+        address.setUserId(userId);
+
+        // 如果是新增的第一个地址，自动设置为默认
+        Long count = addressMapper.selectCount(new LambdaQueryWrapper<SysAddress>().eq(SysAddress::getUserId, userId));
+        if (count == null || count == 0) {
+            address.setIsDefault(1);
+        }
+
+        addressMapper.insert(address);
+    }
+
+    @Override
+    public void deleteAddress(Long addressId) {
+        Long userId = LoginHelper.getUserId();
+        LambdaQueryWrapper<SysAddress> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(SysAddress::getId, addressId)
+            .eq(SysAddress::getUserId, userId);
+
+        int rows = addressMapper.delete(wrapper);
+
+        if (rows == 0) {
+            // 0 行受影响，可能是地址不存在，或地址不属于当前用户
+            throw new ServiceException("地址不存在或无权删除此地址。");
+        }
+    }
+
+    @Override
+    public void updateAddress(SysAddress address) {
+        Long userId = LoginHelper.getUserId();
+        // 核心安全校验：确保要更新的地址属于当前用户
+        LambdaUpdateWrapper<SysAddress> wrapper = new LambdaUpdateWrapper<>();
+        wrapper.eq(SysAddress::getId, address.getId())
+            .eq(SysAddress::getUserId, userId); // 必须添加用户ID条件
+
+        // 确保用户不能手动修改地址归属的 userId
+        address.setUserId(userId);
+
+        int rows = addressMapper.update(address, wrapper);
+
+        if (rows == 0) {
+            throw new ServiceException("地址不存在或无权修改此地址。");
+        }
+    }
+
+
+    @Override
+    public List<SysAddress> selectAddressList(Long  userId) {
+       Long userid = LoginHelper.getUserId();
+        return addressMapper.selectAddressList(userid);
+    }
+
+    @Override
+    public SysAddress getAddress(Long addressId) {
+        Long userId = LoginHelper.getUserId();
+
+        // 核心安全校验：确保只查询属于当前用户的地址
+        LambdaQueryWrapper<SysAddress> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(SysAddress::getId, addressId)
+            .eq(SysAddress::getUserId, userId);
+
+        SysAddress address = addressMapper.selectOne(wrapper);
+
+        return Optional.ofNullable(address)
+            .orElseThrow(() -> new ServiceException("地址不存在或无权查看。"));
+    }
+
+    /**
+     * 设置默认地址 【安全优化：校验所有权】
+     * @param addressId 目标地址ID
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void setDefaultAddress(Long addressId) {
+        Long userId = LoginHelper.getUserId();
+
+        // 1. 核心安全校验：先确认目标地址是否属于当前用户
+        Long count = addressMapper.selectCount(new LambdaQueryWrapper<SysAddress>()
+            .eq(SysAddress::getId, addressId)
+            .eq(SysAddress::getUserId, userId));
+
+        if (count == null || count == 0) {
+            throw new ServiceException("目标地址不存在或不属于当前用户。");
+        }
+        // 2. 将用户的所有现有默认地址设置为非默认 (is_default = 0)
+        addressMapper.update(null, new LambdaUpdateWrapper<SysAddress>()
+            .set(SysAddress::getIsDefault, 0)
+            .eq(SysAddress::getUserId, userId)
+            .eq(SysAddress::getIsDefault, 1)); // 优化：只更新当前是默认的地址
+
+        // 3. 将目标地址设置为默认 (is_default = 1)
+        addressMapper.update(null, new LambdaUpdateWrapper<SysAddress>()
+            .set(SysAddress::getIsDefault, 1)
+            .eq(SysAddress::getId, addressId));
+
+    }
+
+}
+
+
+

@@ -1,5 +1,4 @@
 package com.sutran.sd.system.mapper;
-
 import com.sutran.sd.common.core.mapper.BaseMapperPlus;
 import com.sutran.sd.system.domain.SysOssConfig;
 import com.sutran.sd.system.domain.vo.SysOssConfigVo;

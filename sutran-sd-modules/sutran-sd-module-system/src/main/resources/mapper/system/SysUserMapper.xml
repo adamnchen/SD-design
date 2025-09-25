@@ -99,7 +99,6 @@
             left join sys_user_role sur on u.user_id = sur.user_id
             left join sys_role r on r.role_id = sur.role_id
     </sql>
-
     <select id="selectPageUserList" resultMap="SysUserResult">
         select u.user_id, u.dept_id, u.nick_name, u.user_name, u.email, u.avatar, u.phonenumber, u.sex, u.user_type, u.limit_valid_date, u.limit_train_times, u.limit_draw_num, u.channel, u.channel_id, u.channel_user_id,
             u.status, u.del_flag, u.login_ip, u.login_date, u.create_by, u.create_time, u.remark, d.dept_name, d.leader

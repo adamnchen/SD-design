@@ -133,7 +133,7 @@ public class SysProfileController extends BaseController {
         return R.fail("上传图片异常，请联系管理员");
     }
     /**
-     *用户地址管理
+     *用户地址管理 添加地址
      */
     @Log(title = "用户地址管理", businessType = BusinessType.INSERT)
     @PostMapping("/addAddress")

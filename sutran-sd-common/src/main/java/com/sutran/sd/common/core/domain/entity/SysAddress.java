@@ -93,5 +93,11 @@ public class SysAddress extends BaseEntity {
     @TableField(value = "is_default")
     private Integer isDefault;
 
+    @TableField(exist = false)
+    private String createBy;
+
+    @TableField(exist = false)
+    private String updateBy;
+
 
 }

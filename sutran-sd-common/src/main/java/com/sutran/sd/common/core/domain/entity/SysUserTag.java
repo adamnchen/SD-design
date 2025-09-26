@@ -15,7 +15,7 @@ import java.util.Date;
  * 对应数据库表：user_tag
  */
 @Data
-@TableName("user_tag") // 明确映射到数据库表名
+@TableName("sys_user_tag") // 明确映射到数据库表名
 public class SysUserTag implements Serializable {
 
     private static final long serialVersionUID = 1L;

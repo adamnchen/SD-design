@@ -8,6 +8,7 @@ import com.sutran.sd.common.annotation.Log;
 import com.sutran.sd.common.core.controller.BaseController;
 import com.sutran.sd.common.core.domain.R;
 import com.sutran.sd.common.core.domain.entity.SysAddress;
+import com.sutran.sd.common.core.domain.entity.SysAddressArea;
 import com.sutran.sd.common.core.domain.entity.SysUser;
 import com.sutran.sd.common.enums.BusinessType;
 import com.sutran.sd.common.helper.LoginHelper;
@@ -15,6 +16,7 @@ import com.sutran.sd.common.utils.StringUtils;
 import com.sutran.sd.common.utils.file.MimeTypeUtils;
 import com.sutran.sd.system.domain.vo.SysOssVo;
 import com.sutran.sd.system.service.ISysOssService;
+import com.sutran.sd.system.service.ISysUserAddressAreaService;
 import com.sutran.sd.system.service.ISysUserAddressService;
 import com.sutran.sd.system.service.ISysUserService;
 import lombok.RequiredArgsConstructor;
@@ -43,6 +45,7 @@ public class SysProfileController extends BaseController {
     private final ISysOssService iSysOssService;
     private final ISysUserAddressService sysUserAddressService;
     private final ISysUserAddressService addressService;
+    private final ISysUserAddressAreaService addressAreaService;
     @SaCheckLogin
 
     /**
@@ -185,11 +188,30 @@ public class SysProfileController extends BaseController {
     /**
      * 设置默认地址
      */
-    @SaCheckLogin
+
     @Log(title = "用户地址管理", businessType = BusinessType.UPDATE)
     @PutMapping("/setDefaultAddress/{addressId}")
     public R<Void> setDefaultAddress(@PathVariable Long addressId) {
         addressService.setDefaultAddress(addressId);
         return R.ok();
+    }
+
+    /**
+     * 省市区三级地址接口
+     * @return
+     */
+    @Log(title = "用户地址管理", businessType = BusinessType.OTHER)
+    @GetMapping("/getArea")
+    public R<List<SysAddressArea>> getAreaList(
+        @RequestParam(value = "parentCode", defaultValue = "0", required = false) String parentCode) {
+
+        // 调用Service层方法，根据父级代码查询所有子级区域
+        List<SysAddressArea> areaList =  addressAreaService.selectAreasByParentCode(parentCode);
+
+        // 如果查询结果为空，返回一个空列表
+        if (areaList == null || areaList.isEmpty()) {
+            return R.fail("未查询到区域信息，请检查父级代码是否正确。");
+        }
+        return R.ok(areaList);
     }
 }

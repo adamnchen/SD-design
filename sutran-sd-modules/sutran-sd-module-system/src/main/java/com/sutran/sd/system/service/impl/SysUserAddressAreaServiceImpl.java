@@ -17,8 +17,8 @@ import java.util.List;
 @Service
 public class SysUserAddressAreaServiceImpl
 
-    extends ServiceImpl<SysAddressAreaMapper, SysAddressArea>
-    implements ISysUserAddressAreaService {
+        extends ServiceImpl<SysAddressAreaMapper, SysAddressArea>
+        implements ISysUserAddressAreaService {
 
     @Override
     public List<SysAddressArea> selectAreasByParentCode(String parentCode) {

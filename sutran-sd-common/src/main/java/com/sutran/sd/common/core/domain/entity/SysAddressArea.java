@@ -1,6 +1,9 @@
 package com.sutran.sd.common.core.domain.entity;
 
 import java.io.Serializable;
+
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
 /**
@@ -9,6 +12,7 @@ import lombok.Data;
  * 对应数据库表：sys_user_address_area
  */
 @Data
+@TableName("sys_user_address_area")
 public class SysAddressArea implements Serializable {
 
     private static final long serialVersionUID = 1L;
@@ -49,6 +53,7 @@ public class SysAddressArea implements Serializable {
     /**
      * 子级区域列表 (用于返回 JSON 嵌套数据时使用)
      */
+    @TableField(exist = false)
     private java.util.List<SysAddressArea> children;
 
 

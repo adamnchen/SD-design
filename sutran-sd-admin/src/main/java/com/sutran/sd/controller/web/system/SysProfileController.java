@@ -136,7 +136,7 @@ public class SysProfileController extends BaseController {
      *用户地址管理 添加地址
      */
     @Log(title = "用户地址管理", businessType = BusinessType.INSERT)
-    @PostMapping("/addAddress")
+    @PutMapping("/addAddress")
     public R<Void> addAddress(@RequestBody SysAddress address) {
         addressService.addAddress(address);
         return R.ok();

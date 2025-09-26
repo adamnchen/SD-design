@@ -1,44 +1,20 @@
 package com.sutran.sd.system.service.impl;
 
-import cn.hutool.core.collection.CollUtil;
-import cn.hutool.core.date.DateUtil;
-import cn.hutool.core.util.ArrayUtil;
-import cn.hutool.core.util.ObjectUtil;
-import cn.hutool.core.util.StrUtil;
-import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
-import com.baomidou.mybatisplus.core.toolkit.Wrappers;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.sutran.sd.common.constant.CacheNames;
-import com.sutran.sd.common.constant.UserConstants;
-import com.sutran.sd.common.core.domain.PageQuery;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.sutran.sd.common.core.domain.entity.*;
-import com.sutran.sd.common.core.page.TableDataInfo;
-import com.sutran.sd.common.core.service.UserService;
 import com.sutran.sd.common.exception.ServiceException;
-import com.sutran.sd.common.exception.TaskErrorException;
-import com.sutran.sd.common.helper.DataBaseHelper;
 import com.sutran.sd.common.helper.LoginHelper;
-import com.sutran.sd.common.utils.StreamUtils;
-import com.sutran.sd.common.utils.StringUtils;
-import com.sutran.sd.system.domain.SysPost;
-import com.sutran.sd.system.domain.SysUserPost;
-import com.sutran.sd.system.domain.SysUserRole;
-import com.sutran.sd.system.domain.bo.SysUserMemberBo;
 import com.sutran.sd.system.mapper.*;
 import com.sutran.sd.system.service.ISysUserAddressService;
-import com.sutran.sd.system.service.ISysUserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.cache.annotation.Cacheable;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * 用户 业务层处理
@@ -48,7 +24,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @RequiredArgsConstructor
 @Service
-public class SysUserAddressServiceImpl implements ISysUserAddressService {
+public class SysUserAddressServiceImpl  implements ISysUserAddressService {
 
 
     private final SysUserAddressMapper addressMapper;
@@ -159,6 +135,8 @@ public class SysUserAddressServiceImpl implements ISysUserAddressService {
             .eq(SysAddress::getId, addressId));
 
     }
+
+
 
 }
 

@@ -229,7 +229,9 @@ public class SysProfileController extends BaseController {
         tagService.addTag(userId, tagDTO);
         return R.ok();
     }
-
+    /**
+     * 删除标签
+     */
     @Log(title = "用户标签管理", businessType = BusinessType.DELETE)
     @DeleteMapping("/{tagId}") // DELETE /system/user/tag/{tagId}
     public R<Void> deleteTag(@PathVariable Long tagId) {
@@ -244,7 +246,7 @@ public class SysProfileController extends BaseController {
 
 
     @Log(title = "用户标签管理", businessType = BusinessType.UPDATE)
-    @PutMapping // PUT /system/user/tag
+    @PutMapping("/updateTag")
     public R<Void> updateTag(@RequestBody @Valid TagUpdateDTO tagDTO) {
 
         Long userId = LoginHelper.getUserId();

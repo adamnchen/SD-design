@@ -6,6 +6,7 @@ import com.sutran.sd.common.core.domain.entity.SysAddressArea;
 import com.sutran.sd.system.mapper.SysAddressAreaMapper;
 import com.sutran.sd.system.service.ISysUserAddressAreaService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -23,6 +24,8 @@ public class SysUserAddressAreaServiceImpl
     @Override
     public List<SysAddressArea> selectAreasByParentCode(String parentCode) {
 
+        log.info("【缓存未命中】正在查询数据库：parentCode={}", parentCode);
+
         QueryWrapper<SysAddressArea> queryWrapper = new QueryWrapper<>();
 
         queryWrapper.eq("parent_code", parentCode);
@@ -33,5 +36,10 @@ public class SysUserAddressAreaServiceImpl
         List<SysAddressArea> areaList = this.list(queryWrapper);
 
         return areaList;
+    }
+    @Override
+    @CacheEvict(value = "sys:address:area", key = "#parentCode")
+    public void clearAreaCache(String parentCode) {
+        log.info("【缓存清除】已触发清除地址缓存：Key={}", "sys:address:area:" + parentCode);
     }
 }

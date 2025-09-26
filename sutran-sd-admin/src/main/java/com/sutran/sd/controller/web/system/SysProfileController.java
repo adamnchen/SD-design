@@ -233,7 +233,7 @@ public class SysProfileController extends BaseController {
      * 删除标签
      */
     @Log(title = "用户标签管理", businessType = BusinessType.DELETE)
-    @DeleteMapping("/{tagId}") // DELETE /system/user/tag/{tagId}
+    @DeleteMapping("/{tagId}")
     public R<Void> deleteTag(@PathVariable Long tagId) {
         Long userId = LoginHelper.getUserId();
         if (userId == null) {

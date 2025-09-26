@@ -365,6 +365,13 @@
                 <version>${sutran-sd.version}</version>
             </dependency>
 
+            <!-- 设计业务模块-->
+            <dependency>
+                <groupId>com.sutran.sd</groupId>
+                <artifactId>sutran-sd-module-design</artifactId>
+                <version>${sutran-sd.version}</version>
+            </dependency>
+
             <!-- 支付模块 -->
             <dependency>
                 <groupId>com.sutran.sd</groupId>

@@ -58,6 +58,13 @@
             <artifactId>sutran-sd-module-draw</artifactId>
         </dependency>
 
+        <!-- 设计业务模块-->
+        <dependency>
+            <groupId>com.sutran.sd</groupId>
+            <artifactId>sutran-sd-module-design</artifactId>
+        </dependency>
+
+        <!-- 支付模块 -->
         <dependency>
             <groupId>com.sutran.sd</groupId>
             <artifactId>sutran-sd-module-pay</artifactId>

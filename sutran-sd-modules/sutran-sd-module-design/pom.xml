@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.sutran.sd</groupId>
+        <artifactId>sutran-sd-modules</artifactId>
+        <version>0.0.1</version>
+    </parent>
+    <artifactId>sutran-sd-module-design</artifactId>
+
+    <description>
+        设计业务模块
+    </description>
+
+    <dependencies>
+
+        <!-- SD绘图模块(包含了common、oss、system) -->
+        <dependency>
+            <groupId>com.sutran.sd</groupId>
+            <artifactId>sutran-sd-module-draw</artifactId>
+        </dependency>
+
+        <!-- 支付模块 -->
+        <dependency>
+            <groupId>com.sutran.sd</groupId>
+            <artifactId>sutran-sd-module-pay</artifactId>
+        </dependency>
+
+    </dependencies>
+
+</project>

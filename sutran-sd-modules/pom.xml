@@ -19,5 +19,6 @@
         <module>sutran-sd-module-ai</module>
         <module>sutran-sd-module-pay</module>
         <module>sutran-sd-module-draw</module>
+        <module>sutran-sd-module-design</module>
     </modules>
 </project>

@@ -1,30 +1,30 @@
 package com.sutran.sd.controller.web.system;
 
 import cn.dev33.satoken.annotation.SaCheckLogin;
-import cn.dev33.satoken.annotation.SaCheckPermission;
 import cn.dev33.satoken.secure.BCrypt;
 import cn.hutool.core.io.FileUtil;
 import com.sutran.sd.common.annotation.Log;
 import com.sutran.sd.common.core.controller.BaseController;
 import com.sutran.sd.common.core.domain.R;
+import com.sutran.sd.common.core.domain.dto.TagUpdateDTO;
+import com.sutran.sd.common.core.domain.dto.UserTagDTO;
 import com.sutran.sd.common.core.domain.entity.SysAddress;
 import com.sutran.sd.common.core.domain.entity.SysAddressArea;
 import com.sutran.sd.common.core.domain.entity.SysUser;
+import com.sutran.sd.common.core.domain.vo.TagDetailVO;
 import com.sutran.sd.common.enums.BusinessType;
 import com.sutran.sd.common.helper.LoginHelper;
 import com.sutran.sd.common.utils.StringUtils;
 import com.sutran.sd.common.utils.file.MimeTypeUtils;
 import com.sutran.sd.system.domain.vo.SysOssVo;
-import com.sutran.sd.system.service.ISysOssService;
-import com.sutran.sd.system.service.ISysUserAddressAreaService;
-import com.sutran.sd.system.service.ISysUserAddressService;
-import com.sutran.sd.system.service.ISysUserService;
+import com.sutran.sd.system.service.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.validation.Valid;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -43,9 +43,9 @@ public class SysProfileController extends BaseController {
 
     private final ISysUserService userService;
     private final ISysOssService iSysOssService;
-    private final ISysUserAddressService sysUserAddressService;
     private final ISysUserAddressService addressService;
     private final ISysUserAddressAreaService addressAreaService;
+    private final ISysUserTagService tagService;
     @SaCheckLogin
 
     /**
@@ -214,4 +214,81 @@ public class SysProfileController extends BaseController {
         }
         return R.ok(areaList);
     }
+    /**
+     * 用户标签管理-添加标签
+     */
+    @Log(title = "用户标签管理", businessType = BusinessType.INSERT)
+    @PostMapping("/addTag")
+    public R<Void> addTag(@RequestBody @Valid UserTagDTO tagDTO) {
+        // 1. 获取当前登录用户ID
+        Long userId = LoginHelper.getUserId();
+        if (userId == null) {
+            // 确保用户已登录，否则返回未登录或权限错误
+            return R.fail("用户未登录，操作失败。");
+        }
+        tagService.addTag(userId, tagDTO);
+        return R.ok();
+    }
+
+    @Log(title = "用户标签管理", businessType = BusinessType.DELETE)
+    @DeleteMapping("/{tagId}") // DELETE /system/user/tag/{tagId}
+    public R<Void> deleteTag(@PathVariable Long tagId) {
+        Long userId = LoginHelper.getUserId();
+        if (userId == null) {
+            return R.fail("用户未登录或Token无效。");
+        }
+        tagService.deleteTagById(userId, tagId);
+        return R.ok();
+    }
+
+
+
+    @Log(title = "用户标签管理", businessType = BusinessType.UPDATE)
+    @PutMapping // PUT /system/user/tag
+    public R<Void> updateTag(@RequestBody @Valid TagUpdateDTO tagDTO) {
+
+        Long userId = LoginHelper.getUserId();
+
+        if (userId == null) {
+            return R.fail("用户未登录或Token无效。");
+        }
+
+        // Service 层必须校验：1. 标签是否存在 2. 标签是否属于当前用户
+        tagService.updateTag(userId, tagDTO);
+
+        return R.ok();
+    }
+    /**
+     * 查询当前用户的所有标签列表
+     */
+    @GetMapping("/list") // GET /system/user/tag/list
+    public R<List<TagDetailVO>> listUserTags() {
+
+        Long userId = LoginHelper.getUserId();
+
+        if (userId == null) {
+            return R.fail("用户未登录或Token无效。");
+        }
+
+        // Service 层负责查询并转换为 VO
+        List<TagDetailVO> tagList = tagService.selectUserTagList(userId);
+
+        return R.ok(tagList);
+    }
+    /**
+     * 根据ID获取标签详情
+     */
+    @GetMapping("/{tagId}") // GET /system/user/tag/{tagId}
+    public R<TagDetailVO> getTagDetail(@PathVariable Long tagId) {
+
+        Long userId = LoginHelper.getUserId();
+
+        if (userId == null) {
+            return R.fail("用户未登录或Token无效。");
+        }
+        TagDetailVO tagDetail = tagService.selectTagDetailById(userId, tagId);
+
+        return R.ok(tagDetail);
+    }
+
 }

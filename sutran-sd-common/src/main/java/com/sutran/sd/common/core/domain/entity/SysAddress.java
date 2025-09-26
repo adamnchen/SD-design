@@ -13,6 +13,7 @@ import lombok.NoArgsConstructor;
 
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.Size;
+import java.util.Date;
 
 /**
  * 用户地址表 sys_address
@@ -98,6 +99,9 @@ public class SysAddress extends BaseEntity {
 
     @TableField(exist = false)
     private String updateBy;
+
+    @TableField(exist = false)
+    private Date updateTime;
 
 
 }

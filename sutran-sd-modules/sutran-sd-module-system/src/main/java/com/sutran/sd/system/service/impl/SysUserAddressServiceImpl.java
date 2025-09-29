@@ -109,6 +109,9 @@ public class SysUserAddressServiceImpl  implements ISysUserAddressService {
             if (address.getCounty() != null) {
                 areaCodes.add(address.getCounty());
             }
+            if (address.getAddress() != null) {
+                areaCodes.add(address.getAddress());
+            }
         }
 
         // 如果没有任何编码需要查询，直接返回
@@ -135,6 +138,9 @@ public class SysUserAddressServiceImpl  implements ISysUserAddressService {
             }
             if (address.getCounty() != null) {
                 address.setCountyName(areaNameMap.getOrDefault(address.getCounty(), ""));
+            }
+            if (address.getAddress() != null) {
+                address.setCountyName(areaNameMap.getOrDefault(address.getAddress(), ""));
             }
         }
 

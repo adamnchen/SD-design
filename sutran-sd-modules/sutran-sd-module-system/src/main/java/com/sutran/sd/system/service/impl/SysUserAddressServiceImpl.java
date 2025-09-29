@@ -171,7 +171,7 @@ public class SysUserAddressServiceImpl  implements ISysUserAddressService {
         addressAreaService.selectAreasByParentCode(address.getCounty())
             .stream().findFirst().ifPresent(sysAddressArea -> address.setCountyName(sysAddressArea.getAreaName()));
         addressAreaService.selectAreasByParentCode(address.getAddressName())
-            .stream().findFirst().ifPresent(sysAddressArea -> address.setCountyName(sysAddressArea.getAreaName()));
+            .stream().findFirst().ifPresent(sysAddressArea -> address.setAddressName(sysAddressArea.getAreaName()));
 
         return address;
     }

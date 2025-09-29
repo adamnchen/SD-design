@@ -140,7 +140,7 @@ public class SysUserAddressServiceImpl  implements ISysUserAddressService {
                 address.setCountyName(areaNameMap.getOrDefault(address.getCounty(), ""));
             }
             if (address.getAddress() != null) {
-                address.setCountyName(areaNameMap.getOrDefault(address.getAddress(), ""));
+                address.setAddressName(areaNameMap.getOrDefault(address.getAddress(), ""));
             }
         }
 

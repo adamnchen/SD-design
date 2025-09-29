@@ -164,6 +164,8 @@ public class SysUserAddressServiceImpl  implements ISysUserAddressService {
         // 获取区县名称
         addressAreaService.selectAreasByParentCode(address.getCounty())
             .stream().findFirst().ifPresent(sysAddressArea -> address.setCountyName(sysAddressArea.getAreaName()));
+        addressAreaService.selectAreasByParentCode(address.getAddressName())
+            .stream().findFirst().ifPresent(sysAddressArea -> address.setCountyName(sysAddressArea.getAreaName()));
 
         return address;
     }

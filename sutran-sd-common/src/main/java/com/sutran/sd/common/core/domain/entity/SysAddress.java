@@ -80,6 +80,8 @@ public class SysAddress extends BaseEntity {
     @TableField(exist = false)
     private String countyName;
 
+    @TableField(exist = false)
+    private String addressName;
     /**
      * 用户具体地址
      */

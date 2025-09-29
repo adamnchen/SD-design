@@ -1,13 +1,13 @@
 package com.sutran.sd.system.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.sutran.sd.common.core.domain.entity.*;
+import com.sutran.sd.common.core.domain.entity.SysAddress;
+import com.sutran.sd.common.core.domain.entity.SysAddressArea;
 import com.sutran.sd.common.exception.ServiceException;
 import com.sutran.sd.common.helper.LoginHelper;
-import com.sutran.sd.system.mapper.*;
+import com.sutran.sd.system.mapper.SysUserAddressMapper;
+import com.sutran.sd.system.service.ISysUserAddressAreaService;
 import com.sutran.sd.system.service.ISysUserAddressService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * 用户 业务层处理
@@ -28,6 +29,8 @@ public class SysUserAddressServiceImpl  implements ISysUserAddressService {
 
 
     private final SysUserAddressMapper addressMapper;
+    private final ISysUserAddressAreaService addressAreaService;
+
 
 
     /**
@@ -86,9 +89,56 @@ public class SysUserAddressServiceImpl  implements ISysUserAddressService {
 
 
     @Override
-    public List<SysAddress> selectAddressList(Long  userId) {
-       Long userid = LoginHelper.getUserId();
-        return addressMapper.selectAddressList(userid);
+    public List<SysAddress> selectAddressList(Long userId) {
+        // 1. 查询原始地址列表，包含省、市、区的编码
+        List<SysAddress> addressList = addressMapper.selectAddressList(userId);
+
+        if (addressList == null || addressList.isEmpty()) {
+            return Collections.emptyList(); // 返回一个空列表，而不是 null
+        }
+
+        // 2. 收集所有地址中不重复的 area codes
+        Set<String> areaCodes = new HashSet<>();
+        for (SysAddress address : addressList) {
+            if (address.getProvince() != null) {
+                areaCodes.add(address.getProvince());
+            }
+            if (address.getCity() != null) {
+                areaCodes.add(address.getCity());
+            }
+            if (address.getCounty() != null) {
+                areaCodes.add(address.getCounty());
+            }
+        }
+
+        // 如果没有任何编码需要查询，直接返回
+        if (areaCodes.isEmpty()) {
+            return addressList;
+        }
+
+        // 3. 一次性从数据库查询所有相关的区划信息
+        List<SysAddressArea> areaList = addressAreaService.list(
+            new LambdaQueryWrapper<SysAddressArea>().in(SysAddressArea::getAreaCode, areaCodes)
+        );
+
+        // 4. 将查询结果转换为 Map<AreaCode, AreaName> 以便快速查找
+        Map<String, String> areaNameMap = areaList.stream()
+            .collect(Collectors.toMap(SysAddressArea::getAreaCode, SysAddressArea::getAreaName, (k1, k2) -> k1));
+
+        // 5. 遍历地址列表，使用 Map 设置省、市、区的中文名称
+        for (SysAddress address : addressList) {
+            if (address.getProvince() != null) {
+                address.setProvinceName(areaNameMap.getOrDefault(address.getProvince(), ""));
+            }
+            if (address.getCity() != null) {
+                address.setCityName(areaNameMap.getOrDefault(address.getCity(), ""));
+            }
+            if (address.getCounty() != null) {
+                address.setCountyName(areaNameMap.getOrDefault(address.getCounty(), ""));
+            }
+        }
+
+        return addressList;
     }
 
     @Override
@@ -102,8 +152,20 @@ public class SysUserAddressServiceImpl  implements ISysUserAddressService {
 
         SysAddress address = addressMapper.selectOne(wrapper);
 
-        return Optional.ofNullable(address)
-            .orElseThrow(() -> new ServiceException("地址不存在或无权查看。"));
+        if (address == null) {
+            throw new ServiceException("地址不存在");
+        }
+        // 获取省份名称
+        addressAreaService.selectAreasByParentCode(address.getProvince())
+            .stream().findFirst().ifPresent(sysAddressArea -> address.setProvinceName(sysAddressArea.getAreaName()));
+        // 获取城市名称
+        addressAreaService.selectAreasByParentCode(address.getCity())
+            .stream().findFirst().ifPresent(sysAddressArea -> address.setCityName(sysAddressArea.getAreaName()));
+        // 获取区县名称
+        addressAreaService.selectAreasByParentCode(address.getCounty())
+            .stream().findFirst().ifPresent(sysAddressArea -> address.setCountyName(sysAddressArea.getAreaName()));
+
+        return address;
     }
 
     /**

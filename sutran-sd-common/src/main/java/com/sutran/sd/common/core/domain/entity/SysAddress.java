@@ -71,6 +71,17 @@ public class SysAddress extends BaseEntity {
     @TableField(value = "county")
     private String county;
 
+    @TableField(exist = false)
+    private String provinceName;
+
+    @TableField(exist = false)
+    private String cityName;
+
+    @TableField(exist = false)
+    private String countyName;
+
+    @TableField(exist = false)
+    private String addressName;
     /**
      * 用户具体地址
      */

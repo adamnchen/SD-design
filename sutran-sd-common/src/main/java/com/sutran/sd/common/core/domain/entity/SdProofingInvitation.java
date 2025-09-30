@@ -1,5 +1,7 @@
 package com.sutran.sd.common.core.domain.entity;
 
+import com.baomidou.mybatisplus.annotation.FieldFill;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
@@ -135,10 +137,12 @@ public class SdProofingInvitation implements Serializable {
     /**
      * 创建时间 (邀约时间)
      */
+    @TableField(fill = FieldFill.INSERT)
     private Date createdAt;
 
     /**
      * 记录更新时间
      */
+    @TableField(fill = FieldFill.INSERT_UPDATE)
     private Date updatedAt;
 }

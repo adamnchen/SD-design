@@ -44,6 +44,8 @@
         <fastjson2.version>2.0.19</fastjson2.version>
         <fastjson.version>1.2.83</fastjson.version>
         <thumbnail.version>0.4.19</thumbnail.version>
+        <meilisearch.version>0.11.1</meilisearch.version>
+        <gson.version>2.10.1</gson.version>
 
         <!-- OSS 配置 -->
         <aws-java-sdk-s3.version>1.12.540</aws-java-sdk-s3.version>
@@ -157,6 +159,8 @@
                 <artifactId>forest-spring-boot-starter</artifactId>
                 <version>${forest.version}</version>
             </dependency>
+
+
 
             <!-- 阿里-通义千问 -->
             <dependency>
@@ -405,6 +409,19 @@
                 <groupId>com.sutran.sd</groupId>
                 <artifactId>sutran-sd-module-sms</artifactId>
                 <version>${sutran-sd.version}</version>
+            </dependency>
+
+            <!-- meilisearch模块 -->
+            <dependency>
+                <groupId>com.meilisearch.sdk</groupId>
+                <artifactId>meilisearch-java</artifactId>
+                <version>${meilisearch.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.google.code.gson</groupId>
+                <artifactId>gson</artifactId>
+                <version>${gson.version}</version>
             </dependency>
 
         </dependencies>

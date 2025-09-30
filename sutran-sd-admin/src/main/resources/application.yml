@@ -539,3 +539,7 @@ ali:
     serverUrl: https://openapi.alipay.com/gateway.do
     # 外网访问项目的域名，支付通知中会使用
     domain: http://47.115.36.4:9002
+# MeiliSearch配置
+meilisearch:
+  host: http://localhost:7700
+  api-key: "" # 开发模式下 API Key 为空字符串，保持为空即可

@@ -81,4 +81,24 @@ public class ProofingInvitationDetailVO implements Serializable {
      * 记录更新时间
      */
     private Date updatedAt;
+
+    /**
+     * 【新增】发起人的用户昵称 (从 sys_user 表关联查询)
+     */
+    private String inviterNickName;
+
+    /**
+     * 【新增】发起人的用户头像 (从 sys_user 表关联查询)
+     */
+    private String inviterAvatar;
+
+    /**
+     * 【新增】被邀约人的用户昵称 (从 sys_user 表关联查询)
+     */
+    private String inviteeNickName;
+
+    /**
+     * 【新增】被邀约人的用户头像 (从 sys_user 表关联查询)
+     */
+    private String inviteeAvatar;
 }

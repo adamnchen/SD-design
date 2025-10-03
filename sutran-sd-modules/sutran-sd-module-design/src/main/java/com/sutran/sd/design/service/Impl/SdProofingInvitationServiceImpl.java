@@ -3,16 +3,15 @@ package com.sutran.sd.design.service.Impl;
 import com.sutran.sd.common.core.domain.dto.ProofingInvitationRequestDTO;
 import com.sutran.sd.common.core.domain.entity.SdProofingInvitation;
 import com.sutran.sd.common.core.domain.vo.ProofingInvitationDetailVO;
+import com.sutran.sd.common.exception.ServiceException;
 import com.sutran.sd.common.helper.LoginHelper;
-import com.sutran.sd.design.mapper.SdProofingInvitationMapper; // 假设您有这个Mapper
+import com.sutran.sd.design.mapper.SdProofingInvitationMapper;
 import com.sutran.sd.design.service.ISdProofingInvitationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.sutran.sd.common.exception.ServiceException;
-import java.util.Collections;
-import java.util.Date;
+
 import java.util.List;
 
 /**
@@ -30,11 +29,18 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
     private final SdProofingInvitationMapper invitationMapper;
 
 
+    private static final Integer STATUS_PENDING = 0;   // 待处理
+    private static final Integer STATUS_ACCEPTED = 1;  // 已接受
+    private static final Integer STATUS_REJECTED = 2;  // 已拒绝
+    private static final Integer STATUS_CANCELLED = 3; // 已取消
+
+
+
     /**
      * 创建并发送一个新的合作邀约
      */
     @Override
-    @Transactional // 建议增加事务注解，确保数据一致性
+    @Transactional
     public SdProofingInvitation createInvitation(ProofingInvitationRequestDTO createDTO) {
         // 1. 获取当前登录用户ID
         Long senderId = LoginHelper.getUserId();
@@ -56,7 +62,7 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
         BeanUtils.copyProperties(createDTO, invitation);
 // 2. 设置 DTO 中没有的、由业务逻辑决定的字段
         invitation.setInviterUserId(senderId);
-        invitation.setStatus(0);
+        invitation.setStatus(STATUS_PENDING);
         invitationMapper.insert(invitation);
         System.out.println("Executing: createInvitation");
         return invitation;
@@ -70,13 +76,15 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
      */
     @Override
     public List<ProofingInvitationDetailVO> getReceivedInvitations() {
-        // TODO: 1. 获取当前登录用户的ID。
-        // TODO: 2. 调用 invitationMapper 的查询方法，根据当前用户ID查询所有 recipientId 是自己的邀约。
-        // TODO: 3. Mapper 层建议使用联表查询，直接将结果封装为 ProofingInvitationDetailVO。
-        // TODO: 4. 返回查询到的列表。
-
+        Long userId = LoginHelper.getUserId();
+        Long currentUserId = LoginHelper.getUserId();
+        List<ProofingInvitationDetailVO> invitationList = invitationMapper.selectReceivedInvitationList(currentUserId);
         System.out.println("Executing: getReceivedInvitations");
-        return Collections.emptyList(); // 暂时返回一个空列表，避免空指针
+        // 3. 直接返回查询到的列表
+        return invitationList;
+
+
+
     }
 
     /**
@@ -84,13 +92,13 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
      */
     @Override
     public List<ProofingInvitationDetailVO> getSentInvitations() {
-        // TODO: 1. 获取当前登录用户的ID。
-        // TODO: 2. 调用 invitationMapper 的查询方法，根据当前用户ID查询所有 senderId 是自己的邀约。
-        // TODO: 3. Mapper 层建议使用联表查询，直接将结果封装为 ProofingInvitationDetailVO。
-        // TODO: 4. 返回查询到的列表。
-
+        Long userId = LoginHelper.getUserId();
+        Long currentUserId = LoginHelper.getUserId();
+        List<ProofingInvitationDetailVO> invitationList = invitationMapper.selectSentInvitationList(currentUserId);
         System.out.println("Executing: getSentInvitations");
-        return Collections.emptyList(); // 暂时返回一个空列表
+        // 3. 直接返回查询到的列表
+        return invitationList;
+
     }
 
     /**
@@ -99,15 +107,36 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
     @Override
     @Transactional
     public void acceptInvitation(Long invitationId) {
-        // TODO: 1. 根据 invitationId 从数据库查询出邀约实体。
-        // TODO: 2. 校验邀约是否存在。
-        // TODO: 3. 校验当前登录用户是否是该邀约的接收者 (recipientId)。
-        // TODO: 4. 校验邀约当前的状态是否为 PENDING (待处理)。
-        // TODO: 5. 如果校验通过，将邀约状态更新为 ACCEPTED。
-        // TODO: 6. 调用 invitationMapper.updateById() 方法更新数据库。
-        // TODO: 7. (可选) 触发后续业务，如发送通知等。
 
-        System.out.println("Executing: acceptInvitation for ID: " + invitationId);
+
+        Long currentUserId = LoginHelper.getUserId();
+
+
+        SdProofingInvitation invitation = invitationMapper.selectById(invitationId);
+        if (invitation == null) {
+            throw new ServiceException("操作失败，该邀约不存在或已被删除");
+        }
+
+
+
+        if (!invitation.getInviteeUserId().equals(currentUserId)) {
+            throw new ServiceException("权限不足，您不是该邀约的接收人");
+        }
+
+        if (!STATUS_PENDING.equals(invitation.getStatus())) {
+            throw new ServiceException("操作失败，该邀约已被处理或已取消，无法接受");
+        }
+
+        invitation.setStatus(STATUS_ACCEPTED);
+
+
+        int rows = invitationMapper.updateById(invitation);
+
+        System.out.println("Executing: getSentInvitations");
+
+        if (rows == 0) {
+            throw new ServiceException("操作失败，请重试");
+        }
     }
 
     /**
@@ -116,12 +145,29 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
     @Override
     @Transactional
     public void rejectInvitation(Long invitationId) {
-        // TODO: 1. 根据 invitationId 从数据库查询出邀约实体。
-        // TODO: 2. 校验邀约是否存在。
-        // TODO: 3. 校验当前登录用户是否是该邀约的接收者 (recipientId)。
-        // TODO: 4. 校验邀约当前的状态是否为 PENDING。
-        // TODO: 5. 如果校验通过，将邀约状态更新为 REJECTED。
-        // TODO: 6. 调用 invitationMapper.updateById() 方法更新数据库。
+        // 准备工作：获取当前操作的用户ID
+        Long currentUserId = LoginHelper.getUserId();
+
+        SdProofingInvitation invitation = invitationMapper.selectById(invitationId);
+        if (invitation == null) {
+            throw new ServiceException("操作失败，该邀约不存在或已被删除");
+        }
+
+        if (!invitation.getInviteeUserId().equals(currentUserId)) {
+            throw new ServiceException("权限不足，您不是该邀约的接收人");
+        }
+
+        if (!STATUS_PENDING.equals(invitation.getStatus())) {
+            throw new ServiceException("操作失败，该邀约已被处理或已取消，无法拒绝");
+        }
+
+        invitation.setStatus(STATUS_REJECTED); // 核心区别：状态设置为“已拒绝”
+
+        int rows = invitationMapper.updateById(invitation);
+        if (rows == 0) {
+
+            throw new ServiceException("数据库操作失败，请重试");
+        }
 
         System.out.println("Executing: rejectInvitation for ID: " + invitationId);
     }
@@ -132,13 +178,32 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
     @Override
     @Transactional
     public void cancelInvitation(Long invitationId) {
-        // TODO: 1. 根据 invitationId 从数据库查询出邀约实体。
-        // TODO: 2. 校验邀约是否存在。
-        // TODO: 3. 校验当前登录用户是否是该邀约的发送者 (senderId)。
-        // TODO: 4. 校验邀约当前的状态是否为 PENDING。
-        // TODO: 5. 如果校验通过，将邀约状态更新为 CANCELLED。
-        // TODO: 6. 调用 invitationMapper.updateById() 方法更新数据库。
+        Long currentUserId = LoginHelper.getUserId();
+
+        SdProofingInvitation invitation = invitationMapper.selectById(invitationId);
+        if (invitation == null) {
+            throw new ServiceException("操作失败，该邀约不存在或已被删除");
+        }
+
+        if (!invitation.getInviteeUserId().equals(currentUserId)) {
+            throw new ServiceException("权限不足，您不是该邀约的发起人");
+        }
+
+        if (!STATUS_PENDING.equals(invitation.getStatus())) {
+            throw new ServiceException("操作失败，该邀约已被处理，无法取消");
+        }
+
+        invitation.setStatus(STATUS_CANCELLED);
+
+        int rows = invitationMapper.updateById(invitation);
+        if (rows == 0) {
+
+            throw new ServiceException("操作失败，请重试");
+        }
 
         System.out.println("Executing: cancelInvitation for ID: " + invitationId);
     }
-}
+
+
+    }
+

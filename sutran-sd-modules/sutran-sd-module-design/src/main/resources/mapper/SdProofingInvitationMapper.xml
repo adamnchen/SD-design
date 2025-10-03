@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.sutran.sd.design.mapper.SdProofingInvitationMapper">
+
+    <resultMap id="ProofingInvitationDetailResult" type="com.sutran.sd.common.core.domain.vo.ProofingInvitationDetailVO">
+        <id     property="id"                 column="id"/>
+        <result property="workId"             column="work_id"/>
+        <result property="productTitle"       column="product_title"/>
+        <result property="status"             column="status"/>
+        <result property="createdAt"          column="created_at"/>
+        <result property="inviterUserId"      column="inviter_user_id"/>
+        <result property="inviteeUserId"      column="invitee_user_id"/>
+
+        <result property="inviterNickName"    column="inviter_nick_name"/>
+        <result property="inviterAvatar"      column="inviter_avatar"/>
+
+        <result property="inviteeNickName"    column="invitee_nick_name"/>
+        <result property="inviteeAvatar"      column="invitee_avatar"/>
+    </resultMap>
+
+    <select id="selectReceivedInvitationList" resultMap="ProofingInvitationDetailResult">
+        SELECT
+            -- 邀请表的基础字段
+            inv.id,
+            inv.work_id,
+            inv.product_title,
+            inv.status,
+            inv.created_at,
+            inv.inviter_user_id,
+            inv.invitee_user_id,
+
+            -- 关联查询【发起人】的用户信息
+            inviter.nick_name AS inviter_nick_name,
+            inviter.avatar    AS inviter_avatar
+        FROM
+            sd_proofing_invitations inv
+                LEFT JOIN
+            -- 关联用户表，获取【发起人】的信息
+                sys_user inviter ON inv.inviter_user_id = inviter.user_id
+        WHERE
+            -- 查询条件：我是【被邀约人】
+            inv.invitee_user_id = #{userId}
+        ORDER BY
+            inv.created_at DESC
+    </select>
+
+    <select id="selectSentInvitationList" resultMap="ProofingInvitationDetailResult">
+        SELECT
+            -- 邀请表的基础字段
+            inv.id,
+            inv.work_id,
+            inv.product_title,
+            inv.status,
+            inv.created_at,
+            inv.inviter_user_id,
+            inv.invitee_user_id,
+
+            -- 关联查询【被邀约人】的用户信息
+            invitee.nick_name AS invitee_nick_name,
+            invitee.avatar    AS invitee_avatar
+        FROM
+            sd_proofing_invitations inv
+                LEFT JOIN
+            -- 关联用户表，获取【被邀约人】的信息
+                sys_user invitee ON inv.invitee_user_id = invitee.user_id
+        WHERE
+            -- 查询条件：我是【发起人】
+            inv.inviter_user_id = #{userId}
+        ORDER BY
+            inv.created_at DESC
+    </select>
+
+</mapper>

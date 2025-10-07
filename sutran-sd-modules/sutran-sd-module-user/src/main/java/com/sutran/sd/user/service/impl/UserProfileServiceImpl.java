@@ -27,7 +27,7 @@ import java.util.Map;
  */
 @Slf4j
 @RequiredArgsConstructor
-@Service
+@Service("userProfileService")
 public class UserProfileServiceImpl implements IUserProfileService {
 
     private final ISysUserService userService;

@@ -24,7 +24,7 @@ import java.util.stream.Collectors;
  */
 @Slf4j
 @RequiredArgsConstructor
-@Service
+@Service("sysUserAddressService")
 public class SysUserAddressServiceImpl  implements ISysUserAddressService {
 
 

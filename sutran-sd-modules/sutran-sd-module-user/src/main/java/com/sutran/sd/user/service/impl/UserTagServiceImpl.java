@@ -22,7 +22,7 @@ import java.util.List;
  */
 @Slf4j
 @RequiredArgsConstructor
-@Service
+@Service("userTagService")
 public class UserTagServiceImpl implements IUserTagService {
 
     private final ISysUserTagService sysUserTagService;

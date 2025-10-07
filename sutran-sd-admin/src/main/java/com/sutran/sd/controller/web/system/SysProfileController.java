@@ -7,6 +7,11 @@ import com.sutran.sd.common.annotation.Log;
 import com.sutran.sd.common.core.controller.BaseController;
 import com.sutran.sd.common.core.domain.R;
 import com.sutran.sd.common.core.domain.entity.SysUser;
+import com.sutran.sd.common.core.domain.entity.SysAddress;
+import com.sutran.sd.common.core.domain.entity.SysAddressArea;
+import com.sutran.sd.common.core.domain.dto.TagUpdateDTO;
+import com.sutran.sd.common.core.domain.dto.UserTagDTO;
+import com.sutran.sd.common.core.domain.vo.TagDetailVO;
 import com.sutran.sd.common.enums.BusinessType;
 import com.sutran.sd.common.helper.LoginHelper;
 import com.sutran.sd.common.utils.StringUtils;
@@ -14,19 +19,22 @@ import com.sutran.sd.common.utils.file.MimeTypeUtils;
 import com.sutran.sd.system.domain.vo.SysOssVo;
 import com.sutran.sd.system.service.ISysOssService;
 import com.sutran.sd.system.service.ISysUserService;
+import com.sutran.sd.user.service.IUserAddressService;
+import com.sutran.sd.user.service.IUserTagService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.validation.Valid;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
- * 后台管理系统 - 个人信息管理
- * 注意：客户端用户功能已迁移到 /api/user/profile
+ * 后台管理系统 - 管理员个人信息管理 + 用户信息管理
  *
  * @author Lion Li
  */
@@ -39,6 +47,8 @@ public class SysProfileController extends BaseController {
 
     private final ISysUserService userService;
     private final ISysOssService iSysOssService;
+    private final IUserAddressService addressService;
+    private final IUserTagService tagService;
 
     /**
      * 个人信息

@@ -362,6 +362,13 @@
                 <version>${sutran-sd.version}</version>
             </dependency>
 
+            <!-- 用户业务模块-->
+            <dependency>
+                <groupId>com.sutran.sd</groupId>
+                <artifactId>sutran-sd-module-user</artifactId>
+                <version>${sutran-sd.version}</version>
+            </dependency>
+
             <!-- SD绘图/训练模块-->
             <dependency>
                 <groupId>com.sutran.sd</groupId>

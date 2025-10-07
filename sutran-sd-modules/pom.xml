@@ -13,6 +13,7 @@
 
     <modules>
         <module>sutran-sd-module-system</module>
+        <module>sutran-sd-module-user</module>
         <module>sutran-sd-module-oss</module>
         <module>sutran-sd-module-sms</module>
         <module>sutran-sd-module-generator</module>

@@ -52,6 +52,12 @@
             <artifactId>sutran-sd-module-system</artifactId>
         </dependency>
 
+        <!-- 用户业务模块-->
+        <dependency>
+            <groupId>com.sutran.sd</groupId>
+            <artifactId>sutran-sd-module-user</artifactId>
+        </dependency>
+
         <!-- 绘图模块 -->
         <dependency>
             <groupId>com.sutran.sd</groupId>

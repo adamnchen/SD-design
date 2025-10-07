@@ -11,7 +11,7 @@
  Target Server Version : 80040 (8.0.40)
  File Encoding         : 65001
 
- Date: 07/10/2025 16:27:09
+ Date: 07/10/2025 17:13:40
 */
 
 SET NAMES utf8mb4;
@@ -34,7 +34,7 @@ CREATE TABLE `sd_proofing_invitations`  (
   `is_batch_production` tinyint(1) NOT NULL DEFAULT 0 COMMENT '是否需要批量生产（0:否, 1:是）',
   `proofing_quantity` int UNSIGNED NOT NULL COMMENT '期望的打样数量 (件)',
   `delivery_limit_hours` int UNSIGNED NOT NULL COMMENT '发起方要求的预计交付时限 (小时)',
-  `cancel_time_limit` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '无人应答自动取消时限描述',
+  `cancel_time_limit` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '无人应答自动取消时限(1,2,3,一天两天与三天)',
   `quoted_price` decimal(10, 2) NULL DEFAULT NULL COMMENT '被邀约方提交的报价金额 (元)',
   `quoted_period_days` int UNSIGNED NULL DEFAULT NULL COMMENT '被邀约方提交的预计打样周期 (天)',
   `is_quote_batch_plan` tinyint(1) NOT NULL DEFAULT 0 COMMENT '报价时是否提供了批量生产方案 (0:否, 1:是)',

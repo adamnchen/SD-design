@@ -296,5 +296,9 @@ public class SysProfileController extends BaseController {
 
         return R.ok(tagDetail);
     }
+    /**
+     * 用户标识接口
+     */
+
 
 }

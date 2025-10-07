@@ -185,7 +185,7 @@ public class SysUser extends BaseEntity {
     /**
      * 用户标识（0为设计师和厂家,1为设计师，2为普通用户，默认为2）
      */
-    private String user_sign;
+    private String userSign;
 
     public SysUser(Long userId) {
         this.userId = userId;

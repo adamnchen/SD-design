@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.sutran.sd</groupId>
+        <artifactId>sutran-sd-modules</artifactId>
+        <version>0.0.1</version>
+    </parent>
+
+    <artifactId>sutran-sd-module-user</artifactId>
+
+    <description>
+        用户业务模块 - 用户个人信息、地址、标签等业务功能
+    </description>
+
+    <dependencies>
+
+        <!-- 通用工具-->
+        <dependency>
+            <groupId>com.sutran.sd</groupId>
+            <artifactId>sutran-sd-common</artifactId>
+        </dependency>
+
+        <!-- 系统模块(用于基础数据访问) -->
+        <dependency>
+            <groupId>com.sutran.sd</groupId>
+            <artifactId>sutran-sd-module-system</artifactId>
+        </dependency>
+
+        <!-- OSS功能模块 -->
+        <dependency>
+            <groupId>com.sutran.sd</groupId>
+            <artifactId>sutran-sd-module-oss</artifactId>
+        </dependency>
+
+        <!-- SMS功能模块 -->
+        <dependency>
+            <groupId>com.sutran.sd</groupId>
+            <artifactId>sutran-sd-module-sms</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.alibaba</groupId>
+            <artifactId>fastjson</artifactId>
+        </dependency>
+
+    </dependencies>
+
+</project>

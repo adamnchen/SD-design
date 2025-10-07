@@ -20,6 +20,9 @@ import com.sutran.sd.system.domain.vo.SysOssVo;
 import com.sutran.sd.user.service.IUserProfileService;
 import com.sutran.sd.user.service.IUserAddressService;
 import com.sutran.sd.user.service.IUserTagService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.validation.annotation.Validated;
@@ -37,6 +40,7 @@ import java.util.Map;
  *
  * @author SutranSD
  */
+@Tag(name = "用户个人信息管理", description = "客户端用户个人信息、地址、标签管理接口")
 @Validated
 @RequiredArgsConstructor
 @RestController
@@ -51,6 +55,7 @@ public class UserProfileController extends BaseController {
     /**
      * 获取个人信息
      */
+    @Operation(summary = "获取个人信息", description = "获取当前登录用户的基本信息")
     @GetMapping
     public R<Map<String, Object>> profile() {
         return R.ok(userProfileService.getUserProfile(getUserId()));
@@ -59,6 +64,7 @@ public class UserProfileController extends BaseController {
     /**
      * 修改个人信息
      */
+    @Operation(summary = "修改个人信息", description = "更新当前登录用户的基本信息")
     @Log(title = "个人信息", businessType = BusinessType.UPDATE)
     @PutMapping
     public R<Void> updateProfile(@RequestBody SysUser user) {
@@ -141,6 +147,7 @@ public class UserProfileController extends BaseController {
     /**
      * 获取用户所有地址
      */
+    @Operation(summary = "获取用户地址列表", description = "获取当前用户的所有收货地址")
     @Log(title = "用户地址管理")
     @GetMapping("/address")
     public R<List<SysAddress>> getAddressList() {
@@ -232,6 +239,7 @@ public class UserProfileController extends BaseController {
     /**
      * 查询当前用户的所有标签列表
      */
+    @Operation(summary = "获取用户标签列表", description = "获取当前用户的所有个人标签")
     @GetMapping("/tag")
     public R<List<TagDetailVO>> listUserTags() {
 

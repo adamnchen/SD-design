@@ -155,6 +155,13 @@ public class SdProofingInvitation extends BaseEntity {
     // createTime 对应数据库的 created_at
     // updateTime 对应数据库的 updated_at
 
+
+    @TableField(exist = false)
+    private String createBy;
+
+    @TableField(exist = false)
+    private String updateBy;
+
     /**
      * 打样样品参与抽奖的数量分配给众筹用户,最少一个
      */

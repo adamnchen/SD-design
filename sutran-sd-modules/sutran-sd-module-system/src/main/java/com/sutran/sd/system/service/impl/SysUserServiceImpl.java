@@ -12,9 +12,11 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.sutran.sd.common.constant.CacheNames;
+import com.sutran.sd.common.constant.TagConstants;
 import com.sutran.sd.common.constant.UserConstants;
 import com.sutran.sd.common.core.domain.PageQuery;
 import com.sutran.sd.common.core.domain.entity.*;
+import com.sutran.sd.common.core.domain.dto.UserTagDTO;
 import com.sutran.sd.common.core.page.TableDataInfo;
 import com.sutran.sd.common.core.service.UserService;
 import com.sutran.sd.common.exception.ServiceException;
@@ -30,6 +32,7 @@ import com.sutran.sd.common.core.domain.entity.SysAddress;
 import com.sutran.sd.system.domain.bo.SysUserMemberBo;
 import com.sutran.sd.system.mapper.*;
 import com.sutran.sd.system.service.ISysUserService;
+import com.sutran.sd.system.service.ISysUserTagService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
@@ -58,6 +61,7 @@ public class SysUserServiceImpl implements ISysUserService, UserService {
     private final SysUserPostMapper userPostMapper;
     private final SysUserMemberMapper userMemberMapper;
     private final SysUserAddressMapper addressMapper;
+    private final ISysUserTagService sysUserTagService;
 
     @Override
     public TableDataInfo<SysUser> selectPageUserList(SysUser user, PageQuery pageQuery) {
@@ -307,10 +311,43 @@ public class SysUserServiceImpl implements ISysUserService, UserService {
      * @return 结果
      */
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public boolean registerUser(SysUser user) {
         user.setCreateBy(user.getUserName());
         user.setUpdateBy(user.getUserName());
-        return baseMapper.insert(user) > 0;
+        boolean result = baseMapper.insert(user) > 0;
+        
+        if (result) {
+            // 自动为用户创建默认身份标签（普通用户）
+            createDefaultIdentityTag(user.getUserId());
+        }
+        
+        return result;
+    }
+    
+    /**
+     * 为用户创建默认身份标签
+     * 
+     * @param userId 用户ID
+     */
+    private void createDefaultIdentityTag(Long userId) {
+        try {
+            UserTagDTO defaultTagDTO = new UserTagDTO();
+            defaultTagDTO.setTagName("普通用户");
+            defaultTagDTO.setDescription("系统默认身份标签");
+            defaultTagDTO.setBizType(TagConstants.IDENTITY_TAG_USER); // 2 = 普通用户
+            defaultTagDTO.setTagLevel(TagConstants.TAG_LEVEL_NORMAL); // 1 = 普通等级
+            defaultTagDTO.setSortOrder(TagConstants.DEFAULT_SORT_ORDER); // 0 = 默认排序
+            
+            // 使用系统用户标签服务创建标签
+            if (sysUserTagService != null) {
+                sysUserTagService.addTag(userId, defaultTagDTO);
+                System.out.println("为用户 " + userId + " 自动创建默认身份标签：普通用户");
+            }
+        } catch (Exception e) {
+            // 记录错误但不影响用户注册
+            System.err.println("为用户 " + userId + " 创建默认身份标签失败: " + e.getMessage());
+        }
     }
 
     /**

@@ -7,6 +7,7 @@ import com.sutran.sd.common.core.domain.entity.SysUserTag;
 import com.sutran.sd.common.core.domain.dto.TagUpdateDTO;
 import com.sutran.sd.common.core.domain.vo.TagDetailVO;
 import com.sutran.sd.common.exception.ServiceException;
+import com.sutran.sd.common.constant.TagConstants;
 import com.sutran.sd.system.mapper.SysUserTagMapper;
 import com.sutran.sd.system.service.ISysUserTagService; // Service 接口
 import org.springframework.beans.BeanUtils;
@@ -39,8 +40,8 @@ public class SysUserTagServiceImpl
 
         tag.setUserId(userId);
 
-        if (tag.getBizType() == null) tag.setBizType(1);
-        if (tag.getTagLevel() == null) tag.setTagLevel(1);
+        if (tag.getBizType() == null) tag.setBizType(TagConstants.DEFAULT_BIZ_TYPE);
+        if (tag.getTagLevel() == null) tag.setTagLevel(TagConstants.DEFAULT_TAG_LEVEL);
 
         this.save(tag);
     }
@@ -48,8 +49,8 @@ public class SysUserTagServiceImpl
 
     @Override
     public void deleteTagById(Long userId, Long tagId) {
-        // 逻辑正确，无需修改
-        LambdaUpdateWrapper<SysUserTag> wrapper = new LambdaUpdateWrapper<>();
+        // 使用物理删除，彻底删除记录
+        LambdaQueryWrapper<SysUserTag> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(SysUserTag::getTagId, tagId)
                 .eq(SysUserTag::getUserId, userId);
 
@@ -114,5 +115,24 @@ public class SysUserTagServiceImpl
         BeanUtils.copyProperties(tagEntity, vo);
 
         return vo;
+    }
+
+    @Override
+    public List<TagDetailVO> selectUserTagListByType(Long userId, Integer bizType) {
+        LambdaQueryWrapper<SysUserTag> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(SysUserTag::getUserId, userId)
+                .eq(SysUserTag::getBizType, bizType)
+                .orderByAsc(SysUserTag::getSortOrder)
+                .orderByAsc(SysUserTag::getCreateTime);
+
+        List<SysUserTag> tagEntities = this.list(wrapper);
+
+        return tagEntities.stream()
+                .map(entity -> {
+                    TagDetailVO vo = new TagDetailVO();
+                    BeanUtils.copyProperties(entity, vo);
+                    return vo;
+                })
+                .collect(Collectors.toList());
     }
 }

@@ -55,4 +55,10 @@ public interface ISdProofingInvitationService {
      * @param invitationId 邀约ID
      */
     void cancelInvitation(Long invitationId);
+
+    /**
+     * 自动取消超时的邀约
+     * 根据 cancel_time_limit 字段自动取消超时的邀约
+     */
+    void autoCancelExpiredInvitations();
 }

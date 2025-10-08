@@ -2,10 +2,12 @@ package com.sutran.sd.user.service.impl;
 
 import cn.dev33.satoken.secure.BCrypt;
 import cn.hutool.core.io.FileUtil;
+import com.sutran.sd.common.core.domain.dto.UserProfileUpdateDTO;
 import com.sutran.sd.common.core.domain.entity.SysUser;
+import com.sutran.sd.common.core.domain.vo.UserProfileVO;
+import org.springframework.beans.BeanUtils;
 import com.sutran.sd.system.domain.vo.SysOssVo;
 import com.sutran.sd.common.exception.ServiceException;
-import com.sutran.sd.common.helper.LoginHelper;
 import com.sutran.sd.common.utils.StringUtils;
 import com.sutran.sd.common.utils.file.MimeTypeUtils;
 import com.sutran.sd.system.service.ISysOssService;
@@ -17,8 +19,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * 用户个人信息服务实现
@@ -34,31 +34,46 @@ public class UserProfileServiceImpl implements IUserProfileService {
     private final ISysOssService ossService;
 
     @Override
-    public Map<String, Object> getUserProfile(Long userId) {
+    public UserProfileVO getClientUserProfile(Long userId) {
         SysUser user = userService.selectUserById(userId);
-        Map<String, Object> result = new HashMap<>();
-        result.put("user", user);
-        result.put("roleGroup", userService.selectUserRoleGroup(user.getUserName()));
-        result.put("postGroup", userService.selectUserPostGroup(user.getUserName()));
-        return result;
+        UserProfileVO vo = new UserProfileVO();
+        BeanUtils.copyProperties(user, vo);
+        return vo;
     }
 
     @Override
-    public boolean updateUserProfile(Long userId, SysUser user) {
-        if (StringUtils.isNotEmpty(user.getPhonenumber()) && !checkPhoneUnique(user)) {
-            throw new ServiceException("修改用户'" + user.getUserName() + "'失败，手机号码已存在");
+    public boolean updateClientUserProfile(Long userId, UserProfileUpdateDTO updateDTO) {
+        // 验证手机号唯一性
+        if (StringUtils.isNotEmpty(updateDTO.getPhonenumber())) {
+            SysUser checkUser = new SysUser();
+            checkUser.setUserId(userId);
+            checkUser.setPhonenumber(updateDTO.getPhonenumber());
+            if (!userService.checkPhoneUnique(checkUser)) {
+                throw new ServiceException("修改用户失败，手机号码已存在");
+            }
         }
-        if (StringUtils.isNotEmpty(user.getEmail()) && !checkEmailUnique(user)) {
-            throw new ServiceException("修改用户'" + user.getUserName() + "'失败，邮箱账号已存在");
+        
+        // 验证邮箱唯一性
+        if (StringUtils.isNotEmpty(updateDTO.getEmail())) {
+            SysUser checkUser = new SysUser();
+            checkUser.setUserId(userId);
+            checkUser.setEmail(updateDTO.getEmail());
+            if (!userService.checkEmailUnique(checkUser)) {
+                throw new ServiceException("修改用户失败，邮箱账号已存在");
+            }
         }
 
-        user.setUserId(userId);
-        user.setUserName(null);
-        user.setPassword(null);
-        user.setAvatar(null);
-        user.setDeptId(null);
+        // 创建更新对象
+        SysUser updateUser = new SysUser();
+        updateUser.setUserId(userId);
+        updateUser.setNickName(updateDTO.getNickName());
+        updateUser.setEmail(updateDTO.getEmail());
+        updateUser.setPhonenumber(updateDTO.getPhonenumber());
+        updateUser.setSex(updateDTO.getSex());
+        updateUser.setDescription(updateDTO.getDescription());
+        updateUser.setRemark(updateDTO.getRemark());
 
-        return userService.updateUserProfile(user) > 0;
+        return userService.updateUserProfile(updateUser) > 0;
     }
 
     @Override
@@ -98,13 +113,4 @@ public class UserProfileServiceImpl implements IUserProfileService {
         throw new ServiceException("上传图片异常，请联系管理员");
     }
 
-    @Override
-    public boolean checkPhoneUnique(SysUser user) {
-        return userService.checkPhoneUnique(user);
-    }
-
-    @Override
-    public boolean checkEmailUnique(SysUser user) {
-        return userService.checkEmailUnique(user);
-    }
 }

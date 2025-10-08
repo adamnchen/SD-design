@@ -251,12 +251,12 @@ public class SpringDocConfig {
     public GroupedOpenApi userServiceApi() {
         return GroupedOpenApi.builder()
             .group("用户端接口")
-            .pathsToMatch("/api/**")
+            .pathsToMatch("/user/**")
             // 添加自定义配置，这里添加了一个用户认证的 header，否则 knife4j 里会没有 header
             .addOperationCustomizer((operation, handlerMethod) -> operation.security(
                 Collections.singletonList(new SecurityRequirement().addList(TOKEN_HEADER)))
             )
-            .packagesToScan("com.sutran.sd.controller.api")
+            .packagesToScan("com.sutran.sd.controller.profile")
             .build();
     }
 

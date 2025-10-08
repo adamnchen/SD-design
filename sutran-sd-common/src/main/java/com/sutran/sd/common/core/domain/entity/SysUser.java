@@ -62,9 +62,26 @@ public class SysUser extends BaseEntity {
     private String nickName;
 
     /**
-     * 用户类型（sys_user系统用户）
+     * 用户类型（sys_user系统用户,bs_user-业务用户）
      */
     private String userType;
+
+    /**
+     * 用户渠道来源ID
+     */
+    @TableField("channel_id")
+    private String channelId;
+
+    /**
+     * 用户渠道来源
+     */
+    private String channel;
+
+    /**
+     * 渠道用户ID
+     */
+    @TableField("channel_user_id")
+    private String channelUserId;
 
     /**
      * 用户邮箱
@@ -132,20 +149,35 @@ public class SysUser extends BaseEntity {
      */
     private String remark;
 
-    /** 用户渠道ID **/
-    private String channelId;
-    /** 用户渠道名称 **/
-    private String channel;
-    /** 渠道用户ID **/
-    private String channelUserId;
-    /** 账号有效期 **/
+    /**
+     * 限制有效期
+     */
+    @TableField("limit_valid_date")
     private Date limitValidDate;
-    /** 限制模型训练次数 **/
+
+    /**
+     * 限制模型训练次数
+     */
+    @TableField("limit_train_times")
     private Integer limitTrainTimes;
-    /** 限制绘图图片数量 **/
+
+    /**
+     * 限制绘图张数
+     */
+    @TableField("limit_draw_num")
     private Integer limitDrawNum;
-    /** 是否关闭引导[0-否,1-是] **/
+
+    /**
+     * 是否关闭引导[0-否,1-是]
+     */
+    @TableField("is_close_guide")
     private Integer isCloseGuide;
+
+    /**
+     *个人简介
+     */
+    @TableField("description")
+    private String description;
 
     /**
      * 部门对象
@@ -182,10 +214,7 @@ public class SysUser extends BaseEntity {
      */
     @TableField(exist = false)
     private SysUserMember member;
-    /**
-     * 用户标识（0为设计师和厂家,1为设计师，2为普通用户，默认为2）
-     */
-    private String userSign;
+
 
     public SysUser(Long userId) {
         this.userId = userId;

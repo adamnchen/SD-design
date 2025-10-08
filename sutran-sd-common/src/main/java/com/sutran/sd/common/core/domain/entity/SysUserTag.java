@@ -2,7 +2,6 @@ package com.sutran.sd.common.core.domain.entity; // 假设你的实体类包路�
 
 
 import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data; // 自动生成 Getter, Setter, toString, equals, hashCode
 
@@ -42,7 +41,7 @@ public class SysUserTag implements Serializable {
     private String description;
 
     /**
-     * 业务类型：1=身份/能力标签
+     * 标签类型：0=厂商+设计师，1=设计师，2=普通用户，3=客户自定义
      */
     private Integer bizType;
 
@@ -68,7 +67,8 @@ public class SysUserTag implements Serializable {
 
     /**
      * 逻辑删除标识：0=未删除，1=已删除
+     * 注意：当前使用物理删除，不使用逻辑删除
+     * 此字段保留但不使用 @TableLogic 注解
      */
-    @TableLogic
     private Integer deleted;
 }

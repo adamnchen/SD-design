@@ -1,10 +1,9 @@
 package com.sutran.sd.controller.design;
 
-import com.meilisearch.sdk.model.SearchResult;
 import com.sutran.sd.common.core.domain.R;
 import com.sutran.sd.common.core.domain.dto.ProofingInvitationRequestDTO;
-import com.sutran.sd.common.core.domain.entity.SdProofingInvitation;
 import com.sutran.sd.common.core.domain.vo.ProofingInvitationDetailVO;
+import com.sutran.sd.common.core.domain.vo.ManufacturerSearchResultVO;
 import com.sutran.sd.design.service.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -12,6 +11,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -24,14 +24,14 @@ public class ProofingInvitationController {
 
     private final ISdProofingInvitationService invitationService;
     private final IIndexingService indexingService;
-    private final IManufacturerSearchService searchService;
+    private final IFuzzySearchService fuzzySearchService;
 
     /**
      * 发起一个新的合作邀约
      */
     @PostMapping
-    public R<SdProofingInvitation> createInvitation(@Validated @RequestBody ProofingInvitationRequestDTO createDTO) {
-        SdProofingInvitation invitation = invitationService.createInvitation(createDTO);
+    public R<String> createInvitation(@Validated @RequestBody ProofingInvitationRequestDTO createDTO) {
+        invitationService.createInvitation(createDTO);
         return R.ok("邀约发送成功");
     }
 
@@ -41,7 +41,12 @@ public class ProofingInvitationController {
     @GetMapping("/received")
     public R<List<ProofingInvitationDetailVO>> getMyReceivedInvitations() {
         List<ProofingInvitationDetailVO> list = invitationService.getReceivedInvitations();
-        return R.ok(list);
+        
+        if (list == null || list.isEmpty()) {
+            return R.ok("暂无收到的邀约", list);
+        }
+        
+        return R.ok("成功获取 " + list.size() + " 个邀约", list);
     }
 
     /**
@@ -50,7 +55,12 @@ public class ProofingInvitationController {
     @GetMapping("/sent")
     public R<List<ProofingInvitationDetailVO>> getMySentInvitations() {
         List<ProofingInvitationDetailVO> list = invitationService.getSentInvitations();
-        return R.ok(list);
+        
+        if (list == null || list.isEmpty()) {
+            return R.ok("暂无发出的邀约", list);
+        }
+        
+        return R.ok("成功获取 " + list.size() + " 个邀约", list);
     }
 
     /**
@@ -99,19 +109,66 @@ public class ProofingInvitationController {
 
 
     /**
-     * 根据标签搜索厂商
+     * 根据标签搜索厂商（使用模糊匹配）
      * @param tags 从 URL 查询参数中获取的标签，例如: /search?tags=首饰
      * @return 搜索结果
      */
     @GetMapping("/search")
-    public ResponseEntity<?> search(@RequestParam String tags) {
+    public R<List<ManufacturerSearchResultVO>> search(@RequestParam String tags) {
         try {
-            SearchResult results = searchService.search(tags);
-            // 将 MeiliSearch 的原始结果直接返回给前端
-            return ResponseEntity.ok(results);
+            List<ManufacturerSearchResultVO> results = fuzzySearchService.searchManufacturers(tags);
+            return R.ok(results);
         } catch (Exception e) {
             e.printStackTrace();
-            return ResponseEntity.internalServerError().body("搜索时发生错误: " + e.getMessage());
+            return R.fail("搜索时发生错误: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 根据多个标签搜索厂商
+     * @param tags 标签列表，用逗号分隔，例如: /search/tags?tags=首饰,珠宝,金饰
+     * @return 搜索结果
+     */
+    @GetMapping("/search/tags")
+    public R<List<ManufacturerSearchResultVO>> searchByTags(@RequestParam String tags) {
+        try {
+            List<String> tagList = Arrays.asList(tags.split(","));
+            List<ManufacturerSearchResultVO> results = fuzzySearchService.searchManufacturersByTags(tagList);
+            return R.ok(results);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return R.fail("搜索时发生错误: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 测试模糊匹配功能
+     * @param keyword 测试关键词
+     * @return 搜索结果
+     */
+    @GetMapping("/test-search")
+    public R<List<ManufacturerSearchResultVO>> testSearch(@RequestParam(defaultValue = "首饰") String keyword) {
+        try {
+            List<ManufacturerSearchResultVO> results = fuzzySearchService.searchManufacturers(keyword);
+            return R.ok("模糊匹配测试完成，找到 " + results.size() + " 个匹配结果", results);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return R.fail("测试搜索时发生错误: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 手动触发自动取消超时邀约
+     * @return 操作结果
+     */
+    @PostMapping("/auto-cancel-expired")
+    public R<String> autoCancelExpiredInvitations() {
+        try {
+            invitationService.autoCancelExpiredInvitations();
+            return R.ok("自动取消超时邀约完成");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return R.fail("自动取消超时邀约失败: " + e.getMessage());
         }
     }
 }

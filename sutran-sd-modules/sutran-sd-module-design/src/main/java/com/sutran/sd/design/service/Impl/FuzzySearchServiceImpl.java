@@ -1,0 +1,268 @@
+package com.sutran.sd.design.service.Impl;
+
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.sutran.sd.common.core.domain.entity.SysUser;
+import com.sutran.sd.common.core.domain.entity.SysUserTag;
+import com.sutran.sd.common.core.domain.vo.ManufacturerSearchResultVO;
+import com.sutran.sd.common.constant.TagConstants;
+import com.sutran.sd.design.service.IFuzzySearchService;
+import com.sutran.sd.system.mapper.SysUserMapper;
+import com.sutran.sd.system.mapper.SysUserTagMapper;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
+
+import java.util.*;
+import java.util.stream.Collectors;
+
+/**
+ * 模糊匹配搜索服务实现
+ * 基于数据库进行模糊匹配，替代 MeiliSearch
+ *
+ * @author SutranSD
+ */
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class FuzzySearchServiceImpl implements IFuzzySearchService {
+
+    private final SysUserMapper sysUserMapper;
+    private final SysUserTagMapper sysUserTagMapper;
+
+    @Override
+    public List<ManufacturerSearchResultVO> searchManufacturers(String keywords) {
+        if (!StringUtils.hasText(keywords)) {
+            return Collections.emptyList();
+        }
+
+        log.info("开始模糊搜索厂商，关键词：{}", keywords);
+
+        // 1. 获取所有厂商用户
+        List<SysUser> manufacturers = getAllManufacturers();
+        if (manufacturers.isEmpty()) {
+            log.warn("数据库中没有找到厂商用户");
+            return Collections.emptyList();
+        }
+
+        // 2. 获取所有厂商的标签
+        Map<Long, List<SysUserTag>> userTagsMap = getUserTagsMap(manufacturers);
+
+        // 3. 进行模糊匹配
+        List<ManufacturerSearchResultVO> results = new ArrayList<>();
+        for (SysUser manufacturer : manufacturers) {
+            List<SysUserTag> userTags = userTagsMap.getOrDefault(manufacturer.getUserId(), Collections.emptyList());
+            ManufacturerSearchResultVO result = calculateMatch(manufacturer, userTags, keywords);
+            
+            if (result.getMatchScore() > 0) {
+                results.add(result);
+            }
+        }
+
+        // 4. 按匹配度排序
+        results.sort((a, b) -> Integer.compare(b.getMatchScore(), a.getMatchScore()));
+
+        log.info("搜索完成，找到 {} 个匹配的厂商", results.size());
+        return results;
+    }
+
+    @Override
+    public List<ManufacturerSearchResultVO> searchManufacturersByTags(List<String> tags) {
+        if (tags == null || tags.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        log.info("开始根据标签搜索厂商，标签：{}", tags);
+
+        // 1. 获取所有厂商用户
+        List<SysUser> manufacturers = getAllManufacturers();
+        if (manufacturers.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        // 2. 获取所有厂商的标签
+        Map<Long, List<SysUserTag>> userTagsMap = getUserTagsMap(manufacturers);
+
+        // 3. 进行标签匹配
+        List<ManufacturerSearchResultVO> results = new ArrayList<>();
+        for (SysUser manufacturer : manufacturers) {
+            List<SysUserTag> userTags = userTagsMap.getOrDefault(manufacturer.getUserId(), Collections.emptyList());
+            ManufacturerSearchResultVO result = calculateTagMatch(manufacturer, userTags, tags);
+            
+            if (result.getMatchScore() > 0) {
+                results.add(result);
+            }
+        }
+
+        // 4. 按匹配度排序
+        results.sort((a, b) -> Integer.compare(b.getMatchScore(), a.getMatchScore()));
+
+        log.info("标签搜索完成，找到 {} 个匹配的厂商", results.size());
+        return results;
+    }
+
+    /**
+     * 获取所有厂商用户
+     */
+    private List<SysUser> getAllManufacturers() {
+        LambdaQueryWrapper<SysUser> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(SysUser::getUserType, "bs_user")
+               .eq(SysUser::getDelFlag, "0"); // 未删除的用户
+        return sysUserMapper.selectList(wrapper);
+    }
+
+    /**
+     * 获取用户标签映射
+     */
+    private Map<Long, List<SysUserTag>> getUserTagsMap(List<SysUser> manufacturers) {
+        List<Long> userIds = manufacturers.stream()
+                .map(SysUser::getUserId)
+                .collect(Collectors.toList());
+
+        LambdaQueryWrapper<SysUserTag> wrapper = new LambdaQueryWrapper<>();
+        wrapper.in(SysUserTag::getUserId, userIds)
+               .eq(SysUserTag::getBizType, TagConstants.BUSINESS_TAG); // 只获取业务标签
+
+        List<SysUserTag> allTags = sysUserTagMapper.selectList(wrapper);
+        return allTags.stream()
+                .collect(Collectors.groupingBy(SysUserTag::getUserId));
+    }
+
+    /**
+     * 计算关键词匹配度
+     */
+    private ManufacturerSearchResultVO calculateMatch(SysUser manufacturer, List<SysUserTag> userTags, String keywords) {
+        ManufacturerSearchResultVO result = new ManufacturerSearchResultVO();
+        result.setUserId(manufacturer.getUserId());
+        result.setNickName(manufacturer.getNickName());
+        result.setAvatar(manufacturer.getAvatar());
+        result.setDescription(manufacturer.getRemark());
+
+        List<String> tagNames = userTags.stream()
+                .map(SysUserTag::getTagName)
+                .collect(Collectors.toList());
+        result.setTags(tagNames);
+
+        // 计算匹配度
+        int matchScore = 0;
+        List<String> matchedTags = new ArrayList<>();
+        String lowerKeywords = keywords.toLowerCase();
+
+        for (SysUserTag tag : userTags) {
+            String tagName = tag.getTagName().toLowerCase();
+            
+            // 完全匹配
+            if (tagName.equals(lowerKeywords)) {
+                matchScore += 100;
+                matchedTags.add(tag.getTagName());
+            }
+            // 包含匹配
+            else if (tagName.contains(lowerKeywords) || lowerKeywords.contains(tagName)) {
+                matchScore += 80;
+                matchedTags.add(tag.getTagName());
+            }
+            // 模糊匹配（简单的字符相似度）
+            else if (calculateSimilarity(tagName, lowerKeywords) > 0.6) {
+                matchScore += 60;
+                matchedTags.add(tag.getTagName());
+            }
+        }
+
+        result.setMatchScore(Math.min(matchScore, 100));
+        result.setMatchedTags(matchedTags);
+
+        return result;
+    }
+
+    /**
+     * 计算标签匹配度
+     */
+    private ManufacturerSearchResultVO calculateTagMatch(SysUser manufacturer, List<SysUserTag> userTags, List<String> searchTags) {
+        ManufacturerSearchResultVO result = new ManufacturerSearchResultVO();
+        result.setUserId(manufacturer.getUserId());
+        result.setNickName(manufacturer.getNickName());
+        result.setAvatar(manufacturer.getAvatar());
+        result.setDescription(manufacturer.getRemark());
+
+        List<String> tagNames = userTags.stream()
+                .map(SysUserTag::getTagName)
+                .collect(Collectors.toList());
+        result.setTags(tagNames);
+
+        // 计算匹配度
+        int matchScore = 0;
+        List<String> matchedTags = new ArrayList<>();
+
+        for (String searchTag : searchTags) {
+            String lowerSearchTag = searchTag.toLowerCase();
+            
+            for (SysUserTag userTag : userTags) {
+                String tagName = userTag.getTagName().toLowerCase();
+                
+                // 完全匹配
+                if (tagName.equals(lowerSearchTag)) {
+                    matchScore += 100;
+                    if (!matchedTags.contains(userTag.getTagName())) {
+                        matchedTags.add(userTag.getTagName());
+                    }
+                }
+                // 包含匹配
+                else if (tagName.contains(lowerSearchTag) || lowerSearchTag.contains(tagName)) {
+                    matchScore += 80;
+                    if (!matchedTags.contains(userTag.getTagName())) {
+                        matchedTags.add(userTag.getTagName());
+                    }
+                }
+                // 模糊匹配
+                else if (calculateSimilarity(tagName, lowerSearchTag) > 0.6) {
+                    matchScore += 60;
+                    if (!matchedTags.contains(userTag.getTagName())) {
+                        matchedTags.add(userTag.getTagName());
+                    }
+                }
+            }
+        }
+
+        result.setMatchScore(Math.min(matchScore, 100));
+        result.setMatchedTags(matchedTags);
+
+        return result;
+    }
+
+    /**
+     * 计算字符串相似度（简单的编辑距离算法）
+     */
+    private double calculateSimilarity(String s1, String s2) {
+        if (s1.equals(s2)) return 1.0;
+        if (s1.length() == 0 || s2.length() == 0) return 0.0;
+
+        int maxLength = Math.max(s1.length(), s2.length());
+        int editDistance = calculateEditDistance(s1, s2);
+        
+        return 1.0 - (double) editDistance / maxLength;
+    }
+
+    /**
+     * 计算编辑距离
+     */
+    private int calculateEditDistance(String s1, String s2) {
+        int[][] dp = new int[s1.length() + 1][s2.length() + 1];
+        
+        for (int i = 0; i <= s1.length(); i++) {
+            for (int j = 0; j <= s2.length(); j++) {
+                if (i == 0) {
+                    dp[i][j] = j;
+                } else if (j == 0) {
+                    dp[i][j] = i;
+                } else {
+                    dp[i][j] = Math.min(
+                        Math.min(dp[i - 1][j] + 1, dp[i][j - 1] + 1),
+                        dp[i - 1][j - 1] + (s1.charAt(i - 1) == s2.charAt(j - 1) ? 0 : 1)
+                    );
+                }
+            }
+        }
+        
+        return dp[s1.length()][s2.length()];
+    }
+}

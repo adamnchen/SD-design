@@ -76,7 +76,14 @@ public class ProofingInvitationRequestDTO implements Serializable {
     private Integer deliveryLimitHours;
 
     /**
-     * 无人应答自动取消时限描述 (例如: '2天内无人应答')
+     * 【必填】无人应答自动取消时限 (1:一天, 2:两天, 3:三天)
      */
-    private String cancelTimeLimit;
+    @NotNull(message = "自动取消时限不能为空")
+    private Integer cancelTimeLimit;
+
+    /**
+     * 【必填】打样样品参与抽奖的数量分配给众筹用户,最少一个
+     */
+    @NotNull(message = "抽奖数量不能为空")
+    private Integer drawNumber;
 }

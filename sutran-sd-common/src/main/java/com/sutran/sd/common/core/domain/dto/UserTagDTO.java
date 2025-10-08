@@ -22,7 +22,7 @@ public class UserTagDTO {
     private String description;
 
     /**
-     * 业务类型：默认为1，可由前端指定或后端硬编码
+     * 标签类型：0=厂商+设计师，1=设计师，2=普通用户，3=客户自定义
      */
     private Integer bizType;
 

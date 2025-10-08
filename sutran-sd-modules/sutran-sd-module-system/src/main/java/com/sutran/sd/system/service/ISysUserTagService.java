@@ -19,4 +19,12 @@ public interface ISysUserTagService {
     void updateTag(Long userId, @Valid TagUpdateDTO tagDTO);
 
     void deleteTagById(Long userId, Long tagId);
+
+    /**
+     * 根据标签类型获取用户标签列表
+     * @param userId 用户ID
+     * @param bizType 标签类型（0=身份标签，1=业务标签）
+     * @return 标签列表
+     */
+    List<TagDetailVO> selectUserTagListByType(Long userId, Integer bizType);
 }

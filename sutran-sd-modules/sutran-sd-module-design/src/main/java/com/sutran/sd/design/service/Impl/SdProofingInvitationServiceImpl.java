@@ -48,29 +48,25 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
         if (recipientId == null) {
             throw new ServiceException("邀约的接收用户不能为空");
         }
-        
-        // 3. 校验不能向自己发起邀约
-        if (senderId.equals(recipientId)) {
-            throw new ServiceException("不能向自己发起邀约");
-        }
-        
+
+
         // 4. 验证取消时限值
-        if (createDTO.getCancelTimeLimit() != null && 
+        if (createDTO.getCancelTimeLimit() != null &&
             !ProofingInvitationConstants.isValidCancelTimeLimit(createDTO.getCancelTimeLimit())) {
             throw new ServiceException("自动取消时限值无效，必须是1、2、3中的一个");
         }
-        
+
         // 5. 验证抽奖数量
         if (createDTO.getDrawNumber() == null || createDTO.getDrawNumber() < 1) {
             throw new ServiceException("抽奖数量不能为空且必须大于等于1");
         }
-        
+
         // 6. 创建邀约实体
         SdProofingInvitation invitation = new SdProofingInvitation();
         BeanUtils.copyProperties(createDTO, invitation);
         invitation.setInviterUserId(senderId);
         invitation.setStatus(ProofingInvitationConstants.STATUS_PENDING);
-        
+
         // 7. 保存到数据库
         invitationMapper.insert(invitation);
         return invitation;
@@ -212,7 +208,7 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
             new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<SdProofingInvitation>()
                 .eq(SdProofingInvitation::getStatus, ProofingInvitationConstants.STATUS_PENDING)
         );
-        
+
         int cancelledCount = 0;
         for (SdProofingInvitation invitation : pendingInvitations) {
             if (isInvitationExpired(invitation)) {
@@ -221,10 +217,10 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
                 cancelledCount++;
             }
         }
-        
+
         System.out.println("自动取消超时邀约完成，共取消 " + cancelledCount + " 个邀约");
     }
-    
+
     /**
      * 判断邀约是否已超时
      */
@@ -232,13 +228,13 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
         if (invitation.getCancelTimeLimit() == null) {
             return false; // 没有设置取消时限，不自动取消
         }
-        
+
         // 计算超时时间（天数）
         int expireDays = ProofingInvitationConstants.getCancelTimeDays(invitation.getCancelTimeLimit());
-        
+
         // 计算创建时间 + 超时天数
         long expireTime = invitation.getCreatedAt().getTime() + (expireDays * 24 * 60 * 60 * 1000L);
-        
+
         // 当前时间是否超过超时时间
         return System.currentTimeMillis() > expireTime;
     }

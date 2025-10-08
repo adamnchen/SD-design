@@ -116,6 +116,65 @@ public class UserProfileController extends BaseController {
     }
 
     /**
+     * 添加地址
+     */
+    @Operation(summary = "添加地址", description = "为用户添加新的收货地址")
+    @Log(title = "用户地址管理", businessType = BusinessType.INSERT)
+    @PostMapping("/address")
+    public R<Void> addAddress(@RequestBody @Valid SysAddress address) {
+        Long currentUserId = LoginHelper.getUserId();
+        if (currentUserId == null) {
+            return R.fail("用户未登录或Token无效");
+        }
+        addressService.addAddress(address);
+        return R.ok();
+    }
+
+    /**
+     * 修改地址
+     */
+    @Operation(summary = "修改地址", description = "修改用户的收货地址信息")
+    @Log(title = "用户地址管理", businessType = BusinessType.UPDATE)
+    @PutMapping("/address")
+    public R<Void> updateAddress(@RequestBody @Valid SysAddress address) {
+        Long currentUserId = LoginHelper.getUserId();
+        if (currentUserId == null) {
+            return R.fail("用户未登录或Token无效");
+        }
+        addressService.updateAddress(address);
+        return R.ok();
+    }
+
+    /**
+     * 删除地址
+     */
+    @Operation(summary = "删除地址", description = "删除用户的收货地址")
+    @Log(title = "用户地址管理", businessType = BusinessType.DELETE)
+    @DeleteMapping("/address/{addressId}")
+    public R<Void> deleteAddress(@PathVariable Long addressId) {
+        Long currentUserId = LoginHelper.getUserId();
+        if (currentUserId == null) {
+            return R.fail("用户未登录或Token无效");
+        }
+        addressService.deleteAddress(addressId);
+        return R.ok();
+    }
+
+    /**
+     * 获取地址详情
+     */
+    @Operation(summary = "获取地址详情", description = "根据地址ID获取地址详细信息")
+    @GetMapping("/address/{addressId}")
+    public R<SysAddress> getAddressDetail(@PathVariable Long addressId) {
+        Long currentUserId = LoginHelper.getUserId();
+        if (currentUserId == null) {
+            return R.fail("用户未登录或Token无效");
+        }
+        SysAddress address = addressService.getAddress(addressId);
+        return R.ok(address);
+    }
+
+    /**
      * 设置默认地址
      */
     @Log(title = "用户地址管理", businessType = BusinessType.UPDATE)

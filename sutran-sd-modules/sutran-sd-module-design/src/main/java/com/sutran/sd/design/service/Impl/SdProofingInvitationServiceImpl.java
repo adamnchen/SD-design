@@ -13,6 +13,7 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -79,7 +80,13 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
     public List<ProofingInvitationDetailVO> getReceivedInvitations() {
         Long currentUserId = LoginHelper.getUserId();
         List<ProofingInvitationDetailVO> invitationList = invitationMapper.selectReceivedInvitationList(currentUserId);
-        System.out.println("Executing: getReceivedInvitations");
+        
+        if (invitationList == null || invitationList.isEmpty()) {
+            System.out.println("用户 " + currentUserId + " 没有收到任何邀约");
+            return new ArrayList<>(); // 返回空列表而不是null
+        }
+        
+        System.out.println("用户 " + currentUserId + " 收到 " + invitationList.size() + " 个邀约");
         return invitationList;
     }
 
@@ -90,7 +97,13 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
     public List<ProofingInvitationDetailVO> getSentInvitations() {
         Long currentUserId = LoginHelper.getUserId();
         List<ProofingInvitationDetailVO> invitationList = invitationMapper.selectSentInvitationList(currentUserId);
-        System.out.println("Executing: getSentInvitations");
+        
+        if (invitationList == null || invitationList.isEmpty()) {
+            System.out.println("用户 " + currentUserId + " 没有发出任何邀约");
+            return new ArrayList<>(); // 返回空列表而不是null
+        }
+        
+        System.out.println("用户 " + currentUserId + " 发出 " + invitationList.size() + " 个邀约");
         return invitationList;
     }
 

@@ -41,7 +41,12 @@ public class ProofingInvitationController {
     @GetMapping("/received")
     public R<List<ProofingInvitationDetailVO>> getMyReceivedInvitations() {
         List<ProofingInvitationDetailVO> list = invitationService.getReceivedInvitations();
-        return R.ok(list);
+        
+        if (list == null || list.isEmpty()) {
+            return R.ok("暂无收到的邀约", list);
+        }
+        
+        return R.ok("成功获取 " + list.size() + " 个邀约", list);
     }
 
     /**
@@ -50,7 +55,12 @@ public class ProofingInvitationController {
     @GetMapping("/sent")
     public R<List<ProofingInvitationDetailVO>> getMySentInvitations() {
         List<ProofingInvitationDetailVO> list = invitationService.getSentInvitations();
-        return R.ok(list);
+        
+        if (list == null || list.isEmpty()) {
+            return R.ok("暂无发出的邀约", list);
+        }
+        
+        return R.ok("成功获取 " + list.size() + " 个邀约", list);
     }
 
     /**

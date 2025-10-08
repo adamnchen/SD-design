@@ -1,14 +1,14 @@
 package com.sutran.sd.common.core.domain.entity;
 
-import com.baomidou.mybatisplus.annotation.FieldFill;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.sutran.sd.common.core.domain.BaseEntity;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
-import java.io.Serializable;
 import java.math.BigDecimal;
 import java.util.Date;
 
@@ -18,8 +18,9 @@ import java.util.Date;
  * @date
  */
 @Data
+@EqualsAndHashCode(callSuper = false)
 @TableName("sd_proofing_invitations")
-public class SdProofingInvitation implements Serializable {
+public class SdProofingInvitation extends BaseEntity {
 
     private static final long serialVersionUID = 1L;
 
@@ -150,17 +151,9 @@ public class SdProofingInvitation implements Serializable {
     @NotNull(message = "邀约状态不能为空")
     private Integer status; // 使用Integer对应TINYINT
 
-    /**
-     * 创建时间 (邀约时间)
-     */
-    @TableField(value = "created_at", fill = FieldFill.INSERT)
-    private Date createdAt;
-
-    /**
-     * 记录更新时间
-     */
-    @TableField(value = "updated_at", fill = FieldFill.INSERT_UPDATE)
-    private Date updatedAt;
+    // 创建时间和更新时间由 BaseEntity 提供
+    // createTime 对应数据库的 created_at
+    // updateTime 对应数据库的 updated_at
 
     /**
      * 打样样品参与抽奖的数量分配给众筹用户,最少一个

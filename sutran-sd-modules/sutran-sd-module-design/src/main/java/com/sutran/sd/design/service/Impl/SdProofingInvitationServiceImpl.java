@@ -246,7 +246,7 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
         int expireDays = ProofingInvitationConstants.getCancelTimeDays(invitation.getCancelTimeLimit());
 
         // 计算创建时间 + 超时天数
-        long expireTime = invitation.getCreatedAt().getTime() + (expireDays * 24 * 60 * 60 * 1000L);
+        long expireTime = invitation.getCreateTime().getTime() + (expireDays * 24 * 60 * 60 * 1000L);
 
         // 当前时间是否超过超时时间
         return System.currentTimeMillis() > expireTime;

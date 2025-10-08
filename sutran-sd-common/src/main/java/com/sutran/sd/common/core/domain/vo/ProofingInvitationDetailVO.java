@@ -80,12 +80,12 @@ public class ProofingInvitationDetailVO implements Serializable {
     /**
      * 创建时间 (邀约时间)
      */
-    private Date createdAt;
+    private Date createTime;
 
     /**
      * 记录更新时间
      */
-    private Date updatedAt;
+    private Date updateTime;
 
     /**
      * 【新增】发起人的用户昵称 (从 sys_user 表关联查询)

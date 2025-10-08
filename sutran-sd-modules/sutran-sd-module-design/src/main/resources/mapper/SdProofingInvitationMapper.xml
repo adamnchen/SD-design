@@ -22,8 +22,8 @@
         <result property="isQuoteBatchPlan"   column="is_quote_batch_plan"/>
         <result property="quoteSubmitAt"      column="quote_submit_at"/>
         <result property="status"             column="status"/>
-        <result property="createdAt"          column="created_at"/>
-        <result property="updatedAt"          column="updated_at"/>
+        <result property="createTime"        column="created_at"/>
+        <result property="updateTime"        column="updated_at"/>
         <result property="inviterUserId"      column="inviter_user_id"/>
         <result property="inviteeUserId"      column="invitee_user_id"/>
         <result property="drawNumber"            column="draw_number"/>

@@ -1,9 +1,8 @@
 package com.sutran.sd.user.service;
 
-import com.sutran.sd.common.core.domain.entity.SysUser;
+import com.sutran.sd.common.core.domain.dto.UserProfileUpdateDTO;
+import com.sutran.sd.common.core.domain.vo.UserProfileVO;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.util.Map;
 
 /**
  * 用户个人信息服务
@@ -13,19 +12,19 @@ import java.util.Map;
 public interface IUserProfileService {
 
     /**
-     * 获取用户个人信息
+     * 获取客户端用户个人信息
      * @param userId 用户ID
-     * @return 用户信息
+     * @return 用户信息VO
      */
-    Map<String, Object> getUserProfile(Long userId);
+    UserProfileVO getClientUserProfile(Long userId);
 
     /**
-     * 更新用户个人信息
+     * 更新客户端用户个人信息
      * @param userId 用户ID
-     * @param user 用户信息
+     * @param updateDTO 更新信息
      * @return 更新结果
      */
-    boolean updateUserProfile(Long userId, SysUser user);
+    boolean updateClientUserProfile(Long userId, UserProfileUpdateDTO updateDTO);
 
     /**
      * 修改用户密码
@@ -44,17 +43,4 @@ public interface IUserProfileService {
      */
     String uploadAvatar(Long userId, MultipartFile avatarFile);
 
-    /**
-     * 检查手机号是否唯一
-     * @param user 用户信息
-     * @return 是否唯一
-     */
-    boolean checkPhoneUnique(SysUser user);
-
-    /**
-     * 检查邮箱是否唯一
-     * @param user 用户信息
-     * @return 是否唯一
-     */
-    boolean checkEmailUnique(SysUser user);
 }

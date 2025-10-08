@@ -174,6 +174,12 @@ public class SysUser extends BaseEntity {
     private Integer isCloseGuide;
 
     /**
+     *个人简介
+     */
+    @TableField("description")
+    private String description;
+
+    /**
      * 部门对象
      */
     @TableField(exist = false)
@@ -208,9 +214,7 @@ public class SysUser extends BaseEntity {
      */
     @TableField(exist = false)
     private SysUserMember member;
-    /**
-     * 用户标识（0为设计师和厂家,1为设计师，2为普通用户，默认为2）
-     */
+
 
     public SysUser(Long userId) {
         this.userId = userId;

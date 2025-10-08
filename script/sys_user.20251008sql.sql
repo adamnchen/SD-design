@@ -11,7 +11,7 @@
  Target Server Version : 80040 (8.0.40)
  File Encoding         : 65001
 
- Date: 08/10/2025 11:06:06
+ Date: 08/10/2025 14:41:07
 */
 
 SET NAMES utf8mb4;
@@ -49,7 +49,7 @@ CREATE TABLE `sys_user`  (
   `limit_train_times` int NULL DEFAULT NULL COMMENT '限制模型训练次数',
   `limit_draw_num` int NULL DEFAULT NULL COMMENT '限制绘图张数',
   `is_close_guide` int NULL DEFAULT 0 COMMENT '是否关闭引导[0-否,1-是]',
-  ` description` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '用户个人简介',
+  `description` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '用户个人简介',
   PRIMARY KEY (`user_id`) USING BTREE,
   UNIQUE INDEX `wx_open_id`(`wx_open_id` ASC) USING BTREE,
   UNIQUE INDEX `phonenumber`(`phonenumber` ASC) USING BTREE,

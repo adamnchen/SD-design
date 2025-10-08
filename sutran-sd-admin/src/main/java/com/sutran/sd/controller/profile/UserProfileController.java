@@ -5,11 +5,12 @@ import com.sutran.sd.common.annotation.Log;
 import com.sutran.sd.common.core.controller.BaseController;
 import com.sutran.sd.common.core.domain.R;
 import com.sutran.sd.common.core.domain.dto.TagUpdateDTO;
+import com.sutran.sd.common.core.domain.dto.UserProfileUpdateDTO;
 import com.sutran.sd.common.core.domain.dto.UserTagDTO;
 import com.sutran.sd.common.core.domain.entity.SysAddress;
 import com.sutran.sd.common.core.domain.entity.SysAddressArea;
-import com.sutran.sd.common.core.domain.entity.SysUser;
 import com.sutran.sd.common.core.domain.vo.TagDetailVO;
+import com.sutran.sd.common.core.domain.vo.UserProfileVO;
 import com.sutran.sd.common.enums.BusinessType;
 import com.sutran.sd.common.helper.LoginHelper;
 import com.sutran.sd.user.service.IUserAddressService;
@@ -30,7 +31,7 @@ import java.util.Map;
 /**
  * 客户端用户个人信息管理
  *
- * @author SutranSD
+ * @author 陈善
  */
 @Tag(name = "用户个人信息管理", description = "客户端用户个人信息、地址、标签管理接口")
 @Validated
@@ -49,8 +50,8 @@ public class UserProfileController extends BaseController {
      */
     @Operation(summary = "获取个人信息", description = "获取当前登录用户的基本信息")
     @GetMapping
-    public R<Map<String, Object>> profile() {
-        return R.ok(userProfileService.getUserProfile(getUserId()));
+    public R<UserProfileVO> profile() {
+        return R.ok(userProfileService.getClientUserProfile(getUserId()));
     }
 
     /**
@@ -59,8 +60,8 @@ public class UserProfileController extends BaseController {
     @Operation(summary = "修改个人信息", description = "更新当前登录用户的基本信息")
     @Log(title = "个人信息", businessType = BusinessType.UPDATE)
     @PutMapping
-    public R<Void> updateProfile(@RequestBody SysUser user) {
-        if (userProfileService.updateUserProfile(getUserId(), user)) {
+    public R<Void> updateProfile(@RequestBody @Valid UserProfileUpdateDTO updateDTO) {
+        if (userProfileService.updateClientUserProfile(getUserId(), updateDTO)) {
             return R.ok();
         }
         return R.fail("修改个人信息异常，请联系管理员");

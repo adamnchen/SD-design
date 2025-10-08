@@ -100,9 +100,9 @@ public class SdProofingInvitation implements Serializable {
     private Integer deliveryLimitHours;
 
     /**
-     * 无人应答自动取消时限描述
+     * 无人应答自动取消时限 (1:一天, 2:两天, 3:三天)
      */
-    private String cancelTimeLimit;
+    private Integer cancelTimeLimit;
 
     // --- 报价信息 (由被邀约方填写) ---
 
@@ -145,4 +145,10 @@ public class SdProofingInvitation implements Serializable {
      */
     @TableField(fill = FieldFill.INSERT_UPDATE)
     private Date updatedAt;
+
+    /**
+     * 打样样品参与抽奖的数量分配给众筹用户,最少一个
+     */
+    @NotNull(message = "抽奖数量不能为空")
+    private Integer drawNumber;
 }

@@ -9,14 +9,27 @@
         <id     property="id"                 column="id"/>
         <result property="workId"             column="work_id"/>
         <result property="productTitle"       column="product_title"/>
+        <result property="productDescription" column="product_description"/>
+        <result property="modelSource"         column="model_source"/>
+        <result property="cooperationContent" column="cooperation_content"/>
+        <result property="keywords"           column="keywords"/>
+        <result property="isBatchProduction"  column="is_batch_production"/>
+        <result property="proofingQuantity"   column="proofing_quantity"/>
+        <result property="deliveryLimitHours" column="delivery_limit_hours"/>
+        <result property="cancelTimeLimit"    column="cancel_time_limit"/>
+        <result property="quotedPrice"        column="quoted_price"/>
+        <result property="quotedPeriodDays"   column="quoted_period_days"/>
+        <result property="isQuoteBatchPlan"   column="is_quote_batch_plan"/>
+        <result property="quoteSubmitAt"      column="quote_submit_at"/>
         <result property="status"             column="status"/>
         <result property="createdAt"          column="created_at"/>
+        <result property="updatedAt"          column="updated_at"/>
         <result property="inviterUserId"      column="inviter_user_id"/>
         <result property="inviteeUserId"      column="invitee_user_id"/>
+        <result property="drawNumber"            column="draw_number"/>
 
         <result property="inviterNickName"    column="inviter_nick_name"/>
         <result property="inviterAvatar"      column="inviter_avatar"/>
-
         <result property="inviteeNickName"    column="invitee_nick_name"/>
         <result property="inviteeAvatar"      column="invitee_avatar"/>
     </resultMap>
@@ -27,10 +40,24 @@
             inv.id,
             inv.work_id,
             inv.product_title,
+            inv.product_description,
+            inv.model_source,
+            inv.cooperation_content,
+            inv.keywords,
+            inv.is_batch_production,
+            inv.proofing_quantity,
+            inv.delivery_limit_hours,
+            inv.cancel_time_limit,
+            inv.quoted_price,
+            inv.quoted_period_days,
+            inv.is_quote_batch_plan,
+            inv.quote_submit_at,
             inv.status,
             inv.created_at,
+            inv.updated_at,
             inv.inviter_user_id,
             inv.invitee_user_id,
+            inv.draw_number,
 
             -- 关联查询【发起人】的用户信息
             inviter.nick_name AS inviter_nick_name,
@@ -53,10 +80,24 @@
             inv.id,
             inv.work_id,
             inv.product_title,
+            inv.product_description,
+            inv.model_source,
+            inv.cooperation_content,
+            inv.keywords,
+            inv.is_batch_production,
+            inv.proofing_quantity,
+            inv.delivery_limit_hours,
+            inv.cancel_time_limit,
+            inv.quoted_price,
+            inv.quoted_period_days,
+            inv.is_quote_batch_plan,
+            inv.quote_submit_at,
             inv.status,
             inv.created_at,
+            inv.updated_at,
             inv.inviter_user_id,
             inv.invitee_user_id,
+            inv.draw_number,
 
             -- 关联查询【被邀约人】的用户信息
             invitee.nick_name AS invitee_nick_name,

@@ -1,8 +1,6 @@
-package com.sutran.sd.controller.api;
+package com.sutran.sd.controller.profile;
 
 import cn.dev33.satoken.annotation.SaCheckLogin;
-import cn.dev33.satoken.secure.BCrypt;
-import cn.hutool.core.io.FileUtil;
 import com.sutran.sd.common.annotation.Log;
 import com.sutran.sd.common.core.controller.BaseController;
 import com.sutran.sd.common.core.domain.R;
@@ -14,23 +12,17 @@ import com.sutran.sd.common.core.domain.entity.SysUser;
 import com.sutran.sd.common.core.domain.vo.TagDetailVO;
 import com.sutran.sd.common.enums.BusinessType;
 import com.sutran.sd.common.helper.LoginHelper;
-import com.sutran.sd.common.utils.StringUtils;
-import com.sutran.sd.common.utils.file.MimeTypeUtils;
-import com.sutran.sd.system.domain.vo.SysOssVo;
-import com.sutran.sd.user.service.IUserProfileService;
 import com.sutran.sd.user.service.IUserAddressService;
+import com.sutran.sd.user.service.IUserProfileService;
 import com.sutran.sd.user.service.IUserTagService;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.MediaType;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.validation.Valid;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -44,7 +36,7 @@ import java.util.Map;
 @Validated
 @RequiredArgsConstructor
 @RestController
-@RequestMapping("/api/user/profile")
+@RequestMapping("/user/profile")
 @SaCheckLogin
 public class UserProfileController extends BaseController {
 
@@ -95,53 +87,17 @@ public class UserProfileController extends BaseController {
      * @param avatarfile 用户头像
      */
     @Log(title = "用户头像", businessType = BusinessType.UPDATE)
-    @PostMapping(value = "/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public R<Map<String, Object>> avatar(@RequestPart("avatarfile") MultipartFile avatarfile) {
-        String avatarUrl = userProfileService.uploadAvatar(getUserId(), avatarfile);
-        Map<String, Object> result = new HashMap<>();
-        result.put("imgUrl", avatarUrl);
-        return R.ok(result);
-    }
-
-    // ==================== 地址管理接口 ====================
-
-    /**
-     * 添加地址
-     */
-    @Log(title = "用户地址管理", businessType = BusinessType.INSERT)
-    @PostMapping("/address")
-    public R<Void> addAddress(@RequestBody SysAddress address) {
-        addressService.addAddress(address);
-        return R.ok();
-    }
-
-    /**
-     * 删除用户地址
-     */
-    @Log(title = "用户地址管理", businessType = BusinessType.DELETE)
-    @DeleteMapping("/address/{addressId}")
-    public R<Void> deleteAddress(@PathVariable Long addressId) {
-        addressService.deleteAddress(addressId);
-        return R.ok();
-    }
-
-    /**
-     * 修改用户地址
-     */
-    @Log(title = "用户地址管理", businessType = BusinessType.UPDATE)
-    @PutMapping("/address")
-    public R<Void> updateAddress(@RequestBody SysAddress address) {
-        addressService.updateAddress(address);
-        return R.ok();
-    }
-
-    /**
-     * 获取用户地址详情
-     */
-    @Log(title = "用户地址管理")
-    @GetMapping("/address/{addressId}")
-    public R<SysAddress> getAddress(@PathVariable Long addressId) {
-        return R.ok(addressService.getAddress(addressId));
+    @PostMapping("/avatar")
+    public R<Map<String, Object>> avatar(@RequestParam("avatarfile") MultipartFile avatarfile) {
+        if (!avatarfile.isEmpty()) {
+            String avatar = userProfileService.uploadAvatar(getUserId(), avatarfile);
+            if (avatar != null) {
+                Map<String, Object> data = new HashMap<>();
+                data.put("imgUrl", avatar);
+                return R.ok(data);
+            }
+        }
+        return R.fail("上传图片异常，请联系管理员");
     }
 
     /**
@@ -239,7 +195,7 @@ public class UserProfileController extends BaseController {
     /**
      * 查询当前用户的所有标签列表
      */
-    @Operation(summary = "获取用户标签列表", description = "获取当前用户的所有个人标签")
+    @Operation(summary = "获取用户标签列表", description = "获取当前用户的所有标签")
     @GetMapping("/tag")
     public R<List<TagDetailVO>> listUserTags() {
 
@@ -269,5 +225,14 @@ public class UserProfileController extends BaseController {
         TagDetailVO tagDetail = tagService.selectTagDetailById(userId, tagId);
 
         return R.ok(tagDetail);
+    }
+
+    /**
+     * 获取建议的标签名称
+     */
+    @Operation(summary = "获取建议标签名称", description = "获取系统建议的标签名称，避免与身份标签冲突")
+    @GetMapping("/tag/suggestions")
+    public R<List<String>> getTagSuggestions() {
+        return R.ok(com.sutran.sd.common.utils.TagNameValidator.getSuggestedTagNames());
     }
 }

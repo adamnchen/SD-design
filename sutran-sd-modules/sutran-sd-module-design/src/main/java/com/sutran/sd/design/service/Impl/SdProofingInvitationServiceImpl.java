@@ -3,6 +3,7 @@ package com.sutran.sd.design.service.Impl;
 import com.sutran.sd.common.core.domain.dto.ProofingInvitationRequestDTO;
 import com.sutran.sd.common.core.domain.entity.SdProofingInvitation;
 import com.sutran.sd.common.core.domain.vo.ProofingInvitationDetailVO;
+import com.sutran.sd.common.constant.ProofingInvitationConstants;
 import com.sutran.sd.common.exception.ServiceException;
 import com.sutran.sd.common.helper.LoginHelper;
 import com.sutran.sd.design.mapper.SdProofingInvitationMapper;
@@ -29,10 +30,7 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
     private final SdProofingInvitationMapper invitationMapper;
 
 
-    private static final Integer STATUS_PENDING = 0;   // 待处理
-    private static final Integer STATUS_ACCEPTED = 1;  // 已接受
-    private static final Integer STATUS_REJECTED = 2;  // 已拒绝
-    private static final Integer STATUS_CANCELLED = 3; // 已取消
+    // 使用常量类管理状态，不再定义重复常量
 
 
 
@@ -47,28 +45,35 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
 
         // 2. 获取并校验接收者ID
         Long recipientId = createDTO.getInviteeUserId();
-
         if (recipientId == null) {
-
             throw new ServiceException("邀约的接收用户不能为空");
         }
-        // 使用 .equals() 进行比较
+        
+        // 3. 校验不能向自己发起邀约
         if (senderId.equals(recipientId)) {
-            // 抛出异常
             throw new ServiceException("不能向自己发起邀约");
         }
+        
+        // 4. 验证取消时限值
+        if (createDTO.getCancelTimeLimit() != null && 
+            !ProofingInvitationConstants.isValidCancelTimeLimit(createDTO.getCancelTimeLimit())) {
+            throw new ServiceException("自动取消时限值无效，必须是1、2、3中的一个");
+        }
+        
+        // 5. 验证抽奖数量
+        if (createDTO.getDrawNumber() == null || createDTO.getDrawNumber() < 1) {
+            throw new ServiceException("抽奖数量不能为空且必须大于等于1");
+        }
+        
+        // 6. 创建邀约实体
         SdProofingInvitation invitation = new SdProofingInvitation();
-// 1. 使用 BeanUtils.copyProperties 复制属性
         BeanUtils.copyProperties(createDTO, invitation);
-// 2. 设置 DTO 中没有的、由业务逻辑决定的字段
         invitation.setInviterUserId(senderId);
-        invitation.setStatus(STATUS_PENDING);
+        invitation.setStatus(ProofingInvitationConstants.STATUS_PENDING);
+        
+        // 7. 保存到数据库
         invitationMapper.insert(invitation);
-        System.out.println("Executing: createInvitation");
         return invitation;
-
-
-
     }
 
     /**
@@ -76,15 +81,10 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
      */
     @Override
     public List<ProofingInvitationDetailVO> getReceivedInvitations() {
-        Long userId = LoginHelper.getUserId();
         Long currentUserId = LoginHelper.getUserId();
         List<ProofingInvitationDetailVO> invitationList = invitationMapper.selectReceivedInvitationList(currentUserId);
         System.out.println("Executing: getReceivedInvitations");
-        // 3. 直接返回查询到的列表
         return invitationList;
-
-
-
     }
 
     /**
@@ -92,13 +92,10 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
      */
     @Override
     public List<ProofingInvitationDetailVO> getSentInvitations() {
-        Long userId = LoginHelper.getUserId();
         Long currentUserId = LoginHelper.getUserId();
         List<ProofingInvitationDetailVO> invitationList = invitationMapper.selectSentInvitationList(currentUserId);
         System.out.println("Executing: getSentInvitations");
-        // 3. 直接返回查询到的列表
         return invitationList;
-
     }
 
     /**
@@ -123,11 +120,11 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
             throw new ServiceException("权限不足，您不是该邀约的接收人");
         }
 
-        if (!STATUS_PENDING.equals(invitation.getStatus())) {
+        if (!ProofingInvitationConstants.STATUS_PENDING.equals(invitation.getStatus())) {
             throw new ServiceException("操作失败，该邀约已被处理或已取消，无法接受");
         }
 
-        invitation.setStatus(STATUS_ACCEPTED);
+        invitation.setStatus(ProofingInvitationConstants.STATUS_ACCEPTED);
 
 
         int rows = invitationMapper.updateById(invitation);
@@ -157,11 +154,11 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
             throw new ServiceException("权限不足，您不是该邀约的接收人");
         }
 
-        if (!STATUS_PENDING.equals(invitation.getStatus())) {
+        if (!ProofingInvitationConstants.STATUS_PENDING.equals(invitation.getStatus())) {
             throw new ServiceException("操作失败，该邀约已被处理或已取消，无法拒绝");
         }
 
-        invitation.setStatus(STATUS_REJECTED); // 核心区别：状态设置为“已拒绝”
+        invitation.setStatus(ProofingInvitationConstants.STATUS_REJECTED); // 核心区别：状态设置为"已拒绝"
 
         int rows = invitationMapper.updateById(invitation);
         if (rows == 0) {
@@ -185,15 +182,15 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
             throw new ServiceException("操作失败，该邀约不存在或已被删除");
         }
 
-        if (!invitation.getInviteeUserId().equals(currentUserId)) {
+        if (!invitation.getInviterUserId().equals(currentUserId)) {
             throw new ServiceException("权限不足，您不是该邀约的发起人");
         }
 
-        if (!STATUS_PENDING.equals(invitation.getStatus())) {
+        if (!ProofingInvitationConstants.STATUS_PENDING.equals(invitation.getStatus())) {
             throw new ServiceException("操作失败，该邀约已被处理，无法取消");
         }
 
-        invitation.setStatus(STATUS_CANCELLED);
+        invitation.setStatus(ProofingInvitationConstants.STATUS_CANCELLED);
 
         int rows = invitationMapper.updateById(invitation);
         if (rows == 0) {
@@ -204,6 +201,46 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
         System.out.println("Executing: cancelInvitation for ID: " + invitationId);
     }
 
-
+    /**
+     * 自动取消超时的邀约
+     */
+    @Override
+    @Transactional
+    public void autoCancelExpiredInvitations() {
+        // 查询所有待处理状态的邀约
+        List<SdProofingInvitation> pendingInvitations = invitationMapper.selectList(
+            new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<SdProofingInvitation>()
+                .eq(SdProofingInvitation::getStatus, ProofingInvitationConstants.STATUS_PENDING)
+        );
+        
+        int cancelledCount = 0;
+        for (SdProofingInvitation invitation : pendingInvitations) {
+            if (isInvitationExpired(invitation)) {
+                invitation.setStatus(ProofingInvitationConstants.STATUS_CANCELLED);
+                invitationMapper.updateById(invitation);
+                cancelledCount++;
+            }
+        }
+        
+        System.out.println("自动取消超时邀约完成，共取消 " + cancelledCount + " 个邀约");
     }
+    
+    /**
+     * 判断邀约是否已超时
+     */
+    private boolean isInvitationExpired(SdProofingInvitation invitation) {
+        if (invitation.getCancelTimeLimit() == null) {
+            return false; // 没有设置取消时限，不自动取消
+        }
+        
+        // 计算超时时间（天数）
+        int expireDays = ProofingInvitationConstants.getCancelTimeDays(invitation.getCancelTimeLimit());
+        
+        // 计算创建时间 + 超时天数
+        long expireTime = invitation.getCreatedAt().getTime() + (expireDays * 24 * 60 * 60 * 1000L);
+        
+        // 当前时间是否超过超时时间
+        return System.currentTimeMillis() > expireTime;
+    }
+}
 

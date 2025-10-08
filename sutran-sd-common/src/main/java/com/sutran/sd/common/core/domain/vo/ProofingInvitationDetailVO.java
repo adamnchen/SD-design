@@ -42,7 +42,12 @@ public class ProofingInvitationDetailVO implements Serializable {
 
     // --- 时限 ---
     private Integer deliveryLimitHours;
-    private String cancelTimeLimit;
+    private Integer cancelTimeLimit;
+    
+    /**
+     * 取消时限描述 (例如: "2天内无人应答自动取消")
+     */
+    private String cancelTimeLimitDescription;
 
     // --- 报价信息 (被邀约方填写) ---
     /**
@@ -101,4 +106,9 @@ public class ProofingInvitationDetailVO implements Serializable {
      * 【新增】被邀约人的用户头像 (从 sys_user 表关联查询)
      */
     private String inviteeAvatar;
+
+    /**
+     * 打样样品参与抽奖的数量分配给众筹用户,最少一个
+     */
+    private Integer drawNumber;
 }

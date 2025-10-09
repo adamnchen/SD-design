@@ -1,5 +1,7 @@
 package com.sutran.sd.design.service.Impl;
 
+import com.alipay.api.domain.TuitionRefundRoyaltyInfo;
+import com.sutran.sd.common.core.domain.dto.ProofingInvitationAcceptDto;
 import com.sutran.sd.common.core.domain.dto.ProofingInvitationRequestDTO;
 import com.sutran.sd.common.core.domain.entity.SdProofingInvitation;
 import com.sutran.sd.common.core.domain.vo.ProofingInvitationDetailVO;
@@ -41,6 +43,14 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
     @Override
     @Transactional
     public SdProofingInvitation createInvitation(ProofingInvitationRequestDTO createDTO) {
+
+        //若已有且未过期，无法邀约
+        if (createDTO.getStatus().equals(ProofingInvitationConstants.STATUS_PENDING)){
+
+            throw new ServiceException("当前作品已有邀约，无法发起");
+        }
+
+
         // 1. 获取当前登录用户ID
         Long senderId = LoginHelper.getUserId();
 
@@ -51,24 +61,28 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
         }
 
 
-        // 4. 验证取消时限值
+
+
+
+        // 3. 验证取消时限值
         if (createDTO.getCancelTimeLimit() != null &&
             !ProofingInvitationConstants.isValidCancelTimeLimit(createDTO.getCancelTimeLimit())) {
             throw new ServiceException("自动取消时限值无效，必须是1、2、3中的一个");
         }
 
-        // 5. 验证抽奖数量
+        // 4. 验证抽奖数量
         if (createDTO.getDrawNumber() == null || createDTO.getDrawNumber() < 1) {
             throw new ServiceException("抽奖数量不能为空且必须大于等于1");
         }
 
-        // 6. 创建邀约实体
+        // 5. 创建邀约实体
         SdProofingInvitation invitation = new SdProofingInvitation();
         BeanUtils.copyProperties(createDTO, invitation);
         invitation.setInviterUserId(senderId);
         invitation.setStatus(ProofingInvitationConstants.STATUS_PENDING);
+        createDTO.setStatus(ProofingInvitationConstants.STATUS_PENDING);
 
-        // 7. 保存到数据库
+        // 6. 保存到数据库
         invitationMapper.insert(invitation);
         return invitation;
     }
@@ -80,12 +94,12 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
     public List<ProofingInvitationDetailVO> getReceivedInvitations() {
         Long currentUserId = LoginHelper.getUserId();
         List<ProofingInvitationDetailVO> invitationList = invitationMapper.selectReceivedInvitationList(currentUserId);
-        
+
         if (invitationList == null || invitationList.isEmpty()) {
             System.out.println("用户 " + currentUserId + " 没有收到任何邀约");
             return new ArrayList<>(); // 返回空列表而不是null
         }
-        
+
         System.out.println("用户 " + currentUserId + " 收到 " + invitationList.size() + " 个邀约");
         return invitationList;
     }
@@ -97,12 +111,12 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
     public List<ProofingInvitationDetailVO> getSentInvitations() {
         Long currentUserId = LoginHelper.getUserId();
         List<ProofingInvitationDetailVO> invitationList = invitationMapper.selectSentInvitationList(currentUserId);
-        
+
         if (invitationList == null || invitationList.isEmpty()) {
             System.out.println("用户 " + currentUserId + " 没有发出任何邀约");
-            return new ArrayList<>(); // 返回空列表而不是null
+            return new ArrayList<>();
         }
-        
+
         System.out.println("用户 " + currentUserId + " 发出 " + invitationList.size() + " 个邀约");
         return invitationList;
     }
@@ -112,17 +126,16 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
      */
     @Override
     @Transactional
-    public void acceptInvitation(Long invitationId) {
+    public void acceptInvitation(ProofingInvitationAcceptDto  acceptDTO) {
 
 
         Long currentUserId = LoginHelper.getUserId();
 
 
-        SdProofingInvitation invitation = invitationMapper.selectById(invitationId);
+        SdProofingInvitation invitation = invitationMapper.selectById(acceptDTO.getInvitationId());
         if (invitation == null) {
             throw new ServiceException("操作失败，该邀约不存在或已被删除");
         }
-
 
 
         if (!invitation.getInviteeUserId().equals(currentUserId)) {
@@ -133,8 +146,39 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
             throw new ServiceException("操作失败，该邀约已被处理或已取消，无法接受");
         }
 
-        invitation.setStatus(ProofingInvitationConstants.STATUS_ACCEPTED);
+        // 参数基础校验
+        if (acceptDTO.getQuotedPrice() == null || acceptDTO.getQuotedPrice().signum() < 0) {
+            throw new ServiceException("报价金额无效");
+        }
+        if (acceptDTO.getQuotedPeriodDays() == null || acceptDTO.getQuotedPeriodDays() <= 0) {
+            throw new ServiceException("预计打样周期必须大于0");
+        }
+        if (acceptDTO.getProfitShareRatio() != null) {
+            if (acceptDTO.getProfitShareRatio().compareTo(new java.math.BigDecimal("0")) < 0
+                || acceptDTO.getProfitShareRatio().compareTo(new java.math.BigDecimal("100")) > 0) {
+                throw new ServiceException("利润分成比例区间为0-100");
+            }
+        }
 
+        // 处理阶梯价格为JSON
+        String tieredPricingJson = null;
+        if (acceptDTO.getTieredPricing() != null && !acceptDTO.getTieredPricing().isEmpty()) {
+            try {
+                com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                tieredPricingJson = mapper.writeValueAsString(acceptDTO.getTieredPricing());
+            } catch (Exception e) {
+                throw new ServiceException("阶梯价格序列化失败");
+            }
+        }
+
+        // 写入报价信息
+        invitation.setQuotedPrice(acceptDTO.getQuotedPrice());
+        invitation.setQuotedPeriodDays(acceptDTO.getQuotedPeriodDays());
+        invitation.setIsQuoteBatchPlan(Boolean.TRUE.equals(acceptDTO.getIsQuoteBatchPlan()));
+        invitation.setQuoteSubmitAt(new java.util.Date());
+        invitation.setStatus(ProofingInvitationConstants.STATUS_ACCEPTED);
+        invitation.setTieredPricing(tieredPricingJson);
+        invitation.setProfitShareRatio(acceptDTO.getProfitShareRatio());
 
         int rows = invitationMapper.updateById(invitation);
 
@@ -251,5 +295,16 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
         // 当前时间是否超过超时时间
         return System.currentTimeMillis() > expireTime;
     }
+    /**
+     * 商家未在预约周期完成，取消邀约，记录违规
+     */
+    //todo:需要根据众筹完成与否，完成时间判定，目前做不了
+    private  boolean isInvitationQuotedPeriodExpired(SdProofingInvitation invitation) {
+        int quotedPeriodDays = invitation.getQuotedPeriodDays();
+        return false;
+
+
+    }
+
 }
 

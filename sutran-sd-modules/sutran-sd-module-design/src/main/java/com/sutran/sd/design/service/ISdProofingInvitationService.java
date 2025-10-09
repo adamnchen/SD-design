@@ -1,6 +1,7 @@
 package com.sutran.sd.design.service;
 
 import com.sutran.sd.common.core.domain.dto.ProofingInvitationRequestDTO;
+import com.sutran.sd.common.core.domain.dto.ProofingInvitationAcceptDto;
 import com.sutran.sd.common.core.domain.entity.SdProofingInvitation;
 import com.sutran.sd.common.core.domain.vo.ProofingInvitationDetailVO;
 
@@ -38,9 +39,9 @@ public interface ISdProofingInvitationService {
     /**
      * 接受合作邀约
      *
-     * @param invitationId 邀约ID
+     * @param acceptDTO 接受邀约所需信息（报价、周期、阶梯价、分成等）
      */
-    void acceptInvitation(Long invitationId);
+    void acceptInvitation(ProofingInvitationAcceptDto acceptDTO);
 
     /**
      * 拒绝合作邀约

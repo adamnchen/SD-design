@@ -143,6 +143,18 @@ public class SdProofingInvitation extends BaseEntity {
     @TableField("quote_submit_at")
     private Date quoteSubmitAt;
 
+    /**
+     * 阶梯价格配置(JSON字符串)
+     */
+    @TableField("tiered_pricing")
+    private String tieredPricing;
+
+    /**
+     * 利润分成比例(%)，如 15.50
+     */
+    @TableField("profit_share_ratio")
+    private BigDecimal profitShareRatio;
+
     // --- 状态和时间 ---
 
     /**

@@ -86,4 +86,9 @@ public class ProofingInvitationRequestDTO implements Serializable {
      */
     @NotNull(message = "抽奖数量不能为空")
     private Integer drawNumber;
+
+    /**
+     * 状态
+     */
+    private Integer status;
 }

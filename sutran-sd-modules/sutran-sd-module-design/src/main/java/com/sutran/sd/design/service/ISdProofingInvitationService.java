@@ -1,6 +1,7 @@
 package com.sutran.sd.design.service;
 
 import com.sutran.sd.common.core.domain.dto.ProofingInvitationRequestDTO;
+import com.sutran.sd.common.core.domain.dto.ProofingInvitationChooseDto;
 import com.sutran.sd.common.core.domain.dto.ProofingInvitationAcceptDto;
 import com.sutran.sd.common.core.domain.entity.SdProofingInvitation;
 import com.sutran.sd.common.core.domain.vo.ProofingInvitationDetailVO;
@@ -62,4 +63,14 @@ public interface ISdProofingInvitationService {
      * 根据 cancel_time_limit 字段自动取消超时的邀约
      */
     void autoCancelExpiredInvitations();
+
+    /**
+     * 发起人从候选厂家中最终选择一家
+     */
+    void chooseCandidate(ProofingInvitationChooseDto chooseDto);
+
+    /**
+     * 查询邀约下的候选列表
+     */
+    java.util.List<com.sutran.sd.common.core.domain.vo.InvitationCandidateVO> getInvitationCandidates(Long invitationId);
 }

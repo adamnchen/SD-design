@@ -4,6 +4,7 @@ import lombok.Data;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import java.io.Serializable;
+import java.util.List;
 
 /**
  * 打样邀约发起请求 DTO
@@ -20,10 +21,14 @@ public class ProofingInvitationRequestDTO implements Serializable {
     private Long workId;
 
     /**
-     * 【必填】被邀约用户ID (厂商/合作方)
+     * 【兼容】单个被邀约用户ID (厂商/合作方)
      */
-    @NotNull(message = "被邀约人ID不能为空")
     private Long inviteeUserId;
+
+    /**
+     * 【推荐】被邀约用户ID列表(最多3个)
+     */
+    private List<Long> inviteeUserIds;
 
     // --- 作品和设计详情 ---
 

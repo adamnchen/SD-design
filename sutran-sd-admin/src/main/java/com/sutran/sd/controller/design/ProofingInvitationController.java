@@ -67,8 +67,13 @@ public class ProofingInvitationController {
      * 接受合作邀约
      */
     @PutMapping("/{id}/accept")
-    public R<Void> acceptInvitation(@PathVariable("id") Long id) {
-        invitationService.acceptInvitation(id);
+    public R<Void> acceptInvitation(@PathVariable("id") Long id, @Validated @RequestBody com.sutran.sd.common.core.domain.dto.ProofingInvitationAcceptDto dto) {
+        if (dto.getInvitationId() == null) {
+            dto.setInvitationId(id);
+        } else if (!id.equals(dto.getInvitationId())) {
+            return R.fail("路径ID与请求体的邀约ID不一致");
+        }
+        invitationService.acceptInvitation(dto);
         return R.ok("已接受合作邀约");
     }
 

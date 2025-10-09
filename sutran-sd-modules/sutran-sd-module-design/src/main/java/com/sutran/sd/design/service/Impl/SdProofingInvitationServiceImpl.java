@@ -1,6 +1,5 @@
 package com.sutran.sd.design.service.Impl;
 
-import com.alipay.api.domain.TuitionRefundRoyaltyInfo;
 import com.sutran.sd.common.core.domain.dto.ProofingInvitationAcceptDto;
 import com.sutran.sd.common.core.domain.dto.ProofingInvitationRequestDTO;
 import com.sutran.sd.common.core.domain.entity.SdProofingInvitation;

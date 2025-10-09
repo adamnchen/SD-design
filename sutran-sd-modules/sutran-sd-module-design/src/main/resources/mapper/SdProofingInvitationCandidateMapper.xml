@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.sutran.sd.design.mapper.SdProofingInvitationCandidateMapper">
+
+    <resultMap id="CandidateResult" type="com.sutran.sd.common.core.domain.entity.SdProofingInvitationCandidate">
+        <id     property="id"                 column="id"/>
+        <result property="invitationId"       column="invitation_id"/>
+        <result property="inviteeUserId"      column="invitee_user_id"/>
+        <result property="quotedPrice"        column="quoted_price"/>
+        <result property="quotedPeriodDays"   column="quoted_period_days"/>
+        <result property="isQuoteBatchPlan"   column="is_quote_batch_plan"/>
+        <result property="tieredPricing"      column="tiered_pricing"/>
+        <result property="profitShareRatio"   column="profit_share_ratio"/>
+        <result property="quoteSubmitAt"      column="quote_submit_at"/>
+        <result property="status"             column="status"/>
+        <result property="createTime"         column="created_at"/>
+        <result property="updateTime"         column="updated_at"/>
+    </resultMap>
+
+    <select id="selectByInvitationId" resultMap="CandidateResult">
+        SELECT *
+        FROM sd_proofing_invitation_candidates
+        WHERE invitation_id = #{invitationId}
+        ORDER BY quote_submit_at DESC, id DESC
+    </select>
+
+    <select id="selectOneByInvitationAndInvitee" resultMap="CandidateResult">
+        SELECT *
+        FROM sd_proofing_invitation_candidates
+        WHERE invitation_id = #{invitationId}
+          AND invitee_user_id = #{inviteeUserId}
+        LIMIT 1
+    </select>
+
+    <resultMap id="CandidateVOResult" type="com.sutran.sd.common.core.domain.vo.InvitationCandidateVO">
+        <result property="inviteeUserId"      column="invitee_user_id"/>
+        <result property="quotedPrice"        column="quoted_price"/>
+        <result property="quotedPeriodDays"   column="quoted_period_days"/>
+        <result property="isQuoteBatchPlan"   column="is_quote_batch_plan"/>
+        <result property="tieredPricing"      column="tiered_pricing"/>
+        <result property="profitShareRatio"   column="profit_share_ratio"/>
+        <result property="quoteSubmitAt"      column="quote_submit_at"/>
+        <result property="status"             column="status"/>
+        <result property="inviteeNickName"    column="invitee_nick_name"/>
+        <result property="inviteeAvatar"      column="invitee_avatar"/>
+    </resultMap>
+
+    <select id="selectCandidateVOs" resultMap="CandidateVOResult">
+        SELECT
+            c.invitee_user_id,
+            c.quoted_price,
+            c.quoted_period_days,
+            c.is_quote_batch_plan,
+            c.tiered_pricing,
+            c.profit_share_ratio,
+            c.quote_submit_at,
+            c.status,
+            u.nick_name AS invitee_nick_name,
+            u.avatar    AS invitee_avatar
+        FROM sd_proofing_invitation_candidates c
+        LEFT JOIN sys_user u ON c.invitee_user_id = u.user_id
+        WHERE c.invitation_id = #{invitationId}
+        ORDER BY c.status DESC, c.quote_submit_at DESC, c.id DESC
+    </select>
+
+</mapper>
+
+

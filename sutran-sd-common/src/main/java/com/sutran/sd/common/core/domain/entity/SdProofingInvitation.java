@@ -143,6 +143,13 @@ public class SdProofingInvitation extends BaseEntity {
     @TableField("quote_submit_at")
     private Date quoteSubmitAt;
 
+    /** 最终选中的厂家用户ID */
+    @TableField("selected_invitee_user_id")
+    private Long selectedInviteeUserId;
+
+    /** 最终选择时间 */
+    @TableField("selected_at")
+    private Date selectedAt;
     /**
      * 阶梯价格配置(JSON字符串)
      */

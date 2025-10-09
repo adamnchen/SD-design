@@ -3,6 +3,7 @@ package com.sutran.sd.controller.design;
 import com.sutran.sd.common.core.domain.R;
 import com.sutran.sd.common.core.domain.dto.ProofingInvitationRequestDTO;
 import com.sutran.sd.common.core.domain.vo.ProofingInvitationDetailVO;
+import com.sutran.sd.common.core.domain.dto.ProofingInvitationChooseDto;
 import com.sutran.sd.common.core.domain.vo.ManufacturerSearchResultVO;
 import com.sutran.sd.design.service.*;
 import lombok.RequiredArgsConstructor;
@@ -175,5 +176,28 @@ public class ProofingInvitationController {
             e.printStackTrace();
             return R.fail("自动取消超时邀约失败: " + e.getMessage());
         }
+    }
+
+    /**
+     * 发起人最终选择一家厂家
+     */
+    @PostMapping("/{id}/choose")
+    public R<Void> chooseCandidate(@PathVariable("id") Long id, @Validated @RequestBody ProofingInvitationChooseDto dto) {
+        if (dto.getInvitationId() == null) {
+            dto.setInvitationId(id);
+        } else if (!id.equals(dto.getInvitationId())) {
+            return R.fail("路径ID与请求体的邀约ID不一致");
+        }
+        invitationService.chooseCandidate(dto);
+        return R.ok("已选择最终合作厂家");
+    }
+
+    /**
+     * 查看某邀约的候选厂家列表
+     */
+    @GetMapping("/{id}/candidates")
+    public R<List<com.sutran.sd.common.core.domain.vo.InvitationCandidateVO>> getCandidates(@PathVariable("id") Long id) {
+        List<com.sutran.sd.common.core.domain.vo.InvitationCandidateVO> list = invitationService.getInvitationCandidates(id);
+        return R.ok(list);
     }
 }

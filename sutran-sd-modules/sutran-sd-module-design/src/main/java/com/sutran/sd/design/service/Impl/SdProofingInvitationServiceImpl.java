@@ -2,12 +2,15 @@ package com.sutran.sd.design.service.Impl;
 
 import com.sutran.sd.common.core.domain.dto.ProofingInvitationAcceptDto;
 import com.sutran.sd.common.core.domain.dto.ProofingInvitationRequestDTO;
+import com.sutran.sd.common.core.domain.dto.ProofingInvitationChooseDto;
 import com.sutran.sd.common.core.domain.entity.SdProofingInvitation;
 import com.sutran.sd.common.core.domain.vo.ProofingInvitationDetailVO;
 import com.sutran.sd.common.constant.ProofingInvitationConstants;
 import com.sutran.sd.common.exception.ServiceException;
 import com.sutran.sd.common.helper.LoginHelper;
 import com.sutran.sd.design.mapper.SdProofingInvitationMapper;
+import com.sutran.sd.design.mapper.SdProofingInvitationCandidateMapper;
+import com.sutran.sd.common.core.domain.entity.SdProofingInvitationCandidate;
 import com.sutran.sd.design.service.ISdProofingInvitationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
@@ -30,6 +33,7 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
      * 注入数据访问层依赖 (Mapper or Repository)
      */
     private final SdProofingInvitationMapper invitationMapper;
+    private final SdProofingInvitationCandidateMapper candidateMapper;
 
 
     // 使用常量类管理状态，不再定义重复常量
@@ -53,10 +57,19 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
         // 1. 获取当前登录用户ID
         Long senderId = LoginHelper.getUserId();
 
-        // 2. 获取并校验接收者ID
-        Long recipientId = createDTO.getInviteeUserId();
-        if (recipientId == null) {
+        // 2. 获取并校验接收者ID（兼容单个/多个，最多3个）
+        List<Long> inviteeIds = new ArrayList<>();
+        if (createDTO.getInviteeUserIds() != null && !createDTO.getInviteeUserIds().isEmpty()) {
+            inviteeIds.addAll(createDTO.getInviteeUserIds());
+        }
+        if (createDTO.getInviteeUserId() != null) {
+            inviteeIds.add(createDTO.getInviteeUserId());
+        }
+        if (inviteeIds.isEmpty()) {
             throw new ServiceException("邀约的接收用户不能为空");
+        }
+        if (inviteeIds.size() > 3) {
+            throw new ServiceException("最多可选择3个被邀约厂家");
         }
 
 
@@ -83,6 +96,17 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
 
         // 6. 保存到数据库
         invitationMapper.insert(invitation);
+
+        // 7. 批量写入候选表（去重）
+        java.util.Set<Long> uniqueIds = new java.util.HashSet<>(inviteeIds);
+        for (Long inviteeId : uniqueIds) {
+            SdProofingInvitationCandidate candidate = new SdProofingInvitationCandidate();
+            candidate.setInvitationId(invitation.getId());
+            candidate.setInviteeUserId(inviteeId);
+            candidate.setStatus(ProofingInvitationConstants.STATUS_PENDING);
+            candidateMapper.insert(candidate);
+        }
+
         return invitation;
     }
 
@@ -121,6 +145,22 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
     }
 
     /**
+     * 获取某邀约下的候选厂家列表（含报价与用户信息）
+     */
+    public java.util.List<com.sutran.sd.common.core.domain.vo.InvitationCandidateVO> getInvitationCandidates(Long invitationId) {
+        // 权限：发起人或候选人可见（此处简化为发起人可见，可按需扩展）
+        Long currentUserId = LoginHelper.getUserId();
+        SdProofingInvitation invitation = invitationMapper.selectById(invitationId);
+        if (invitation == null) {
+            throw new ServiceException("邀约不存在");
+        }
+        if (!invitation.getInviterUserId().equals(currentUserId)) {
+            throw new ServiceException("权限不足，只有发起人可查看候选列表");
+        }
+        return candidateMapper.selectCandidateVOs(invitationId);
+    }
+
+    /**
      * 接受合作邀约
      */
     @Override
@@ -137,8 +177,10 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
         }
 
 
-        if (!invitation.getInviteeUserId().equals(currentUserId)) {
-            throw new ServiceException("权限不足，您不是该邀约的接收人");
+        // 通过候选记录校验：当前用户必须是该邀约的候选厂家之一
+        SdProofingInvitationCandidate candidate = candidateMapper.selectOneByInvitationAndInvitee(acceptDTO.getInvitationId(), currentUserId);
+        if (candidate == null) {
+            throw new ServiceException("权限不足，您不是该邀约的候选接收人");
         }
 
         if (!ProofingInvitationConstants.STATUS_PENDING.equals(invitation.getStatus())) {
@@ -170,16 +212,16 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
             }
         }
 
-        // 写入报价信息
-        invitation.setQuotedPrice(acceptDTO.getQuotedPrice());
-        invitation.setQuotedPeriodDays(acceptDTO.getQuotedPeriodDays());
-        invitation.setIsQuoteBatchPlan(Boolean.TRUE.equals(acceptDTO.getIsQuoteBatchPlan()));
-        invitation.setQuoteSubmitAt(new java.util.Date());
-        invitation.setStatus(ProofingInvitationConstants.STATUS_ACCEPTED);
-        invitation.setTieredPricing(tieredPricingJson);
-        invitation.setProfitShareRatio(acceptDTO.getProfitShareRatio());
+        // 写入候选报价信息（不改变主表状态）
+        candidate.setQuotedPrice(acceptDTO.getQuotedPrice());
+        candidate.setQuotedPeriodDays(acceptDTO.getQuotedPeriodDays());
+        candidate.setIsQuoteBatchPlan(Boolean.TRUE.equals(acceptDTO.getIsQuoteBatchPlan()));
+        candidate.setQuoteSubmitAt(new java.util.Date());
+        candidate.setTieredPricing(tieredPricingJson);
+        candidate.setProfitShareRatio(acceptDTO.getProfitShareRatio());
+        candidate.setStatus(ProofingInvitationConstants.STATUS_ACCEPTED);
 
-        int rows = invitationMapper.updateById(invitation);
+        int rows = candidateMapper.updateById(candidate);
 
         System.out.println("Executing: getSentInvitations");
 
@@ -202,17 +244,18 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
             throw new ServiceException("操作失败，该邀约不存在或已被删除");
         }
 
-        if (!invitation.getInviteeUserId().equals(currentUserId)) {
-            throw new ServiceException("权限不足，您不是该邀约的接收人");
+        SdProofingInvitationCandidate candidate = candidateMapper.selectOneByInvitationAndInvitee(invitationId, currentUserId);
+        if (candidate == null) {
+            throw new ServiceException("权限不足，您不是该邀约的候选接收人");
         }
 
         if (!ProofingInvitationConstants.STATUS_PENDING.equals(invitation.getStatus())) {
             throw new ServiceException("操作失败，该邀约已被处理或已取消，无法拒绝");
         }
 
-        invitation.setStatus(ProofingInvitationConstants.STATUS_REJECTED); // 核心区别：状态设置为"已拒绝"
+        candidate.setStatus(ProofingInvitationConstants.STATUS_REJECTED);
 
-        int rows = invitationMapper.updateById(invitation);
+        int rows = candidateMapper.updateById(candidate);
         if (rows == 0) {
 
             throw new ServiceException("数据库操作失败，请重试");
@@ -275,6 +318,54 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
         }
 
         System.out.println("自动取消超时邀约完成，共取消 " + cancelledCount + " 个邀约");
+    }
+
+    /**
+     * 发起人从候选厂家中最终选择一家
+     */
+    @Override
+    @Transactional
+    public void chooseCandidate(ProofingInvitationChooseDto chooseDto) {
+        Long currentUserId = LoginHelper.getUserId();
+
+        SdProofingInvitation invitation = invitationMapper.selectById(chooseDto.getInvitationId());
+        if (invitation == null) {
+            throw new ServiceException("操作失败，该邀约不存在或已被删除");
+        }
+
+        if (!invitation.getInviterUserId().equals(currentUserId)) {
+            throw new ServiceException("权限不足，您不是该邀约的发起人");
+        }
+
+        if (!ProofingInvitationConstants.STATUS_PENDING.equals(invitation.getStatus())) {
+            throw new ServiceException("该邀约当前状态不可进行最终选择");
+        }
+
+        SdProofingInvitationCandidate selected = candidateMapper.selectOneByInvitationAndInvitee(chooseDto.getInvitationId(), chooseDto.getInviteeUserId());
+        if (selected == null || !ProofingInvitationConstants.STATUS_ACCEPTED.equals(selected.getStatus())) {
+            throw new ServiceException("所选厂家未接受邀约或不存在");
+        }
+
+        // 更新主表最终选择信息
+        invitation.setSelectedInviteeUserId(chooseDto.getInviteeUserId());
+        invitation.setSelectedAt(new java.util.Date());
+        invitation.setQuotedPrice(selected.getQuotedPrice());
+        invitation.setQuotedPeriodDays(selected.getQuotedPeriodDays());
+        invitation.setIsQuoteBatchPlan(selected.getIsQuoteBatchPlan());
+        invitation.setQuoteSubmitAt(selected.getQuoteSubmitAt());
+        invitation.setTieredPricing(selected.getTieredPricing());
+        invitation.setProfitShareRatio(selected.getProfitShareRatio());
+        invitation.setStatus(ProofingInvitationConstants.STATUS_ACCEPTED);
+        invitationMapper.updateById(invitation);
+
+        // 关闭其他候选
+        List<SdProofingInvitationCandidate> candidates = candidateMapper.selectByInvitationId(chooseDto.getInvitationId());
+        for (SdProofingInvitationCandidate c : candidates) {
+            if (!c.getInviteeUserId().equals(chooseDto.getInviteeUserId())) {
+                c.setStatus(4); // 已关闭
+                candidateMapper.updateById(c);
+            }
+        }
     }
 
     /**

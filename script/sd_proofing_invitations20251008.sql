@@ -41,6 +41,8 @@ CREATE TABLE `sd_proofing_invitations`  (
   `quote_submit_at` timestamp NULL DEFAULT NULL COMMENT '报价提交时间',
   `tiered_pricing` json NULL COMMENT '阶梯价格配置(JSON数组: [{"minQty":1,"maxQty":10,"unitPrice":99.99}])',
   `profit_share_ratio` decimal(5, 2) NULL DEFAULT NULL COMMENT '利润分成比例(%)，例如 15.50 表示 15.5%',
+  `selected_invitee_user_id` bigint UNSIGNED NULL DEFAULT NULL COMMENT '最终选中的厂家用户ID',
+  `selected_at` timestamp NULL DEFAULT NULL COMMENT '最终选择时间',
   `status` tinyint NOT NULL DEFAULT 0 COMMENT '邀约状态 (0: 待处理, 1: 已接受, 2: 已拒绝, 3: 已取消)',
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间 (邀约时间)',
   `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '记录更新时间',

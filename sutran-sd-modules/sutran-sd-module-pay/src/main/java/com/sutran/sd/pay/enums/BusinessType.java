@@ -7,4 +7,6 @@ package com.sutran.sd.pay.enums;
 public enum BusinessType {
     /** SD会员 **/
     SD_MEMBER,
+    /** 打样众筹 **/
+    PROOF_CROWDFUND,
 }

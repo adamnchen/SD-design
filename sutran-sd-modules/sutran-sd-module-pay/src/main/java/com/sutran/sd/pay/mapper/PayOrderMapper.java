@@ -53,10 +53,4 @@ public interface PayOrderMapper extends BaseMapperPlus<PayOrderMapper, PayOrder,
     @Update("update pay_order set qr_code = #{qrCode} where out_trade_no = #{outTradeNo}")
     void saveQrCode(@Param("outTradeNo") String outTradeNo, @Param("qrCode") String qrCode);
 
-    /**
-     * 处理支付超时数据
-     * @param now 现在时间
-     */
-    @Update("update pay_order set status = 3 where expire_time < #{now} and status = 0")
-    void handlePayTimeoutOfData(@Param("now") Date now);
 }

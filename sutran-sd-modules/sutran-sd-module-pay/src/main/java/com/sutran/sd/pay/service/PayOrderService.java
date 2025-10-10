@@ -4,6 +4,7 @@ import com.sutran.sd.common.core.domain.PageQuery;
 import com.sutran.sd.common.core.page.TableDataInfo;
 import com.sutran.sd.pay.domain.PayOrder;
 
+import javax.servlet.http.HttpServletResponse;
 import java.util.Date;
 
 /**
@@ -46,7 +47,7 @@ public interface PayOrderService {
      * 检查用户是否存在未处理订单
      *
      * @param userId 用户ID
-     * @param appId
+     * @param appId 应用ID
      * @return 订单
      */
     PayOrder isExistNoDealOrder(Long userId, String appId);
@@ -72,8 +73,9 @@ public interface PayOrderService {
      * @param outTradeNo 订单号
      * @param tradeNo 交易号
      * @param totalAmount 总金额
+     * @return 更新是否成功
      */
-    void failPay(String outTradeNo, String tradeNo, String totalAmount);
+    boolean failPay(String outTradeNo, String tradeNo, String totalAmount);
 
     /**
      * 保存二维码
@@ -83,14 +85,16 @@ public interface PayOrderService {
     void saveQrCode(String outTradeNo, String qrCode);
 
     /**
-     * 处理支付超时数据
-     * @param now 当前时间
+     * 处理支付未支付的数据
+     * @param outTradeNo 当前时间
      */
-    void handlePayTimeoutOfData(Date now);
+    void handleNoPayOfDataByOutTradeNo(String outTradeNo);
 
     /**
-     * 处理支付未超时且未支付的数据
-     * @param now 当前时间
+     * 获取支付二维码
+     * @param outTradeNo 订单号
+     * @param userId 当前用户ID
+     * @return 支付二维码地址
      */
-    void handleNoPayOfData(Date now);
+    String getPayQr(String outTradeNo, Long userId);
 }

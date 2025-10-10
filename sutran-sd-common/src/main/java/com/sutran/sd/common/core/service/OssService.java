@@ -15,6 +15,4 @@ public interface OssService {
      */
     String selectUrlByIds(String ossIds);
 
-    void insertOssData(String originalfileName, String suffix, String configKey, String url, String filename, String userName);
-
 }

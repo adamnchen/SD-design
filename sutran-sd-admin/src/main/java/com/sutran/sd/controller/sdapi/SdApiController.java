@@ -181,13 +181,19 @@ public class SdApiController {
     /**
      * [ComfyUI]提交工作流生图任务
      * @param flowId 工作流ID[必填]
+     * @param prompt 描述词(英文)
+     * @param promptZh 描述词(中文)
+     * @param image1 图片1
+     * @param image2 图片2
      * @return 任务id
      */
     @PostMapping("/comfy/flow/submit-task")
     public R<String> submitComfyFlowTask(@RequestParam String flowId,
+                                         @RequestParam(required = false) String prompt,
+                                         @RequestParam(required = false) String promptZh,
                                          @RequestParam(required = false) MultipartFile image1,
                                          @RequestParam(required = false) MultipartFile image2) {
-        String taskId = sdComfyuiApiService.submitComfyFlowTask(flowId);
+        String taskId = sdComfyuiApiService.submitComfyFlowTask(flowId,prompt,promptZh,image1,image2);
         return R.ok(taskId);
     }
 

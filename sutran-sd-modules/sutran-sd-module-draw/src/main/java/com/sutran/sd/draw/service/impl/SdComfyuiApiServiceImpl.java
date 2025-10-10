@@ -11,27 +11,27 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.rabbitmq.client.Channel;
-import com.sutran.sd.common.helper.LoginHelper;
-import com.sutran.sd.draw.domain.SdFlow;
-import com.sutran.sd.draw.domain.bo.ComfyModelTaskSubmitBo;
-import com.sutran.sd.draw.domain.bo.DrawingTaskInfo;
-import com.sutran.sd.draw.service.*;
-import com.sutran.sd.common.core.service.OssService;
 import com.sutran.sd.common.core.service.UserService;
 import com.sutran.sd.common.exception.TaskErrorException;
 import com.sutran.sd.common.exception.WorkFlowErrorException;
+import com.sutran.sd.common.helper.LoginHelper;
 import com.sutran.sd.common.utils.StringUtils;
 import com.sutran.sd.common.utils.redis.RedisUtils;
 import com.sutran.sd.draw.domain.SdDrawNode;
+import com.sutran.sd.draw.domain.SdFlow;
 import com.sutran.sd.draw.domain.SdUserTask;
+import com.sutran.sd.draw.domain.bo.ComfyModelTaskSubmitBo;
+import com.sutran.sd.draw.domain.bo.DrawingTaskInfo;
 import com.sutran.sd.draw.domain.pojo.*;
 import com.sutran.sd.draw.domain.vo.SdUserTaskVo;
 import com.sutran.sd.draw.enums.LoadBalanceStrategy;
+import com.sutran.sd.draw.service.*;
 import com.sutran.sd.draw.utils.JsonUtils;
 import com.sutran.sd.draw.websocket.ComfyWebsocketClient;
 import com.sutran.sd.oss.core.OssClient;
 import com.sutran.sd.oss.entity.UploadResult;
 import com.sutran.sd.oss.factory.OssFactory;
+import com.sutran.sd.system.service.ISysOssService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.core.Message;
@@ -41,11 +41,15 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
 
 import static com.sutran.sd.common.constant.CacheConstants.DRAW_NODE_TASK_MAP;
 import static com.sutran.sd.common.constant.CacheConstants.DRAW_TASK_PROGRESS;
@@ -67,7 +71,7 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
     private final SdUserTaskService sdUserTaskService;
     private final ComfyWebsocketClient comfyWebsocketClient;
     private final SdUserModelFileService sdUserModelFileService;
-    private final OssService ossService;
+    private final ISysOssService sysOssService;
     private final UserService userService;
     private final SdFlowService sdFlowService;
     private final RabbitTemplate rabbitTemplate;
@@ -90,9 +94,7 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
     @Transactional(rollbackFor = Exception.class)
     public String submitComfyModelTask(ComfyModelTaskSubmitBo modelTaskBo) {
         final Long userId = LoginHelper.getUserId();
-//        final Long userId = 1838096394063040512L;
         final String userName = LoginHelper.getUsername();
-//        final String userName = "18852862861";
         if (StringUtils.isBlank(modelTaskBo.getBatchSize()) || Integer.parseInt(modelTaskBo.getBatchSize())<=0) {
             throw new TaskErrorException("生图数量至少1张");
         }
@@ -117,33 +119,39 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
         final String taskId = IdUtil.getSnowflakeNextIdStr();
         sdUserTaskService.addComfyTask(taskId,userId,userName,flow,modelTaskBo.getPrompt(),modelTaskBo.getPromptZh());
         // 生图任务存放到MQ队列
-        DrawingTaskInfo taskInfo = new DrawingTaskInfo(taskId, JSONObject.parseObject(flow),10,userId,batchSize);
+        DrawingTaskInfo taskInfo = new DrawingTaskInfo(taskId, flow,10,userId,batchSize,null,null);
         submitComfyTaskToQueue(taskInfo);
         return taskId;
     }
 
     /**
      * 提交工作流生图任务
-     * @param flowId 工作流id
+     *
+     * @param flowId   工作流id
+     * @param prompt 描述词(英文)
+     * @param promptZh 描述词(中文)
+     * @param image1 图片1
+     * @param image2 图片2
      * @return 任务id
      */
     @Override
-    public String submitComfyFlowTask(String flowId) {
+    public String submitComfyFlowTask(String flowId, String prompt, String promptZh, MultipartFile image1, MultipartFile image2) {
         final Long userId = LoginHelper.getUserId();
-//        final Long userId = 1838096394063040512L;
         final String userName = LoginHelper.getUsername();
-//        final String userName = "18852862861";
         // 根据模型类型获取工作流
         SdFlow sdFlow = sdFlowService.getFixedFlowById(flowId);
         if (sdFlow == null || StringUtils.isBlank(sdFlow.getFlow())) {
             throw new TaskErrorException("未找到工作流");
         }
-        String flowStr = sdFlow.getFlow();
-        JSONObject flowJson = JSONObject.parseObject(flowStr);
-
         if (sdFlow.getDrawNum() == null || sdFlow.getDrawNum() <= 0) {
             throw new TaskErrorException(String.format("工作流[%s]未配置生图数量", sdFlow.getName()));
         }
+
+        String flowStr = sdFlow.getFlow();
+        if (StringUtils.isNotBlank(prompt)) {
+            flowStr = flowStr.replace("{{prompt}}",prompt);
+        }
+
         // 校验生图数量,获取当前用户对应的会员的剩余数量并扣除本次绘图数量
         userService.checkDrawNumOfMember(userId, sdFlow.getDrawNum());
 
@@ -151,7 +159,7 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
         final String taskId = IdUtil.getSnowflakeNextIdStr();
         sdUserTaskService.addComfyTask(taskId, userId, userName, flowStr, null, null);
         // 生图任务存放到MQ队列
-        DrawingTaskInfo taskInfo = new DrawingTaskInfo(taskId, flowJson, 10, userId, sdFlow.getDrawNum());
+        DrawingTaskInfo taskInfo = new DrawingTaskInfo(taskId, flowStr, 10, userId, sdFlow.getDrawNum(),image1,image2);
         submitComfyTaskToQueue(taskInfo);
         return taskId;
     }
@@ -165,7 +173,6 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
     public ComfyTaskHistoryInfo getComfyModelHistoryTask(String taskId) {
         // 检查任务状态[0-排队等待中,1-执行中,2-执行成功,3-执行失败]
         Long userId = LoginHelper.getUserId();
-//        long userId = 1838096394063040512L;
         Integer status = sdUserTaskService.selectStatusByTaskIdAndUserId(taskId, userId);
         if (status==null) {
             throw new TaskErrorException("未找到任务");
@@ -192,7 +199,6 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
     public Integer getComfyTaskProgress(String taskId) {
         // 检查任务状态[0-排队等待中,1-执行中,2-执行成功,3-执行失败]
         Long userId = LoginHelper.getUserId();
-//        long userId = 1838096394063040512L;
         Integer status = sdUserTaskService.selectStatusByTaskIdAndUserId(taskId, userId);
         if (status==null) {
             throw new TaskErrorException("未找到任务");
@@ -261,9 +267,10 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
                     }
                     return;
                 }
-
+                // 处理工作流字符串
+                String flowStr = dealInputImage(taskInfo,node);
                 // 提交任务，返回ComfyUI内部任务ID
-                String promptId = submitDrawTask(taskId, taskInfo.getFlow(), node);
+                String promptId = submitDrawTask(taskId, JSONObject.parseObject(flowStr), node);
                 // 提交失败 或者 已有缓存任务
                 if (StringUtils.isNotBlank(promptId)) {
                     // 修改存储节点任务ID以及开始时间
@@ -290,7 +297,7 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
                                 OssClient storage = OssFactory.instance();
                                 UploadResult uploadResult = storage.uploadSuffix(out.toByteArray(),JPG,"image/jpeg");
                                 urlList.add(uploadResult.getUrl());
-                                ossService.insertOssData(SD + DateUtil.format(new Date(),"yyyyMMdd")+"_"+ IdUtil.getSnowflakeNextIdStr()+JPG,JPG,storage.getConfigKey(),uploadResult.getUrl(),uploadResult.getFilename(),task.getBelongUserName());
+                                sysOssService.insertOssData(SD + DateUtil.format(new Date(),"yyyyMMdd")+"_"+ IdUtil.getSnowflakeNextIdStr()+JPG,JPG,storage.getConfigKey(),uploadResult.getUrl(),uploadResult.getFilename(),task.getBelongUserName());
                             } catch (Exception e) {
                                 log.error("[任务输出图片][上传失败]>>>>>>>>>任务id: {},comfyui内部任务id: {},异常原因: ", taskId, promptId,e);
                                 // 归还绘图次数
@@ -323,6 +330,25 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
                 log.error("[MQ消息消费]>>>>>>>>>MQ消息消费异常重新入队列异常,异常信息: ", ex);
             }
         }
+    }
+
+    /**
+     * 处理图片上传到comfyui
+     * @param taskInfo  任务信息
+     * @param node      生图节点
+     * @return  处理后的工作流字符串
+     */
+    private String dealInputImage(DrawingTaskInfo taskInfo, SdDrawNode node) {
+        String flowStr = taskInfo.getFlow();
+        ComfyTaskImage image1 = uploadImage(taskInfo.getImage1(), node);
+        ComfyTaskImage image2 = uploadImage(taskInfo.getImage2(), node);
+        if (image1!=null) {
+            flowStr = flowStr.replace("{{inputImage1}}",image1.getFileName());
+        }
+        if (image2!=null) {
+            flowStr = flowStr.replace("{{inputImage2}}",image2.getFileName());
+        }
+        return flowStr;
     }
 
     /**
@@ -486,6 +512,31 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
     }
 
     /**
+     * api: /upload/image<br>
+     * 上传图片到ComfyUI服务器
+     *
+     * @param node 节点信息
+     * @param file 图片对象
+     * @return 上传后的图片信息
+     */
+    @Override
+    public ComfyTaskImage uploadImage(MultipartFile file, SdDrawNode node) {
+        if (file == null) {
+            return null;
+        }
+        byte[] bytes;
+        try {
+            bytes = file.getBytes();
+        }
+        catch (IOException e) {
+            return null;
+        }
+        HttpRequest request = HttpRequest.post(node.getBaseUrl() + "/upload/image").form("file", bytes,file.getOriginalFilename()).timeout(2000);
+        String resp = execHttpRequest(request);
+        return JsonUtils.toObject(resp, ComfyTaskImage.class);
+    }
+
+    /**
      * api: /view
      * 获取输入的图片文件
      *
@@ -565,7 +616,7 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
                     OssClient storage = OssFactory.instance();
                     UploadResult uploadResult = storage.uploadSuffix(out.toByteArray(),JPG,"image/jpeg");
                     urlList.add(uploadResult.getUrl());
-                    ossService.insertOssData(SD + DateUtil.format(new Date(),"yyyyMMdd")+"_"+ IdUtil.getSnowflakeNextIdStr()+JPG,JPG,storage.getConfigKey(),uploadResult.getUrl(),uploadResult.getFilename(),taskVo.getBelongUserName());
+                    sysOssService.insertOssData(SD + DateUtil.format(new Date(),"yyyyMMdd")+"_"+ IdUtil.getSnowflakeNextIdStr()+JPG,JPG,storage.getConfigKey(),uploadResult.getUrl(),uploadResult.getFilename(),taskVo.getBelongUserName());
                 } catch (Exception e) {
                     log.error("[任务输出图片][上传失败]>>>>>>>>>任务id: {},comfyui内部任务id: {},异常原因: ", taskId, taskVo.getPromptId(), e);
                 }

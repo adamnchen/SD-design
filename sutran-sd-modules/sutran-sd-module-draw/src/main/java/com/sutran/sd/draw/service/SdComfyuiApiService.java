@@ -4,6 +4,7 @@ import com.sutran.sd.draw.domain.SdDrawNode;
 import com.sutran.sd.draw.domain.SdFlow;
 import com.sutran.sd.draw.domain.bo.ComfyModelTaskSubmitBo;
 import com.sutran.sd.draw.domain.pojo.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.util.List;
@@ -30,10 +31,15 @@ public interface SdComfyuiApiService {
 
     /**
      * 提交工作流生图任务
-     * @param flowId 工作流id
+     *
+     * @param flowId   工作流id
+     * @param prompt 描述词(英文)
+     * @param promptZh 描述词(中文)
+     * @param image1 图片1
+     * @param image2 图片2
      * @return 任务id
      */
-    String submitComfyFlowTask(String flowId);
+    String submitComfyFlowTask(String flowId, String prompt, String promptZh, MultipartFile image1, MultipartFile image2);
 
     /**
      * 获取模型指定历史任务详情
@@ -121,6 +127,16 @@ public interface SdComfyuiApiService {
      * @return 上传后的图片信息
      */
     ComfyTaskImage uploadImage(File file, SdDrawNode node);
+
+    /**
+     * api: /upload/image<br>
+     * 上传图片到ComfyUI服务器
+     *
+     * @param file 图片对象
+     * @param node 节点信息
+     * @return 上传后的图片信息
+     */
+    ComfyTaskImage uploadImage(MultipartFile file, SdDrawNode node);
 
     /**
      * api: /view

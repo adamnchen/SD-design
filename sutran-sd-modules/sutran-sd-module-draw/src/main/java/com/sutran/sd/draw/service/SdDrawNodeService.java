@@ -28,10 +28,15 @@ public interface SdDrawNodeService {
      */
     void delete(Long id);
     /**
-     * 获取所有节点
+     * 获取所有绘图节点
      * @return 获取所有节点
      */
-    List<SdDrawNode> getNodeList();
+    List<SdDrawNode> getAllDrawNodeList();
+    /**
+     * 获取所有训练节点
+     * @return 节点列表
+     */
+    List<SdDrawNode> getAllTrainNodeList();
     /**
      * 根据ID查询comfyui节点
      * @param id 节点ID
@@ -41,19 +46,33 @@ public interface SdDrawNodeService {
     /**
      * comfyui节点健康检查
      */
-    void performHealthCheck();
+    void drawNodeHealthCheck();
+    /**
+     * 训练节点健康检查
+     */
+    void trainNodeHealthCheck();
     /**
      * 获取可用comfyui节点
      * @return 可用节点列表
      */
-    List<SdDrawNode> getAvailableNodes();
+    List<SdDrawNode> getAvailableDrawNodes();
+    /**
+     * 获取可用fluxgym节点
+     * @return 可用节点列表
+     */
+    List<SdDrawNode> getAvailableTrainNodes();
     /**
      * 选择comfyui节点 和 锁定节点任务
-     *
      * @param strategy 负载均衡策略
      * @param taskId    任务ID
      * @return 选中的节点
      */
-    SdDrawNode selectNodeAndLockNodeTask(LoadBalanceStrategy strategy, String taskId);
+    SdDrawNode selectDrawNodeAndLockNodeTask(LoadBalanceStrategy strategy, String taskId);
+    /**
+     * 选择fluxgym节点 和 锁定节点任务
+     * @param taskId    任务ID
+     * @return 选中的节点
+     */
+    SdDrawNode selectTrainNodeAndLockNodeTask(String taskId);
 }
 

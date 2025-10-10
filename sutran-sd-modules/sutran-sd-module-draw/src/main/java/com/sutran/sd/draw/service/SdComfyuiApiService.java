@@ -1,10 +1,12 @@
 package com.sutran.sd.draw.service;
 
 import com.sutran.sd.draw.domain.SdDrawNode;
+import com.sutran.sd.draw.domain.SdFlow;
 import com.sutran.sd.draw.domain.bo.ComfyModelTaskSubmitBo;
 import com.sutran.sd.draw.domain.pojo.*;
 
 import java.io.File;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -12,6 +14,12 @@ import java.util.Map;
  * @author zj
  */
 public interface SdComfyuiApiService {
+
+    /**
+     * 查询固定工作流列表
+     * @return 工作流列表
+     */
+    List<SdFlow> queryFixedFlowList();
 
     /**
      * 提交模型生图任务
@@ -140,4 +148,5 @@ public interface SdComfyuiApiService {
      * @param taskId 任务id
      */
     void autoDealComfyTask(String nodeId, String taskId);
+
 }

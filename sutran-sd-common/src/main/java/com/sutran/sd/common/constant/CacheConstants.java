@@ -139,4 +139,8 @@ public interface CacheConstants {
      */
     String DRAW_TASK_PROGRESS = "DRAW_TASK_PROGRESS";
 
+     /**
+     * 训练节点和任务映射关系
+     */
+    String TRAIN_NODE_TASK_MAP = "TRAIN_NODE_TASK_MAP";
 }

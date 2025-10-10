@@ -8,6 +8,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
+import java.util.List;
+
 /**
  * SD绘图 || 工作流(SdFlow)表服务实现类
  *
@@ -50,9 +53,23 @@ public class SdFlowServiceImpl implements SdFlowService {
         return sdFlowMapper.selectOne(new LambdaQueryWrapper<SdFlow>().eq(SdFlow::getModelType, modelType).eq(SdFlow::getIsOpen, 1).eq(SdFlow::getIsFixed, 0).last("limit 1"));
     }
 
+    /**
+     * 获取固定工作流
+     * @param flowId 工作流ID
+     * @return 工作流
+     */
     @Override
     public SdFlow getFixedFlowById(String flowId) {
         return sdFlowMapper.selectOne(new LambdaQueryWrapper<SdFlow>().eq(SdFlow::getId, flowId).eq(SdFlow::getIsFixed, 1));
+    }
+
+    /**
+     * 查询固定工作流列表
+     * @return 工作流列表
+     */
+    @Override
+    public List<SdFlow> queryFixedFlowList() {
+        return sdFlowMapper.selectList(new LambdaQueryWrapper<SdFlow>().eq(SdFlow::getIsFixed, 1));
     }
 }
 

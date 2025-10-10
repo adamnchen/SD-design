@@ -178,12 +178,21 @@ public class CommonJobEvent {
     }
 
     /**
-     * 定时处理节点健康检查
+     * 定时处理绘图节点健康检查
      * 每10秒执行一次
      */
     @Scheduled(cron="0/10 * * * * ?")
-    public void executeNodePerformHealthCheck(){
-        sdDrawNodeService.performHealthCheck();
+    public void executeDrawNodeHealthCheck(){
+        sdDrawNodeService.drawNodeHealthCheck();
+    }
+
+    /**
+     * 定时处理训练节点健康检查
+     * 每10秒执行一次
+     */
+    @Scheduled(cron="0/10 * * * * ?")
+    public void executeTrainNodeHealthCheck(){
+        sdDrawNodeService.trainNodeHealthCheck();
     }
 
     /**

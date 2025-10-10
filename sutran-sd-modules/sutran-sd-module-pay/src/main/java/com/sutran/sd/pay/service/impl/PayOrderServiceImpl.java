@@ -55,7 +55,8 @@ public class PayOrderServiceImpl implements PayOrderService {
             .eq(StringUtils.isNotBlank(order.getBusinessType()), PayOrder::getBusinessType, order.getBusinessType())
             .eq(StringUtils.isNotBlank(order.getChannelType()), PayOrder::getChannelType, order.getChannelType())
             .eq(ObjectUtil.isNotNull(order.getBusinessId()), PayOrder::getBusinessId, order.getBusinessId())
-            .between(params.get("beginTime") != null && params.get("endTime") != null, PayOrder::getCreateTime, params.get("beginTime"), params.get("endTime"));
+            .between(params.get("beginTime") != null && params.get("endTime") != null, PayOrder::getCreateTime, params.get("beginTime"), params.get("endTime"))
+            .in(params.get("statusList")!=null, PayOrder::getStatus, params.get("statusList"));
         if (ObjectUtil.isNotNull(order.getStatus())) {
             lqw.eq(ObjectUtil.isNotNull(order.getStatus()), PayOrder::getStatus, order.getStatus());
         }

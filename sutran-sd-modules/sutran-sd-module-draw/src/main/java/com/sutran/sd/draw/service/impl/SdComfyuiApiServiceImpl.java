@@ -45,10 +45,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static com.sutran.sd.common.constant.CacheConstants.DRAW_NODE_TASK_MAP;
 import static com.sutran.sd.common.constant.CacheConstants.DRAW_TASK_PROGRESS;
@@ -74,6 +71,15 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
     private final UserService userService;
     private final SdFlowService sdFlowService;
     private final RabbitTemplate rabbitTemplate;
+
+    /**
+     * 查询固定工作流列表
+     * @return 工作流列表
+     */
+    @Override
+    public List<SdFlow> queryFixedFlowList() {
+        return sdFlowService.queryFixedFlowList();
+    }
 
     /**
      * 提交模型生图任务
@@ -132,6 +138,9 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
         if (sdFlow == null || StringUtils.isBlank(sdFlow.getFlow())) {
             throw new TaskErrorException("未找到工作流");
         }
+        String flowStr = sdFlow.getFlow();
+        JSONObject flowJson = JSONObject.parseObject(flowStr);
+
         if (sdFlow.getDrawNum() == null || sdFlow.getDrawNum() <= 0) {
             throw new TaskErrorException(String.format("工作流[%s]未配置生图数量", sdFlow.getName()));
         }
@@ -140,9 +149,9 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
 
         // 生图任务落库
         final String taskId = IdUtil.getSnowflakeNextIdStr();
-        sdUserTaskService.addComfyTask(taskId, userId, userName, sdFlow.getFlow(), null, null);
+        sdUserTaskService.addComfyTask(taskId, userId, userName, flowStr, null, null);
         // 生图任务存放到MQ队列
-        DrawingTaskInfo taskInfo = new DrawingTaskInfo(taskId, JSONObject.parseObject(sdFlow.getFlow()), 10, userId, sdFlow.getDrawNum());
+        DrawingTaskInfo taskInfo = new DrawingTaskInfo(taskId, flowJson, 10, userId, sdFlow.getDrawNum());
         submitComfyTaskToQueue(taskInfo);
         return taskId;
     }
@@ -241,7 +250,7 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
             }
             else {
                 // 获取可用节点 以及 锁定节点任务
-                SdDrawNode node = sdDrawNodeService.selectNodeAndLockNodeTask(LoadBalanceStrategy.WEIGHTED_LEAST_LOAD, taskId);
+                SdDrawNode node = sdDrawNodeService.selectDrawNodeAndLockNodeTask(LoadBalanceStrategy.WEIGHTED_LEAST_LOAD, taskId);
                 if (node == null) {
                     // 没有可用节点,重新放回队列
                     log.warn("[MQ消息消费]>>>>>>>>>没有可用节点,任务ID: {}", taskId);

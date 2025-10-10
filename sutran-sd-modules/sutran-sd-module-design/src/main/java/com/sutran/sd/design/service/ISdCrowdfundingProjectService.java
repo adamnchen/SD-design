@@ -1,6 +1,7 @@
 package com.sutran.sd.design.service;
 
 import com.sutran.sd.design.domain.SdCrowdfundingProject;
+import com.sutran.sd.design.domain.SdCrowdfundingSupport;
 import com.sutran.sd.design.dto.CrowdfundingSupportDTO;
 import com.sutran.sd.design.dto.CrowdfundingDrawClaimDTO;
 import com.sutran.sd.design.vo.CrowdfundingProjectDetailVO;
@@ -211,4 +212,12 @@ public interface ISdCrowdfundingProjectService {
      * @return 参与状态信息
      */
     Map<String, Object> getProjectParticipationStatus(Long projectId);
+
+    /**
+     * 根据支持订单号查询支持记录
+     *
+     * @param supportNo 支持订单号
+     * @return 支持记录
+     */
+    SdCrowdfundingSupport getSupportBySupportNo(String supportNo);
 }

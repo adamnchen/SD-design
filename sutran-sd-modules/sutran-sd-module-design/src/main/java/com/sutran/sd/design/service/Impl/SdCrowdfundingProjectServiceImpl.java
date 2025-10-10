@@ -11,6 +11,7 @@ import com.sutran.sd.design.mapper.SdCrowdfundingSupportMapper;
 import com.sutran.sd.design.service.ISdCrowdfundingProjectService;
 import com.sutran.sd.design.service.CrowdfundingRedisService;
 import com.sutran.sd.design.service.OrderReservationService;
+import com.sutran.sd.pay.service.AliPayService;
 import com.sutran.sd.common.core.domain.entity.SdProofingInvitation;
 import com.sutran.sd.design.mapper.SdProofingInvitationMapper;
 import com.sutran.sd.system.service.ISysUserService;
@@ -53,6 +54,7 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
     private final OrderReservationService orderReservationService;
     private final CrowdfundingRedisService crowdfundingRedisService;
     private final RedisTemplate<String, Object> redisTemplate;
+    private final AliPayService aliPayService;
 
     @Override
     public SdCrowdfundingProject selectSdCrowdfundingProjectById(Long id) {
@@ -856,6 +858,16 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
         return status;
     }
 
+    @Override
+    public SdCrowdfundingSupport getSupportBySupportNo(String supportNo) {
+        try {
+            return supportMapper.selectBySupportNo(supportNo);
+        } catch (Exception e) {
+            log.error("根据支持订单号查询支持记录失败: 订单号={}", supportNo, e);
+            return null;
+        }
+    }
+
     /**
      * 使用反射获取对象属性值
      */
@@ -1085,12 +1097,16 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
      */
     private boolean processRefund(SdCrowdfundingSupport support) {
         try {
-            // TODO: 调用支付宝退款接口
-            // 这里需要实现具体的退款逻辑
-            log.info("处理退款: 订单号={}, 金额={}", support.getSupportNo(), support.getSupportAmount());
+            // 调用支付宝退款接口
+            boolean refundSuccess = aliPayService.refund(support.getSupportNo(), support.getSupportAmount(), "众筹超募退款");
             
-            // 模拟退款成功
-            return true;
+            if (refundSuccess) {
+                log.info("支付宝退款成功: 订单号={}, 金额={}", support.getSupportNo(), support.getSupportAmount());
+                return true;
+            } else {
+                log.error("支付宝退款失败: 订单号={}, 金额={}", support.getSupportNo(), support.getSupportAmount());
+                return false;
+            }
         } catch (Exception e) {
             log.error("退款处理失败: 订单号={}, 金额={}", support.getSupportNo(), support.getSupportAmount(), e);
             return false;

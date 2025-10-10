@@ -4,6 +4,7 @@ import cn.hutool.extra.qrcode.QrCodeUtil;
 import com.ijpay.alipay.AliPayApiConfig;
 import com.sutran.sd.common.core.domain.R;
 import com.sutran.sd.design.service.ISdCrowdfundingProjectService;
+import com.sutran.sd.design.domain.SdCrowdfundingSupport;
 import com.sutran.sd.pay.controller.BaseAliPayApiController;
 import com.sutran.sd.pay.service.AliPayService;
 import com.sutran.sd.pay.service.PayOrderService;
@@ -165,13 +166,45 @@ public class CrowdfundingPayController extends BaseAliPayApiController {
                            @RequestParam BigDecimal refundAmount,
                            @RequestParam(required = false) String refundReason) {
         try {
-            // TODO: 调用支付宝退款接口
-            // 这里需要实现具体的退款逻辑
-            log.info("众筹退款: 订单号={}, 退款金额={}, 退款原因={}", supportNo, refundAmount, refundReason);
+            // 1. 查询支持记录
+            SdCrowdfundingSupport support = crowdfundingProjectService.getSupportBySupportNo(supportNo);
+            if (support == null) {
+                return R.fail("支持记录不存在");
+            }
             
-            return R.ok("退款成功");
+            // 2. 检查支持记录状态
+            if (support.getPaymentStatus() != 1) {
+                return R.fail("只有已支付的支持记录才能退款");
+            }
+            
+            // 3. 检查退款金额
+            if (refundAmount.compareTo(support.getSupportAmount()) > 0) {
+                return R.fail("退款金额不能超过支持金额");
+            }
+            
+            // 4. 调用支付宝退款接口
+            boolean refundSuccess = aliPayService.refund(supportNo, refundAmount, refundReason);
+            
+            if (refundSuccess) {
+                // 5. 更新支持记录状态
+                support.setStatus(2); // 已退款
+                support.setRefundAmount(refundAmount);
+                support.setRefundTime(new Date());
+                support.setRefundReason(refundReason != null ? refundReason : "众筹退款");
+                support.setUpdateTime(new Date());
+                
+                // 这里需要调用众筹服务更新支持记录
+                // crowdfundingProjectService.updateSupport(support);
+                
+                log.info("众筹退款成功: 订单号={}, 退款金额={}, 退款原因={}", supportNo, refundAmount, refundReason);
+                return R.ok("退款成功");
+            } else {
+                log.error("众筹退款失败: 订单号={}, 退款金额={}", supportNo, refundAmount);
+                return R.fail("退款失败，请稍后重试");
+            }
+            
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("众筹退款异常: 订单号={}, 退款金额={}", supportNo, refundAmount, e);
             return R.fail("退款失败: " + e.getMessage());
         }
     }

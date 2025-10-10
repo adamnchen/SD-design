@@ -4,6 +4,7 @@ import com.alipay.api.response.AlipayTradeQueryResponse;
 import com.ijpay.alipay.AliPayApiConfig;
 
 import javax.servlet.http.HttpServletRequest;
+import java.math.BigDecimal;
 
 /**
  * @author zj
@@ -36,4 +37,13 @@ public interface AliPayService {
      * @param tradeNo 交易号
      */
     void syncStatus(String outTradeNo, String tradeNo);
+
+    /**
+     * 支付宝退款
+     * @param outTradeNo 商户订单号
+     * @param refundAmount 退款金额
+     * @param refundReason 退款原因
+     * @return 退款结果
+     */
+    boolean refund(String outTradeNo, BigDecimal refundAmount, String refundReason);
 }

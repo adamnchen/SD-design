@@ -5,9 +5,11 @@ import cn.hutool.core.util.IdUtil;
 import com.alipay.api.AlipayApiException;
 import com.alipay.api.domain.AlipayTradePrecreateModel;
 import com.alipay.api.domain.AlipayTradeQueryModel;
+import com.alipay.api.domain.AlipayTradeRefundModel;
 import com.alipay.api.internal.util.AlipaySignature;
 import com.alipay.api.response.AlipayTradePrecreateResponse;
 import com.alipay.api.response.AlipayTradeQueryResponse;
+import com.alipay.api.response.AlipayTradeRefundResponse;
 import com.ijpay.alipay.AliPayApi;
 import com.ijpay.alipay.AliPayApiConfig;
 import com.ijpay.alipay.AliPayApiConfigKit;
@@ -269,6 +271,72 @@ public class AliPayServiceImpl implements AliPayService {
         catch (AlipayApiException e) {
             log.error("[支付宝][查询指定交易信息]>>>>>>>>>查询支付宝指定交易信息失败,订单号：{},流水号：{},异常：",outTradeNo,tradeNo,e);
             throw new ServiceException("查询支付宝指定交易信息失败:"+e.getMessage());
+        }
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean refund(String outTradeNo, BigDecimal refundAmount, String refundReason) {
+        try {
+            // 1. 查询原订单信息
+            PayOrder payOrder = payOrderService.detailByOutTradeNo(outTradeNo);
+            if (payOrder == null) {
+                log.error("[支付宝][退款]>>>>>>>>>订单不存在,订单号：{}", outTradeNo);
+                return false;
+            }
+            
+            // 2. 检查订单状态，只有已支付的订单才能退款
+            if (payOrder.getStatus() != 1) {
+                log.error("[支付宝][退款]>>>>>>>>>订单状态不正确，无法退款,订单号：{},状态：{}", outTradeNo, payOrder.getStatus());
+                return false;
+            }
+            
+            // 3. 检查退款金额不能超过原订单金额
+            if (refundAmount.compareTo(payOrder.getTotalAmount()) > 0) {
+                log.error("[支付宝][退款]>>>>>>>>>退款金额不能超过原订单金额,订单号：{},退款金额：{},原订单金额：{}", 
+                    outTradeNo, refundAmount, payOrder.getTotalAmount());
+                return false;
+            }
+            
+            // 4. 生成退款订单号
+            String outRefundNo = "RF" + DateUtil.format(new Date(), PURE_DATETIME_PATTERN) + IdUtil.getSnowflakeNextIdStr();
+            
+            // 5. 构建退款请求参数
+            AlipayTradeRefundModel model = new AlipayTradeRefundModel();
+            model.setOutTradeNo(outTradeNo);
+            model.setOutRefundNo(outRefundNo);
+            model.setRefundAmount(refundAmount.setScale(2, RoundingMode.HALF_UP).toString());
+            model.setRefundReason(refundReason != null ? refundReason : "众筹退款");
+            
+            // 6. 调用支付宝退款接口
+            AlipayTradeRefundResponse response = AliPayApi.tradeRefundToResponse(model);
+            
+            if (response.isSuccess()) {
+                // 7. 退款成功，更新订单状态
+                payOrder.setStatus(3); // 已退款
+                payOrder.setRefundAmount(refundAmount);
+                payOrder.setRefundTime(new Date());
+                payOrder.setRefundNo(outRefundNo);
+                payOrder.setRefundReason(refundReason);
+                payOrder.setUpdateTime(new Date());
+                
+                payOrderService.updateById(payOrder);
+                
+                log.info("[支付宝][退款]>>>>>>>>>退款成功,订单号：{},退款单号：{},退款金额：{}", 
+                    outTradeNo, outRefundNo, refundAmount);
+                return true;
+            } else {
+                log.error("[支付宝][退款]>>>>>>>>>退款失败,订单号：{},错误码：{},错误信息：{}", 
+                    outTradeNo, response.getCode(), response.getSubMsg());
+                return false;
+            }
+            
+        } catch (AlipayApiException e) {
+            log.error("[支付宝][退款]>>>>>>>>>调用支付宝退款接口失败,订单号：{},异常：", outTradeNo, e);
+            return false;
+        } catch (Exception e) {
+            log.error("[支付宝][退款]>>>>>>>>>退款处理异常,订单号：{},异常：", outTradeNo, e);
+            return false;
         }
     }
 

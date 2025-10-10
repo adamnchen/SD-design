@@ -22,6 +22,18 @@ public class CrowdfundingSupportDTO {
     private Long projectId;
 
     /**
+     * 支持用户ID
+     */
+    @NotNull(message = "支持用户ID不能为空")
+    private Long userId;
+
+    /**
+     * 支持用户姓名
+     */
+    @NotBlank(message = "支持用户姓名不能为空")
+    private String userName;
+
+    /**
      * 支持金额
      */
     @NotNull(message = "支持金额不能为空")

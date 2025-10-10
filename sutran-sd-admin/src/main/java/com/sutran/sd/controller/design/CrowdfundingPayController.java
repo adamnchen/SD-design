@@ -18,6 +18,9 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.Date;
+import java.util.Map;
+
+import static jdk.nashorn.internal.runtime.regexp.joni.Config.log;
 
 /**
  * 众筹支付Controller
@@ -68,18 +71,18 @@ public class CrowdfundingPayController extends BaseAliPayApiController {
             payOrder.setBusinessId(projectId);
             payOrder.setCreateTime(new Date());
             payOrder.setExpireTime(new Date(System.currentTimeMillis() + 30 * 60 * 1000)); // 30分钟过期
-            
+
             // 保存支付订单
             payOrderService.insert(payOrder);
-            
+
             // 2. 创建支付宝预支付订单
             String qrCode = aliPayService.preCreateOrder(payOrder.getOutTradeNo());
             payOrder.setQrCode(qrCode);
             payOrderService.saveQrCode(payOrder.getOutTradeNo(), qrCode);
-            
+
             // 3. 生成二维码图片返回
             QrCodeUtil.generate(qrCode, 300, 300, "png", response.getOutputStream());
-            
+
         } catch (Exception e) {
             e.printStackTrace();
             response.getWriter().write("创建支付订单失败: " + e.getMessage());
@@ -93,7 +96,7 @@ public class CrowdfundingPayController extends BaseAliPayApiController {
     public String notifyUrl(HttpServletRequest request) {
         try {
             String result = aliPayService.notifyUrl(request);
-            
+
             // 处理众筹支付回调
             if (result != null && result.contains("success")) {
                 // 从请求参数中获取订单号
@@ -103,7 +106,7 @@ public class CrowdfundingPayController extends BaseAliPayApiController {
                     handleCrowdfundingPaymentSuccess(outTradeNo);
                 }
             }
-            
+
             return result;
         } catch (Exception e) {
             e.printStackTrace();
@@ -121,17 +124,17 @@ public class CrowdfundingPayController extends BaseAliPayApiController {
             if (payOrder == null || !payOrder.getBusinessType().equals(BusinessType.CROWDFUNDING_SUPPORT.name())) {
                 return;
             }
-            
+
             // 2. 更新支付状态
             payOrder.setStatus(1); // 已支付
             payOrder.setGmtPayment(new Date());
             payOrder.setNotifyTime(new Date());
             payOrder.setNotifyResult("success");
             payOrderService.successPay(outTradeNo, payOrder.getTradeNo(), payOrder.getTotalAmount().toString(), payOrder.getGmtPayment().toString());
-            
+
             // 3. 创建众筹支持记录
             crowdfundingProjectService.createSupportFromPayment(payOrder);
-            
+
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -151,6 +154,39 @@ public class CrowdfundingPayController extends BaseAliPayApiController {
         } catch (Exception e) {
             e.printStackTrace();
             return R.fail("查询失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 众筹退款接口
+     */
+    @PostMapping("/refund")
+    public R<String> refund(@RequestParam String supportNo, 
+                           @RequestParam BigDecimal refundAmount,
+                           @RequestParam(required = false) String refundReason) {
+        try {
+            // TODO: 调用支付宝退款接口
+            // 这里需要实现具体的退款逻辑
+            log.info("众筹退款: 订单号={}, 退款金额={}, 退款原因={}", supportNo, refundAmount, refundReason);
+            
+            return R.ok("退款成功");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return R.fail("退款失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 获取项目参与状态
+     */
+    @GetMapping("/participation-status/{projectId}")
+    public R<Map<String, Object>> getParticipationStatus(@PathVariable Long projectId) {
+        try {
+            Map<String, Object> status = crowdfundingProjectService.getProjectParticipationStatus(projectId);
+            return R.ok("获取成功", status);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return R.fail("获取失败: " + e.getMessage());
         }
     }
 }

@@ -10,6 +10,7 @@ import com.sutran.sd.design.vo.CrowdfundingDrawVO;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 众筹项目Service接口
@@ -193,4 +194,21 @@ public interface ISdCrowdfundingProjectService {
      * @return 支付订单号
      */
     String createSupportPaymentOrder(Long projectId, BigDecimal supportAmount, String message, Boolean isAnonymous);
+
+    /**
+     * 初始化众筹项目Redis缓存
+     *
+     * @param projectId 项目ID
+     * @param targetAmount 目标金额
+     * @return 是否成功
+     */
+    boolean initProjectRedisCache(Long projectId, BigDecimal targetAmount);
+
+    /**
+     * 获取项目参与状态信息
+     *
+     * @param projectId 项目ID
+     * @return 参与状态信息
+     */
+    Map<String, Object> getProjectParticipationStatus(Long projectId);
 }

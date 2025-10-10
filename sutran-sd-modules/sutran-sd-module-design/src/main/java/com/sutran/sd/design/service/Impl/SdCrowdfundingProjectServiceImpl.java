@@ -9,11 +9,13 @@ import com.sutran.sd.design.dto.CrowdfundingDrawClaimDTO;
 import com.sutran.sd.design.mapper.SdCrowdfundingProjectMapper;
 import com.sutran.sd.design.mapper.SdCrowdfundingSupportMapper;
 import com.sutran.sd.design.service.ISdCrowdfundingProjectService;
+import com.sutran.sd.design.service.CrowdfundingRedisService;
 import com.sutran.sd.design.service.OrderReservationService;
 import com.sutran.sd.common.core.domain.entity.SdProofingInvitation;
 import com.sutran.sd.design.mapper.SdProofingInvitationMapper;
 import com.sutran.sd.system.service.ISysUserService;
 import com.sutran.sd.common.core.domain.entity.SysUser;
+import org.springframework.data.redis.core.RedisTemplate;
 import com.sutran.sd.design.vo.CrowdfundingProjectDetailVO;
 import com.sutran.sd.design.vo.CrowdfundingProjectListVO;
 import com.sutran.sd.design.vo.CrowdfundingSupportVO;
@@ -26,9 +28,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -46,6 +51,8 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
     private final SdProofingInvitationMapper proofingInvitationMapper;
     private final ISysUserService sysUserService;
     private final OrderReservationService orderReservationService;
+    private final CrowdfundingRedisService crowdfundingRedisService;
+    private final RedisTemplate<String, Object> redisTemplate;
 
     @Override
     public SdCrowdfundingProject selectSdCrowdfundingProjectById(Long id) {
@@ -567,14 +574,7 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
                 return false;
             }
             
-            // 1. 确认预占金额
-            boolean confirmed = orderReservationService.confirmReservation(projectId, outTradeNo);
-            if (!confirmed) {
-                log.error("确认预占失败，可能订单已过期: 项目={}, 订单={}", projectId, outTradeNo);
-                return false;
-            }
-            
-            // 2. 更新支持记录状态
+            // 1. 更新支持记录状态
             SdCrowdfundingSupport support = supportMapper.selectBySupportNo(outTradeNo);
             if (support == null) {
                 log.error("支持记录不存在: {}", outTradeNo);
@@ -587,10 +587,17 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
             support.setUpdateTime(new Date());
             supportMapper.updateById(support);
             
-            // 3. 检查是否达到目标金额（使用原子操作）
+            // 2. 清理Redis中的订单缓存
+            String orderKey = "crowdfunding:order:" + outTradeNo;
+            String timeoutKey = "crowdfunding:timeout:" + outTradeNo;
+            redisTemplate.delete(orderKey);
+            redisTemplate.delete(timeoutKey);
+            
+            // 3. 检查项目是否真正完成（基于实际支付金额）
             checkAndUpdateProjectStatus(projectId);
             
-            log.info("从支付订单创建众筹支持记录成功: 项目={}, 用户={}, 金额={}", projectId, userId, supportAmount);
+            log.info("从支付订单创建众筹支持记录成功: 项目={}, 用户={}, 金额={}, 剩余金额={}", 
+                projectId, userId, supportAmount, crowdfundingRedisService.getRemainingAmount(projectId));
             return true;
             
         } catch (Exception e) {
@@ -614,22 +621,20 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
                 throw new RuntimeException("众筹已结束，无法参与");
             }
             
-            // 2. 检查可用金额（包括已预占的金额）
-            BigDecimal availableAmount = orderReservationService.getAvailableAmount(projectId);
-            if (supportAmount.compareTo(availableAmount) > 0) {
-                throw new RuntimeException("支持金额不能超过剩余目标金额，剩余金额: " + availableAmount + " 元");
+            // 2. 检查Redis中是否还有剩余金额
+            if (!crowdfundingRedisService.tryDeductAmount(projectId, supportAmount)) {
+                // 检查是否有未支付订单可能释放金额
+                if (hasPendingOrders(projectId)) {
+                    throw new RuntimeException("众筹金额暂时不足，请稍后再试（可能有订单即将释放金额）");
+                } else {
+                    throw new RuntimeException("众筹金额不足，无法创建订单");
+                }
             }
             
             // 3. 生成支付订单号
             String outTradeNo = "CF" + System.currentTimeMillis() + "_" + Thread.currentThread().getId();
             
-            // 4. 预占金额（5分钟过期，缩短预占时间）
-            boolean reserved = orderReservationService.reserveAmount(projectId, supportAmount, outTradeNo, 5);
-            if (!reserved) {
-                throw new RuntimeException("预占金额失败，可能剩余金额不足，请刷新页面重试");
-            }
-            
-            // 5. 创建支持记录（待支付状态）
+            // 4. 创建支持记录（待支付状态）
             SdCrowdfundingSupport support = new SdCrowdfundingSupport();
             support.setSupportNo(outTradeNo);
             support.setProjectId(projectId);
@@ -646,13 +651,209 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
             // 保存支持记录
             supportMapper.insert(support);
             
-            log.info("创建众筹支持支付订单成功: 项目={}, 金额={}, 订单号={}", projectId, supportAmount, outTradeNo);
+            // 5. 将订单放入Redis，设置超时时间（20分钟）
+            String orderKey = "crowdfunding:order:" + outTradeNo;
+            String timeoutKey = "crowdfunding:timeout:" + outTradeNo;
+            redisTemplate.opsForValue().set(orderKey, support, 20, java.util.concurrent.TimeUnit.MINUTES);
+            redisTemplate.opsForValue().set(timeoutKey, "1", 20, java.util.concurrent.TimeUnit.MINUTES);
+            
+            log.info("创建众筹支持支付订单成功: 项目={}, 金额={}, 订单号={}, 剩余金额={}", 
+                projectId, supportAmount, outTradeNo, crowdfundingRedisService.getRemainingAmount(projectId));
             return outTradeNo;
             
         } catch (Exception e) {
             log.error("创建众筹支持支付订单失败", e);
             throw new RuntimeException("创建支付订单失败: " + e.getMessage());
         }
+    }
+
+    @Override
+    public boolean initProjectRedisCache(Long projectId, BigDecimal targetAmount) {
+        try {
+            return crowdfundingRedisService.initProjectAmount(projectId, targetAmount);
+        } catch (Exception e) {
+            log.error("初始化众筹项目Redis缓存失败: 项目={}, 金额={}", projectId, targetAmount, e);
+            return false;
+        }
+    }
+
+    /**
+     * 检查并更新项目状态（基于实际支付金额）
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void checkAndUpdateProjectStatus(Long projectId) {
+        try {
+            // 1. 查询项目信息
+            SdCrowdfundingProject project = this.getById(projectId);
+            if (project == null) {
+                log.error("项目不存在: {}", projectId);
+                return;
+            }
+            
+            // 只有众筹中的项目才需要检查
+            if (!project.getStatus().equals(1)) {
+                return;
+            }
+            
+            // 2. 计算实际已支付金额
+            BigDecimal actualPaidAmount = calculateActualPaidAmount(projectId);
+            BigDecimal targetAmount = project.getTargetAmount();
+            
+            log.info("检查众筹状态: 项目={}, 实际支付={}, 目标金额={}", projectId, actualPaidAmount, targetAmount);
+            
+            // 3. 检查是否达到目标金额
+            if (actualPaidAmount.compareTo(targetAmount) >= 0) {
+                // 使用乐观锁更新状态，防止重复处理
+                int updateResult = crowdfundingProjectMapper.updateStatusIfCrowdfunding(projectId, 2); // 众筹成功
+                if (updateResult > 0) {
+                    // 更新项目实际金额
+                    project.setCurrentAmount(actualPaidAmount);
+                    project.setSupportCount(getPaidSupportCount(projectId));
+                    this.updateById(project);
+                    
+                    // 释放资金给厂家
+                    releaseFundsToManufacturer(projectId);
+                    
+                    // 清理Redis缓存
+                    crowdfundingRedisService.clearProjectCache(projectId);
+                    
+                    log.info("众筹项目成功: 项目={}, 实际支付={}, 目标金额={}", 
+                        projectId, actualPaidAmount, targetAmount);
+                } else {
+                    log.info("项目状态已被其他线程更新: {}", projectId);
+                }
+            }
+        } catch (Exception e) {
+            log.error("检查并更新项目状态失败: 项目={}", projectId, e);
+        }
+    }
+
+    /**
+     * 计算实际已支付金额
+     */
+    private BigDecimal calculateActualPaidAmount(Long projectId) {
+        try {
+            List<SdCrowdfundingSupport> paidSupports = supportMapper.selectPaidByProjectId(projectId);
+            if (paidSupports == null || paidSupports.isEmpty()) {
+                return BigDecimal.ZERO;
+            }
+            
+            return paidSupports.stream()
+                .map(SdCrowdfundingSupport::getSupportAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        } catch (Exception e) {
+            log.error("计算实际已支付金额失败: 项目={}", projectId, e);
+            return BigDecimal.ZERO;
+        }
+    }
+
+    /**
+     * 获取已支付支持数量
+     */
+    private Integer getPaidSupportCount(Long projectId) {
+        try {
+            List<SdCrowdfundingSupport> paidSupports = supportMapper.selectPaidByProjectId(projectId);
+            return paidSupports != null ? paidSupports.size() : 0;
+        } catch (Exception e) {
+            log.error("获取已支付支持数量失败: 项目={}", projectId, e);
+            return 0;
+        }
+    }
+
+    /**
+     * 检查是否有未支付的订单
+     */
+    private boolean hasPendingOrders(Long projectId) {
+        try {
+            // 查询待支付状态的支持记录
+            List<SdCrowdfundingSupport> pendingSupports = supportMapper.selectList(
+                new LambdaQueryWrapper<SdCrowdfundingSupport>()
+                    .eq(SdCrowdfundingSupport::getProjectId, projectId)
+                    .eq(SdCrowdfundingSupport::getPaymentStatus, 0) // 待支付
+                    .eq(SdCrowdfundingSupport::getStatus, 0) // 正常状态
+            );
+            
+            return pendingSupports != null && !pendingSupports.isEmpty();
+        } catch (Exception e) {
+            log.error("检查未支付订单失败: 项目={}", projectId, e);
+            return false;
+        }
+    }
+
+    @Override
+    public Map<String, Object> getProjectParticipationStatus(Long projectId) {
+        Map<String, Object> status = new HashMap<>();
+        
+        try {
+            // 1. 查询项目信息
+            SdCrowdfundingProject project = this.getById(projectId);
+            if (project == null) {
+                status.put("canParticipate", false);
+                status.put("message", "项目不存在");
+                return status;
+            }
+            
+            // 2. 检查项目状态
+            if (!project.getStatus().equals(1)) {
+                status.put("canParticipate", false);
+                status.put("message", "项目不在众筹中");
+                return status;
+            }
+            
+            // 3. 检查是否过期
+            if (project.getEndTime().before(new Date())) {
+                status.put("canParticipate", false);
+                status.put("message", "众筹已结束");
+                return status;
+            }
+            
+            // 4. 检查Redis剩余金额
+            BigDecimal remainingAmount = crowdfundingRedisService.getRemainingAmount(projectId);
+            boolean hasRemainingAmount = remainingAmount.compareTo(BigDecimal.ZERO) > 0;
+            
+            // 5. 检查是否有未支付订单
+            boolean hasPendingOrders = hasPendingOrders(projectId);
+            
+            // 6. 计算实际已支付金额
+            BigDecimal actualPaidAmount = calculateActualPaidAmount(projectId);
+            boolean isCompleted = actualPaidAmount.compareTo(project.getTargetAmount()) >= 0;
+            
+            // 7. 判断参与状态
+            if (isCompleted) {
+                status.put("canParticipate", false);
+                status.put("message", "众筹已完成");
+                status.put("status", "completed");
+            } else if (hasRemainingAmount) {
+                status.put("canParticipate", true);
+                status.put("message", "可以参与众筹");
+                status.put("status", "available");
+                status.put("remainingAmount", remainingAmount);
+            } else if (hasPendingOrders) {
+                status.put("canParticipate", false);
+                status.put("message", "众筹金额暂时不足，请稍后再试（可能有订单即将释放金额）");
+                status.put("status", "pending");
+                status.put("remainingAmount", BigDecimal.ZERO);
+            } else {
+                status.put("canParticipate", false);
+                status.put("message", "众筹金额不足，无法参与");
+                status.put("status", "unavailable");
+                status.put("remainingAmount", BigDecimal.ZERO);
+            }
+            
+            // 8. 添加其他信息
+            status.put("targetAmount", project.getTargetAmount());
+            status.put("actualPaidAmount", actualPaidAmount);
+            status.put("progress", actualPaidAmount.divide(project.getTargetAmount(), 4, BigDecimal.ROUND_HALF_UP).multiply(new BigDecimal("100")));
+            status.put("hasPendingOrders", hasPendingOrders);
+            
+        } catch (Exception e) {
+            log.error("获取项目参与状态失败: 项目={}", projectId, e);
+            status.put("canParticipate", false);
+            status.put("message", "获取状态失败");
+            status.put("status", "error");
+        }
+        
+        return status;
     }
 
     /**
@@ -722,10 +923,10 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
     }
 
     /**
-     * 检查并更新项目状态（原子操作）
+     * 检查并更新项目状态，处理超募退款（原子操作）
      */
     @Transactional(rollbackFor = Exception.class)
-    public void checkAndUpdateProjectStatus(Long projectId) {
+    public void checkAndUpdateProjectStatusWithRefund(Long projectId) {
         try {
             // 使用数据库行锁确保原子性
             SdCrowdfundingProject project = crowdfundingProjectMapper.selectById(projectId);
@@ -739,21 +940,160 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
                 return;
             }
             
-            // 检查是否达到目标金额
-            if (project.getCurrentAmount().compareTo(project.getTargetAmount()) >= 0) {
+            // 1. 重新计算所有已支付订单的总金额
+            BigDecimal totalPaidAmount = calculateTotalPaidAmount(projectId);
+            BigDecimal targetAmount = project.getTargetAmount();
+            
+            log.info("检查众筹状态: 项目={}, 已支付总额={}, 目标金额={}", projectId, totalPaidAmount, targetAmount);
+            
+            // 2. 检查是否达到目标金额
+            if (totalPaidAmount.compareTo(targetAmount) >= 0) {
                 // 使用乐观锁更新状态，防止重复处理
                 int updateResult = crowdfundingProjectMapper.updateStatusIfCrowdfunding(projectId, 2); // 众筹成功
                 if (updateResult > 0) {
-                    // 只有成功更新状态的项目才释放资金
+                    // 处理超募退款
+                    processOverfundingRefund(projectId, project, totalPaidAmount);
+                    
+                    // 释放资金给厂家
                     releaseFundsToManufacturer(projectId);
-                    log.info("众筹项目达到目标金额，立即成功: 项目={}, 当前金额={}, 目标金额={}", 
-                        projectId, project.getCurrentAmount(), project.getTargetAmount());
+                    log.info("众筹项目达到目标金额，立即成功: 项目={}, 已支付总额={}, 目标金额={}", 
+                        projectId, totalPaidAmount, targetAmount);
                 } else {
                     log.info("项目状态已被其他线程更新: {}", projectId);
                 }
             }
         } catch (Exception e) {
             log.error("检查并更新项目状态失败: 项目={}", projectId, e);
+        }
+    }
+
+    /**
+     * 计算所有已支付订单的总金额
+     */
+    private BigDecimal calculateTotalPaidAmount(Long projectId) {
+        try {
+            List<SdCrowdfundingSupport> paidSupports = supportMapper.selectPaidByProjectId(projectId);
+            if (paidSupports == null || paidSupports.isEmpty()) {
+                return BigDecimal.ZERO;
+            }
+            
+            return paidSupports.stream()
+                .map(SdCrowdfundingSupport::getSupportAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        } catch (Exception e) {
+            log.error("计算已支付总金额失败: 项目={}", projectId, e);
+            return BigDecimal.ZERO;
+        }
+    }
+
+    /**
+     * 处理超募退款
+     */
+    @Transactional(rollbackFor = Exception.class)
+    private void processOverfundingRefund(Long projectId, SdCrowdfundingProject project, BigDecimal totalPaidAmount) {
+        try {
+            // 1. 获取所有已支付的支持记录，按创建时间升序排序
+            List<SdCrowdfundingSupport> paidSupports = supportMapper.selectPaidByProjectId(projectId);
+            if (paidSupports == null || paidSupports.isEmpty()) {
+                return;
+            }
+            
+            // 按创建时间升序排序（最早的支持记录在前）
+            paidSupports.sort((a, b) -> a.getCreateTime().compareTo(b.getCreateTime()));
+            
+            // 2. 从前往后累加，直到大于等于众筹金额
+            BigDecimal targetAmount = project.getTargetAmount();
+            BigDecimal accumulatedAmount = BigDecimal.ZERO;
+            List<SdCrowdfundingSupport> validSupports = new ArrayList<>();
+            SdCrowdfundingSupport lastSupport = null;
+            
+            for (SdCrowdfundingSupport support : paidSupports) {
+                if (accumulatedAmount.compareTo(targetAmount) < 0) {
+                    validSupports.add(support);
+                    accumulatedAmount = accumulatedAmount.add(support.getSupportAmount());
+                    lastSupport = support;
+                } else {
+                    break;
+                }
+            }
+            
+            // 3. 计算最后一个人的部分退款金额
+            BigDecimal refundAmount = BigDecimal.ZERO;
+            if (lastSupport != null && accumulatedAmount.compareTo(targetAmount) > 0) {
+                // 最后一个人的总金额 - 众筹金额 = 需要退回的金额
+                refundAmount = accumulatedAmount.subtract(targetAmount);
+                
+                // 更新最后一个人的支持金额（保留部分）
+                BigDecimal keepAmount = lastSupport.getSupportAmount().subtract(refundAmount);
+                lastSupport.setSupportAmount(keepAmount);
+                lastSupport.setRefundAmount(refundAmount);
+                lastSupport.setRefundReason("超募部分退款");
+                lastSupport.setRefundTime(new Date());
+                lastSupport.setStatus(2); // 已退款
+                supportMapper.updateById(lastSupport);
+                
+                log.info("最后一个人部分退款: 用户={}, 原金额={}, 保留={}, 退款={}", 
+                    lastSupport.getUserId(), lastSupport.getSupportAmount().add(refundAmount), keepAmount, refundAmount);
+            }
+            
+            // 4. 处理需要全额退款的记录（排在最后一个人之后的所有记录）
+            List<SdCrowdfundingSupport> refundSupports = new ArrayList<>();
+            for (SdCrowdfundingSupport support : paidSupports) {
+                if (!validSupports.contains(support)) {
+                    refundSupports.add(support);
+                }
+            }
+            
+            // 5. 执行全额退款
+            for (SdCrowdfundingSupport support : refundSupports) {
+                try {
+                    // 调用退款接口
+                    boolean refundSuccess = processRefund(support);
+                    if (refundSuccess) {
+                        support.setStatus(2); // 已退款
+                        support.setRefundAmount(support.getSupportAmount());
+                        support.setRefundReason("超募全额退款");
+                        support.setRefundTime(new Date());
+                        supportMapper.updateById(support);
+                        
+                        log.info("全额退款成功: 用户={}, 金额={}", support.getUserId(), support.getSupportAmount());
+                    }
+                } catch (Exception e) {
+                    log.error("退款失败: 用户={}, 金额={}", support.getUserId(), support.getSupportAmount(), e);
+                }
+            }
+            
+            // 6. 更新项目实际金额（只计算有效支持的总和）
+            BigDecimal actualAmount = validSupports.stream()
+                .map(SdCrowdfundingSupport::getSupportAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+            
+            project.setCurrentAmount(actualAmount);
+            project.setSupportCount(validSupports.size());
+            crowdfundingProjectMapper.updateById(project);
+            
+            log.info("超募退款处理完成: 项目={}, 总支付={}, 目标金额={}, 有效支持={}, 退款数量={}", 
+                projectId, totalPaidAmount, targetAmount, validSupports.size(), refundSupports.size());
+                
+        } catch (Exception e) {
+            log.error("处理超募退款失败: 项目={}", projectId, e);
+        }
+    }
+
+    /**
+     * 处理退款（调用支付宝退款接口）
+     */
+    private boolean processRefund(SdCrowdfundingSupport support) {
+        try {
+            // TODO: 调用支付宝退款接口
+            // 这里需要实现具体的退款逻辑
+            log.info("处理退款: 订单号={}, 金额={}", support.getSupportNo(), support.getSupportAmount());
+            
+            // 模拟退款成功
+            return true;
+        } catch (Exception e) {
+            log.error("退款处理失败: 订单号={}, 金额={}", support.getSupportNo(), support.getSupportAmount(), e);
+            return false;
         }
     }
 

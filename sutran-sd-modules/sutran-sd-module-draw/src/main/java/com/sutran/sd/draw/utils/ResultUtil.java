@@ -4,15 +4,16 @@ import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.json.JSONUtil;
-import com.sutran.sd.common.core.service.OssService;
 import com.sutran.sd.common.utils.file.FileUtils;
+import com.sutran.sd.draw.domain.vo.SdApiResult;
 import com.sutran.sd.oss.core.OssClient;
 import com.sutran.sd.oss.entity.UploadResult;
 import com.sutran.sd.oss.factory.OssFactory;
-import com.sutran.sd.draw.domain.vo.SdApiResult;
+import com.sutran.sd.system.service.ISysOssService;
 import lombok.extern.slf4j.Slf4j;
 
-import java.io.*;
+import java.io.File;
+import java.io.InputStream;
 import java.util.*;
 
 import static com.sutran.sd.draw.constants.CommonKey.JPG;
@@ -26,7 +27,7 @@ import static com.sutran.sd.draw.constants.CommonKey.SD;
 @Slf4j
 public class ResultUtil {
 
-    public static SdApiResult apiToResult(Map<String,Object> result, OssService ossService, String userName, boolean isTest, String gridsUrl, String viewGridsPath) {
+    public static SdApiResult apiToResult(Map<String,Object> result, ISysOssService sysOssService, String userName, boolean isTest, String gridsUrl, String viewGridsPath) {
         List<String> urlList = new ArrayList<>();
         SdApiResult rs = new SdApiResult();
         if (!isTest) {
@@ -61,7 +62,7 @@ public class ResultUtil {
 
                 UploadResult uploadResult = storage.uploadSuffix(newInputStream,JPG,"image/jpeg");
                 urlList.add(uploadResult.getUrl());
-                ossService.insertOssData(SD+DateUtil.format(new Date(),"yyyyMMdd")+"_"+ IdUtil.getSnowflakeNextIdStr()+JPG,JPG,storage.getConfigKey(),uploadResult.getUrl(),uploadResult.getFilename(),userName);
+                sysOssService.insertOssData(SD+DateUtil.format(new Date(),"yyyyMMdd")+"_"+ IdUtil.getSnowflakeNextIdStr()+JPG,JPG,storage.getConfigKey(),uploadResult.getUrl(),uploadResult.getFilename(),userName);
             }
             rs.getImages().clear();
         }

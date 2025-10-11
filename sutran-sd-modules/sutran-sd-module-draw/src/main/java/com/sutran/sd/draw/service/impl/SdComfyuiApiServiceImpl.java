@@ -107,7 +107,7 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
         // 校验生图数量,获取当前用户对应的会员的剩余数量并扣除本次绘图数量
         userService.checkDrawNumOfMember(userId,batchSize);
 
-        // 替换lora模型和强度
+        // 替换lora模型和强度(强度和生图数量是数值型，需要去除引号)
         String flow = sdFlow.getFlow().replace("{{lora_model}}",modelTaskBo.getModelName())
             .replace("\"{{lora_model_strength}}\"",modelTaskBo.getModelStrength())
             .replace("\"{{batch_size}}\"",modelTaskBo.getBatchSize());

@@ -6,7 +6,6 @@ import cn.hutool.core.net.url.UrlBuilder;
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.http.HttpUtil;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.sutran.sd.common.core.service.OssService;
 import com.sutran.sd.common.utils.StringUtils;
 import com.sutran.sd.draw.domain.pojo.ComfyTaskImage;
 import com.sutran.sd.draw.domain.vo.SdUserTaskVo;
@@ -16,6 +15,7 @@ import com.sutran.sd.draw.utils.JsonUtils;
 import com.sutran.sd.oss.core.OssClient;
 import com.sutran.sd.oss.entity.UploadResult;
 import com.sutran.sd.oss.factory.OssFactory;
+import com.sutran.sd.system.service.ISysOssService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -39,7 +39,7 @@ public class TaskOutputHandleStrategy implements IComfyWebSocketTextHandleStrate
 
     private final SdUserTaskService sdUserTaskService;
     private final SdUserModelFileService sdUserModelFileService;
-    private final OssService ossService;
+    private final ISysOssService sysOssService;
 
     /**
      * 处理消息
@@ -76,7 +76,7 @@ public class TaskOutputHandleStrategy implements IComfyWebSocketTextHandleStrate
                 OssClient storage = OssFactory.instance();
                 UploadResult uploadResult = storage.uploadSuffix(out.toByteArray(),JPG,"image/jpeg");
                 urlList.add(uploadResult.getUrl());
-                ossService.insertOssData(SD + DateUtil.format(new Date(),"yyyyMMdd")+"_"+ IdUtil.getSnowflakeNextIdStr()+JPG,JPG,storage.getConfigKey(),uploadResult.getUrl(),uploadResult.getFilename(),task.getBelongUserName());
+                sysOssService.insertOssData(SD + DateUtil.format(new Date(),"yyyyMMdd")+"_"+ IdUtil.getSnowflakeNextIdStr()+JPG,JPG,storage.getConfigKey(),uploadResult.getUrl(),uploadResult.getFilename(),task.getBelongUserName());
             } catch (Exception e) {
                 log.error("[任务输出图片][上传失败]>>>>>>>>>任务id: {},comfyui内部任务id: {},异常原因: ", taskId, promptId,e);
             }

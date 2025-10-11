@@ -1,7 +1,7 @@
 package com.sutran.sd.draw.domain.bo;
 
-import com.alibaba.fastjson.JSONObject;
 import lombok.Getter;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.beans.ConstructorProperties;
 import java.io.Serializable;
@@ -22,7 +22,10 @@ public class DrawingTaskInfo implements Serializable {
     /**
      * 绘图任务工作流
      */
-    private final JSONObject flow;
+    private final String flow;
+
+    private final MultipartFile image1;
+    private final MultipartFile image2;
 
     /**
      * 任务超时时间(分钟)
@@ -45,13 +48,17 @@ public class DrawingTaskInfo implements Serializable {
      * @param timeout 任务超时时间
      * @param userId    用户ID
      * @param drawNum   绘图次数
+     * @param image1 图片1
+     * @param image2 图片2
      */
     @ConstructorProperties({"taskId", "flow", "timeout"})
-    public DrawingTaskInfo(String taskId, JSONObject flow, long timeout, Long userId, Integer drawNum) {
+    public DrawingTaskInfo(String taskId, String flow, long timeout, Long userId, Integer drawNum, MultipartFile image1, MultipartFile image2) {
         this.taskId = taskId;
         this.flow = flow;
         this.timeout = timeout;
         this.userId = userId;
         this.drawNum = drawNum;
+        this.image1 = image1;
+        this.image2 = image2;
     }
 }

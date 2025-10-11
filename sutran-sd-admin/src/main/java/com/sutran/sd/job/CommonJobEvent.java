@@ -149,28 +149,21 @@ public class CommonJobEvent {
     }
 
     /**
-     * 定时处理支付超时的数据
-     * 每1分钟执行一次
+     * 定时处理会员支付超时的数据
+     * 每2分钟执行一次
      */
-    @Scheduled(cron="0 0/20 * * * ?")
-    public void executeHandlePayTimeout(){
+    @Scheduled(cron="0 0/2 * * * ?")
+    public void executeHandleMemberPayTimeout(){
         try{
-            payOrderService.handlePayTimeoutOfData(new Date());
-        }
-        catch (Exception e) {
-            log.error("[定时任务]>>>>>>>>>定时处理支付超时数据异常：",e);
-        }
-    }
-
-    /**
-     * 定时处理支付未超时且未支付的数据
-     * 每1分钟执行一次
-     */
-    @Scheduled(cron="0 0/20 * * * ?")
-    public void executeHandleNoPay(){
-        try{
+            Collection<String> outTradeNos = RedisUtils.getLeCacheZSet(PAY_ORDER_TASK, System.currentTimeMillis());
+            if (CollectionUtil.isEmpty(outTradeNos)) {
+                return;
+            }
             aliPayService.getConfig();
-            payOrderService.handleNoPayOfData(new Date());
+            for (String outTradeNo : outTradeNos) {
+                // 处理支付未超时且未支付的数据
+                payOrderService.handleNoPayOfDataByOutTradeNo(outTradeNo);
+            }
         }
         catch (Exception e) {
             log.error("[定时任务]>>>>>>>>>定时处理支付超时数据异常：",e);
@@ -178,12 +171,21 @@ public class CommonJobEvent {
     }
 
     /**
-     * 定时处理节点健康检查
+     * 定时处理绘图节点健康检查
      * 每10秒执行一次
      */
     @Scheduled(cron="0/10 * * * * ?")
-    public void executeNodePerformHealthCheck(){
-        sdDrawNodeService.performHealthCheck();
+    public void executeDrawNodeHealthCheck(){
+        sdDrawNodeService.drawNodeHealthCheck();
+    }
+
+    /**
+     * 定时处理训练节点健康检查
+     * 每10秒执行一次
+     */
+    @Scheduled(cron="0/10 * * * * ?")
+    public void executeTrainNodeHealthCheck(){
+        sdDrawNodeService.trainNodeHealthCheck();
     }
 
     /**

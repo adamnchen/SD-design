@@ -9,6 +9,8 @@ import cn.hutool.core.io.watch.WatchMonitor;
 import cn.hutool.core.util.CharsetUtil;
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.StrUtil;
+import cn.hutool.http.HttpRequest;
+import cn.hutool.http.HttpResponse;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -22,18 +24,18 @@ import com.sutran.sd.common.exception.ServiceException;
 import com.sutran.sd.common.helper.LoginHelper;
 import com.sutran.sd.common.utils.StringUtils;
 import com.sutran.sd.common.utils.redis.RedisUtils;
+import com.sutran.sd.draw.domain.SdDrawNode;
+import com.sutran.sd.draw.domain.pojo.ComfyTaskImage;
 import com.sutran.sd.draw.domain.vo.*;
 import com.sutran.sd.draw.domain.dto.train.*;
 import com.sutran.sd.draw.mq.MqConstant;
 import com.sutran.sd.draw.events.RefreshLoraEvent;
-import com.sutran.sd.draw.service.SdCommonConfigService;
-import com.sutran.sd.draw.service.SdGpuPoolService;
-import com.sutran.sd.draw.service.SdTrainService;
-import com.sutran.sd.draw.service.SdTrainTaskService;
+import com.sutran.sd.draw.service.*;
 import com.sutran.sd.draw.domain.SdCommonConfig;
 import com.sutran.sd.draw.domain.SdGpuPool;
 import com.sutran.sd.draw.domain.SdTrainTask;
 import com.sutran.sd.draw.utils.CommonUtil;
+import com.sutran.sd.draw.utils.JsonUtils;
 import com.sutran.sd.system.service.ISysDictDataService;
 import com.sutran.sd.system.service.SysTranslateService;
 import lombok.RequiredArgsConstructor;
@@ -85,6 +87,7 @@ public class SdTrainServiceImpl implements SdTrainService {
     private final ISysDictDataService sysDictDataService;
     private final SdCommonConfigService sdCommonConfigService;
     private final UserService userService;
+    private final SdDrawNodeService sdDrawNodeService;
 
     @Resource(name = "threadPoolTaskExecutor")
     private Executor executor;
@@ -1429,4 +1432,64 @@ public class SdTrainServiceImpl implements SdTrainService {
             TRAIN_LOCK.unlock();
         }
     }
+
+
+    /**
+     * [FluxGym]SD训练-图片识别
+     */
+    @Override
+    public void imgIdentify(MultipartFile[] images, String conceptSentence) {
+        if (images==null || images.length==0) {
+            throw new ServiceException("请上传图片");
+        }
+        if (StrUtil.isEmptyIfStr(conceptSentence)) {
+            throw new ServiceException("请输入图片描述词");
+        }
+
+        // 获取通用配置
+        SdCommonConfig config = sdCommonConfigService.selectOne();
+        int canMoreSubmitPreImgNum = config==null||config.getPreImgMaxNum()==null||config.getPreImgMaxNum()<=0?50:config.getPreImgMaxNum();
+        int canLeastSubmitPreImgNum = config==null||config.getPreImgMinNum()==null||config.getPreImgMinNum()<=0?7:config.getPreImgMinNum();
+        if (images.length<canLeastSubmitPreImgNum) {
+            throw new ServiceException("图片识别最少要提交"+canLeastSubmitPreImgNum+"张!");
+        }
+        else if (images.length>canMoreSubmitPreImgNum) {
+            throw new ServiceException("图片识别最多能提交"+canMoreSubmitPreImgNum+"张!");
+        }
+
+        // 创建任务ID
+        final String taskId = IdUtil.getSnowflakeNextIdStr();
+        final Long userId = LoginHelper.getUserId();
+        final String userName = LoginHelper.getUsername();
+        // 获取可用的训练节点
+        SdDrawNode node = sdDrawNodeService.selectTrainNodeAndLockNodeTask(taskId);
+        if (node==null) {
+            throw new ServiceException("当前无可用节点!");
+        }
+        // 创建任务
+//        sdTrainTaskService.insert();
+
+
+        CompletableFuture.runAsync(() -> {
+            try {
+                HttpRequest request = HttpRequest.post(node.getBaseUrl() + "/api/caption").form("images", images).form("concept_sentence", conceptSentence).timeout(30000);
+                String resp = execHttpRequest(request);
+                List<FluxgymTainTaskVo> list = JsonUtils.toListObject(resp, FluxgymTainTaskVo.class);
+                if (CollectionUtil.isEmpty(list)) {
+                    throw new ServiceException("图片识别失败!");
+                }
+            } catch (Exception e) {
+                log.error("[FLuxGym]>>>>>>>>>图片识别失败!原因：", e);
+                throw new ServiceException("图片识别失败!");
+            }
+        },executor);
+    }
+
+    /** 执行request 并自动关闭response **/
+    private String execHttpRequest(HttpRequest request) {
+        try (HttpResponse response = request.execute()) {
+            return response.body();
+        }
+    }
+
 }

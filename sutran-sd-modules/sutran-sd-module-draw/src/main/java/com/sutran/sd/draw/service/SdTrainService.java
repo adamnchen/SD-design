@@ -7,10 +7,7 @@ import com.sutran.sd.draw.domain.dto.train.SdTrainAdditionTagDto;
 import com.sutran.sd.draw.domain.dto.train.SdTrainLoraDto;
 import com.sutran.sd.draw.domain.dto.train.SdTrainPreImgDto;
 import com.sutran.sd.draw.domain.dto.train.SdTrainTagDelDto;
-import com.sutran.sd.draw.domain.vo.TrainPreImgTaskVo;
-import com.sutran.sd.draw.domain.vo.TrainProcessDataVo;
-import com.sutran.sd.draw.domain.vo.TrainTaskStatusVo;
-import com.sutran.sd.draw.domain.vo.TrainTaskVo;
+import com.sutran.sd.draw.domain.vo.*;
 import com.sutran.sd.draw.domain.SdGpuPool;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -151,4 +148,11 @@ public interface SdTrainService {
      * @return 数据集
      */
     List<JSONObject> getModelTrainDateList(String preTaskId) throws IOException;
+
+     /**
+      * [FluxGym]SD训练-图片识别
+      * @param images 图片集合
+      * @param conceptSentence 概念描述
+      */
+    void imgIdentify(MultipartFile[] images, String conceptSentence);
 }

@@ -33,4 +33,6 @@ public interface ISysOssService {
 
     Boolean deleteWithValidByIds(Collection<Long> ids, Boolean isValid);
 
+    void insertOssData(String originalfileName, String suffix, String configKey, String url, String filename, String userName);
+
 }

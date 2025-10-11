@@ -6,6 +6,7 @@ import com.sutran.sd.common.core.domain.R;
 import com.sutran.sd.common.core.page.TableDataInfo;
 import com.sutran.sd.common.exception.TaskErrorException;
 import com.sutran.sd.common.utils.StringUtils;
+import com.sutran.sd.draw.domain.SdFlow;
 import com.sutran.sd.draw.domain.SdUserModel;
 import com.sutran.sd.draw.domain.bo.ComfyModelTaskBo;
 import com.sutran.sd.draw.domain.bo.ComfyModelTaskSubmitBo;
@@ -22,6 +23,7 @@ import com.sutran.sd.draw.service.SdWebuiApiService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -145,12 +147,20 @@ public class SdApiController {
 
 
     /**
+     * [ComfyUI]获取修图工具(固定工作流)
+     * @return 修图工具列表
+     */
+    @PostMapping("/comfy/photo-edit-tool/list")
+    public R<List<SdFlow>> queryPhotoEditToolList() {
+        return R.ok(sdComfyuiApiService.queryFixedFlowList());
+    }
+
+    /**
      * [ComfyUI]提交模型生图任务
      * @param bo 模型任务提交参数[必填]
      * @return 任务id
      */
     @PostMapping("/comfy/model/submit-task")
-//    @SaIgnore
     public R<String> submitComfyModelTask(@Validated @RequestBody ComfyModelTaskBo bo) {
         // 校验模型是否存在
         SdUserModel model = sdUserModelService.selectById(bo.getModelId());
@@ -171,12 +181,19 @@ public class SdApiController {
     /**
      * [ComfyUI]提交工作流生图任务
      * @param flowId 工作流ID[必填]
+     * @param prompt 描述词(英文)
+     * @param promptZh 描述词(中文)
+     * @param image1 图片1
+     * @param image2 图片2
      * @return 任务id
      */
-    @GetMapping("/comfy/flow/submit-task")
-//    @SaIgnore
-    public R<String> submitComfyFlowTask(@RequestParam String flowId) {
-        String taskId = sdComfyuiApiService.submitComfyFlowTask(flowId);
+    @PostMapping("/comfy/flow/submit-task")
+    public R<String> submitComfyFlowTask(@RequestParam String flowId,
+                                         @RequestParam(required = false) String prompt,
+                                         @RequestParam(required = false) String promptZh,
+                                         @RequestParam(required = false) MultipartFile image1,
+                                         @RequestParam(required = false) MultipartFile image2) {
+        String taskId = sdComfyuiApiService.submitComfyFlowTask(flowId,prompt,promptZh,image1,image2);
         return R.ok(taskId);
     }
 
@@ -186,7 +203,6 @@ public class SdApiController {
      * @return 任务详情
      */
     @GetMapping("/comfy/model/history-task")
-//    @SaIgnore
     public R<ComfyTaskHistoryInfo> getComfyModelHistoryTask(@RequestParam String taskId) {
         return R.ok(sdComfyuiApiService.getComfyModelHistoryTask(taskId));
     }
@@ -197,7 +213,6 @@ public class SdApiController {
      * @return 任务进度
      */
     @GetMapping("/comfy/model/task-progress")
-//    @SaIgnore
     public R<Integer> getComfyTaskProgress(@RequestParam String taskId) {
         return R.ok(sdComfyuiApiService.getComfyTaskProgress(taskId));
     }

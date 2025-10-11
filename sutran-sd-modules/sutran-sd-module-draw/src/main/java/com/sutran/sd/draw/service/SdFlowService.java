@@ -2,6 +2,8 @@ package com.sutran.sd.draw.service;
 
 import com.sutran.sd.draw.domain.SdFlow;
 
+import java.util.List;
+
 /**
  * SD绘图 || 工作流(SdFlow)表服务接口
  *
@@ -47,4 +49,10 @@ public interface SdFlowService {
      * @return 工作流
      */
     SdFlow getFixedFlowById(String flowId);
+
+     /**
+     * 查询固定工作流列表
+     * @return 工作流列表
+     */
+    List<SdFlow> queryFixedFlowList();
 }

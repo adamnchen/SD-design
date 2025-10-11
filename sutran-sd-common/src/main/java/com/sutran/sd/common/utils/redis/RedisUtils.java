@@ -367,6 +367,54 @@ public class RedisUtils {
         return true;
     }
 
+     /**
+     * 缓存zset数据
+     *
+     * @param key     缓存的键值
+      * @param score 缓存的分数
+     * @param data 缓存的数据
+     * @return 缓存数据的对象
+     */
+    public static <T> boolean setCacheZSet(final String key, final double score, final T data) {
+        RScoredSortedSet<T> rSet = CLIENT.getScoredSortedSet(key);
+        return rSet.add(score, data);
+    }
+
+    /**
+     * 获取小于等于score的元素
+     *
+     * @param key 缓存的键值
+     * @param score 缓存的分数
+     * @return 缓存键值对应的数据
+     */
+    public static <T> Collection<T> getLeCacheZSet(final String key, final double score) {
+        RScoredSortedSet<T> rSet = CLIENT.getScoredSortedSet(key);
+        return rSet.valueRange(0, false, score, true);
+    }
+
+    /**
+     * 获取大于等于score的元素
+     *
+     * @param key 缓存的键值
+     * @param score 缓存的分数
+     * @return 缓存键值对应的数据
+     */
+    public static <T> Collection<T> getGeCacheZSet(final String key, final double score) {
+        RScoredSortedSet<T> rSet = CLIENT.getScoredSortedSet(key);
+        return rSet.valueRange(score, true, Double.POSITIVE_INFINITY, true);
+    }
+
+    /**
+     * 删除zset中指定数据
+     * @param key 缓存的键值
+     * @param data 缓存的数据
+     * @return 是否删除
+     */
+    public static <T> boolean delCacheZSet(final String key, final T data) {
+        RScoredSortedSet<T> rSet = CLIENT.getScoredSortedSet(key);
+        return rSet.remove(data);
+    }
+
     /**
      * 缓存Map
      *

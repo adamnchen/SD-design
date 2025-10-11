@@ -1,13 +1,9 @@
 package com.sutran.sd.controller.pay;
 
-import cn.dev33.satoken.annotation.SaCheckPermission;
 import cn.dev33.satoken.annotation.SaIgnore;
 import cn.hutool.extra.qrcode.QrCodeUtil;
-import com.alipay.api.response.AlipayTradeQueryResponse;
-import com.github.xiaoymin.knife4j.annotations.ApiOperationSupport;
 import com.ijpay.alipay.AliPayApiConfig;
 import com.sutran.sd.common.annotation.RepeatSubmit;
-import com.sutran.sd.common.core.domain.R;
 import com.sutran.sd.pay.controller.BaseAliPayApiController;
 import com.sutran.sd.pay.service.AliPayService;
 import lombok.RequiredArgsConstructor;
@@ -42,7 +38,7 @@ public class AliPayController extends BaseAliPayApiController {
     @RepeatSubmit()
     @SaIgnore
     public void preCreateOrder(@RequestParam String memberId, HttpServletResponse response) throws IOException {
-        String qrCode = aliPayService.preCreateOrder(memberId);
+        String qrCode = aliPayService.preCreateMemberOrder(memberId);
         // 使用hutool生成二维码图片返回
         QrCodeUtil.generate(qrCode, 300, 300, "png", response.getOutputStream());
     }

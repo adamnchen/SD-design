@@ -139,4 +139,18 @@ public interface CacheConstants {
      */
     String DRAW_TASK_PROGRESS = "DRAW_TASK_PROGRESS";
 
+     /**
+     * 训练节点和任务映射关系
+     */
+    String TRAIN_NODE_TASK_MAP = "TRAIN_NODE_TASK_MAP";
+
+    /**
+     * 支付订单任务
+     */
+    String PAY_ORDER_TASK =  "PAY_ORDER_TASK";
+
+    /**
+     * 支付订单二维码
+     */
+    String PAY_ORDER_QR =  "PAY_ORDER_QR:";
 }

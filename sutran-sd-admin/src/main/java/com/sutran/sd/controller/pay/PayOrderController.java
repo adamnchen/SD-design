@@ -45,4 +45,14 @@ public class PayOrderController extends BaseController {
     public R<PayOrder> getInfo(@RequestParam String id) {
         return R.ok(payOrderService.detailByIdAndUserId(id, LoginHelper.getUserId()));
     }
+
+    /**
+     * [用户]根据订单号查询支付码
+     *
+     * @param outTradeNo 订单号
+     */
+    @GetMapping(value = "/qr")
+    public R<String> getQr(@RequestParam String outTradeNo) {
+        return R.ok(payOrderService.getPayQr(outTradeNo,LoginHelper.getUserId()));
+    }
 }

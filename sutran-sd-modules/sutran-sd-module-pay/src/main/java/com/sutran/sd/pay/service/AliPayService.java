@@ -1,6 +1,5 @@
 package com.sutran.sd.pay.service;
 
-import com.alipay.api.response.AlipayTradeQueryResponse;
 import com.ijpay.alipay.AliPayApiConfig;
 
 import javax.servlet.http.HttpServletRequest;
@@ -18,11 +17,11 @@ public interface AliPayService {
     AliPayApiConfig getConfig();
 
     /**
-     * 预创建订单
+     * 预创建会员购买订单
      * @param memberId 会员ID
      * @return 支付二维码
      */
-    String preCreateOrder(String memberId);
+    String preCreateMemberOrder(String memberId);
 
     /**
      * 支付回调通知
@@ -39,11 +38,25 @@ public interface AliPayService {
     void syncStatus(String outTradeNo, String tradeNo);
 
     /**
-     * 支付宝退款
-     * @param outTradeNo 商户订单号
-     * @param refundAmount 退款金额
-     * @param refundReason 退款原因
-     * @return 退款结果
+     * 创建支付订单
+     * @param userId 下单人用户ID
+     * @param userName 下单人姓名
+     * @param outTradeNo 订单号
+     * @param subject 商品名称
+     * @param body 商品参数或者描述信息(可以用json字符串表示)
+     * @param totalAmount 订单总金额
+     * @param notifyUrl 支付结果回调接口
      */
-    boolean refund(String outTradeNo, BigDecimal refundAmount, String refundReason);
+    void createPayOrder(Long userId, String userName, String outTradeNo, String subject, String body, BigDecimal totalAmount, String notifyUrl);
+
+    /**
+     * 更新订单状态
+     * @param outTradeNo 订单号
+     * @param tradeNo 支付宝交易流水号
+     * @param totalAmount 总金额
+     * @param gmtPayment 支付时间
+     * @param payStatus 支付状态[0-待支付,1-支付成功,2-支付失败]
+     * @return 是否修改成功
+     */
+    boolean updateOrderStatus(String outTradeNo, String tradeNo, String totalAmount, String gmtPayment, Integer payStatus);
 }

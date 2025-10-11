@@ -15,7 +15,6 @@ import com.google.common.base.Joiner;
 import com.rabbitmq.client.Channel;
 import com.sutran.sd.common.core.domain.PageQuery;
 import com.sutran.sd.common.core.page.TableDataInfo;
-import com.sutran.sd.common.core.service.OssService;
 import com.sutran.sd.common.core.service.UserService;
 import com.sutran.sd.common.exception.ServiceException;
 import com.sutran.sd.common.helper.LoginHelper;
@@ -40,6 +39,7 @@ import com.sutran.sd.draw.utils.ResultUtil;
 import com.sutran.sd.oss.core.OssClient;
 import com.sutran.sd.oss.entity.UploadResult;
 import com.sutran.sd.oss.factory.OssFactory;
+import com.sutran.sd.system.service.ISysOssService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.compress.archivers.ArchiveEntry;
@@ -92,7 +92,7 @@ public class SdWebuiApiServiceImpl implements SdWebuiApiService {
     private final SdUserModelFileService sdUserModelFileService;
     private final SdUserTaskService sdUserTaskService;
     private final SdUserModelClassifyService sdUserModelClassifyService;
-    private final OssService ossService;
+    private final ISysOssService sysOssService;
     private final SdTrainTaskService sdTrainTaskService;
     private final RabbitTemplate rabbitTemplate;
     private final SdGpuPoolService sdGpuPoolService;
@@ -870,22 +870,6 @@ public class SdWebuiApiServiceImpl implements SdWebuiApiService {
             }
             channel.basicNack(deliveryTag, false, true);
             return;
-//            Long startTime = RedisUtils.getCacheMapValue(DRAW_TASK_TIME_IN_QUEUE_MAP, taskId);
-//            if (startTime == null) {
-//                // 记录在队列中的时间
-//                RedisUtils.setCacheMapValue(DRAW_TASK_TIME_IN_QUEUE_MAP, taskId, System.currentTimeMillis()/1000);
-//                return;
-//            }
-//            // 在队列中的时间小于25分钟
-//            else if (System.currentTimeMillis()/1000 - startTime < 1500) {
-//                return;
-//            }
-//            else {
-//                // 重新进入队列，防止30分钟超时
-//                rabbitTemplate.convertAndSend(SD_TXT_TO_IMG_DRAW_EXCHANGE,SD_TXT_TO_IMG_DRAW_ROUTING_KEY,msg,new CorrelationData(taskId));
-//                channel.basicAck(deliveryTag, false);
-//                return;
-//            }
         }
         // 异步处理绘图请求
         CompletableFuture.runAsync(()-> executeTxtToImgDrawTask(sdGpuPool,taskId,msg,queueTime),executor);
@@ -919,7 +903,7 @@ public class SdWebuiApiServiceImpl implements SdWebuiApiService {
                         result1 = JSONObject.parseObject(JSONObject.toJSONString(result),Map.class);
                     }
                     // 请求成功，处理响应结果
-                    SdApiResult rs = ResultUtil.apiToResult(result1,ossService,userName,isTest, sdGpuPool.getTxtGridDir(),"/grids/");
+                    SdApiResult rs = ResultUtil.apiToResult(result1, sysOssService,userName,isTest, sdGpuPool.getTxtGridDir(),"/grids/");
                     if (CollectionUtil.isNotEmpty(loraInfo) && !isTest) {
                         for (JSONObject e : loraInfo) {
                             // 新增模型使用日志
@@ -1237,7 +1221,7 @@ public class SdWebuiApiServiceImpl implements SdWebuiApiService {
                         result1 = JSONObject.parseObject(JSONObject.toJSONString(result),Map.class);
                     }
                     // 请求成功，处理响应结果
-                    SdApiResult rs = ResultUtil.apiToResult(result1,ossService,userName, isTest,sdGpuPool.getImgGridDir(),"/grids/");
+                    SdApiResult rs = ResultUtil.apiToResult(result1, sysOssService, userName, isTest,sdGpuPool.getImgGridDir(),"/grids/");
                     if (CollectionUtil.isNotEmpty(loraInfo) && !isTest) {
                         for (JSONObject e : loraInfo) {
                             // 新增模型使用日志

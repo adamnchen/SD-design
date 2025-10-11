@@ -4,10 +4,11 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.sutran.sd.common.core.domain.BaseEntity;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 import java.math.BigDecimal;
-import java.util.Date;
 
 /**
  * 众筹支持记录对象 sd_crowdfunding_support
@@ -16,20 +17,15 @@ import java.util.Date;
  * @date 2025-10-10
  */
 @Data
+@EqualsAndHashCode(callSuper = true)
 @TableName("sd_crowdfunding_support")
-public class SdCrowdfundingSupport {
+public class SdCrowdfundingSupport extends BaseEntity {
 
     /**
-     * 主键ID
+     * 支持记录ID
      */
     @TableId(value = "id", type = IdType.AUTO)
     private Long id;
-
-    /**
-     * 支持编号
-     */
-    @TableField("support_no")
-    private String supportNo;
 
     /**
      * 众筹项目ID
@@ -38,22 +34,22 @@ public class SdCrowdfundingSupport {
     private Long projectId;
 
     /**
-     * 用户ID
+     * 参与者用户ID
      */
     @TableField("user_id")
     private Long userId;
 
     /**
-     * 用户名称
+     * 参与者姓名
      */
     @TableField("user_name")
     private String userName;
 
     /**
-     * 用户头像
+     * 支付订单号（唯一）
      */
-    @TableField("user_avatar")
-    private String userAvatar;
+    @TableField("order_no")
+    private String orderNo;
 
     /**
      * 支持金额
@@ -62,86 +58,20 @@ public class SdCrowdfundingSupport {
     private BigDecimal supportAmount;
 
     /**
-     * 支持留言
+     * 抽奖状态：0=未参与，1=已参与，2=中奖，3=未中奖
      */
-    @TableField("message")
-    private String message;
+    @TableField("draw_status")
+    private Integer drawStatus;
 
     /**
-     * 是否匿名
+     * 是否中奖：0=否，1=是
      */
-    @TableField("is_anonymous")
-    private Integer isAnonymous;
+    @TableField("is_winner")
+    private Integer isWinner;
 
     /**
-     * 状态：0-正常，1-已取消，2-已退款
+     * 奖品信息（JSON格式）
      */
-    @TableField("status")
-    private Integer status;
-
-    /**
-     * 支付状态：0-待支付，1-已支付，2-支付失败，3-已退款
-     */
-    @TableField("payment_status")
-    private Integer paymentStatus;
-
-    /**
-     * 支付方式
-     */
-    @TableField("payment_method")
-    private String paymentMethod;
-
-    /**
-     * 支付流水号
-     */
-    @TableField("payment_no")
-    private String paymentNo;
-
-    /**
-     * 支付时间
-     */
-    @TableField("payment_time")
-    private Date paymentTime;
-
-    /**
-     * 退款金额
-     */
-    @TableField("refund_amount")
-    private BigDecimal refundAmount;
-
-    /**
-     * 退款时间
-     */
-    @TableField("refund_time")
-    private Date refundTime;
-
-    /**
-     * 退款原因
-     */
-    @TableField("refund_reason")
-    private String refundReason;
-
-    /**
-     * 取消原因
-     */
-    @TableField("cancel_reason")
-    private String cancelReason;
-
-    /**
-     * 取消时间
-     */
-    @TableField("cancel_time")
-    private Date cancelTime;
-
-    /**
-     * 创建时间
-     */
-    @TableField("created_at")
-    private Date createTime;
-
-    /**
-     * 更新时间
-     */
-    @TableField("updated_at")
-    private Date updateTime;
+    @TableField("prize_info")
+    private String prizeInfo;
 }

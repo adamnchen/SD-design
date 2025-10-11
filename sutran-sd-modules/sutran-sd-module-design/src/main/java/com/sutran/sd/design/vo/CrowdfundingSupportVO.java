@@ -20,11 +20,6 @@ public class CrowdfundingSupportVO {
     private Long id;
 
     /**
-     * 支持订单号
-     */
-    private String supportNo;
-
-    /**
      * 众筹项目ID
      */
     private Long projectId;
@@ -35,19 +30,19 @@ public class CrowdfundingSupportVO {
     private String projectTitle;
 
     /**
-     * 支持用户ID
+     * 参与者用户ID
      */
     private Long userId;
 
     /**
-     * 支持用户姓名
+     * 参与者姓名
      */
     private String userName;
 
     /**
-     * 支持用户头像
+     * 支付订单号
      */
-    private String userAvatar;
+    private String orderNo;
 
     /**
      * 支持金额
@@ -55,74 +50,24 @@ public class CrowdfundingSupportVO {
     private BigDecimal supportAmount;
 
     /**
-     * 支付方式
+     * 抽奖状态：0=未参与，1=已参与，2=中奖，3=未中奖
      */
-    private String paymentMethod;
+    private Integer drawStatus;
 
     /**
-     * 支付状态：0=待支付，1=已支付，2=支付失败，3=已退款
+     * 抽奖状态描述
      */
-    private Integer paymentStatus;
+    private String drawStatusDesc;
 
     /**
-     * 支付状态描述
+     * 是否中奖：0=否，1=是
      */
-    private String paymentStatusDesc;
+    private Boolean isWinner;
 
     /**
-     * 支付时间
+     * 奖品信息（JSON格式）
      */
-    private Date paymentTime;
-
-    /**
-     * 支付流水号
-     */
-    private String paymentNo;
-
-    /**
-     * 退款金额
-     */
-    private BigDecimal refundAmount;
-
-    /**
-     * 退款时间
-     */
-    private Date refundTime;
-
-    /**
-     * 退款原因
-     */
-    private String refundReason;
-
-    /**
-     * 支持留言
-     */
-    private String message;
-
-    /**
-     * 是否匿名支持
-     */
-    private Boolean isAnonymous;
-
-    /**
-     * 支持状态：0=正常，1=已取消，2=已退款
-     */
-    private Integer status;
-
-    /**
-     * 支持状态描述
-     */
-    private String statusDesc;
-
-    /**
-     * 取消原因
-     */
-    private String cancelReason;
-
-    /**
-     * 取消时间
-     */
-    private Date cancelTime;
+    private String prizeInfo;
 
     /**
      * 创建时间

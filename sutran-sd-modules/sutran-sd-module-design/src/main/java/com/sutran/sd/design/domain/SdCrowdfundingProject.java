@@ -39,13 +39,6 @@ public class SdCrowdfundingProject extends BaseEntity {
     private String projectNo;
 
     /**
-     * 关联的打样邀约ID
-     */
-    @TableField("proofing_invitation_id")
-    @NotNull(message = "打样邀约ID不能为空")
-    private Long proofingInvitationId;
-
-    /**
      * 项目标题
      */
     @TableField("title")
@@ -95,6 +88,12 @@ public class SdCrowdfundingProject extends BaseEntity {
     @TableField("creator_name")
     @NotBlank(message = "发起人姓名不能为空")
     private String creatorName;
+
+    /**
+     * 关联的打样邀约ID
+     */
+    @TableField("proofing_invitation_id")
+    private Long proofingInvitationId;
 
     /**
      * 发起人头像

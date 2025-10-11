@@ -4,16 +4,19 @@ import com.sutran.sd.design.domain.SdCrowdfundingProject;
 import com.sutran.sd.design.mapper.SdCrowdfundingProjectMapper;
 import com.sutran.sd.design.service.OrderReservationService;
 import com.sutran.sd.design.util.RedisLockUtil;
+import com.sutran.sd.design.config.CrowdfundingConfig;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.redisson.api.RMap;
+import org.redisson.api.RSet;
+import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.util.Date;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 /**
  * 订单预占服务实现
@@ -28,69 +31,73 @@ public class OrderReservationServiceImpl implements OrderReservationService {
 
     private final SdCrowdfundingProjectMapper crowdfundingProjectMapper;
     private final RedisLockUtil redisLockUtil;
+    private final CrowdfundingConfig crowdfundingConfig;
 
     @Autowired
-    private RedisTemplate<String, Object> redisTemplate;
+    private RedissonClient redissonClient;
 
     private static final String RESERVATION_PREFIX = "crowdfunding:reservation:";
     private static final String PROJECT_AMOUNT_PREFIX = "crowdfunding:amount:";
 
     @Override
     public boolean reserveAmount(Long projectId, BigDecimal amount, String orderNo, int expireMinutes) {
-        String lockKey = "project:" + projectId;
-
-        return redisLockUtil.executeWithLock(lockKey, 30, () -> {
+        String lockKey = "reservation:" + projectId;
+        String reservationKey = RESERVATION_PREFIX + orderNo;
+        
+        return redisLockUtil.executeWithLock(lockKey, () -> {
             try {
-                // 1. 获取项目信息
-                SdCrowdfundingProject project = crowdfundingProjectMapper.selectById(projectId);
+                // 检查项目是否存在
+                SdCrowdfundingProject project = crowdfundingProjectMapper.selectSdCrowdfundingProjectById(projectId);
                 if (project == null) {
-                    log.error("项目不存在: {}", projectId);
+                    log.warn("项目不存在: {}", projectId);
                     return false;
                 }
 
-                // 2. 原子性计算当前已预占金额和实际金额
-                BigDecimal[] amounts = getCurrentAndReservedAmounts(projectId);
-                BigDecimal currentAmount = amounts[0];
-                BigDecimal reservedAmount = amounts[1];
-                BigDecimal totalReserved = currentAmount.add(reservedAmount);
-
-                // 3. 检查是否超过目标金额（预占金额不参与完成状态判断，只用于防止超卖）
-                if (totalReserved.add(amount).compareTo(project.getTargetAmount()) > 0) {
-                    log.warn("预占金额超过目标金额: 项目={}, 已筹={}, 已预占={}, 本次预占={}, 目标={}",
-                        projectId, currentAmount, reservedAmount, amount, project.getTargetAmount());
+                // 检查项目状态
+                if (project.getStatus() != 1) {
+                    log.warn("项目状态不允许预占: 项目={}, 状态={}", projectId, project.getStatus());
                     return false;
                 }
 
-                // 4. 如果众筹接近完成（剩余金额小于10%），缩短预占时间到2分钟
-                BigDecimal remainingAmount = project.getTargetAmount().subtract(currentAmount);
-                BigDecimal threshold = project.getTargetAmount().multiply(new BigDecimal("0.1")); // 10%
-                int finalExpireMinutes = expireMinutes;
-                if (remainingAmount.compareTo(threshold) <= 0) {
-                    // 接近完成时，缩短预占时间
-                    finalExpireMinutes = Math.min(expireMinutes, 2);
-                    log.info("众筹接近完成，缩短预占时间到{}分钟: 项目={}, 剩余金额={}", 
-                        finalExpireMinutes, projectId, remainingAmount);
+                // 检查是否已经预占
+                RMap<String, ReservationInfo> reservationMap = redissonClient.getMap(reservationKey);
+                if (reservationMap.isExists()) {
+                    log.warn("订单已预占: {}", orderNo);
+                    return false;
                 }
 
-                // 5. 记录预占信息
-                String reservationKey = RESERVATION_PREFIX + projectId + ":" + orderNo;
+                // 检查项目剩余金额
+                String amountKey = PROJECT_AMOUNT_PREFIX + projectId;
+                RMap<String, BigDecimal> amountMap = redissonClient.getMap(amountKey);
+                BigDecimal remainingAmount = amountMap.get("remaining");
+                
+                if (remainingAmount == null || remainingAmount.compareTo(amount) < 0) {
+                    log.warn("项目剩余金额不足: 项目={}, 剩余={}, 请求={}", projectId, remainingAmount, amount);
+                    return false;
+                }
+
+                // 创建预占信息
                 ReservationInfo reservationInfo = new ReservationInfo();
                 reservationInfo.setProjectId(projectId);
-                reservationInfo.setAmount(amount);
                 reservationInfo.setOrderNo(orderNo);
+                reservationInfo.setAmount(amount);
                 reservationInfo.setReserveTime(new Date());
-                reservationInfo.setExpireTime(new Date(System.currentTimeMillis() + finalExpireMinutes * 60 * 1000));
+                reservationInfo.setExpireTime(new Date(System.currentTimeMillis() + expireMinutes * 60 * 1000L));
 
-                redisTemplate.opsForValue().set(reservationKey, reservationInfo, finalExpireMinutes, TimeUnit.MINUTES);
+                // 保存预占信息
+                reservationMap.put("info", reservationInfo);
+                reservationMap.expire(Duration.ofMinutes(expireMinutes));
 
-                // 5. 更新项目预占金额
-                updateProjectReservedAmount(projectId, amount, true);
+                // 更新剩余金额
+                BigDecimal newRemaining = remainingAmount.subtract(amount);
+                amountMap.put("remaining", newRemaining);
+                amountMap.expire(Duration.ofHours(1));
 
-                log.info("预占金额成功: 项目={}, 订单={}, 金额={}", projectId, orderNo, amount);
+                log.info("预占成功: 项目={}, 订单={}, 金额={}, 剩余={}", projectId, orderNo, amount, newRemaining);
                 return true;
 
             } catch (Exception e) {
-                log.error("预占金额失败: 项目={}, 订单={}, 金额={}", projectId, orderNo, amount, e);
+                log.error("预占失败: 项目={}, 订单={}, 金额={}", projectId, orderNo, amount, e);
                 return false;
             }
         });
@@ -98,95 +105,61 @@ public class OrderReservationServiceImpl implements OrderReservationService {
 
     @Override
     public boolean confirmReservation(Long projectId, String orderNo) {
-        String lockKey = "project:" + projectId;
-
-        return redisLockUtil.executeWithLock(lockKey, 30, () -> {
-            try {
-                // 1. 获取预占信息
-                String reservationKey = RESERVATION_PREFIX + projectId + ":" + orderNo;
-                ReservationInfo reservationInfo = (ReservationInfo) redisTemplate.opsForValue().get(reservationKey);
-
-                if (reservationInfo == null) {
-                    log.error("预占信息不存在: 项目={}, 订单={}", projectId, orderNo);
-                    return false;
-                }
-
-                // 2. 更新项目实际金额
-                SdCrowdfundingProject project = crowdfundingProjectMapper.selectById(projectId);
-                if (project == null) {
-                    log.error("项目不存在: {}", projectId);
-                    return false;
-                }
-
-                BigDecimal newAmount = project.getCurrentAmount().add(reservationInfo.getAmount());
-                project.setCurrentAmount(newAmount);
-                project.setSupportCount(project.getSupportCount() + 1);
-                crowdfundingProjectMapper.updateById(project);
-
-                // 3. 删除预占记录
-                redisTemplate.delete(reservationKey);
-
-                // 4. 更新项目预占金额
-                updateProjectReservedAmount(projectId, reservationInfo.getAmount(), false);
-
-                log.info("确认预占成功: 项目={}, 订单={}, 金额={}", projectId, orderNo, reservationInfo.getAmount());
-                return true;
-
-            } catch (Exception e) {
-                log.error("确认预占失败: 项目={}, 订单={}", projectId, orderNo, e);
+        String reservationKey = RESERVATION_PREFIX + orderNo;
+        
+        try {
+            RMap<String, ReservationInfo> reservationMap = redissonClient.getMap(reservationKey);
+            ReservationInfo reservationInfo = reservationMap.get("info");
+            
+            if (reservationInfo == null) {
+                log.warn("预占记录不存在: {}", orderNo);
                 return false;
             }
-        });
+
+            // 删除预占记录
+            reservationMap.delete();
+            
+            log.info("确认预占成功: 订单={}", orderNo);
+            return true;
+
+        } catch (Exception e) {
+            log.error("确认预占失败: 订单={}", orderNo, e);
+            return false;
+        }
     }
 
     @Override
     public boolean releaseReservation(Long projectId, String orderNo) {
-        String lockKey = "project:" + projectId;
-
-        return redisLockUtil.executeWithLock(lockKey, 30, () -> {
-            try {
-                // 1. 获取预占信息
-                String reservationKey = RESERVATION_PREFIX + projectId + ":" + orderNo;
-                ReservationInfo reservationInfo = (ReservationInfo) redisTemplate.opsForValue().get(reservationKey);
-
-                if (reservationInfo == null) {
-                    log.warn("预占信息不存在，可能已过期: 项目={}, 订单={}", projectId, orderNo);
-                    return true; // 认为释放成功
-                }
-
-                // 2. 删除预占记录
-                redisTemplate.delete(reservationKey);
-
-                // 3. 更新项目预占金额
-                updateProjectReservedAmount(projectId, reservationInfo.getAmount(), false);
-
-                log.info("释放预占成功: 项目={}, 订单={}, 金额={}", projectId, orderNo, reservationInfo.getAmount());
-                return true;
-
-            } catch (Exception e) {
-                log.error("释放预占失败: 项目={}, 订单={}", projectId, orderNo, e);
+        String reservationKey = RESERVATION_PREFIX + orderNo;
+        
+        try {
+            RMap<String, ReservationInfo> reservationMap = redissonClient.getMap(reservationKey);
+            ReservationInfo reservationInfo = reservationMap.get("info");
+            
+            if (reservationInfo == null) {
+                log.warn("预占记录不存在: {}", orderNo);
                 return false;
             }
-        });
-    }
 
-    @Override
-    public BigDecimal getAvailableAmount(Long projectId) {
-        try {
-            SdCrowdfundingProject project = crowdfundingProjectMapper.selectById(projectId);
-            if (project == null) {
-                return BigDecimal.ZERO;
+            // 退还金额
+            String amountKey = PROJECT_AMOUNT_PREFIX + reservationInfo.getProjectId();
+            RMap<String, BigDecimal> amountMap = redissonClient.getMap(amountKey);
+            BigDecimal currentRemaining = amountMap.get("remaining");
+            if (currentRemaining != null) {
+                BigDecimal newRemaining = currentRemaining.add(reservationInfo.getAmount());
+                amountMap.put("remaining", newRemaining);
+                amountMap.expire(Duration.ofHours(1));
             }
 
-            BigDecimal currentAmount = project.getCurrentAmount() != null ? project.getCurrentAmount() : BigDecimal.ZERO;
-            BigDecimal reservedAmount = getReservedAmount(projectId);
-            BigDecimal availableAmount = project.getTargetAmount().subtract(currentAmount).subtract(reservedAmount);
-
-            return availableAmount.compareTo(BigDecimal.ZERO) > 0 ? availableAmount : BigDecimal.ZERO;
+            // 删除预占记录
+            reservationMap.delete();
+            
+            log.info("取消预占成功: 订单={}, 退还金额={}", orderNo, reservationInfo.getAmount());
+            return true;
 
         } catch (Exception e) {
-            log.error("获取可用金额失败: 项目={}", projectId, e);
-            return BigDecimal.ZERO;
+            log.error("取消预占失败: 订单={}", orderNo, e);
+            return false;
         }
     }
 
@@ -194,119 +167,83 @@ public class OrderReservationServiceImpl implements OrderReservationService {
     public void cleanExpiredReservations() {
         try {
             // 获取所有预占记录
-            Set<String> keys = redisTemplate.keys(RESERVATION_PREFIX + "*");
-            if (keys == null || keys.isEmpty()) {
-                return;
-            }
-
-            int cleanedCount = 0;
-            Date now = new Date();
+            RSet<String> reservationKeys = redissonClient.getSet(RESERVATION_PREFIX + "keys");
+            Set<String> keys = reservationKeys.readAll();
             
+            int cleanedCount = 0;
             for (String key : keys) {
                 try {
-                    // 使用原子操作检查和删除过期预占
-                    ReservationInfo reservationInfo = (ReservationInfo) redisTemplate.opsForValue().get(key);
-                    if (reservationInfo != null && reservationInfo.getExpireTime().before(now)) {
-                        // 使用原子删除操作，避免重复处理
-                        Boolean deleted = redisTemplate.delete(key);
-                        if (Boolean.TRUE.equals(deleted)) {
-                            // 只有成功删除的才更新预占金额
-                            updateProjectReservedAmount(reservationInfo.getProjectId(), reservationInfo.getAmount(), false);
-                            cleanedCount++;
-                            log.info("清理过期预占: 项目={}, 订单={}, 金额={}", 
-                                reservationInfo.getProjectId(), reservationInfo.getOrderNo(), reservationInfo.getAmount());
+                    RMap<String, ReservationInfo> reservationMap = redissonClient.getMap(key);
+                    ReservationInfo reservationInfo = reservationMap.get("info");
+                    
+                    if (reservationInfo != null && reservationInfo.getExpireTime().before(new Date())) {
+                        // 退还金额
+                        String amountKey = PROJECT_AMOUNT_PREFIX + reservationInfo.getProjectId();
+                        RMap<String, BigDecimal> amountMap = redissonClient.getMap(amountKey);
+                        BigDecimal currentRemaining = amountMap.get("remaining");
+                        if (currentRemaining != null) {
+                            BigDecimal newRemaining = currentRemaining.add(reservationInfo.getAmount());
+                            amountMap.put("remaining", newRemaining);
+                            amountMap.expire(Duration.ofHours(1));
                         }
+
+                        // 删除过期预占记录
+                        reservationMap.delete();
+                        reservationKeys.remove(key);
+                        cleanedCount++;
+                        
+                        log.info("清理过期预占: 订单={}, 退还金额={}", 
+                                reservationInfo.getOrderNo(), reservationInfo.getAmount());
                     }
                 } catch (Exception e) {
-                    log.warn("清理单个预占记录失败: {}", key, e);
+                    log.error("清理预占记录失败: {}", key, e);
                 }
             }
-
-            if (cleanedCount > 0) {
-                log.info("清理了 {} 个过期预占记录", cleanedCount);
-            }
+            
+            log.info("清理过期预占完成: 清理数量={}", cleanedCount);
 
         } catch (Exception e) {
-            log.error("清理过期预占失败", e);
+            log.error("清理过期预占异常", e);
         }
     }
 
-
-
-
-    /**
-     * 原子性获取当前金额和预占金额
-     */
-    private BigDecimal[] getCurrentAndReservedAmounts(Long projectId) {
-        try {
-            // 重新查询项目信息，确保获取最新数据
-            SdCrowdfundingProject project = crowdfundingProjectMapper.selectById(projectId);
-            BigDecimal currentAmount = project != null && project.getCurrentAmount() != null ? 
-                project.getCurrentAmount() : BigDecimal.ZERO;
-            
-            String amountKey = PROJECT_AMOUNT_PREFIX + projectId;
-            Object amount = redisTemplate.opsForValue().get(amountKey);
-            BigDecimal reservedAmount = amount != null ? (BigDecimal) amount : BigDecimal.ZERO;
-            
-            return new BigDecimal[]{currentAmount, reservedAmount};
-        } catch (Exception e) {
-            log.error("获取金额信息失败: 项目={}", projectId, e);
-            return new BigDecimal[]{BigDecimal.ZERO, BigDecimal.ZERO};
-        }
-    }
-
-    /**
-     * 获取项目已预占金额
-     */
-    private BigDecimal getReservedAmount(Long projectId) {
+    @Override
+    public BigDecimal getAvailableAmount(Long projectId) {
         try {
             String amountKey = PROJECT_AMOUNT_PREFIX + projectId;
-            Object amount = redisTemplate.opsForValue().get(amountKey);
-            return amount != null ? (BigDecimal) amount : BigDecimal.ZERO;
+            RMap<String, BigDecimal> amountMap = redissonClient.getMap(amountKey);
+            BigDecimal remaining = amountMap.get("remaining");
+            return remaining != null ? remaining : BigDecimal.ZERO;
         } catch (Exception e) {
-            log.error("获取预占金额失败: 项目={}", projectId, e);
+            log.error("获取项目剩余金额失败: 项目={}", projectId, e);
             return BigDecimal.ZERO;
         }
     }
 
-    /**
-     * 更新项目预占金额
-     */
-    private void updateProjectReservedAmount(Long projectId, BigDecimal amount, boolean isAdd) {
-        try {
-            String amountKey = PROJECT_AMOUNT_PREFIX + projectId;
-            BigDecimal currentReserved = getReservedAmount(projectId);
-            BigDecimal newReserved = isAdd ? currentReserved.add(amount) : currentReserved.subtract(amount);
-
-            if (newReserved.compareTo(BigDecimal.ZERO) <= 0) {
-                redisTemplate.delete(amountKey);
-            } else {
-                redisTemplate.opsForValue().set(amountKey, newReserved, 1, TimeUnit.HOURS);
-            }
-        } catch (Exception e) {
-            log.error("更新项目预占金额失败: 项目={}, 金额={}, 是否增加={}", projectId, amount, isAdd, e);
-        }
-    }
 
     /**
-     * 预占信息内部类
+     * 预占信息
      */
     public static class ReservationInfo {
         private Long projectId;
-        private BigDecimal amount;
         private String orderNo;
+        private BigDecimal amount;
         private Date reserveTime;
         private Date expireTime;
 
-        // getters and setters
+        // Getters and Setters
         public Long getProjectId() { return projectId; }
         public void setProjectId(Long projectId) { this.projectId = projectId; }
-        public BigDecimal getAmount() { return amount; }
-        public void setAmount(BigDecimal amount) { this.amount = amount; }
+        
         public String getOrderNo() { return orderNo; }
         public void setOrderNo(String orderNo) { this.orderNo = orderNo; }
+        
+        public BigDecimal getAmount() { return amount; }
+        public void setAmount(BigDecimal amount) { this.amount = amount; }
+        
         public Date getReserveTime() { return reserveTime; }
         public void setReserveTime(Date reserveTime) { this.reserveTime = reserveTime; }
+        
         public Date getExpireTime() { return expireTime; }
         public void setExpireTime(Date expireTime) { this.expireTime = expireTime; }
     }

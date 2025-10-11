@@ -41,29 +41,23 @@ public interface SdCrowdfundingProjectMapper extends BaseMapper<SdCrowdfundingPr
      */
     int insertSdCrowdfundingProject(SdCrowdfundingProject sdCrowdfundingProject);
 
+
+
     /**
-     * 修改众筹项目
+     * 根据打样邀约ID查询众筹项目
+     *
+     * @param proofingInvitationId 打样邀约ID
+     * @return 众筹项目
+     */
+    SdCrowdfundingProject selectByProofingInvitationId(@Param("proofingInvitationId") Long proofingInvitationId);
+
+    /**
+     * 内部更新众筹项目（仅用于业务逻辑，不对外暴露）
      *
      * @param sdCrowdfundingProject 众筹项目
      * @return 结果
      */
     int updateSdCrowdfundingProject(SdCrowdfundingProject sdCrowdfundingProject);
-
-    /**
-     * 删除众筹项目
-     *
-     * @param id 众筹项目主键
-     * @return 结果
-     */
-    int deleteSdCrowdfundingProjectById(Long id);
-
-    /**
-     * 批量删除众筹项目
-     *
-     * @param ids 需要删除的数据主键集合
-     * @return 结果
-     */
-    int deleteSdCrowdfundingProjectByIds(@Param("ids") Long[] ids);
 
     /**
      * 只有在众筹中状态时才更新为成功状态（乐观锁）

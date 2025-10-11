@@ -28,15 +28,17 @@ import com.sutran.sd.pay.service.PayOrderService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.interceptor.TransactionAspectSupport;
 
 import javax.servlet.http.HttpServletRequest;
 import java.math.BigDecimal;
+import java.util.HashMap;
+import java.util.Map;
 import java.math.RoundingMode;
 import java.time.Duration;
 import java.util.Date;
-import java.util.Map;
 import java.util.Objects;
 
 import static com.sutran.sd.common.constant.CacheConstants.PAY_ORDER_QR;
@@ -55,6 +57,7 @@ public class AliPayServiceImpl implements AliPayService {
     private final PayOrderService payOrderService;
     private final UserService  userService;
     private final PayMemberService payMemberService;
+    private final RestTemplate restTemplate;
 
     @Override
     public AliPayApiConfig getConfig() {
@@ -202,11 +205,28 @@ public class AliPayServiceImpl implements AliPayService {
                     // 修改订单状态
                     boolean updateSuccess = payOrderService.successPay(outTradeNo, tradeNo, totalAmount, gmtPayment);
                     if (updateSuccess) {
-                        // 通知支付宝处理成功，不再重复通知，并处理用户会员逻辑
+                        // 通知支付宝处理成功，不再重复通知，并处理业务逻辑
                         if (Objects.equals(order.getBusinessType(), BusinessType.SD_MEMBER.name())) {
                             PayMember payMember = payMemberService.detailById(order.getBusinessId().toString());
                             // 处理用户会员逻辑
                             userService.insertMember(order.getUserId(),order.getBusinessId(),new Date(),payMember,outTradeNo);
+                        } else if (Objects.equals(order.getBusinessType(), BusinessType.PROOF_CROWDFUND.name())) {
+                            // 处理众筹业务逻辑 - 调用众筹模块
+                            try {
+                                // 通过HTTP调用众筹模块的支付成功回调
+                                String crowdfundingNotifyUrl = aliPayConfig.getDomain() + "/design/crowdfunding/payment/alipay/notify";
+                                
+                                // 构建请求参数
+                                Map<String, String> crowdfundingParams = new HashMap<>();
+                                crowdfundingParams.put("out_trade_no", outTradeNo);
+                                crowdfundingParams.put("orderNo", outTradeNo);
+                                
+                                // 发送HTTP POST请求
+                                String response = restTemplate.postForObject(crowdfundingNotifyUrl, crowdfundingParams, String.class);
+                                log.info("众筹支付成功回调调用完成: 订单号={}, 响应={}", outTradeNo, response);
+                            } catch (Exception e) {
+                                log.error("调用众筹模块支付成功回调失败: 订单号={}", outTradeNo, e);
+                            }
                         }
                         return "success";
                     }

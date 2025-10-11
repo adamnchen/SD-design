@@ -39,4 +39,9 @@ public interface MqConstant {
     String SD_COMFY_DRAW_EXCHANGE = "SD_COMFY_DRAW_EXCHANGE";
     String SD_COMFY_DRAW_QUEUE = "SD_COMFY_DRAW_QUEUE";
     String SD_COMFY_DRAW_ROUTING_KEY = "SD_COMFY_DRAW_ROUTING_KEY";
+
+    /** ---------------------------------------------------------------------------- 众筹支付订单 Direct exchange --------------------------------------------------------------------------- */
+    String CROWDFUNDING_PAYMENT_ORDER_EXCHANGE = "CROWDFUNDING_PAYMENT_ORDER_EXCHANGE";
+    String CROWDFUNDING_PAYMENT_ORDER_QUEUE = "CROWDFUNDING_PAYMENT_ORDER_QUEUE";
+    String CROWDFUNDING_PAYMENT_ORDER_ROUTING_KEY = "CROWDFUNDING_PAYMENT_ORDER_ROUTING_KEY";
 }

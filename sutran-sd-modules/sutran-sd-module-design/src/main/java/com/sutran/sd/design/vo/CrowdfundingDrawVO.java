@@ -14,7 +14,7 @@ import java.util.Date;
 public class CrowdfundingDrawVO {
 
     /**
-     * 抽奖记录ID
+     * 支持记录ID
      */
     private Long id;
 
@@ -29,24 +29,24 @@ public class CrowdfundingDrawVO {
     private String projectTitle;
 
     /**
-     * 参与抽奖用户ID
+     * 参与者用户ID
      */
     private Long userId;
 
     /**
-     * 参与抽奖用户姓名
+     * 参与者姓名
      */
     private String userName;
 
     /**
-     * 参与抽奖用户头像
+     * 抽奖状态：0=未参与，1=已参与，2=中奖，3=未中奖
      */
-    private String userAvatar;
+    private Integer drawStatus;
 
     /**
-     * 抽奖编号
+     * 抽奖状态描述
      */
-    private String drawNo;
+    private String drawStatusDesc;
 
     /**
      * 是否中奖：0=否，1=是
@@ -54,84 +54,9 @@ public class CrowdfundingDrawVO {
     private Boolean isWinner;
 
     /**
-     * 奖品名称
+     * 奖品信息（JSON格式）
      */
-    private String prizeName;
-
-    /**
-     * 奖品描述
-     */
-    private String prizeDescription;
-
-    /**
-     * 奖品图片
-     */
-    private String prizeImage;
-
-    /**
-     * 中奖时间
-     */
-    private Date winTime;
-
-    /**
-     * 中奖顺序（第几个中奖）
-     */
-    private Integer winOrder;
-
-    /**
-     * 是否已领取：0=否，1=是
-     */
-    private Boolean isClaimed;
-
-    /**
-     * 领取时间
-     */
-    private Date claimTime;
-
-    /**
-     * 收货地址
-     */
-    private String claimAddress;
-
-    /**
-     * 收货电话
-     */
-    private String claimPhone;
-
-    /**
-     * 收货人姓名
-     */
-    private String claimName;
-
-    /**
-     * 发货状态：0=未发货，1=已发货，2=已收货
-     */
-    private Integer shippingStatus;
-
-    /**
-     * 发货状态描述
-     */
-    private String shippingStatusDesc;
-
-    /**
-     * 发货时间
-     */
-    private Date shippingTime;
-
-    /**
-     * 物流公司
-     */
-    private String shippingCompany;
-
-    /**
-     * 物流单号
-     */
-    private String shippingNo;
-
-    /**
-     * 收货时间
-     */
-    private Date receiveTime;
+    private String prizeInfo;
 
     /**
      * 创建时间

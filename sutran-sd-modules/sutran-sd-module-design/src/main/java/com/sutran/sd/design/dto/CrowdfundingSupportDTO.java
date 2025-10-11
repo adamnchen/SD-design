@@ -22,15 +22,15 @@ public class CrowdfundingSupportDTO {
     private Long projectId;
 
     /**
-     * 支持用户ID
+     * 参与者用户ID
      */
-    @NotNull(message = "支持用户ID不能为空")
+    @NotNull(message = "参与者用户ID不能为空")
     private Long userId;
 
     /**
-     * 支持用户姓名
+     * 参与者姓名
      */
-    @NotBlank(message = "支持用户姓名不能为空")
+    @NotBlank(message = "参与者姓名不能为空")
     private String userName;
 
     /**
@@ -38,14 +38,4 @@ public class CrowdfundingSupportDTO {
      */
     @NotNull(message = "支持金额不能为空")
     private BigDecimal supportAmount;
-
-    /**
-     * 支持留言
-     */
-    private String message;
-
-    /**
-     * 是否匿名支持：0=否，1=是
-     */
-    private Boolean isAnonymous;
 }

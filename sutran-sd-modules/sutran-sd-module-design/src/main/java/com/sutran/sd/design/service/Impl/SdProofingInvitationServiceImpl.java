@@ -387,9 +387,10 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
     }
     /**
      * 商家未在预约周期完成，取消邀约，记录违规
+     * 注意：此方法需要根据众筹完成与否和完成时间进行判定，目前暂未实现
      */
-    //todo:需要根据众筹完成与否，完成时间判定，目前做不了
-    private  boolean isInvitationQuotedPeriodExpired(SdProofingInvitation invitation) {
+    private boolean isInvitationQuotedPeriodExpired(SdProofingInvitation invitation) {
+        // TODO: 需要根据众筹完成与否，完成时间判定，目前做不了
         int quotedPeriodDays = invitation.getQuotedPeriodDays();
         return false;
 

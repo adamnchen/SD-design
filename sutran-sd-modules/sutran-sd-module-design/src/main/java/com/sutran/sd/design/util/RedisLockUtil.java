@@ -1,8 +1,10 @@
 package com.sutran.sd.design.util;
 
 import lombok.extern.slf4j.Slf4j;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.util.concurrent.TimeUnit;
@@ -18,10 +20,12 @@ import java.util.concurrent.TimeUnit;
 public class RedisLockUtil {
 
     @Autowired
-    private RedisTemplate<String, Object> redisTemplate;
+    private RedissonClient redissonClient;
+
+    @Value("${crowdfunding.redis-lock-expire-seconds:30}")
+    private int defaultExpireTime;
 
     private static final String LOCK_PREFIX = "crowdfunding:lock:";
-    private static final int DEFAULT_EXPIRE_TIME = 30; // 30秒
 
     /**
      * 获取分布式锁
@@ -33,8 +37,8 @@ public class RedisLockUtil {
     public boolean tryLock(String key, int expireTime) {
         String lockKey = LOCK_PREFIX + key;
         try {
-            Boolean success = redisTemplate.opsForValue().setIfAbsent(lockKey, "1", expireTime, TimeUnit.SECONDS);
-            return success != null && success;
+            RLock lock = redissonClient.getLock(lockKey);
+            return lock.tryLock(0, expireTime, TimeUnit.SECONDS);
         } catch (Exception e) {
             log.error("获取分布式锁失败: {}", key, e);
             return false;
@@ -42,13 +46,13 @@ public class RedisLockUtil {
     }
 
     /**
-     * 获取分布式锁（默认30秒过期）
+     * 获取分布式锁（使用配置的默认过期时间）
      *
      * @param key 锁的key
      * @return 是否获取成功
      */
     public boolean tryLock(String key) {
-        return tryLock(key, DEFAULT_EXPIRE_TIME);
+        return tryLock(key, defaultExpireTime);
     }
 
     /**
@@ -59,7 +63,10 @@ public class RedisLockUtil {
     public void releaseLock(String key) {
         String lockKey = LOCK_PREFIX + key;
         try {
-            redisTemplate.delete(lockKey);
+            RLock lock = redissonClient.getLock(lockKey);
+            if (lock.isHeldByCurrentThread()) {
+                lock.unlock();
+            }
         } catch (Exception e) {
             log.error("释放分布式锁失败: {}", key, e);
         }
@@ -74,7 +81,7 @@ public class RedisLockUtil {
      * @return 操作结果
      */
     public <T> T executeWithLock(String key, LockAction<T> action) {
-        return executeWithLock(key, DEFAULT_EXPIRE_TIME, action);
+        return executeWithLock(key, defaultExpireTime, action);
     }
 
     /**

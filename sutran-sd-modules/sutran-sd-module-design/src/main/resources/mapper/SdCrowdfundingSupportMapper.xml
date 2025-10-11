@@ -4,64 +4,23 @@
 
     <resultMap id="BaseResultMap" type="com.sutran.sd.design.domain.SdCrowdfundingSupport">
         <id property="id" column="id" jdbcType="BIGINT"/>
-        <result property="supportNo" column="support_no" jdbcType="VARCHAR"/>
         <result property="projectId" column="project_id" jdbcType="BIGINT"/>
         <result property="userId" column="user_id" jdbcType="BIGINT"/>
         <result property="userName" column="user_name" jdbcType="VARCHAR"/>
+        <result property="orderNo" column="order_no" jdbcType="VARCHAR"/>
         <result property="supportAmount" column="support_amount" jdbcType="DECIMAL"/>
-        <result property="message" column="message" jdbcType="VARCHAR"/>
-        <result property="isAnonymous" column="is_anonymous" jdbcType="TINYINT"/>
-        <result property="status" column="status" jdbcType="TINYINT"/>
-        <result property="paymentStatus" column="payment_status" jdbcType="TINYINT"/>
-        <result property="paymentTime" column="payment_time" jdbcType="TIMESTAMP"/>
-        <result property="paymentMethod" column="payment_method" jdbcType="VARCHAR"/>
-        <result property="paymentNo" column="payment_no" jdbcType="VARCHAR"/>
-        <result property="refundAmount" column="refund_amount" jdbcType="DECIMAL"/>
-        <result property="refundTime" column="refund_time" jdbcType="TIMESTAMP"/>
-        <result property="refundReason" column="refund_reason" jdbcType="VARCHAR"/>
-        <result property="cancelReason" column="cancel_reason" jdbcType="VARCHAR"/>
-        <result property="cancelTime" column="cancel_time" jdbcType="TIMESTAMP"/>
-        <result property="createTime" column="created_at" jdbcType="TIMESTAMP"/>
-        <result property="updateTime" column="updated_at" jdbcType="TIMESTAMP"/>
+        <result property="drawStatus" column="draw_status" jdbcType="TINYINT"/>
+        <result property="isWinner" column="is_winner" jdbcType="TINYINT"/>
+        <result property="prizeInfo" column="prize_info" jdbcType="VARCHAR"/>
+        <result property="createBy" column="create_by" jdbcType="VARCHAR"/>
+        <result property="createTime" column="create_time" jdbcType="TIMESTAMP"/>
+        <result property="updateBy" column="update_by" jdbcType="VARCHAR"/>
+        <result property="updateTime" column="update_time" jdbcType="TIMESTAMP"/>
     </resultMap>
 
     <sql id="Base_Column_List">
-        id, support_no, project_id, user_id, user_name, support_amount, message, 
-        is_anonymous, status, payment_status, payment_time, payment_method, payment_no,
-        refund_amount, refund_time, refund_reason, cancel_reason, cancel_time,
-        created_at, updated_at
+        id, project_id, user_id, user_name, order_no, support_amount, 
+        draw_status, is_winner, prize_info, create_by, create_time, update_by, update_time
     </sql>
-
-    <!-- 根据项目ID查询支持记录 -->
-    <select id="selectByProjectId" parameterType="java.lang.Long" resultMap="BaseResultMap">
-        SELECT <include refid="Base_Column_List"/>
-        FROM sd_crowdfunding_support
-        WHERE project_id = #{projectId}
-        AND deleted = 0
-        ORDER BY created_at DESC
-    </select>
-
-    <!-- 根据项目ID查询已支付的支持记录 -->
-    <select id="selectPaidByProjectId" parameterType="java.lang.Long" resultMap="BaseResultMap">
-        SELECT <include refid="Base_Column_List"/>
-        FROM sd_crowdfunding_support
-        WHERE project_id = #{projectId}
-        AND payment_status = 1
-        AND status = 0
-        AND deleted = 0
-        ORDER BY created_at DESC
-    </select>
-
-    <!-- 批量更新支持记录状态 -->
-    <update id="updateStatusByProjectId">
-        UPDATE sd_crowdfunding_support
-        SET status = #{status},
-            refund_reason = #{refundReason},
-            updated_at = NOW()
-        WHERE project_id = #{projectId}
-        AND payment_status = 1
-        AND status = 0
-        AND deleted = 0
-    </update>
 
 </mapper>

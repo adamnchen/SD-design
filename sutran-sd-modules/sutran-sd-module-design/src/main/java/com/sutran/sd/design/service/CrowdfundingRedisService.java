@@ -46,14 +46,6 @@ public interface CrowdfundingRedisService {
     boolean refundAmount(Long projectId, BigDecimal refundAmount);
 
     /**
-     * 检查项目是否已完成
-     *
-     * @param projectId 项目ID
-     * @return 是否完成
-     */
-    boolean isProjectCompleted(Long projectId);
-
-    /**
      * 清理项目缓存
      *
      * @param projectId 项目ID

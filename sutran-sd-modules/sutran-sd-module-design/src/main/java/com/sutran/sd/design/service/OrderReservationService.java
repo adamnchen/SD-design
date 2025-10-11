@@ -1,7 +1,6 @@
 package com.sutran.sd.design.service;
 
 import java.math.BigDecimal;
-import java.util.concurrent.TimeUnit;
 
 /**
  * 订单预占服务接口

@@ -187,4 +187,6 @@ public class SdProofingInvitation extends BaseEntity {
     @TableField("draw_number")
     @NotNull(message = "抽奖数量不能为空")
     private Integer drawNumber;
+
+
 }

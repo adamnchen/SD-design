@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sutran.sd.design.mapper.SdPresaleProjectMapper">
+
+    <resultMap type="com.sutran.sd.design.domain.SdPresaleProject" id="SdPresaleProjectResult">
+        <result property="id" column="id"/>
+        <result property="projectNo" column="project_no"/>
+        <result property="title" column="title"/>
+        <result property="description" column="description"/>
+        <result property="coverImage" column="cover_image"/>
+        <result property="images" column="images"/>
+        <result property="videoUrl" column="video_url"/>
+        <result property="tags" column="tags"/>
+        <result property="creatorUserId" column="creator_user_id"/>
+        <result property="creatorName" column="creator_name"/>
+        <result property="creatorAvatar" column="creator_avatar"/>
+        <result property="manufacturerUserId" column="manufacturer_user_id"/>
+        <result property="manufacturerName" column="manufacturer_name"/>
+        <result property="manufacturerAvatar" column="manufacturer_avatar"/>
+        <result property="crowdfundingProjectId" column="crowdfunding_project_id"/>
+        <result property="tierPricing" column="tier_pricing"/>
+        <result property="currentQuantity" column="current_quantity"/>
+        <result property="startTime" column="start_time"/>
+        <result property="endTime" column="end_time"/>
+        <result property="deliveryTime" column="delivery_time"/>
+        <result property="status" column="status"/>
+        <result property="isFeatured" column="is_featured"/>
+        <result property="isHot" column="is_hot"/>
+        <result property="sortOrder" column="sort_order"/>
+        <result property="riskTips" column="risk_tips"/>
+        <result property="createBy" column="create_by"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateBy" column="update_by"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <sql id="selectSdPresaleProjectVo">
+        select id, project_no, title, description, cover_image, images, video_url, tags,
+               creator_user_id, creator_name, creator_avatar, manufacturer_user_id, manufacturer_name, manufacturer_avatar,
+               crowdfunding_project_id, tier_pricing, current_quantity, start_time, end_time, delivery_time,
+               status, is_featured, is_hot, sort_order, risk_tips, create_by, create_time, update_by, update_time
+        from sd_presale_project
+    </sql>
+
+    <select id="selectSdPresaleProjectById" parameterType="Long" resultMap="SdPresaleProjectResult">
+        <include refid="selectSdPresaleProjectVo"/>
+        where id = #{id}
+    </select>
+
+    <select id="selectSdPresaleProjectList" parameterType="com.sutran.sd.design.domain.SdPresaleProject" resultMap="SdPresaleProjectResult">
+        <include refid="selectSdPresaleProjectVo"/>
+        <where>
+            <if test="projectNo != null and projectNo != ''">
+                AND project_no = #{projectNo}
+            </if>
+            <if test="title != null and title != ''">
+                AND title like concat('%', #{title}, '%')
+            </if>
+            <if test="creatorUserId != null">
+                AND creator_user_id = #{creatorUserId}
+            </if>
+            <if test="manufacturerUserId != null">
+                AND manufacturer_user_id = #{manufacturerUserId}
+            </if>
+            <if test="crowdfundingProjectId != null">
+                AND crowdfunding_project_id = #{crowdfundingProjectId}
+            </if>
+            <if test="status != null">
+                AND status = #{status}
+            </if>
+        </where>
+        order by create_time desc
+    </select>
+
+    <select id="selectByCrowdfundingProjectId" parameterType="Long" resultMap="SdPresaleProjectResult">
+        <include refid="selectSdPresaleProjectVo"/>
+        where crowdfunding_project_id = #{crowdfundingProjectId}
+    </select>
+
+</mapper>

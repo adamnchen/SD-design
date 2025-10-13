@@ -44,6 +44,9 @@ public class SysUserAddressServiceImpl  implements ISysUserAddressService {
 
         // 自动设置用户ID，防止前端篡改
         address.setUserId(userId);
+        
+        // 新增地址时，清空ID让MyBatis-Plus自动生成
+        address.setId(null);
 
         // 如果是新增的第一个地址，自动设置为默认
         Long count = addressMapper.selectCount(new LambdaQueryWrapper<SysAddress>().eq(SysAddress::getUserId, userId));

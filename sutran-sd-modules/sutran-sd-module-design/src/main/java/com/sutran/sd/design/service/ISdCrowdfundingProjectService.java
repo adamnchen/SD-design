@@ -71,6 +71,13 @@ public interface ISdCrowdfundingProjectService {
     List<CrowdfundingProjectListVO> getCrowdfundingProjectList();
 
     /**
+     * 获取进行中的众筹项目列表（前端展示用）
+     *
+     * @return 进行中的众筹项目列表
+     */
+    List<CrowdfundingProjectListVO> getActiveCrowdfundingProjects();
+
+    /**
      * 获取众筹项目详情
      *
      * @param id 项目ID
@@ -124,4 +131,18 @@ public interface ISdCrowdfundingProjectService {
      * @param project 众筹项目
      */
     void autoExecuteDraw(SdCrowdfundingProject project);
+
+    /**
+     * 获取厂家参与的众筹项目列表
+     *
+     * @return 厂家参与的众筹项目列表
+     */
+    List<CrowdfundingProjectListVO> getManufacturerProjects();
+
+    /**
+     * 获取厂家参与的众筹成功项目列表
+     *
+     * @return 厂家参与的众筹成功项目列表
+     */
+    List<CrowdfundingProjectListVO> getManufacturerSuccessfulProjects();
 }

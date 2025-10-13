@@ -51,11 +51,11 @@ public class CrowdfundingController extends BaseController {
 
 
     /**
-     * 获取众筹项目列表（前端展示用）
+     * 获取进行中的众筹项目列表（前端展示用）
      */
     @GetMapping("/projects")
     public R<List<com.sutran.sd.design.vo.CrowdfundingProjectListVO>> getProjects() {
-        return R.ok(crowdfundingProjectService.getCrowdfundingProjectList());
+        return R.ok(crowdfundingProjectService.getActiveCrowdfundingProjects());
     }
 
     /**
@@ -64,5 +64,21 @@ public class CrowdfundingController extends BaseController {
     @GetMapping("/projects/{id}")
     public R<com.sutran.sd.design.vo.CrowdfundingProjectDetailVO> getProjectDetail(@PathVariable Long id) {
         return R.ok(crowdfundingProjectService.getCrowdfundingProjectDetail(id));
+    }
+
+    /**
+     * 获取厂家参与的众筹项目列表
+     */
+    @GetMapping("/manufacturer/projects")
+    public R<List<com.sutran.sd.design.vo.CrowdfundingProjectListVO>> getManufacturerProjects() {
+        return R.ok(crowdfundingProjectService.getManufacturerProjects());
+    }
+
+    /**
+     * 获取厂家参与的众筹成功项目列表
+     */
+    @GetMapping("/manufacturer/successful-projects")
+    public R<List<com.sutran.sd.design.vo.CrowdfundingProjectListVO>> getManufacturerSuccessfulProjects() {
+        return R.ok(crowdfundingProjectService.getManufacturerSuccessfulProjects());
     }
 }

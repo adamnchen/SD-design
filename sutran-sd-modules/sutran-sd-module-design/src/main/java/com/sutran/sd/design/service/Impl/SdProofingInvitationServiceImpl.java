@@ -151,7 +151,6 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
      * 获取某邀约下的候选厂家列表（含报价与用户信息）
      */
     public java.util.List<com.sutran.sd.common.core.domain.vo.InvitationCandidateVO> getInvitationCandidates(Long invitationId) {
-        // 权限：发起人或候选人可见（此处简化为发起人可见，可按需扩展）
         Long currentUserId = LoginHelper.getUserId();
         SdProofingInvitation invitation = invitationMapper.selectById(invitationId);
         if (invitation == null) {

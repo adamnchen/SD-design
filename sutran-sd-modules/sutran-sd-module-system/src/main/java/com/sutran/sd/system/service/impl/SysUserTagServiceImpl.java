@@ -84,8 +84,10 @@ public class SysUserTagServiceImpl
         // 逻辑正确，无需修改
         LambdaQueryWrapper<SysUserTag> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(SysUserTag::getUserId, userId)
+               .eq(SysUserTag::getBizType, 3)
                 .orderByAsc(SysUserTag::getSortOrder)
                 .orderByAsc(SysUserTag::getCreateTime);
+
 
         List<SysUserTag> tagEntities = this.list(wrapper);
 

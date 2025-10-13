@@ -1,5 +1,6 @@
 package com.sutran.sd.design.service.Impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.sutran.sd.common.core.domain.dto.ProofingInvitationAcceptDto;
 import com.sutran.sd.common.core.domain.dto.ProofingInvitationRequestDTO;
 import com.sutran.sd.common.core.domain.dto.ProofingInvitationChooseDto;
@@ -51,10 +52,18 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
     @Transactional
     public SdProofingInvitation createInvitation(ProofingInvitationRequestDTO createDTO) {
 
-        //若已有且未过期，无法邀约
-        if (createDTO.getStatus().equals(ProofingInvitationConstants.STATUS_PENDING)){
-
-            throw new ServiceException("当前作品已有邀约，无法发起");
+        // 检查当前作品是否已有待处理的邀约
+        Long workId = createDTO.getWorkId();
+        if (workId != null) {
+            List<SdProofingInvitation> existingInvitations = invitationMapper.selectList(
+                new LambdaQueryWrapper<SdProofingInvitation>()
+                    .eq(SdProofingInvitation::getWorkId, workId)
+                    .eq(SdProofingInvitation::getStatus, ProofingInvitationConstants.STATUS_PENDING)
+            );
+            
+            if (!existingInvitations.isEmpty()) {
+                throw new ServiceException("当前作品已有待处理的邀约，无法重复发起");
+            }
         }
 
 
@@ -151,7 +160,6 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
      * 获取某邀约下的候选厂家列表（含报价与用户信息）
      */
     public java.util.List<com.sutran.sd.common.core.domain.vo.InvitationCandidateVO> getInvitationCandidates(Long invitationId) {
-        // 权限：发起人或候选人可见（此处简化为发起人可见，可按需扩展）
         Long currentUserId = LoginHelper.getUserId();
         SdProofingInvitation invitation = invitationMapper.selectById(invitationId);
         if (invitation == null) {

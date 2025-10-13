@@ -29,6 +29,7 @@ import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * 众筹项目Service业务层处理
@@ -69,7 +70,7 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
         lqw.like(sdCrowdfundingProject.getTitle() != null, SdCrowdfundingProject::getTitle, sdCrowdfundingProject.getTitle());
         lqw.eq(sdCrowdfundingProject.getStatus() != null, SdCrowdfundingProject::getStatus, sdCrowdfundingProject.getStatus());
         lqw.orderByDesc(SdCrowdfundingProject::getCreateTime);
-        
+
         Page<SdCrowdfundingProject> result = crowdfundingProjectMapper.selectPage(page, lqw);
         return TableDataInfo.build(result);
     }
@@ -77,18 +78,18 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
     @Override
     public int insertSdCrowdfundingProject(SdCrowdfundingProject sdCrowdfundingProject) {
         int result = crowdfundingProjectMapper.insertSdCrowdfundingProject(sdCrowdfundingProject);
-        
+
         // 初始化Redis金额缓存
         if (result > 0 && sdCrowdfundingProject.getId() != null) {
             boolean initSuccess = crowdfundingRedisService.initProjectAmount(
-                sdCrowdfundingProject.getId(), 
+                sdCrowdfundingProject.getId(),
                 sdCrowdfundingProject.getTargetAmount()
             );
             if (!initSuccess) {
                 log.error("初始化众筹项目Redis金额缓存失败: 项目ID={}", sdCrowdfundingProject.getId());
             }
         }
-        
+
         return result;
     }
 
@@ -103,34 +104,53 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
     public List<CrowdfundingProjectListVO> getCrowdfundingProjectList() {
         // 查询所有众筹项目
         List<SdCrowdfundingProject> projects = crowdfundingProjectMapper.selectSdCrowdfundingProjectList(new SdCrowdfundingProject());
-        
+
         // 转换为VO
         return projects.stream().map(project -> {
-        CrowdfundingProjectListVO vo = new CrowdfundingProjectListVO();
-            vo.setId(project.getId());
-            vo.setProjectNo(project.getProjectNo());
-            vo.setTitle(project.getTitle());
-            vo.setCoverImage(project.getCoverImage());
-            vo.setCreatorName(project.getCreatorName());
-            vo.setTargetAmount(project.getTargetAmount());
-            vo.setCurrentAmount(project.getCurrentAmount());
-            vo.setSupportCount(project.getSupportCount());
-            vo.setStartTime(project.getStartTime());
-            vo.setEndTime(project.getEndTime());
-            vo.setStatus(project.getStatus());
-            vo.setDrawNumber(project.getDrawNumber());
-            vo.setDrawStatus(project.getDrawStatus());
+            CrowdfundingProjectListVO vo = new CrowdfundingProjectListVO();
+            // 使用BeanUtils进行属性拷贝
+            org.springframework.beans.BeanUtils.copyProperties(project, vo);
 
-        // 计算进度百分比
+            // 计算进度百分比
             if (project.getTargetAmount() != null && project.getTargetAmount().compareTo(BigDecimal.ZERO) > 0) {
-            BigDecimal progress = project.getCurrentAmount()
-                .divide(project.getTargetAmount(), 4, BigDecimal.ROUND_HALF_UP)
-                .multiply(new BigDecimal("100"));
-            vo.setProgressPercentage(progress);
+                BigDecimal progress = project.getCurrentAmount()
+                    .divide(project.getTargetAmount(), 4, BigDecimal.ROUND_HALF_UP)
+                    .multiply(new BigDecimal("100"));
+                vo.setProgressPercentage(progress);
             } else {
                 vo.setProgressPercentage(BigDecimal.ZERO);
             }
-            
+
+            return vo;
+        }).collect(java.util.stream.Collectors.toList());
+    }
+
+    @Override
+    public List<CrowdfundingProjectListVO> getActiveCrowdfundingProjects() {
+        // 查询进行中的众筹项目（状态为1-进行中，且未结束）
+        LambdaQueryWrapper<SdCrowdfundingProject> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(SdCrowdfundingProject::getStatus, 1) // 进行中
+                   .gt(SdCrowdfundingProject::getEndTime, new Date()) // 未结束
+                   .orderByDesc(SdCrowdfundingProject::getCreateTime);
+        
+        List<SdCrowdfundingProject> projects = crowdfundingProjectMapper.selectList(queryWrapper);
+
+        // 转换为VO
+        return projects.stream().map(project -> {
+            CrowdfundingProjectListVO vo = new CrowdfundingProjectListVO();
+            // 使用BeanUtils进行属性拷贝
+            org.springframework.beans.BeanUtils.copyProperties(project, vo);
+
+            // 计算进度百分比
+            if (project.getTargetAmount() != null && project.getTargetAmount().compareTo(BigDecimal.ZERO) > 0) {
+                BigDecimal progress = project.getCurrentAmount()
+                    .divide(project.getTargetAmount(), 4, BigDecimal.ROUND_HALF_UP)
+                    .multiply(new BigDecimal("100"));
+                vo.setProgressPercentage(progress);
+            } else {
+                vo.setProgressPercentage(BigDecimal.ZERO);
+            }
+
             return vo;
         }).collect(java.util.stream.Collectors.toList());
     }
@@ -142,7 +162,7 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
         if (project == null) {
             throw new RuntimeException("众筹项目不存在");
         }
-        
+
         // 转换为VO
         CrowdfundingProjectDetailVO vo = new CrowdfundingProjectDetailVO();
         vo.setId(project.getId());
@@ -191,7 +211,7 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
             LambdaQueryWrapper<SdCrowdfundingSupport> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(SdCrowdfundingSupport::getUserId, currentUserId)
                    .orderByDesc(SdCrowdfundingSupport::getCreateTime);
-        
+
         List<SdCrowdfundingSupport> supports = supportMapper.selectList(queryWrapper);
 
         // 转换为VO
@@ -214,15 +234,15 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
     @Override
     public List<CrowdfundingDrawVO> getMyDraws() {
         Long currentUserId = LoginHelper.getUserId();
-        
+
         // 查询当前用户的抽奖记录（已参与抽奖的记录）
         LambdaQueryWrapper<SdCrowdfundingSupport> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(SdCrowdfundingSupport::getUserId, currentUserId)
                    .gt(SdCrowdfundingSupport::getDrawStatus, 0) // 已参与抽奖
                    .orderByDesc(SdCrowdfundingSupport::getCreateTime);
-        
+
         List<SdCrowdfundingSupport> supports = supportMapper.selectList(queryWrapper);
-        
+
         // 转换为VO
         return supports.stream().map(support -> {
             CrowdfundingDrawVO vo = new CrowdfundingDrawVO();
@@ -298,7 +318,7 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
     public boolean handlePaymentSuccess(String orderNo) {
         try {
             log.info("处理支付成功回调: 订单号={}", orderNo);
-            
+
             // 1. 查询支持记录
             SdCrowdfundingSupport support = supportMapper.selectByOrderNo(orderNo);
             if (support == null) {
@@ -312,7 +332,7 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
 
             // 3. 更新众筹项目金额
             SdCrowdfundingProject project = crowdfundingProjectMapper.selectSdCrowdfundingProjectById(support.getProjectId());
-            if (project == null) {
+        if (project == null) {
                 log.error("未找到众筹项目: 项目ID={}", support.getProjectId());
             return false;
             }
@@ -320,24 +340,24 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
             // 4. 增加当前金额和支持人数
             project.setCurrentAmount(project.getCurrentAmount().add(support.getSupportAmount()));
             project.setSupportCount(project.getSupportCount() + 1);
-            
+
             // 5. 检查是否达到目标金额
             if (project.getCurrentAmount().compareTo(project.getTargetAmount()) >= 0) {
                 // 众筹成功，自动开始抽奖
                 project.setStatus(2); // 众筹成功
                 project.setDrawStatus(1); // 开始抽奖
                 log.info("众筹成功，自动开始抽奖: 项目ID={}, 项目名称={}", project.getId(), project.getTitle());
-                
+
                 // 更新项目状态
                 crowdfundingProjectMapper.updateSdCrowdfundingProject(project);
-                
+
                 // 延迟执行抽奖
                 scheduleDrawExecution(project);
                 } else {
                 // 更新项目金额
                 crowdfundingProjectMapper.updateSdCrowdfundingProject(project);
             }
-            
+
             log.info("支付成功回调处理完成: 订单号={}, 项目ID={}", orderNo, support.getProjectId());
             return true;
 
@@ -352,13 +372,13 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
     public void autoExecuteDraw(SdCrowdfundingProject project) {
         try {
             log.info("开始自动执行抽奖: 项目ID={}, 项目名称={}", project.getId(), project.getTitle());
-            
+
             // 查询所有支持记录（已支付且未参与抽奖的）
             LambdaQueryWrapper<SdCrowdfundingSupport> queryWrapper = new LambdaQueryWrapper<>();
             queryWrapper.eq(SdCrowdfundingSupport::getProjectId, project.getId())
                        .eq(SdCrowdfundingSupport::getDrawStatus, 0) // 未参与抽奖
                        .isNotNull(SdCrowdfundingSupport::getOrderNo); // 已支付
-            
+
             List<SdCrowdfundingSupport> supports = supportMapper.selectList(queryWrapper);
             if (supports.isEmpty()) {
                 log.warn("没有可参与抽奖的支持记录: 项目ID={}", project.getId());
@@ -371,11 +391,11 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
             // 随机选择中奖者
             int drawNumber = project.getDrawNumber() != null ? project.getDrawNumber() : 1;
             int winnerCount = Math.min(drawNumber, supports.size());
-            
+
             // 打乱顺序并选择前N个作为中奖者
             Collections.shuffle(supports);
             List<SdCrowdfundingSupport> winners = supports.subList(0, winnerCount);
-            
+
             // 更新中奖者状态
             for (SdCrowdfundingSupport winner : winners) {
                 winner.setDrawStatus(2); // 中奖
@@ -384,31 +404,31 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
                 supportMapper.updateById(winner);
                 log.info("中奖者: 用户ID={}, 用户名={}", winner.getUserId(), winner.getUserName());
             }
-            
+
             // 更新未中奖者状态
             for (SdCrowdfundingSupport loser : supports.subList(winnerCount, supports.size())) {
                 loser.setDrawStatus(2); // 已参与抽奖
                 loser.setIsWinner(0); // 不是中奖者
                 supportMapper.updateById(loser);
             }
-            
+
             // 处理未参加抽奖的样品分配 - 发起人必中奖
             int totalSamples = project.getTotalSamples() != null ? project.getTotalSamples() : 0;
             int unallocatedSamples = totalSamples - drawNumber;
-            
+
             if (unallocatedSamples > 0) {
-                log.info("未参加抽奖的样品数量: {}, 发起人必中奖: 用户ID={}", 
+                log.info("未参加抽奖的样品数量: {}, 发起人必中奖: 用户ID={}",
                         unallocatedSamples, project.getCreatorUserId());
-                
+
                 // 为发起人创建必中奖记录
                 createInitiatorWinnerRecord(project, unallocatedSamples);
             }
-            
+
             // 更新项目抽奖状态为已结束
             project.setDrawStatus(2);
             crowdfundingProjectMapper.updateSdCrowdfundingProject(project);
-            
-            log.info("自动执行抽奖成功: 项目ID={}, 中奖人数={}, 总参与人数={}, 未参加抽奖样品数={}", 
+
+            log.info("自动执行抽奖成功: 项目ID={}, 中奖人数={}, 总参与人数={}, 未参加抽奖样品数={}",
                     project.getId(), winnerCount, supports.size(), unallocatedSamples);
 
         } catch (Exception e) {
@@ -427,9 +447,9 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
             queryWrapper.eq(SdCrowdfundingSupport::getProjectId, project.getId())
                        .eq(SdCrowdfundingSupport::getUserId, project.getCreatorUserId())
                        .isNotNull(SdCrowdfundingSupport::getOrderNo); // 已支付的支持记录
-            
+
             List<SdCrowdfundingSupport> existingSupports = supportMapper.selectList(queryWrapper);
-            
+
             if (existingSupports.isEmpty()) {
                 // 发起人没有参与抽奖，创建必中奖记录
                 SdCrowdfundingSupport initiatorSupport = new SdCrowdfundingSupport();
@@ -441,10 +461,10 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
                 initiatorSupport.setDrawStatus(2); // 已参与抽奖
                 initiatorSupport.setIsWinner(1); // 必中奖
                 initiatorSupport.setPrizeInfo("发起人必得样品，获得" + sampleCount + "个样品");
-                
+
                 supportMapper.insert(initiatorSupport);
-                
-                log.info("发起人必得样品记录创建成功: 项目ID={}, 发起人ID={}, 样品数量={}", 
+
+                log.info("发起人必得样品记录创建成功: 项目ID={}, 发起人ID={}, 样品数量={}",
                         project.getId(), project.getCreatorUserId(), sampleCount);
             } else {
                 // 发起人已经参与了抽奖，更新其奖品信息，增加必得样品
@@ -452,15 +472,102 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
                 String originalPrizeInfo = existingSupport.getPrizeInfo() != null ? existingSupport.getPrizeInfo() : "";
                 existingSupport.setPrizeInfo(originalPrizeInfo + " + 发起人必得样品" + sampleCount + "个");
                 supportMapper.updateById(existingSupport);
-                
-                log.info("发起人已参与抽奖，增加必得样品: 项目ID={}, 发起人ID={}, 样品数量={}", 
+
+                log.info("发起人已参与抽奖，增加必得样品: 项目ID={}, 发起人ID={}, 样品数量={}",
                         project.getId(), project.getCreatorUserId(), sampleCount);
             }
-            
+
         } catch (Exception e) {
-            log.error("创建发起人必得样品记录失败: 项目ID={}, 发起人ID={}, 样品数量={}", 
+            log.error("创建发起人必得样品记录失败: 项目ID={}, 发起人ID={}, 样品数量={}",
                     project.getId(), project.getCreatorUserId(), sampleCount, e);
         }
+    }
+
+    @Override
+    public List<CrowdfundingProjectListVO> getManufacturerProjects() {
+        Long currentUserId = LoginHelper.getUserId();
+        log.info("查询厂家参与的众筹项目: 厂家ID={}", currentUserId);
+
+        // 查询厂家参与的所有众筹项目
+        LambdaQueryWrapper<SdCrowdfundingProject> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(SdCrowdfundingProject::getManufacturerUserId, currentUserId)
+                   .orderByDesc(SdCrowdfundingProject::getCreateTime);
+
+        List<SdCrowdfundingProject> projects = crowdfundingProjectMapper.selectList(queryWrapper);
+
+        // 转换为VO
+        return projects.stream().map(project -> {
+            CrowdfundingProjectListVO vo = new CrowdfundingProjectListVO();
+            vo.setId(project.getId());
+            vo.setProjectNo(project.getProjectNo());
+            vo.setTitle(project.getTitle());
+            vo.setCoverImage(project.getCoverImage());
+            vo.setCreatorName(project.getCreatorName());
+            vo.setTargetAmount(project.getTargetAmount());
+            vo.setCurrentAmount(project.getCurrentAmount());
+            vo.setSupportCount(project.getSupportCount());
+            vo.setStartTime(project.getStartTime());
+            vo.setEndTime(project.getEndTime());
+            vo.setStatus(project.getStatus());
+            vo.setDrawNumber(project.getDrawNumber());
+            vo.setDrawStatus(project.getDrawStatus());
+
+            // 计算进度百分比
+            if (project.getTargetAmount() != null && project.getTargetAmount().compareTo(BigDecimal.ZERO) > 0) {
+                BigDecimal progress = project.getCurrentAmount()
+                    .divide(project.getTargetAmount(), 4, BigDecimal.ROUND_HALF_UP)
+                    .multiply(new BigDecimal("100"));
+                vo.setProgressPercentage(progress);
+            } else {
+                vo.setProgressPercentage(BigDecimal.ZERO);
+            }
+
+            return vo;
+        }).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<CrowdfundingProjectListVO> getManufacturerSuccessfulProjects() {
+        Long currentUserId = LoginHelper.getUserId();
+        log.info("查询厂家参与的众筹成功项目: 厂家ID={}", currentUserId);
+
+        // 查询厂家参与的众筹成功项目（状态=2）
+        LambdaQueryWrapper<SdCrowdfundingProject> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(SdCrowdfundingProject::getManufacturerUserId, currentUserId)
+                   .eq(SdCrowdfundingProject::getStatus, 2) // 众筹成功
+                   .orderByDesc(SdCrowdfundingProject::getCreateTime);
+
+        List<SdCrowdfundingProject> projects = crowdfundingProjectMapper.selectList(queryWrapper);
+
+        // 转换为VO
+        return projects.stream().map(project -> {
+            CrowdfundingProjectListVO vo = new CrowdfundingProjectListVO();
+            vo.setId(project.getId());
+            vo.setProjectNo(project.getProjectNo());
+            vo.setTitle(project.getTitle());
+            vo.setCoverImage(project.getCoverImage());
+            vo.setCreatorName(project.getCreatorName());
+            vo.setTargetAmount(project.getTargetAmount());
+            vo.setCurrentAmount(project.getCurrentAmount());
+            vo.setSupportCount(project.getSupportCount());
+            vo.setStartTime(project.getStartTime());
+            vo.setEndTime(project.getEndTime());
+            vo.setStatus(project.getStatus());
+            vo.setDrawNumber(project.getDrawNumber());
+            vo.setDrawStatus(project.getDrawStatus());
+
+            // 计算进度百分比
+            if (project.getTargetAmount() != null && project.getTargetAmount().compareTo(BigDecimal.ZERO) > 0) {
+                BigDecimal progress = project.getCurrentAmount()
+                    .divide(project.getTargetAmount(), 4, BigDecimal.ROUND_HALF_UP)
+                    .multiply(new BigDecimal("100"));
+                vo.setProgressPercentage(progress);
+            } else {
+                vo.setProgressPercentage(BigDecimal.ZERO);
+            }
+
+        return vo;
+        }).collect(Collectors.toList());
     }
 
     /**
@@ -475,7 +582,7 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
                        .isNull(SdCrowdfundingSupport::getOrderNo) // 未支付的记录
                        .orderByDesc(SdCrowdfundingSupport::getCreateTime)
                        .last("LIMIT 1"); // 取最新的一条
-            
+
             SdCrowdfundingSupport support = supportMapper.selectOne(queryWrapper);
             if (support != null) {
                 supportMapper.deleteById(support.getId());
@@ -504,7 +611,7 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
         new Thread(() -> {
             try {
                 Thread.sleep(crowdfundingConfig.getDrawDelaySeconds() * 1000L); // 使用配置的延迟秒数
-                
+
                 // 重新查询项目信息，确保状态正确
                 SdCrowdfundingProject currentProject = crowdfundingProjectMapper.selectSdCrowdfundingProjectById(project.getId());
                 if (currentProject != null && currentProject.getDrawStatus() == 1) {

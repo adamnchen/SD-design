@@ -155,4 +155,18 @@ public class RabbitConfig {
         return BindingBuilder.bind(wxMsgQueue()).to(wxMsgExchange()).with(IMG_SEND_THIRD_ROUTING_KEY).noargs();
     }
 
+    /** ---------------------------------------------------------------------------- 众筹支付订单 Direct exchange --------------------------------------------------------------------------- */
+    @Bean
+    public Exchange crowdfundingPaymentOrderExchange() {
+        return ExchangeBuilder.directExchange(CROWDFUNDING_PAYMENT_ORDER_EXCHANGE).durable(true).build();
+    }
+    @Bean
+    public Queue crowdfundingPaymentOrderQueue() {
+        return QueueBuilder.durable(CROWDFUNDING_PAYMENT_ORDER_QUEUE).build();
+    }
+    @Bean
+    public Binding crowdfundingPaymentOrderBinding() {
+        return BindingBuilder.bind(crowdfundingPaymentOrderQueue()).to(crowdfundingPaymentOrderExchange()).with(CROWDFUNDING_PAYMENT_ORDER_ROUTING_KEY).noargs();
+    }
+
 }

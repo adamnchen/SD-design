@@ -30,7 +30,7 @@ public class PayOrder implements Serializable {
     @TableId(value = "id")
     private Long id;
     /**
-     * 支付宝订单编号(唯一)
+     * 系统订单号(唯一)
      */
     private String outTradeNo;
     /**
@@ -54,15 +54,15 @@ public class PayOrder implements Serializable {
      */
     private Date gmtPayment;
     /**
-     * 支付宝订单标题
+     * 订单标题
      */
     private String subject;
     /**
-     * 支付宝订单描述
+     * 订单描述
      */
     private String body;
     /**
-     * 支付宝订单金额
+     * 订单金额
      */
     private BigDecimal totalAmount;
     /**
@@ -70,7 +70,7 @@ public class PayOrder implements Serializable {
      */
     private Integer status;
     /**
-     * 支付渠道[WX_PAY-微信支付,ALI_PAY-支付宝支付]
+     * 支付渠道[ALI_PAY-支付宝支付]
      */
     private String channelType;
     /**

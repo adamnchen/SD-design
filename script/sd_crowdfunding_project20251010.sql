@@ -1,0 +1,33 @@
+-- 更新后的 sd_crowdfunding_project 表结构
+CREATE TABLE `sd_crowdfunding_project` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '众筹项目ID',
+  `project_no` varchar(32) NOT NULL COMMENT '项目编号',
+  `title` varchar(200) NOT NULL COMMENT '项目标题',
+  `description` text COMMENT '项目详细描述',
+  `cover_image` varchar(500) DEFAULT NULL COMMENT '封面图片URL',
+  `creator_user_id` bigint(20) NOT NULL COMMENT '发起人用户ID',
+  `creator_name` varchar(100) NOT NULL COMMENT '发起人姓名',
+  `proofing_invitation_id` bigint(20) DEFAULT NULL COMMENT '关联的打样邀约ID',
+  `target_amount` decimal(15,2) NOT NULL COMMENT '目标金额',
+  `current_amount` decimal(15,2) DEFAULT '0.00' COMMENT '当前已筹金额',
+  `support_count` int(11) DEFAULT '0' COMMENT '支持人数',
+  `start_time` datetime NOT NULL COMMENT '众筹开始时间',
+  `end_time` datetime NOT NULL COMMENT '众筹结束时间',
+  `status` tinyint(4) NOT NULL DEFAULT '1' COMMENT '项目状态：1=众筹中，2=众筹成功，3=众筹失败',
+  `draw_number` int(11) DEFAULT '1' COMMENT '抽奖名额数量',
+  `draw_status` tinyint(4) DEFAULT '0' COMMENT '抽奖状态：0=未开始，1=进行中，2=已结束',
+  `create_by` varchar(64) DEFAULT NULL COMMENT '创建者',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_by` varchar(64) DEFAULT NULL COMMENT '更新者',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_project_no` (`project_no`),
+  KEY `idx_creator_user_id` (`creator_user_id`),
+  KEY `idx_proofing_invitation_id` (`proofing_invitation_id`),
+  KEY `idx_status` (`status`),
+  KEY `idx_start_time` (`start_time`),
+  KEY `idx_end_time` (`end_time`),
+  KEY `idx_draw_status` (`draw_status`),
+  KEY `idx_create_time` (`create_time`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='众筹项目主表';

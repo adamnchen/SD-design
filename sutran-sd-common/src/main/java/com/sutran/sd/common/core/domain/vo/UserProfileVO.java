@@ -27,21 +27,6 @@ public class UserProfileVO implements Serializable {
     private String nickName;
 
     /**
-     * 用户类型
-     */
-    private String userType;
-
-    /**
-     * 用户邮箱
-     */
-    private String email;
-
-    /**
-     * 手机号码
-     */
-    private String phonenumber;
-
-    /**
      * 用户性别（0男 1女 2未知）
      */
     private String sex;

@@ -17,13 +17,7 @@
 
     <dependencies>
 
-        <!-- 微信支付 -->
-        <dependency>
-            <groupId>com.github.javen205</groupId>
-            <artifactId>IJPay-WxPay</artifactId>
-        </dependency>
-
-        <!-- 支付包支付 -->
+        <!-- 支付宝支付 -->
         <dependency>
             <groupId>com.github.javen205</groupId>
             <artifactId>IJPay-AliPay</artifactId>

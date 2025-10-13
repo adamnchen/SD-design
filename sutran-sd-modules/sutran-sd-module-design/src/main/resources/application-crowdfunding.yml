@@ -1,0 +1,16 @@
+# 众筹模块配置
+crowdfunding:
+  # 抽奖延迟秒数
+  draw-delay-seconds: 30
+  # 定时任务间隔毫秒
+  schedule-interval-ms: 60000
+  # 订单超时分钟数
+  order-timeout-minutes: 30
+  # Redis锁过期秒数
+  redis-lock-expire-seconds: 30
+  # 定时任务检查间隔毫秒
+  task-check-interval-ms: 300000
+  # 订单清理间隔毫秒
+  order-cleanup-interval-ms: 300000
+  # 订单超时检查间隔毫秒
+  order-timeout-check-interval-ms: 600000

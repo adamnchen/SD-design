@@ -13,18 +13,22 @@ import com.sutran.sd.design.mapper.SdProofingInvitationCandidateMapper;
 import com.sutran.sd.common.core.domain.entity.SdProofingInvitationCandidate;
 import com.sutran.sd.design.service.ISdProofingInvitationService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * 打样邀约服务实现类
  *
  * @author YourName
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor // Lombok注解，用于自动生成包含 final 字段的构造函数，实现依赖注入
 public class SdProofingInvitationServiceImpl implements ISdProofingInvitationService {
@@ -58,7 +62,7 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
         Long senderId = LoginHelper.getUserId();
 
         // 2. 获取并校验接收者ID（兼容单个/多个，最多3个）
-        List<Long> inviteeIds = new ArrayList<>();
+        Set<Long> inviteeIds = new HashSet<>();
         if (createDTO.getInviteeUserIds() != null && !createDTO.getInviteeUserIds().isEmpty()) {
             inviteeIds.addAll(createDTO.getInviteeUserIds());
         }
@@ -97,9 +101,8 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
         // 6. 保存到数据库
         invitationMapper.insert(invitation);
 
-        // 7. 批量写入候选表（去重）
-        java.util.Set<Long> uniqueIds = new java.util.HashSet<>(inviteeIds);
-        for (Long inviteeId : uniqueIds) {
+        // 7. 批量写入候选表（已去重）
+        for (Long inviteeId : inviteeIds) {
             SdProofingInvitationCandidate candidate = new SdProofingInvitationCandidate();
             candidate.setInvitationId(invitation.getId());
             candidate.setInviteeUserId(inviteeId);
@@ -119,11 +122,11 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
         List<ProofingInvitationDetailVO> invitationList = invitationMapper.selectReceivedInvitationList(currentUserId);
 
         if (invitationList == null || invitationList.isEmpty()) {
-            System.out.println("用户 " + currentUserId + " 没有收到任何邀约");
+            log.info("用户 {} 没有收到任何邀约", currentUserId);
             return new ArrayList<>(); // 返回空列表而不是null
         }
 
-        System.out.println("用户 " + currentUserId + " 收到 " + invitationList.size() + " 个邀约");
+        log.info("用户 {} 收到 {} 个邀约", currentUserId, invitationList.size());
         return invitationList;
     }
 
@@ -136,11 +139,11 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
         List<ProofingInvitationDetailVO> invitationList = invitationMapper.selectSentInvitationList(currentUserId);
 
         if (invitationList == null || invitationList.isEmpty()) {
-            System.out.println("用户 " + currentUserId + " 没有发出任何邀约");
+            log.info("用户 {} 没有发出任何邀约", currentUserId);
             return new ArrayList<>();
         }
 
-        System.out.println("用户 " + currentUserId + " 发出 " + invitationList.size() + " 个邀约");
+        log.info("用户 {} 发出 {} 个邀约", currentUserId, invitationList.size());
         return invitationList;
     }
 
@@ -223,7 +226,7 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
 
         int rows = candidateMapper.updateById(candidate);
 
-        System.out.println("Executing: getSentInvitations");
+        log.info("用户 {} 接受邀约 {} 成功", currentUserId, acceptDTO.getInvitationId());
 
         if (rows == 0) {
             throw new ServiceException("操作失败，请重试");
@@ -257,11 +260,10 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
 
         int rows = candidateMapper.updateById(candidate);
         if (rows == 0) {
-
             throw new ServiceException("数据库操作失败，请重试");
         }
 
-        System.out.println("Executing: rejectInvitation for ID: " + invitationId);
+        log.info("用户 {} 拒绝邀约 {} 成功", currentUserId, invitationId);
     }
 
     /**
@@ -289,11 +291,10 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
 
         int rows = invitationMapper.updateById(invitation);
         if (rows == 0) {
-
             throw new ServiceException("操作失败，请重试");
         }
 
-        System.out.println("Executing: cancelInvitation for ID: " + invitationId);
+        log.info("用户 {} 取消邀约 {} 成功", currentUserId, invitationId);
     }
 
     /**
@@ -317,7 +318,7 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
             }
         }
 
-        System.out.println("自动取消超时邀约完成，共取消 " + cancelledCount + " 个邀约");
+        log.info("自动取消超时邀约完成，共取消 {} 个邀约", cancelledCount);
     }
 
     /**
@@ -384,16 +385,6 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
 
         // 当前时间是否超过超时时间
         return System.currentTimeMillis() > expireTime;
-    }
-    /**
-     * 商家未在预约周期完成，取消邀约，记录违规
-     */
-    //todo:需要根据众筹完成与否，完成时间判定，目前做不了
-    private  boolean isInvitationQuotedPeriodExpired(SdProofingInvitation invitation) {
-        int quotedPeriodDays = invitation.getQuotedPeriodDays();
-        return false;
-
-
     }
 
 }

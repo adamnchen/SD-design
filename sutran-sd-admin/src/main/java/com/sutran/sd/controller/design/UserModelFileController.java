@@ -1,7 +1,9 @@
 package com.sutran.sd.controller.design;
 
 import com.sutran.sd.common.core.controller.BaseController;
+import com.sutran.sd.common.core.domain.PageQuery;
 import com.sutran.sd.common.core.domain.R;
+import com.sutran.sd.common.core.page.TableDataInfo;
 import com.sutran.sd.common.helper.LoginHelper;
 import com.sutran.sd.design.service.ISdUserModelFileService;
 import com.sutran.sd.design.vo.UserModelFileVO;
@@ -29,43 +31,44 @@ public class UserModelFileController extends BaseController {
     private final ISdUserModelFileService userModelFileService;
 
     /**
-     * 获取我的作品列表
+     * 获取我的作品列表（分页）
      */
-    @Operation(summary = "获取我的作品列表", description = "获取当前用户的所有生图作品列表，按创建时间倒序排列")
+    @Operation(summary = "获取我的作品列表", description = "获取当前用户的所有生图作品列表，支持分页查询，按创建时间倒序排列")
     @GetMapping("/my-works")
-    public R<List<UserModelFileVO>> getMyWorks() {
+    public TableDataInfo<UserModelFileVO> getMyWorks(PageQuery pageQuery) {
         try {
             Long currentUserId = LoginHelper.getUserId();
-            log.info("获取我的作品列表: 用户ID={}", currentUserId);
+            log.info("获取我的作品列表: 用户ID={}, 页码={}, 页大小={}", currentUserId, pageQuery.getPageNum(), pageQuery.getPageSize());
             
-            List<UserModelFileVO> works = userModelFileService.getMyWorks(currentUserId);
-            return R.ok(works);
+            TableDataInfo<UserModelFileVO> result = userModelFileService.getMyWorksPage(currentUserId, pageQuery);
+            return result;
         } catch (Exception e) {
             log.error("获取我的作品列表失败", e);
-            return R.fail("获取我的作品列表失败: " + e.getMessage());
+            return TableDataInfo.build();
         }
     }
 
     /**
-     * 根据分类获取我的作品列表
+     * 根据分类获取我的作品列表（分页）
      */
-    @Operation(summary = "根据分类获取我的作品列表", description = "根据分类获取当前用户的生图作品列表，支持文生图(0)和图生图(1)")
+    @Operation(summary = "根据分类获取我的作品列表", description = "根据分类获取当前用户的生图作品列表，支持分页查询，支持文生图(0)和图生图(1)")
     @GetMapping("/my-works/category/{category}")
-    public R<List<UserModelFileVO>> getMyWorksByCategory(@PathVariable Integer category) {
+    public TableDataInfo<UserModelFileVO> getMyWorksByCategory(@PathVariable Integer category, PageQuery pageQuery) {
         try {
             Long currentUserId = LoginHelper.getUserId();
-            log.info("根据分类获取我的作品列表: 用户ID={}, 分类={}", currentUserId, category);
+            log.info("根据分类获取我的作品列表: 用户ID={}, 分类={}, 页码={}, 页大小={}", currentUserId, category, pageQuery.getPageNum(), pageQuery.getPageSize());
             
             // 验证分类参数
             if (category != null && category != 0 && category != 1) {
-                return R.fail("分类参数错误，只支持0(文生图)或1(图生图)");
+                log.warn("分类参数错误: {}", category);
+                return TableDataInfo.build();
             }
             
-            List<UserModelFileVO> works = userModelFileService.getMyWorksByCategory(currentUserId, category);
-            return R.ok(works);
+            TableDataInfo<UserModelFileVO> result = userModelFileService.getMyWorksByCategoryPage(currentUserId, category, pageQuery);
+            return result;
         } catch (Exception e) {
             log.error("根据分类获取我的作品列表失败: 分类={}", category, e);
-            return R.fail("获取我的作品列表失败: " + e.getMessage());
+            return TableDataInfo.build();
         }
     }
 

@@ -1,5 +1,6 @@
 package com.sutran.sd;
 
+import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.metrics.buffering.BufferingApplicationStartup;
@@ -13,6 +14,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 
 @SpringBootApplication
 @EnableScheduling
+@MapperScan("com.sutran.sd.**.mapper")
 public class RuoYiApplication {
 
     public static void main(String[] args) {

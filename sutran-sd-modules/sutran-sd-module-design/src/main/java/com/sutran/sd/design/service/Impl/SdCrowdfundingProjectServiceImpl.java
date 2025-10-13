@@ -392,16 +392,74 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
                 supportMapper.updateById(loser);
             }
             
+            // 处理未参加抽奖的样品分配 - 发起人必中奖
+            int totalSamples = project.getTotalSamples() != null ? project.getTotalSamples() : 0;
+            int unallocatedSamples = totalSamples - drawNumber;
+            
+            if (unallocatedSamples > 0) {
+                log.info("未参加抽奖的样品数量: {}, 发起人必中奖: 用户ID={}", 
+                        unallocatedSamples, project.getCreatorUserId());
+                
+                // 为发起人创建必中奖记录
+                createInitiatorWinnerRecord(project, unallocatedSamples);
+            }
+            
             // 更新项目抽奖状态为已结束
             project.setDrawStatus(2);
             crowdfundingProjectMapper.updateSdCrowdfundingProject(project);
             
-            log.info("自动执行抽奖成功: 项目ID={}, 中奖人数={}, 总参与人数={}", 
-                    project.getId(), winnerCount, supports.size());
+            log.info("自动执行抽奖成功: 项目ID={}, 中奖人数={}, 总参与人数={}, 未参加抽奖样品数={}", 
+                    project.getId(), winnerCount, supports.size(), unallocatedSamples);
 
         } catch (Exception e) {
             log.error("自动执行抽奖异常: 项目ID={}", project.getId(), e);
             throw e;
+        }
+    }
+
+    /**
+     * 为发起人创建必中奖记录
+     */
+    private void createInitiatorWinnerRecord(SdCrowdfundingProject project, int sampleCount) {
+        try {
+            // 检查发起人是否已经参与了抽奖（通过支付支持）
+            LambdaQueryWrapper<SdCrowdfundingSupport> queryWrapper = new LambdaQueryWrapper<>();
+            queryWrapper.eq(SdCrowdfundingSupport::getProjectId, project.getId())
+                       .eq(SdCrowdfundingSupport::getUserId, project.getCreatorUserId())
+                       .isNotNull(SdCrowdfundingSupport::getOrderNo); // 已支付的支持记录
+            
+            List<SdCrowdfundingSupport> existingSupports = supportMapper.selectList(queryWrapper);
+            
+            if (existingSupports.isEmpty()) {
+                // 发起人没有参与抽奖，创建必中奖记录
+                SdCrowdfundingSupport initiatorSupport = new SdCrowdfundingSupport();
+                initiatorSupport.setProjectId(project.getId());
+                initiatorSupport.setUserId(project.getCreatorUserId());
+                initiatorSupport.setUserName(project.getCreatorName());
+                initiatorSupport.setOrderNo("INITIATOR_WINNER_" + project.getId()); // 特殊标识
+                initiatorSupport.setSupportAmount(BigDecimal.ZERO); // 发起人必得样品，不需要额外支付
+                initiatorSupport.setDrawStatus(2); // 已参与抽奖
+                initiatorSupport.setIsWinner(1); // 必中奖
+                initiatorSupport.setPrizeInfo("发起人必得样品，获得" + sampleCount + "个样品");
+                
+                supportMapper.insert(initiatorSupport);
+                
+                log.info("发起人必得样品记录创建成功: 项目ID={}, 发起人ID={}, 样品数量={}", 
+                        project.getId(), project.getCreatorUserId(), sampleCount);
+            } else {
+                // 发起人已经参与了抽奖，更新其奖品信息，增加必得样品
+                SdCrowdfundingSupport existingSupport = existingSupports.get(0);
+                String originalPrizeInfo = existingSupport.getPrizeInfo() != null ? existingSupport.getPrizeInfo() : "";
+                existingSupport.setPrizeInfo(originalPrizeInfo + " + 发起人必得样品" + sampleCount + "个");
+                supportMapper.updateById(existingSupport);
+                
+                log.info("发起人已参与抽奖，增加必得样品: 项目ID={}, 发起人ID={}, 样品数量={}", 
+                        project.getId(), project.getCreatorUserId(), sampleCount);
+            }
+            
+        } catch (Exception e) {
+            log.error("创建发起人必得样品记录失败: 项目ID={}, 发起人ID={}, 样品数量={}", 
+                    project.getId(), project.getCreatorUserId(), sampleCount, e);
         }
     }
 

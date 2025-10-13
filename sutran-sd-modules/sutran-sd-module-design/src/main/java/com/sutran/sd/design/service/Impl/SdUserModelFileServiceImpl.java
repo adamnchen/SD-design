@@ -1,7 +1,10 @@
 package com.sutran.sd.design.service.Impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.sutran.sd.common.core.domain.PageQuery;
+import com.sutran.sd.common.core.page.TableDataInfo;
 import com.sutran.sd.design.domain.DesignSdUserModelFile;
 import com.sutran.sd.design.mapper.DesignSdUserModelFileMapper;
 import com.sutran.sd.design.service.ISdUserModelFileService;
@@ -106,5 +109,80 @@ public class SdUserModelFileServiceImpl extends ServiceImpl<DesignSdUserModelFil
         UserModelFileVO vo = new UserModelFileVO();
         BeanUtils.copyProperties(file, vo);
         return vo;
+    }
+
+    @Override
+    public TableDataInfo<UserModelFileVO> getMyWorksPage(Long userId, PageQuery pageQuery) {
+        try {
+            log.info("分页查询我的作品: 用户ID={}, 页码={}, 页大小={}", userId, pageQuery.getPageNum(), pageQuery.getPageSize());
+            
+            // 构建分页对象
+            Page<DesignSdUserModelFile> page = pageQuery.build();
+            
+            // 构建查询条件
+            LambdaQueryWrapper<DesignSdUserModelFile> queryWrapper = new LambdaQueryWrapper<>();
+            queryWrapper.eq(DesignSdUserModelFile::getBelongUserId, userId)
+                       .orderByDesc(DesignSdUserModelFile::getCrtTime);
+            
+            // 执行分页查询
+            Page<DesignSdUserModelFile> result = userModelFileMapper.selectPage(page, queryWrapper);
+            
+            // 转换为VO
+            List<UserModelFileVO> voList = result.getRecords().stream()
+                    .map(this::convertToVO)
+                    .collect(Collectors.toList());
+            
+            // 构建分页结果
+            TableDataInfo<UserModelFileVO> tableDataInfo = new TableDataInfo<>();
+            tableDataInfo.setCode(200);
+            tableDataInfo.setMsg("查询成功");
+            tableDataInfo.setRows(voList);
+            tableDataInfo.setTotal(result.getTotal());
+            
+            log.info("分页查询我的作品完成: 总数={}, 当前页数据量={}", result.getTotal(), voList.size());
+            return tableDataInfo;
+            
+        } catch (Exception e) {
+            log.error("分页查询我的作品失败: 用户ID={}", userId, e);
+            return TableDataInfo.build();
+        }
+    }
+
+    @Override
+    public TableDataInfo<UserModelFileVO> getMyWorksByCategoryPage(Long userId, Integer category, PageQuery pageQuery) {
+        try {
+            log.info("分页查询我的作品(按分类): 用户ID={}, 分类={}, 页码={}, 页大小={}", userId, category, pageQuery.getPageNum(), pageQuery.getPageSize());
+            
+            // 构建分页对象
+            Page<DesignSdUserModelFile> page = pageQuery.build();
+            
+            // 构建查询条件
+            LambdaQueryWrapper<DesignSdUserModelFile> queryWrapper = new LambdaQueryWrapper<>();
+            queryWrapper.eq(DesignSdUserModelFile::getBelongUserId, userId)
+                       .eq(DesignSdUserModelFile::getCategory, category)
+                       .orderByDesc(DesignSdUserModelFile::getCrtTime);
+            
+            // 执行分页查询
+            Page<DesignSdUserModelFile> result = userModelFileMapper.selectPage(page, queryWrapper);
+            
+            // 转换为VO
+            List<UserModelFileVO> voList = result.getRecords().stream()
+                    .map(this::convertToVO)
+                    .collect(Collectors.toList());
+            
+            // 构建分页结果
+            TableDataInfo<UserModelFileVO> tableDataInfo = new TableDataInfo<>();
+            tableDataInfo.setCode(200);
+            tableDataInfo.setMsg("查询成功");
+            tableDataInfo.setRows(voList);
+            tableDataInfo.setTotal(result.getTotal());
+            
+            log.info("分页查询我的作品(按分类)完成: 分类={}, 总数={}, 当前页数据量={}", category, result.getTotal(), voList.size());
+            return tableDataInfo;
+            
+        } catch (Exception e) {
+            log.error("分页查询我的作品(按分类)失败: 用户ID={}, 分类={}", userId, category, e);
+            return TableDataInfo.build();
+        }
     }
 }

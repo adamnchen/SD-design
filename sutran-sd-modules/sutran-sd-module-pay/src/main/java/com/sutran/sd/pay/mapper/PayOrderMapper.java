@@ -18,7 +18,7 @@ public interface PayOrderMapper extends BaseMapperPlus<PayOrderMapper, PayOrder,
     /**
      * 更新订单状态
      * @param outTradeNo 订单号
-     * @param tradeNo 支付订单号
+     * @param tradeNo 支付宝交易流水号
      * @param totalAmount 总金额
      * @param gmtPayment 支付时间
      * @return 是否更新成功
@@ -34,7 +34,7 @@ public interface PayOrderMapper extends BaseMapperPlus<PayOrderMapper, PayOrder,
     /**
      * 失败更新订单状态
      * @param outTradeNo 订单号
-     * @param tradeNo 支付订单号
+     * @param tradeNo 支付宝交易流水号
      * @param totalAmount 总金额
      * @return 是否更新成功
      */

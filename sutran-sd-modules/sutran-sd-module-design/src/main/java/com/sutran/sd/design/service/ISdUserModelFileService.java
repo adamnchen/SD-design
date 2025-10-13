@@ -1,6 +1,8 @@
 package com.sutran.sd.design.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.sutran.sd.common.core.domain.PageQuery;
+import com.sutran.sd.common.core.page.TableDataInfo;
 import com.sutran.sd.design.domain.DesignSdUserModelFile;
 import com.sutran.sd.design.vo.UserModelFileVO;
 
@@ -97,4 +99,23 @@ public interface ISdUserModelFileService extends IService<DesignSdUserModelFile>
      * @return 作品详情
      */
     UserModelFileVO getMyWorkDetail(Long id, Long userId);
+
+    /**
+     * 获取我的作品列表（分页查询）
+     *
+     * @param userId 用户ID
+     * @param pageQuery 分页查询参数
+     * @return 分页结果
+     */
+    TableDataInfo<UserModelFileVO> getMyWorksPage(Long userId, PageQuery pageQuery);
+
+    /**
+     * 根据分类获取我的作品列表（分页查询）
+     *
+     * @param userId 用户ID
+     * @param category 分类[0-文生图，1-图生图]
+     * @param pageQuery 分页查询参数
+     * @return 分页结果
+     */
+    TableDataInfo<UserModelFileVO> getMyWorksByCategoryPage(Long userId, Integer category, PageQuery pageQuery);
 }

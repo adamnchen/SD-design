@@ -204,6 +204,12 @@ public class SdCrowdfundingProject extends BaseEntity {
     private Integer drawNumber;
 
     /**
+     * 样品总数量
+     */
+    @TableField("total_samples")
+    private Integer totalSamples;
+
+    /**
      * 抽奖状态：0=未开始，1=进行中，2=已结束
      */
     @TableField("draw_status")

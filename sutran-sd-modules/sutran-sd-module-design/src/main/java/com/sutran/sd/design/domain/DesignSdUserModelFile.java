@@ -159,4 +159,17 @@ public class DesignSdUserModelFile extends BaseEntity {
      */
     @TableField("crt_time")
     private Date crtTime;
+
+    // 重写BaseEntity的字段，设置为不存在于数据库表中
+    @TableField(exist = false)
+    private String createBy;
+
+    @TableField(exist = false)
+    private Date createTime;
+
+    @TableField(exist = false)
+    private String updateBy;
+
+    @TableField(exist = false)
+    private Date updateTime;
 }

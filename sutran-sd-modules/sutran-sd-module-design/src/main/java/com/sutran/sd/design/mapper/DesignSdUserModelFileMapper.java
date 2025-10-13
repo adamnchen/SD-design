@@ -2,6 +2,7 @@ package com.sutran.sd.design.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.sutran.sd.design.domain.DesignSdUserModelFile;
+import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
@@ -12,6 +13,7 @@ import java.util.List;
  * @author sutran
  * @date 2025-10-11
  */
+@Mapper
 public interface DesignSdUserModelFileMapper extends BaseMapper<DesignSdUserModelFile> {
 
     /**

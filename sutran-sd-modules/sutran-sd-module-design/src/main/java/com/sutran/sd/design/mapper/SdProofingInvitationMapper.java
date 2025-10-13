@@ -13,7 +13,7 @@ import java.util.List;
  *
  * @author YourName
  */
-@Mapper // 标记这是一个MyBatis的Mapper接口，Spring Boot可以扫描到它
+@Mapper 
 public interface SdProofingInvitationMapper extends BaseMapper<SdProofingInvitation> {
 
     /**

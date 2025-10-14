@@ -98,10 +98,6 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
             throw new ServiceException("最多可选择3个被邀约厂家");
         }
 
-
-
-
-
         // 3. 验证取消时限值
         if (createDTO.getCancelTimeLimit() != null &&
             !ProofingInvitationConstants.isValidCancelTimeLimit(createDTO.getCancelTimeLimit())) {

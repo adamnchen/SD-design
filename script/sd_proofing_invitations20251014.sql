@@ -11,7 +11,7 @@
  Target Server Version : 80040 (8.0.40)
  File Encoding         : 65001
 
- Date: 14/10/2025 10:07:44
+ Date: 14/10/2025 15:31:03
 */
 
 SET NAMES utf8mb4;
@@ -39,7 +39,7 @@ CREATE TABLE `sd_proofing_invitations`  (
   `quoted_period_days` int UNSIGNED NULL DEFAULT NULL COMMENT '被邀约方提交的预计打样周期 (天)',
   `is_quote_batch_plan` tinyint(1) NOT NULL DEFAULT 0 COMMENT '报价时是否提供了批量生产方案 (0:否, 1:是)',
   `quote_submit_at` timestamp NULL DEFAULT NULL COMMENT '报价提交时间',
-  `tiered_pricing` json NULL COMMENT '阶梯价格配置(JSON数组: [{\"minQty\":1,\"maxQty\":10,\"unitPrice\":99.99}])',
+  `tiered_pricing` json NULL COMMENT '阶梯价格配置(JSON数组: [20, 30, 40] 对应 0-20, 20-30, 30-40 区间)',
   `profit_share_ratio` decimal(5, 2) NULL DEFAULT NULL COMMENT '利润分成比例(%)，例如 15.50 表示 15.5%',
   `selected_invitee_user_id` bigint UNSIGNED NULL DEFAULT NULL COMMENT '最终选中的厂家用户ID',
   `selected_at` timestamp NULL DEFAULT NULL COMMENT '最终选择时间',
@@ -51,6 +51,6 @@ CREATE TABLE `sd_proofing_invitations`  (
   INDEX `idx_work_id_status`(`work_id` ASC, `status` ASC) USING BTREE,
   INDEX `idx_inviter_user_id`(`inviter_user_id` ASC) USING BTREE,
   INDEX `idx_invitee_user_id`(`invitee_user_id` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 1977914783965941762 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '作品打样合作邀请记录表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 1977986548411002882 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '作品打样合作邀请记录表' ROW_FORMAT = Dynamic;
 
 SET FOREIGN_KEY_CHECKS = 1;

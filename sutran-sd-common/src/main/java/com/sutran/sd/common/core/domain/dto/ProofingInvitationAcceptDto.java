@@ -44,10 +44,11 @@ public class ProofingInvitationAcceptDto implements Serializable {
 
     /**
      * 阶梯价格配置
-     * - 数量区间与对应单价
+     * - 商家输入价格点，程序自动计算区间
+     * - 例如：[20, 30, 40] 对应 0-20, 20-30, 30-40 区间
      */
     @Valid
-    private List<TierPriceItem> tieredPricing;
+    private List<BigDecimal> tieredPricing;
 
     /**
      * 利润分成比例(%)，例如 15.5 表示 15.5%
@@ -56,25 +57,4 @@ public class ProofingInvitationAcceptDto implements Serializable {
     @DecimalMax(value = "100.00", message = "利润分成比例不能大于100")
     private BigDecimal profitShareRatio;
 
-    @Data
-    public static class TierPriceItem implements Serializable {
-        private static final long serialVersionUID = 1L;
-
-        /**
-         * 【必填】最小数量(含)
-         */
-        @NotNull(message = "阶梯最小数量不能为空")
-        private Integer minQty;
-
-        /**
-         * 【必填】最大数量(含)。若为null表示无上限
-         */
-        private Integer maxQty;
-
-        /**
-         * 【必填】区间对应单价(元)
-         */
-        @NotNull(message = "阶梯单价不能为空")
-        private BigDecimal unitPrice;
-    }
 }

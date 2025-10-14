@@ -28,6 +28,7 @@ public class ProofingInvitationDetailVO implements Serializable {
     private String productDescription;
     private String modelSource;
 
+
     // --- 邀约人/被邀约人信息 ---
     private Long inviterUserId;
     private Long inviteeUserId;
@@ -104,6 +105,16 @@ public class ProofingInvitationDetailVO implements Serializable {
      * 【新增】被邀约人的用户头像 (从 sys_user 表关联查询)
      */
     private String inviteeAvatar;
+
+    /**
+     * 【新增】作品图片URL (从 sd_user_model_file 表关联查询)
+     */
+    private String imageUrl;
+
+    /**
+     * 【新增】作品图片类型 (从 sd_user_model_file 表关联查询)
+     */
+    private String imageType;
 
     /**
      * 打样样品参与抽奖的数量分配给众筹用户,最少一个

@@ -1,5 +1,6 @@
 package com.sutran.sd.common.core.domain.entity;
 
+import com.baomidou.mybatisplus.annotation.FieldFill;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
@@ -35,7 +36,7 @@ public class SdProofingInvitation extends BaseEntity {
      */
     @TableField("work_id")
     @NotNull(message = "作品ID不能为空")
-    private Long workId;
+    private String workId;
 
     // --- 作品和设计详情 ---
 
@@ -171,8 +172,12 @@ public class SdProofingInvitation extends BaseEntity {
     private Integer status; // 使用Integer对应TINYINT
 
     // 创建时间和更新时间由 BaseEntity 提供
-    // createTime 对应数据库的 created_at
-    // updateTime 对应数据库的 updated_at
+    // 重写字段映射以匹配数据库字段名
+    @TableField(value = "created_at", fill = FieldFill.INSERT)
+    private Date createTime;
+
+    @TableField(value = "updated_at", fill = FieldFill.INSERT_UPDATE)
+    private Date updateTime;
 
 
     @TableField(exist = false)

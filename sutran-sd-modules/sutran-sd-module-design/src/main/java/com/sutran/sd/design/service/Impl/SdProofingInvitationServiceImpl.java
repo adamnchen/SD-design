@@ -1,11 +1,14 @@
 package com.sutran.sd.design.service.Impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.sutran.sd.common.core.domain.dto.ProofingInvitationAcceptDto;
 import com.sutran.sd.common.core.domain.dto.ProofingInvitationRequestDTO;
 import com.sutran.sd.common.core.domain.dto.ProofingInvitationChooseDto;
 import com.sutran.sd.common.core.domain.entity.SdProofingInvitation;
 import com.sutran.sd.common.core.domain.vo.ProofingInvitationDetailVO;
+import com.sutran.sd.common.core.page.TableDataInfo;
+import com.sutran.sd.common.core.domain.PageQuery;
 import com.sutran.sd.common.constant.ProofingInvitationConstants;
 import com.sutran.sd.common.exception.ServiceException;
 import com.sutran.sd.common.helper.LoginHelper;
@@ -53,7 +56,7 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
     public SdProofingInvitation createInvitation(ProofingInvitationRequestDTO createDTO) {
 
         // 检查当前作品是否已有待处理的邀约
-        Long workId = createDTO.getWorkId();
+        String workId = createDTO.getWorkId();
         if (workId != null) {
             List<SdProofingInvitation> existingInvitations = invitationMapper.selectList(
                 new LambdaQueryWrapper<SdProofingInvitation>()
@@ -128,7 +131,10 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
     @Override
     public List<ProofingInvitationDetailVO> getReceivedInvitations() {
         Long currentUserId = LoginHelper.getUserId();
+        log.info("开始查询用户 {} 收到的邀约", currentUserId);
+        
         List<ProofingInvitationDetailVO> invitationList = invitationMapper.selectReceivedInvitationList(currentUserId);
+        log.info("数据库查询返回 {} 条记录", invitationList != null ? invitationList.size() : "null");
 
         if (invitationList == null || invitationList.isEmpty()) {
             log.info("用户 {} 没有收到任何邀约", currentUserId);
@@ -154,6 +160,41 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
 
         log.info("用户 {} 发出 {} 个邀约", currentUserId, invitationList.size());
         return invitationList;
+    }
+
+    /**
+     * 分页查询当前用户收到的邀约列表
+     */
+    @Override
+    public TableDataInfo<ProofingInvitationDetailVO> getReceivedInvitationsPage(PageQuery pageQuery) {
+        Long currentUserId = LoginHelper.getUserId();
+        log.info("开始分页查询用户 {} 收到的邀约，分页参数：pageNum={}, pageSize={}", 
+                currentUserId, pageQuery.getPageNum(), pageQuery.getPageSize());
+        
+        IPage<ProofingInvitationDetailVO> page = invitationMapper.selectReceivedInvitationPage(pageQuery.build(), currentUserId);
+        log.info("分页查询返回 {} 条记录", page.getRecords() != null ? page.getRecords().size() : "null");
+        
+        // 手动设置total，因为自定义SQL可能无法被分页插件正确计算
+        Long total = invitationMapper.countReceivedInvitations(currentUserId);
+        log.info("统计查询返回总数：{}", total);
+        page.setTotal(total);
+        
+        return TableDataInfo.build(page);
+    }
+
+    /**
+     * 分页查询当前用户发出的邀约列表
+     */
+    @Override
+    public TableDataInfo<ProofingInvitationDetailVO> getSentInvitationsPage(PageQuery pageQuery) {
+        Long currentUserId = LoginHelper.getUserId();
+        IPage<ProofingInvitationDetailVO> page = invitationMapper.selectSentInvitationPage(pageQuery.build(), currentUserId);
+        
+        // 手动设置total，因为自定义SQL可能无法被分页插件正确计算
+        Long total = invitationMapper.countSentInvitations(currentUserId);
+        page.setTotal(total);
+        
+        return TableDataInfo.build(page);
     }
 
     /**

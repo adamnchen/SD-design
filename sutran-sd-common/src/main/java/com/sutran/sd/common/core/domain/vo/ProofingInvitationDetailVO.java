@@ -21,7 +21,7 @@ public class ProofingInvitationDetailVO implements Serializable {
     /**
      * 关联的作品ID
      */
-    private Long workId;
+    private String workId;
 
     // --- 作品和设计详情 ---
     private String productTitle;
@@ -31,8 +31,6 @@ public class ProofingInvitationDetailVO implements Serializable {
     // --- 邀约人/被邀约人信息 ---
     private Long inviterUserId;
     private Long inviteeUserId;
-    // 实际业务中，这里通常还会包含 userNickname 或 factoryProfile 等字段，
-    // 以便前端展示用户/厂商名称，但这里只映射数据库字段。
 
     // --- 邀约细节和要求 ---
     private String cooperationContent;
@@ -43,7 +41,7 @@ public class ProofingInvitationDetailVO implements Serializable {
     // --- 时限 ---
     private Integer deliveryLimitHours;
     private Integer cancelTimeLimit;
-    
+
     /**
      * 取消时限描述 (例如: "2天内无人应答自动取消")
      */

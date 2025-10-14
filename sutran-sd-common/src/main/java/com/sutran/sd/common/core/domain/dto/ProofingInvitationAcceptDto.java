@@ -42,11 +42,15 @@ public class ProofingInvitationAcceptDto implements Serializable {
 
     /**
      * 阶梯价格配置
-     * - 商家输入价格点，程序自动计算区间
-     * - 例如：[20, 30, 40] 对应 0-20, 20-30, 30-40 区间
-     * - 注意：当 isQuoteBatchPlan = true 时，此字段必填
+     * - 数量点数组，例如：[20, 30, 40] 对应 0-20, 20-30, 30-40 区间
      */
-    private List<BigDecimal> tieredPricing;
+    private List<Integer> tieredQuantities;
+    
+    /**
+     * 阶梯价格配置
+     * - 单价数组，例如：[50, 40, 30] 对应各区间的单价
+     */
+    private List<BigDecimal> tieredPrices;
 
     /**
      * 利润分成比例(%)，例如 15.5 表示 15.5%
@@ -54,5 +58,6 @@ public class ProofingInvitationAcceptDto implements Serializable {
     @DecimalMin(value = "0.00", message = "利润分成比例不能小于0")
     @DecimalMax(value = "100.00", message = "利润分成比例不能大于100")
     private BigDecimal profitShareRatio;
+
 
 }

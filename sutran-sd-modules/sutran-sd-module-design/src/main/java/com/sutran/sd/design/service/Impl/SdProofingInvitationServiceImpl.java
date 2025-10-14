@@ -255,21 +255,40 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
         
         // 条件验证：如果提供批量生产方案，阶梯价格必填
         if (Boolean.TRUE.equals(acceptDTO.getIsQuoteBatchPlan())) {
-            if (acceptDTO.getTieredPricing() == null || acceptDTO.getTieredPricing().isEmpty()) {
+            if (acceptDTO.getTieredQuantities() == null || acceptDTO.getTieredQuantities().isEmpty() ||
+                acceptDTO.getTieredPrices() == null || acceptDTO.getTieredPrices().isEmpty()) {
                 throw new ServiceException("提供批量生产方案时，阶梯价格不能为空");
             }
+            // 验证数组长度一致
+            if (acceptDTO.getTieredQuantities().size() != acceptDTO.getTieredPrices().size()) {
+                throw new ServiceException("阶梯数量点和价格点数量必须一致");
+            }
             // 验证阶梯价格格式
-            if (acceptDTO.getTieredPricing().stream().anyMatch(price -> price == null || price.signum() <= 0)) {
+            if (acceptDTO.getTieredPrices().stream().anyMatch(price -> price == null || price.signum() <= 0)) {
                 throw new ServiceException("阶梯价格必须为正数");
             }
         }
 
-        // 处理阶梯价格为JSON
+        // 处理阶梯价格为JSON - 自动计算区间
         String tieredPricingJson = null;
-        if (acceptDTO.getTieredPricing() != null && !acceptDTO.getTieredPricing().isEmpty()) {
+        if (acceptDTO.getTieredQuantities() != null && !acceptDTO.getTieredQuantities().isEmpty() &&
+            acceptDTO.getTieredPrices() != null && !acceptDTO.getTieredPrices().isEmpty()) {
             try {
+                // 自动计算区间格式
+                List<java.util.Map<String, Object>> tieredPricingList = new ArrayList<>();
+                List<Integer> quantities = acceptDTO.getTieredQuantities();
+                List<java.math.BigDecimal> prices = acceptDTO.getTieredPrices();
+                
+                for (int i = 0; i < quantities.size(); i++) {
+                    java.util.Map<String, Object> tier = new java.util.HashMap<>();
+                    tier.put("minQty", i == 0 ? 0 : quantities.get(i - 1));
+                    tier.put("maxQty", i == quantities.size() - 1 ? null : quantities.get(i));
+                    tier.put("unitPrice", prices.get(i));
+                    tieredPricingList.add(tier);
+                }
+                
                 com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
-                tieredPricingJson = mapper.writeValueAsString(acceptDTO.getTieredPricing());
+                tieredPricingJson = mapper.writeValueAsString(tieredPricingList);
             } catch (Exception e) {
                 throw new ServiceException("阶梯价格序列化失败");
             }

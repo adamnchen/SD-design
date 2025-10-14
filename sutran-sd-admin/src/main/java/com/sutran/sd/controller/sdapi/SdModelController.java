@@ -6,10 +6,13 @@ import com.sutran.sd.common.core.domain.PageQuery;
 import com.sutran.sd.common.core.domain.R;
 import com.sutran.sd.common.core.page.TableDataInfo;
 import com.sutran.sd.common.exception.ServiceException;
+import com.sutran.sd.common.helper.LoginHelper;
 import com.sutran.sd.draw.domain.dto.model.SdUserModelClassifyDto;
 import com.sutran.sd.draw.domain.dto.model.SdUserModelModifyDto;
 import com.sutran.sd.draw.domain.dto.model.SdUserModelPageDto;
 import com.sutran.sd.draw.domain.dto.model.SdUserModelShareDto;
+import com.sutran.sd.draw.domain.vo.ComfyUserModelVo;
+import com.sutran.sd.draw.service.SdUserModelService;
 import com.sutran.sd.draw.service.SdWebuiApiService;
 import com.sutran.sd.draw.domain.vo.SdUserModelClassifyVo;
 import com.sutran.sd.draw.domain.vo.SdUserModelVo;
@@ -29,8 +32,8 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SdModelController {
 
-    @Resource
-    private SdWebuiApiService sdWebuiApiService;
+    private final SdWebuiApiService sdWebuiApiService;
+    private final SdUserModelService sdUserModelService;
 
     /**
      * [业务接口]SD Lora模型-获取lora模型分类列表
@@ -135,6 +138,15 @@ public class SdModelController {
         }
         sdWebuiApiService.shareModel(dto);
         return R.ok();
+    }
+
+
+    /**
+     * [ComfyUI]获取最近使用的模型(返回最近5个模型)
+     */
+    @GetMapping("/comfyui/lora/latest")
+    public R<List<ComfyUserModelVo>> getLatestModelInfoOfComfyui() {
+        return R.ok(sdUserModelService.getLatestModelInfoOfComfyui(LoginHelper.getUserId(),5));
     }
 
 }

@@ -17,6 +17,7 @@ import com.sutran.sd.draw.domain.dto.model.SdUserModelDto;
 import com.sutran.sd.draw.domain.dto.model.SdUserModelModifyDto;
 import com.sutran.sd.draw.domain.dto.model.SdUserModelPageDto;
 import com.sutran.sd.draw.domain.dto.model.SdUserModelShareDto;
+import com.sutran.sd.draw.domain.vo.ComfyUserModelVo;
 import com.sutran.sd.draw.domain.vo.SdLoraModelVo;
 import com.sutran.sd.draw.domain.vo.SdUserModelVo;
 import com.sutran.sd.draw.mapper.SdUserModelClassifyMapper;
@@ -382,5 +383,24 @@ public class SdUserModelServiceImpl implements SdUserModelService {
         if (CollectionUtil.isNotEmpty(errMsg)) {
             throw new ServiceException(String.join(",",errMsg));
         }
+    }
+
+     /**
+     * 获取ComfyUI最近使用的n个模型列表
+     * @param userId    用户ID
+     * @param num       数量
+     * @return          模型列表
+     */
+    @Override
+    public List<ComfyUserModelVo> getLatestModelInfoOfComfyui(Long userId, int num) {
+        List<ComfyUserModelVo> list = baseMapper.getLatestModelInfoOfComfyui(userId, num);
+        if (CollectionUtil.isEmpty(list)) {
+            return Collections.emptyList();
+        }
+        // 获取每个模型对应的训练数据中的提示词文件
+        for (ComfyUserModelVo vo : list) {
+            // 获取模型文件路径
+        }
+        return Collections.emptyList();
     }
 }

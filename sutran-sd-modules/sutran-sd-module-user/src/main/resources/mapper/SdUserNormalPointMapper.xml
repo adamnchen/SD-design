@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.sutran.sd.user.mapper.SdUserNormalPointMapper">
+
+    <resultMap id="UserPointDetailResult" type="com.sutran.sd.common.core.domain.vo.UserPointDetailVO">
+        <result property="userId" column="user_id"/>
+        <result property="nickName" column="nick_name"/>
+        <result property="avatar" column="avatar"/>
+        <result property="proofingPoint" column="proofing_point"/>
+        <result property="priifingLevel" column="priifing_level"/>
+        <result property="priifingLevelName" column="priifing_level_name"/>
+        <result property="salePoint" column="sale_point"/>
+        <result property="saleLevel" column="sale_level"/>
+        <result property="saleLevelName" column="sale_level_name"/>
+        <result property="totalPoint" column="total_point"/>
+        <result property="comprehensiveLevel" column="comprehensive_level"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+
+    <!-- 查询用户积分详情 -->
+    <select id="selectUserPointDetail" resultMap="UserPointDetailResult">
+        SELECT 
+            p.user_id,
+            u.nick_name,
+            u.avatar,
+            COALESCE(p.proofing_point, 0) as proofing_point,
+            COALESCE(p.proofing_level, 0) as priifing_level,
+            CASE 
+                WHEN COALESCE(p.proofing_level, 0) >= 200 THEN '5级-信誉大师'
+                WHEN COALESCE(p.proofing_level, 0) >= 150 THEN '4级-信誉专家'
+                WHEN COALESCE(p.proofing_level, 0) >= 100 THEN '3级-信誉达人'
+                WHEN COALESCE(p.proofing_level, 0) >= 50 THEN '2级-信誉新手'
+                ELSE '1级-信誉入门'
+            END as priifing_level_name,
+            COALESCE(p.sale_point, '0') as sale_point,
+            COALESCE(p.sale_level, '1级-信誉入门') as sale_level,
+            CASE 
+                WHEN CAST(COALESCE(p.sale_point, '0') AS UNSIGNED) >= 200 THEN '5级-信誉大师'
+                WHEN CAST(COALESCE(p.sale_point, '0') AS UNSIGNED) >= 150 THEN '4级-信誉专家'
+                WHEN CAST(COALESCE(p.sale_point, '0') AS UNSIGNED) >= 100 THEN '3级-信誉达人'
+                WHEN CAST(COALESCE(p.sale_point, '0') AS UNSIGNED) >= 50 THEN '2级-信誉新手'
+                ELSE '1级-信誉入门'
+            END as sale_level_name,
+            (COALESCE(p.proofing_point, 0) + CAST(COALESCE(p.sale_point, '0') AS UNSIGNED)) as total_point,
+            CASE 
+                WHEN (COALESCE(p.proofing_point, 0) + CAST(COALESCE(p.sale_point, '0') AS UNSIGNED)) >= 200 THEN '5级-信誉大师'
+                WHEN (COALESCE(p.proofing_point, 0) + CAST(COALESCE(p.sale_point, '0') AS UNSIGNED)) >= 150 THEN '4级-信誉专家'
+                WHEN (COALESCE(p.proofing_point, 0) + CAST(COALESCE(p.sale_point, '0') AS UNSIGNED)) >= 100 THEN '3级-信誉达人'
+                WHEN (COALESCE(p.proofing_point, 0) + CAST(COALESCE(p.sale_point, '0') AS UNSIGNED)) >= 50 THEN '2级-信誉新手'
+                ELSE '1级-信誉入门'
+            END as comprehensive_level,
+            p.create_time,
+            p.update_time
+        FROM sd_user_normal_point p
+        LEFT JOIN sys_user u ON p.user_id = u.user_id
+        WHERE p.user_id = #{userId}
+    </select>
+
+
+    <!-- 更新用户打样积分 -->
+    <update id="updateProofingPoint">
+        UPDATE sd_user_normal_point 
+        SET proofing_point = COALESCE(proofing_point, 0) + #{pointChange},
+            proofing_level = CASE 
+                WHEN COALESCE(proofing_point, 0) + #{pointChange} >= 200 THEN 200
+                WHEN COALESCE(proofing_point, 0) + #{pointChange} >= 150 THEN 150
+                WHEN COALESCE(proofing_point, 0) + #{pointChange} >= 100 THEN 100
+                WHEN COALESCE(proofing_point, 0) + #{pointChange} >= 50 THEN 50
+                ELSE COALESCE(proofing_point, 0) + #{pointChange}
+            END,
+            update_time = NOW()
+        WHERE user_id = #{userId}
+    </update>
+
+    <!-- 更新用户销售积分 -->
+    <update id="updateSalePoint">
+        UPDATE sd_user_normal_point 
+        SET sale_point = CAST(COALESCE(sale_point, '0') AS UNSIGNED) + #{pointChange},
+            sale_level = CASE 
+                WHEN CAST(COALESCE(sale_point, '0') AS UNSIGNED) + #{pointChange} >= 200 THEN '5级-信誉大师'
+                WHEN CAST(COALESCE(sale_point, '0') AS UNSIGNED) + #{pointChange} >= 150 THEN '4级-信誉专家'
+                WHEN CAST(COALESCE(sale_point, '0') AS UNSIGNED) + #{pointChange} >= 100 THEN '3级-信誉达人'
+                WHEN CAST(COALESCE(sale_point, '0') AS UNSIGNED) + #{pointChange} >= 50 THEN '2级-信誉新手'
+                ELSE '1级-信誉入门'
+            END,
+            update_time = NOW()
+        WHERE user_id = #{userId}
+    </update>
+
+</mapper>

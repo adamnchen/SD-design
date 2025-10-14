@@ -5,6 +5,8 @@ import com.sutran.sd.common.core.domain.dto.ProofingInvitationRequestDTO;
 import com.sutran.sd.common.core.domain.vo.ProofingInvitationDetailVO;
 import com.sutran.sd.common.core.domain.dto.ProofingInvitationChooseDto;
 import com.sutran.sd.common.core.domain.vo.ManufacturerSearchResultVO;
+import com.sutran.sd.common.core.page.TableDataInfo;
+import com.sutran.sd.common.core.domain.PageQuery;
 import com.sutran.sd.design.service.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -62,6 +64,22 @@ public class ProofingInvitationController {
         }
         
         return R.ok("成功获取 " + list.size() + " 个邀约", list);
+    }
+
+    /**
+     * 分页查询我收到的邀约列表
+     */
+    @GetMapping("/received/page")
+    public TableDataInfo<ProofingInvitationDetailVO> getMyReceivedInvitationsPage(PageQuery pageQuery) {
+        return invitationService.getReceivedInvitationsPage(pageQuery);
+    }
+
+    /**
+     * 分页查询我发出的邀约列表
+     */
+    @GetMapping("/sent/page")
+    public TableDataInfo<ProofingInvitationDetailVO> getMySentInvitationsPage(PageQuery pageQuery) {
+        return invitationService.getSentInvitationsPage(pageQuery);
     }
 
     /**
@@ -141,6 +159,22 @@ public class ProofingInvitationController {
             List<String> tagList = Arrays.asList(tags.split(","));
             List<ManufacturerSearchResultVO> results = fuzzySearchService.searchManufacturersByTags(tagList);
             return R.ok(results);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return R.fail("搜索时发生错误: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 根据厂家名字模糊搜索厂商
+     * @param name 厂家名字关键词，例如: /search/name?name=金饰厂
+     * @return 搜索结果
+     */
+    @GetMapping("/search/name")
+    public R<List<ManufacturerSearchResultVO>> searchByName(@RequestParam String name) {
+        try {
+            List<ManufacturerSearchResultVO> results = fuzzySearchService.searchManufacturersByName(name);
+            return R.ok("找到 " + results.size() + " 个匹配的厂家", results);
         } catch (Exception e) {
             e.printStackTrace();
             return R.fail("搜索时发生错误: " + e.getMessage());

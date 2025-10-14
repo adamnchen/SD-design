@@ -5,6 +5,8 @@ import com.sutran.sd.common.core.domain.dto.ProofingInvitationChooseDto;
 import com.sutran.sd.common.core.domain.dto.ProofingInvitationAcceptDto;
 import com.sutran.sd.common.core.domain.entity.SdProofingInvitation;
 import com.sutran.sd.common.core.domain.vo.ProofingInvitationDetailVO;
+import com.sutran.sd.common.core.page.TableDataInfo;
+import com.sutran.sd.common.core.domain.PageQuery;
 
 import java.util.List;
 
@@ -36,6 +38,22 @@ public interface ISdProofingInvitationService {
      * @return 邀约详情列表
      */
     List<ProofingInvitationDetailVO> getSentInvitations();
+
+    /**
+     * 分页查询当前用户收到的邀约列表
+     *
+     * @param pageQuery 分页查询参数
+     * @return 分页邀约详情列表
+     */
+    TableDataInfo<ProofingInvitationDetailVO> getReceivedInvitationsPage(PageQuery pageQuery);
+
+    /**
+     * 分页查询当前用户发出的邀约列表
+     *
+     * @param pageQuery 分页查询参数
+     * @return 分页邀约详情列表
+     */
+    TableDataInfo<ProofingInvitationDetailVO> getSentInvitationsPage(PageQuery pageQuery);
 
     /**
      * 接受合作邀约

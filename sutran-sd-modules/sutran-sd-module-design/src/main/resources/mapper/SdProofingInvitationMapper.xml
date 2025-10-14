@@ -114,4 +114,92 @@
             inv.created_at DESC
     </select>
 
+    <!-- 分页查询我收到的邀约列表 -->
+    <select id="selectReceivedInvitationPage" resultMap="ProofingInvitationDetailResult">
+        SELECT
+            -- 邀请表的基础字段
+            inv.id,
+            inv.work_id,
+            inv.product_title,
+            inv.product_description,
+            inv.model_source,
+            inv.cooperation_content,
+            inv.keywords,
+            inv.is_batch_production,
+            inv.proofing_quantity,
+            inv.delivery_limit_hours,
+            inv.cancel_time_limit,
+            inv.quoted_price,
+            inv.quoted_period_days,
+            inv.is_quote_batch_plan,
+            inv.quote_submit_at,
+            inv.status,
+            inv.created_at,
+            inv.updated_at,
+            inv.inviter_user_id,
+            inv.invitee_user_id,
+            inv.draw_number,
+
+            -- 发起人信息
+            inviter.nick_name as inviter_nick_name,
+            inviter.avatar as inviter_avatar,
+
+            -- 被邀约人信息（当前用户）
+            invitee.nick_name as invitee_nick_name,
+            invitee.avatar as invitee_avatar
+
+        FROM sd_proofing_invitations inv
+        LEFT JOIN sys_user inviter ON inv.inviter_user_id = inviter.user_id
+        LEFT JOIN sys_user invitee ON inv.invitee_user_id = invitee.user_id
+        WHERE
+            -- 查询条件：我是【被邀约人】
+            inv.invitee_user_id = #{userId}
+        ORDER BY
+            inv.created_at DESC
+    </select>
+
+    <!-- 分页查询我发出的邀约列表 -->
+    <select id="selectSentInvitationPage" resultMap="ProofingInvitationDetailResult">
+        SELECT
+            -- 邀请表的基础字段
+            inv.id,
+            inv.work_id,
+            inv.product_title,
+            inv.product_description,
+            inv.model_source,
+            inv.cooperation_content,
+            inv.keywords,
+            inv.is_batch_production,
+            inv.proofing_quantity,
+            inv.delivery_limit_hours,
+            inv.cancel_time_limit,
+            inv.quoted_price,
+            inv.quoted_period_days,
+            inv.is_quote_batch_plan,
+            inv.quote_submit_at,
+            inv.status,
+            inv.created_at,
+            inv.updated_at,
+            inv.inviter_user_id,
+            inv.invitee_user_id,
+            inv.draw_number,
+
+            -- 发起人信息（当前用户）
+            inviter.nick_name as inviter_nick_name,
+            inviter.avatar as inviter_avatar,
+
+            -- 被邀约人信息
+            invitee.nick_name as invitee_nick_name,
+            invitee.avatar as invitee_avatar
+
+        FROM sd_proofing_invitations inv
+        LEFT JOIN sys_user inviter ON inv.inviter_user_id = inviter.user_id
+        LEFT JOIN sys_user invitee ON inv.invitee_user_id = invitee.user_id
+        WHERE
+            -- 查询条件：我是【发起人】
+            inv.inviter_user_id = #{userId}
+        ORDER BY
+            inv.created_at DESC
+    </select>
+
 </mapper>

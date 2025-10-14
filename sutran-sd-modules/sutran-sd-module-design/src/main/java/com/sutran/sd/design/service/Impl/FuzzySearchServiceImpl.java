@@ -265,4 +265,115 @@ public class FuzzySearchServiceImpl implements IFuzzySearchService {
         
         return dp[s1.length()][s2.length()];
     }
+
+    @Override
+    public List<ManufacturerSearchResultVO> searchManufacturersByName(String name) {
+        if (!StringUtils.hasText(name)) {
+            return Collections.emptyList();
+        }
+
+        log.info("开始根据厂家名字模糊搜索，关键词：{}", name);
+
+        // 1. 获取所有厂商用户
+        List<SysUser> manufacturers = getAllManufacturers();
+        if (manufacturers.isEmpty()) {
+            log.warn("数据库中没有找到厂商用户");
+            return Collections.emptyList();
+        }
+
+        // 2. 获取所有厂商的标签
+        Map<Long, List<SysUserTag>> userTagsMap = getUserTagsMap(manufacturers);
+
+        // 3. 进行名字模糊匹配
+        List<ManufacturerSearchResultVO> results = new ArrayList<>();
+        String lowerName = name.toLowerCase();
+        
+        for (SysUser manufacturer : manufacturers) {
+            List<SysUserTag> userTags = userTagsMap.getOrDefault(manufacturer.getUserId(), Collections.emptyList());
+            ManufacturerSearchResultVO result = calculateNameMatch(manufacturer, userTags, lowerName);
+            
+            if (result.getMatchScore() > 0) {
+                results.add(result);
+            }
+        }
+
+        // 4. 按匹配度排序
+        results.sort((a, b) -> Integer.compare(b.getMatchScore(), a.getMatchScore()));
+
+        log.info("根据名字搜索完成，找到 {} 个匹配的厂商", results.size());
+        return results;
+    }
+
+    /**
+     * 计算名字匹配度
+     */
+    private ManufacturerSearchResultVO calculateNameMatch(SysUser manufacturer, List<SysUserTag> userTags, String searchName) {
+        ManufacturerSearchResultVO result = new ManufacturerSearchResultVO();
+        result.setUserId(manufacturer.getUserId());
+        result.setNickName(manufacturer.getNickName());
+        result.setAvatar(manufacturer.getAvatar());
+        result.setDescription(manufacturer.getRemark());
+
+        List<String> tagNames = userTags.stream()
+                .map(SysUserTag::getTagName)
+                .collect(Collectors.toList());
+        result.setTags(tagNames);
+
+        // 计算名字匹配度
+        int matchScore = 0;
+        List<String> matchedTags = new ArrayList<>();
+
+        // 检查用户昵称匹配
+        if (StringUtils.hasText(manufacturer.getNickName())) {
+            String nickName = manufacturer.getNickName().toLowerCase();
+            
+            // 完全匹配
+            if (nickName.equals(searchName)) {
+                matchScore += 100;
+            }
+            // 包含匹配
+            else if (nickName.contains(searchName) || searchName.contains(nickName)) {
+                matchScore += 80;
+            }
+            // 模糊匹配
+            else if (calculateSimilarity(nickName, searchName) > 0.6) {
+                matchScore += 60;
+            }
+        }
+
+        // 检查用户名匹配
+        if (StringUtils.hasText(manufacturer.getUserName())) {
+            String userName = manufacturer.getUserName().toLowerCase();
+            
+            // 完全匹配
+            if (userName.equals(searchName)) {
+                matchScore += 90;
+            }
+            // 包含匹配
+            else if (userName.contains(searchName) || searchName.contains(userName)) {
+                matchScore += 70;
+            }
+            // 模糊匹配
+            else if (calculateSimilarity(userName, searchName) > 0.6) {
+                matchScore += 50;
+            }
+        }
+
+        // 检查标签匹配（作为辅助匹配）
+        for (SysUserTag tag : userTags) {
+            String tagName = tag.getTagName().toLowerCase();
+            
+            if (tagName.contains(searchName) || searchName.contains(tagName)) {
+                matchScore += 30;
+                if (!matchedTags.contains(tag.getTagName())) {
+                    matchedTags.add(tag.getTagName());
+                }
+            }
+        }
+
+        result.setMatchScore(Math.min(matchScore, 100));
+        result.setMatchedTags(matchedTags);
+
+        return result;
+    }
 }

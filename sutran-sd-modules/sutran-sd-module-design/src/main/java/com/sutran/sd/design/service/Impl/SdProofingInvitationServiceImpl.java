@@ -1,11 +1,14 @@
 package com.sutran.sd.design.service.Impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.sutran.sd.common.core.domain.dto.ProofingInvitationAcceptDto;
 import com.sutran.sd.common.core.domain.dto.ProofingInvitationRequestDTO;
 import com.sutran.sd.common.core.domain.dto.ProofingInvitationChooseDto;
 import com.sutran.sd.common.core.domain.entity.SdProofingInvitation;
 import com.sutran.sd.common.core.domain.vo.ProofingInvitationDetailVO;
+import com.sutran.sd.common.core.page.TableDataInfo;
+import com.sutran.sd.common.core.domain.PageQuery;
 import com.sutran.sd.common.constant.ProofingInvitationConstants;
 import com.sutran.sd.common.exception.ServiceException;
 import com.sutran.sd.common.helper.LoginHelper;
@@ -53,7 +56,7 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
     public SdProofingInvitation createInvitation(ProofingInvitationRequestDTO createDTO) {
 
         // 检查当前作品是否已有待处理的邀约
-        Long workId = createDTO.getWorkId();
+        String workId = createDTO.getWorkId();
         if (workId != null) {
             List<SdProofingInvitation> existingInvitations = invitationMapper.selectList(
                 new LambdaQueryWrapper<SdProofingInvitation>()
@@ -154,6 +157,26 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
 
         log.info("用户 {} 发出 {} 个邀约", currentUserId, invitationList.size());
         return invitationList;
+    }
+
+    /**
+     * 分页查询当前用户收到的邀约列表
+     */
+    @Override
+    public TableDataInfo<ProofingInvitationDetailVO> getReceivedInvitationsPage(PageQuery pageQuery) {
+        Long currentUserId = LoginHelper.getUserId();
+        IPage<ProofingInvitationDetailVO> page = invitationMapper.selectReceivedInvitationPage(pageQuery.build(), currentUserId);
+        return TableDataInfo.build(page);
+    }
+
+    /**
+     * 分页查询当前用户发出的邀约列表
+     */
+    @Override
+    public TableDataInfo<ProofingInvitationDetailVO> getSentInvitationsPage(PageQuery pageQuery) {
+        Long currentUserId = LoginHelper.getUserId();
+        IPage<ProofingInvitationDetailVO> page = invitationMapper.selectSentInvitationPage(pageQuery.build(), currentUserId);
+        return TableDataInfo.build(page);
     }
 
     /**

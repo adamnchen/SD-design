@@ -24,4 +24,11 @@ public interface IFuzzySearchService {
      * @return 匹配的厂商列表
      */
     List<ManufacturerSearchResultVO> searchManufacturersByTags(List<String> tags);
+
+    /**
+     * 根据厂家名字模糊搜索厂商
+     * @param name 厂家名字关键词，如："金饰厂"
+     * @return 匹配的厂商列表
+     */
+    List<ManufacturerSearchResultVO> searchManufacturersByName(String name);
 }

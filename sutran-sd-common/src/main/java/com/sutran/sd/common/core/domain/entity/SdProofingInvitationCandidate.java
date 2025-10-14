@@ -1,5 +1,6 @@
 package com.sutran.sd.common.core.domain.entity;
 
+import com.baomidou.mybatisplus.annotation.FieldFill;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
@@ -49,6 +50,20 @@ public class SdProofingInvitationCandidate extends BaseEntity {
 
     @TableField("status")
     private Integer status; // 0待处理 1已接受 2已拒绝 4已关闭
+
+  
+    @TableField(value = "created_at", fill = FieldFill.INSERT)
+    private Date createTime;
+
+    @TableField(value = "updated_at", fill = FieldFill.INSERT_UPDATE)
+    private Date updateTime;
+
+    // 这些字段在数据库表中不存在，设置为不存在
+    @TableField(exist = false)
+    private String createBy;
+
+    @TableField(exist = false)
+    private String updateBy;
 }
 
 

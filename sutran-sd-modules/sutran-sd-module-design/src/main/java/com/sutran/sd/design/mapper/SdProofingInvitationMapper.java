@@ -1,6 +1,7 @@
 package com.sutran.sd.design.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.sutran.sd.common.core.domain.entity.SdProofingInvitation;
 import com.sutran.sd.common.core.domain.vo.ProofingInvitationDetailVO;
 import org.apache.ibatis.annotations.Mapper;
@@ -36,5 +37,23 @@ public interface SdProofingInvitationMapper extends BaseMapper<SdProofingInvitat
      * @return 邀约详情列表
      */
     List<ProofingInvitationDetailVO> selectSentInvitationList(@Param("userId") Long userId);
+
+    /**
+     * 分页查询我收到的邀约列表
+     *
+     * @param page 分页参数
+     * @param userId 当前登录用户的ID (即接收者ID)
+     * @return 分页邀约详情列表
+     */
+    IPage<ProofingInvitationDetailVO> selectReceivedInvitationPage(IPage<ProofingInvitationDetailVO> page, @Param("userId") Long userId);
+
+    /**
+     * 分页查询我发出的邀约列表
+     *
+     * @param page 分页参数
+     * @param userId 当前登录用户的ID (即发送者ID)
+     * @return 分页邀约详情列表
+     */
+    IPage<ProofingInvitationDetailVO> selectSentInvitationPage(IPage<ProofingInvitationDetailVO> page, @Param("userId") Long userId);
 
 }

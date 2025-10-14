@@ -21,7 +21,7 @@ public class ProofingInvitationDetailVO implements Serializable {
     /**
      * 关联的作品ID
      */
-    private Long workId;
+    private String workId;
 
     // --- 作品和设计详情 ---
     private String productTitle;

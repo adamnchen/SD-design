@@ -18,7 +18,7 @@ public class ProofingInvitationRequestDTO implements Serializable {
      * 【必填】关联的作品ID
      */
     @NotNull(message = "作品ID不能为空")
-    private Long workId;
+    private String workId;
 
     /**
      * 【兼容】单个被邀约用户ID (厂商/合作方)

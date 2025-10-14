@@ -102,6 +102,15 @@ public class ProofingInvitationController {
     }
 
     /**
+     * 查看邀约详情
+     */
+    @GetMapping("/{id}")
+    public R<ProofingInvitationDetailVO> getInvitationDetail(@PathVariable("id") Long id) {
+        ProofingInvitationDetailVO detail = invitationService.getInvitationDetail(id);
+        return R.ok(detail);
+    }
+
+    /**
      * 取消已发出的邀约
      */
     @DeleteMapping("/{id}")

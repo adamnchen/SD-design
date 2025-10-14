@@ -35,6 +35,9 @@
         
         <result property="imageUrl"           column="image_url"/>
         <result property="imageType"          column="image_type"/>
+        
+        <result property="tieredPricing"      column="tiered_pricing"/>
+        <result property="profitShareRatio"   column="profit_share_ratio"/>
     </resultMap>
 
     <select id="selectReceivedInvitationList" resultMap="ProofingInvitationDetailResult">
@@ -55,6 +58,8 @@
             inv.quoted_period_days,
             inv.is_quote_batch_plan,
             inv.quote_submit_at,
+            inv.tiered_pricing,
+            inv.profit_share_ratio,
             inv.status,
             inv.created_at,
             inv.updated_at,
@@ -110,6 +115,8 @@
             inv.quoted_period_days,
             inv.is_quote_batch_plan,
             inv.quote_submit_at,
+            inv.tiered_pricing,
+            inv.profit_share_ratio,
             inv.status,
             inv.created_at,
             inv.updated_at,
@@ -166,6 +173,8 @@
             inv.quoted_period_days,
             inv.is_quote_batch_plan,
             inv.quote_submit_at,
+            inv.tiered_pricing,
+            inv.profit_share_ratio,
             inv.status,
             inv.created_at,
             inv.updated_at,
@@ -179,14 +188,19 @@
 
             -- 被邀约人信息（当前用户）
             invitee.nick_name as invitee_nick_name,
-            invitee.avatar as invitee_avatar
+            invitee.avatar as invitee_avatar,
+
+            -- 关联查询【图片】信息 - 获取发起人的最新图片
+            (SELECT file_url FROM sd_user_model_file 
+             WHERE belong_user_id = inv.inviter_user_id 
+             ORDER BY crt_time DESC LIMIT 1) AS image_url,
+            (SELECT category FROM sd_user_model_file 
+             WHERE belong_user_id = inv.inviter_user_id 
+             ORDER BY crt_time DESC LIMIT 1) AS image_type
 
         FROM sd_proofing_invitations inv
         LEFT JOIN sys_user inviter ON inv.inviter_user_id = inviter.user_id
         LEFT JOIN sys_user invitee ON inv.invitee_user_id = invitee.user_id
-            -- 关联作品表，获取【图片】的信息
-        LEFT JOIN
-             sd_user_model_file images ON images.belong_user_id = inv.inviter_user_id
         WHERE
             -- 查询条件：我是【被邀约人】
             inv.invitee_user_id = #{userId}
@@ -213,6 +227,8 @@
             inv.quoted_period_days,
             inv.is_quote_batch_plan,
             inv.quote_submit_at,
+            inv.tiered_pricing,
+            inv.profit_share_ratio,
             inv.status,
             inv.created_at,
             inv.updated_at,
@@ -226,14 +242,19 @@
 
             -- 被邀约人信息
             invitee.nick_name as invitee_nick_name,
-            invitee.avatar as invitee_avatar
+            invitee.avatar as invitee_avatar,
+
+            -- 关联查询【图片】信息 - 获取发起人的最新图片
+            (SELECT file_url FROM sd_user_model_file 
+             WHERE belong_user_id = inv.inviter_user_id 
+             ORDER BY crt_time DESC LIMIT 1) AS image_url,
+            (SELECT category FROM sd_user_model_file 
+             WHERE belong_user_id = inv.inviter_user_id 
+             ORDER BY crt_time DESC LIMIT 1) AS image_type
 
         FROM sd_proofing_invitations inv
         LEFT JOIN sys_user inviter ON inv.inviter_user_id = inviter.user_id
         LEFT JOIN sys_user invitee ON inv.invitee_user_id = invitee.user_id
-            -- 关联作品表，获取【图片】的信息
-        LEFT JOIN
-             sd_user_model_file images ON images.belong_user_id = inv.inviter_user_id
         WHERE
             -- 查询条件：我是【发起人】
             inv.inviter_user_id = #{userId}

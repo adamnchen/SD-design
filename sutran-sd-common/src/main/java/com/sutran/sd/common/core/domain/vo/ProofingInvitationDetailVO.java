@@ -69,6 +69,16 @@ public class ProofingInvitationDetailVO implements Serializable {
      */
     private Date quoteSubmitAt;
 
+    /**
+     * 阶梯价格配置(JSON字符串)
+     */
+    private String tieredPricing;
+
+    /**
+     * 利润分成比例(%)
+     */
+    private BigDecimal profitShareRatio;
+
     // --- 状态和时间 ---
 
     /**

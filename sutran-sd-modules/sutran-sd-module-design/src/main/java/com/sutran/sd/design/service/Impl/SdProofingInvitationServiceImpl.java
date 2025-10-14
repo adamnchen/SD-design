@@ -252,7 +252,7 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
                 throw new ServiceException("利润分成比例区间为0-100");
             }
         }
-        
+
         // 条件验证：如果提供批量生产方案，阶梯价格必填
         if (Boolean.TRUE.equals(acceptDTO.getIsQuoteBatchPlan())) {
             if (acceptDTO.getTieredQuantities() == null || acceptDTO.getTieredQuantities().isEmpty() ||
@@ -263,9 +263,27 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
             if (acceptDTO.getTieredQuantities().size() != acceptDTO.getTieredPrices().size()) {
                 throw new ServiceException("阶梯数量点和价格点数量必须一致");
             }
-            // 验证阶梯价格格式
+            // 验证数量点不能为null、0或负数
+            if (acceptDTO.getTieredQuantities().stream().anyMatch(qty -> qty == null || qty <= 0)) {
+                throw new ServiceException("阶梯数量点必须为正数");
+            }
+            // 验证价格点不能为null、0或负数
             if (acceptDTO.getTieredPrices().stream().anyMatch(price -> price == null || price.signum() <= 0)) {
                 throw new ServiceException("阶梯价格必须为正数");
+            }
+        
+            List<java.math.BigDecimal> p = acceptDTO.getTieredPrices();
+            for (int i = 1; i < p.size(); i++) {
+                if (p.get(i).compareTo(p.get(i - 1)) >= 0) {
+                    throw new ServiceException("阶梯价格必须严格递减");
+                }
+            }
+            // 验证数量点必须递增
+            List<Integer> quantities = acceptDTO.getTieredQuantities();
+            for (int i = 1; i < quantities.size(); i++) {
+                if (quantities.get(i) <= quantities.get(i - 1)) {
+                    throw new ServiceException("阶梯数量点必须递增");
+                }
             }
         }
 
@@ -278,7 +296,7 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
                 List<java.util.Map<String, Object>> tieredPricingList = new ArrayList<>();
                 List<Integer> quantities = acceptDTO.getTieredQuantities();
                 List<java.math.BigDecimal> prices = acceptDTO.getTieredPrices();
-                
+
                 for (int i = 0; i < quantities.size(); i++) {
                     java.util.Map<String, Object> tier = new java.util.HashMap<>();
                     tier.put("minQty", i == 0 ? 0 : quantities.get(i - 1));
@@ -286,7 +304,7 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
                     tier.put("unitPrice", prices.get(i));
                     tieredPricingList.add(tier);
                 }
-                
+
                 com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
                 tieredPricingJson = mapper.writeValueAsString(tieredPricingList);
             } catch (Exception e) {
@@ -308,7 +326,7 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
         if (rows == 0) {
             throw new ServiceException("操作失败，请重试");
         }
-        
+
         log.info("用户 {} 接受邀约 {} 成功", currentUserId, acceptDTO.getInvitationId());
     }
 
@@ -464,6 +482,43 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
 
         // 当前时间是否超过超时时间
         return System.currentTimeMillis() > expireTime;
+    }
+
+    /**
+     * 查看邀约详情
+     */
+    @Override
+    public ProofingInvitationDetailVO getInvitationDetail(Long invitationId) {
+        Long currentUserId = LoginHelper.getUserId();
+        
+        SdProofingInvitation invitation = invitationMapper.selectById(invitationId);
+        if (invitation == null) {
+            throw new ServiceException("邀约不存在或已被删除");
+        }
+        
+        // 权限检查：只有发起人或被邀约人可以查看详情
+        if (!currentUserId.equals(invitation.getInviterUserId()) && 
+            !currentUserId.equals(invitation.getInviteeUserId())) {
+            throw new ServiceException("权限不足，您无权查看该邀约详情");
+        }
+        
+        // 查询邀约详情
+        List<ProofingInvitationDetailVO> details = invitationMapper.selectReceivedInvitationList(currentUserId);
+        for (ProofingInvitationDetailVO detail : details) {
+            if (detail.getId().equals(invitationId)) {
+                return detail;
+            }
+        }
+        
+        // 如果没在收到的邀约中找到，再查发出的邀约
+        List<ProofingInvitationDetailVO> sentDetails = invitationMapper.selectSentInvitationList(currentUserId);
+        for (ProofingInvitationDetailVO detail : sentDetails) {
+            if (detail.getId().equals(invitationId)) {
+                return detail;
+            }
+        }
+        
+        throw new ServiceException("邀约详情获取失败");
     }
 
 }

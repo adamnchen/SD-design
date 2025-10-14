@@ -91,4 +91,12 @@ public interface ISdProofingInvitationService {
      * 查询邀约下的候选列表
      */
     java.util.List<com.sutran.sd.common.core.domain.vo.InvitationCandidateVO> getInvitationCandidates(Long invitationId);
+
+    /**
+     * 查看邀约详情
+     *
+     * @param invitationId 邀约ID
+     * @return 邀约详情
+     */
+    ProofingInvitationDetailVO getInvitationDetail(Long invitationId);
 }

@@ -14,7 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 用户积分服务实现类
- * 
+ *
  * @author sutran
  * @date 2025-10-14
  */
@@ -25,21 +25,7 @@ public class UserPointServiceImpl implements IUserPointService {
 
     private final SdUserNormalPointMapper userNormalPointMapper;
 
-    @Override
-    public UserPointDetailVO getUserPointDetail(Long userId) {
-        if (userId == null) {
-            throw new ServiceException("用户ID不能为空");
-        }
-        
-        UserPointDetailVO detail = userNormalPointMapper.selectUserPointDetail(userId);
-        if (detail == null) {
-            // 如果用户没有积分记录，创建默认记录
-            createDefaultUserPoint(userId);
-            detail = userNormalPointMapper.selectUserPointDetail(userId);
-        }
-        
-        return detail;
-    }
+
 
 
     @Override
@@ -62,7 +48,7 @@ public class UserPointServiceImpl implements IUserPointService {
         }
 
         if (result > 0) {
-            log.info("用户 {} 的 {} 积分更新成功，变化量：{}", 
+            log.info("用户 {} 的 {} 积分更新成功，变化量：{}",
                     updateDTO.getUserId(), updateDTO.getPointType(), updateDTO.getPointChange());
         }
 
@@ -119,7 +105,7 @@ public class UserPointServiceImpl implements IUserPointService {
         // userPoint.setPriifingLevel(0); // 注释掉，因为字段名可能有拼写错误
         userPoint.setSalePoint("0");
         userPoint.setSaleLevel("1级-信誉入门");
-        
+
         int result = userNormalPointMapper.insert(userPoint);
         if (result <= 0) {
             throw new ServiceException("创建用户积分记录失败");

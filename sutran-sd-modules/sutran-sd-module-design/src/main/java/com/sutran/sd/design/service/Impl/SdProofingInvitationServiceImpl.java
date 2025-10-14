@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * 打样邀约服务实现类
@@ -63,7 +64,7 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
                     .eq(SdProofingInvitation::getWorkId, workId)
                     .eq(SdProofingInvitation::getStatus, ProofingInvitationConstants.STATUS_PENDING)
             );
-            
+
             if (!existingInvitations.isEmpty()) {
                 throw new ServiceException("当前作品已有待处理的邀约，无法重复发起");
             }
@@ -73,14 +74,23 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
         // 1. 获取当前登录用户ID
         Long senderId = LoginHelper.getUserId();
 
-        // 2. 获取并校验接收者ID（兼容单个/多个，最多3个）
+        // 2. 获取并校验接收者ID（优先使用数组，兼容单个，最多3个）
         Set<Long> inviteeIds = new HashSet<>();
+
+
+
+        // 优先处理 inviteeUserIds 数组
         if (createDTO.getInviteeUserIds() != null && !createDTO.getInviteeUserIds().isEmpty()) {
-            inviteeIds.addAll(createDTO.getInviteeUserIds());
+            // 过滤掉无效的ID（null、0、负数）
+            List<Long> validIds = createDTO.getInviteeUserIds().stream()
+                .filter(id -> id != null && id > 0)
+                .collect(Collectors.toList());
+            inviteeIds.addAll(validIds);
+            log.info("从 inviteeUserIds 数组中获取到 {} 个有效ID: {}", validIds.size(), validIds);
         }
-        if (createDTO.getInviteeUserId() != null) {
-            inviteeIds.add(createDTO.getInviteeUserId());
-        }
+
+
+        log.info("最终确定的邀约接收者ID列表: {}", inviteeIds);
         if (inviteeIds.isEmpty()) {
             throw new ServiceException("邀约的接收用户不能为空");
         }
@@ -103,26 +113,21 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
             throw new ServiceException("抽奖数量不能为空且必须大于等于1");
         }
 
-        // 5. 创建邀约实体
-        SdProofingInvitation invitation = new SdProofingInvitation();
-        BeanUtils.copyProperties(createDTO, invitation);
-        invitation.setInviterUserId(senderId);
-        invitation.setStatus(ProofingInvitationConstants.STATUS_PENDING);
-        createDTO.setStatus(ProofingInvitationConstants.STATUS_PENDING);
-
-        // 6. 保存到数据库
-        invitationMapper.insert(invitation);
-
-        // 7. 批量写入候选表（已去重）
+        // 5. 为每个被邀约人创建独立的邀约记录
+        SdProofingInvitation createdInvitation = null;
         for (Long inviteeId : inviteeIds) {
-            SdProofingInvitationCandidate candidate = new SdProofingInvitationCandidate();
-            candidate.setInvitationId(invitation.getId());
-            candidate.setInviteeUserId(inviteeId);
-            candidate.setStatus(ProofingInvitationConstants.STATUS_PENDING);
-            candidateMapper.insert(candidate);
+            SdProofingInvitation invitation = new SdProofingInvitation();
+            BeanUtils.copyProperties(createDTO, invitation);
+            invitation.setInviterUserId(senderId);
+            invitation.setInviteeUserId(inviteeId); // 设置被邀约人ID
+            invitation.setStatus(ProofingInvitationConstants.STATUS_PENDING);
+
+            // 保存到数据库
+            invitationMapper.insert(invitation);
+            createdInvitation = invitation; // 记录最后一个创建的邀约，作为返回结果
         }
 
-        return invitation;
+        return createdInvitation;
     }
 
     /**
@@ -132,7 +137,7 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
     public List<ProofingInvitationDetailVO> getReceivedInvitations() {
         Long currentUserId = LoginHelper.getUserId();
         log.info("开始查询用户 {} 收到的邀约", currentUserId);
-        
+
         List<ProofingInvitationDetailVO> invitationList = invitationMapper.selectReceivedInvitationList(currentUserId);
         log.info("数据库查询返回 {} 条记录", invitationList != null ? invitationList.size() : "null");
 
@@ -168,17 +173,17 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
     @Override
     public TableDataInfo<ProofingInvitationDetailVO> getReceivedInvitationsPage(PageQuery pageQuery) {
         Long currentUserId = LoginHelper.getUserId();
-        log.info("开始分页查询用户 {} 收到的邀约，分页参数：pageNum={}, pageSize={}", 
+        log.info("开始分页查询用户 {} 收到的邀约，分页参数：pageNum={}, pageSize={}",
                 currentUserId, pageQuery.getPageNum(), pageQuery.getPageSize());
-        
+
         IPage<ProofingInvitationDetailVO> page = invitationMapper.selectReceivedInvitationPage(pageQuery.build(), currentUserId);
         log.info("分页查询返回 {} 条记录", page.getRecords() != null ? page.getRecords().size() : "null");
-        
+
         // 手动设置total，因为自定义SQL可能无法被分页插件正确计算
         Long total = invitationMapper.countReceivedInvitations(currentUserId);
         log.info("统计查询返回总数：{}", total);
         page.setTotal(total);
-        
+
         return TableDataInfo.build(page);
     }
 
@@ -189,11 +194,11 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
     public TableDataInfo<ProofingInvitationDetailVO> getSentInvitationsPage(PageQuery pageQuery) {
         Long currentUserId = LoginHelper.getUserId();
         IPage<ProofingInvitationDetailVO> page = invitationMapper.selectSentInvitationPage(pageQuery.build(), currentUserId);
-        
+
         // 手动设置total，因为自定义SQL可能无法被分页插件正确计算
         Long total = invitationMapper.countSentInvitations(currentUserId);
         page.setTotal(total);
-        
+
         return TableDataInfo.build(page);
     }
 

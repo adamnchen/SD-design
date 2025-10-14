@@ -21,13 +21,9 @@ public class ProofingInvitationRequestDTO implements Serializable {
     private String workId;
 
     /**
-     * 【兼容】单个被邀约用户ID (厂商/合作方)
+     * 【必填】被邀约用户ID列表(最多3个)
      */
-    private Long inviteeUserId;
-
-    /**
-     * 【推荐】被邀约用户ID列表(最多3个)
-     */
+    @NotNull(message = "被邀约用户列表不能为空")
     private List<Long> inviteeUserIds;
 
     // --- 作品和设计详情 ---

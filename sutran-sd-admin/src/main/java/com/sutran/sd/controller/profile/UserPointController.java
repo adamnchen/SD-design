@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.*;
 
 /**
  * 用户积分控制器
- * 
+ *
  * @author sutran
  * @date 2025-10-14
  */
@@ -23,18 +23,7 @@ public class UserPointController {
     private final IUserPointService userPointService;
 
 
-    /**
-     * 获取指定用户积分详情（管理员功能）
-     */
-    @GetMapping("/detail/{userId}")
-    public R<UserPointDetailVO> getUserPointDetail(@PathVariable Long userId) {
-        try {
-            UserPointDetailVO detail = userPointService.getUserPointDetail(userId);
-            return R.ok("获取积分详情成功", detail);
-        } catch (Exception e) {
-            return R.fail("获取积分详情失败：" + e.getMessage());
-        }
-    }
+
 
     /**
      * 更新用户积分（管理员功能）
@@ -57,7 +46,7 @@ public class UserPointController {
      * 根据订单完成情况更新积分
      */
     @PostMapping("/update-by-order")
-    public R<Void> updatePointByOrder(@RequestParam Long userId, 
+    public R<Void> updatePointByOrder(@RequestParam Long userId,
                                      @RequestParam Long orderId,
                                      @RequestParam String orderType,
                                      @RequestParam String orderStatus) {

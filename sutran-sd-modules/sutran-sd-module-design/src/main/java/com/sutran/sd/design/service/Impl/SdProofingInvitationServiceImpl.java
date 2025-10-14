@@ -506,6 +506,9 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
         List<ProofingInvitationDetailVO> details = invitationMapper.selectReceivedInvitationList(currentUserId);
         for (ProofingInvitationDetailVO detail : details) {
             if (detail.getId().equals(invitationId)) {
+                // 附加候选人列表
+                java.util.List<com.sutran.sd.common.core.domain.vo.InvitationCandidateVO> candidates = candidateMapper.selectCandidateVOs(invitationId);
+                detail.setCandidates(candidates);
                 return detail;
             }
         }
@@ -514,6 +517,8 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
         List<ProofingInvitationDetailVO> sentDetails = invitationMapper.selectSentInvitationList(currentUserId);
         for (ProofingInvitationDetailVO detail : sentDetails) {
             if (detail.getId().equals(invitationId)) {
+                java.util.List<com.sutran.sd.common.core.domain.vo.InvitationCandidateVO> candidates = candidateMapper.selectCandidateVOs(invitationId);
+                detail.setCandidates(candidates);
                 return detail;
             }
         }

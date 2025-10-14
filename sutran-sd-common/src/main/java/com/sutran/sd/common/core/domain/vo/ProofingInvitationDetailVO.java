@@ -4,6 +4,7 @@ import lombok.Data;
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.util.Date;
+import java.util.List;
 
 /**
  * 打样邀约详情 VO
@@ -130,4 +131,9 @@ public class ProofingInvitationDetailVO implements Serializable {
      * 打样样品参与抽奖的数量分配给众筹用户,最少一个
      */
     private Integer drawNumber;
+
+    /**
+     * 候选厂家列表（用于发起人选择回显）
+     */
+    private List<InvitationCandidateVO> candidates;
 }

@@ -851,6 +851,16 @@ public class SysUserServiceImpl implements ISysUserService, UserService {
     }
 
     /**
+     * 获取用户最近购买的一个会员信息
+     * @param userId 用户ID
+     * @return 用户会员信息
+     */
+    @Override
+    public SysUserMember selectUserMember(Long userId) {
+        return userMemberMapper.selectVoOne(new LambdaQueryWrapper<SysUserMember>().eq(SysUserMember::getUserId, userId).orderByDesc(SysUserMember::getId).last("limit 1"));
+    }
+
+    /**
      * 校验用户会员是否有足够的绘图数量
      * @param userId 用户ID
      */

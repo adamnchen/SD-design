@@ -6,7 +6,6 @@ import com.sutran.sd.common.core.domain.R;
 import com.sutran.sd.common.core.page.TableDataInfo;
 import com.sutran.sd.common.exception.TaskErrorException;
 import com.sutran.sd.common.utils.StringUtils;
-import com.sutran.sd.draw.domain.SdDrawNode;
 import com.sutran.sd.draw.domain.SdUserModel;
 import com.sutran.sd.draw.domain.bo.ComfyModelTaskBo;
 import com.sutran.sd.draw.domain.bo.ComfyModelTaskSubmitBo;
@@ -14,12 +13,10 @@ import com.sutran.sd.draw.domain.dto.img2img.SdImg2ImgDto;
 import com.sutran.sd.draw.domain.dto.task.SdUserTaskPageDto;
 import com.sutran.sd.draw.domain.dto.txt2img.SdText2ImgDto;
 import com.sutran.sd.draw.domain.pojo.ComfyTaskHistoryInfo;
-import com.sutran.sd.draw.domain.pojo.ComfyUploadImage;
 import com.sutran.sd.draw.domain.vo.ComfyuiImageToolVo;
 import com.sutran.sd.draw.domain.vo.SdUserModelFileVo;
 import com.sutran.sd.draw.domain.vo.SdUserTaskVo;
 import com.sutran.sd.draw.domain.vo.SdWebuiProgressVo;
-import com.sutran.sd.draw.enums.ImageType;
 import com.sutran.sd.draw.service.SdComfyuiApiService;
 import com.sutran.sd.draw.service.SdDrawNodeService;
 import com.sutran.sd.draw.service.SdUserModelService;
@@ -77,7 +74,7 @@ public class SdApiController {
     }
 
     /**
-     * [WebUI]获取当前用户任务列表
+     * [通用]获取当前用户任务列表
      */
     @GetMapping("/task/list")
     public TableDataInfo<SdUserTaskVo> userTaskList(SdUserTaskPageDto dto) {
@@ -90,7 +87,7 @@ public class SdApiController {
     }
 
     /**
-     * [WebUI]根据taskId获取当前用户绘图数据列表
+     * [通用]根据taskId获取当前用户绘图数据列表
      */
     @GetMapping("/model-file/list")
     public R<List<SdUserModelFileVo>> userModelFileList(@RequestParam String taskId) {
@@ -98,7 +95,7 @@ public class SdApiController {
     }
 
     /**
-     * [WebUI]批量压缩下载绘图图片
+     * [通用]批量压缩下载绘图图片
      */
     @GetMapping("/task/download")
     public void batchDownloadModelFile(@RequestParam String taskId, HttpServletResponse response) throws IOException {
@@ -106,7 +103,7 @@ public class SdApiController {
     }
 
     /**
-     * [WebUI]单个下载绘图图片
+     * [通用]单个下载绘图图片
      */
     @GetMapping("/task/img/download")
     public void downloadModelFile(@RequestParam String imgUrl, HttpServletResponse response) throws IOException {
@@ -117,7 +114,7 @@ public class SdApiController {
     }
 
     /**
-     * [WebUI]删除任务中的单张图片
+     * [通用]删除任务中的单张图片
      */
     @DeleteMapping("/model-file")
     public R<Void> deleteModelFile(@RequestParam String id) {
@@ -134,7 +131,7 @@ public class SdApiController {
     }
 
     /**
-     * [WebUI]删除队列中、已完成、已失败的任务
+     * [通用]删除队列中、已完成、已失败的任务
      */
     @DeleteMapping("/task")
     public R<String> deleteTask(@RequestParam String taskId) {
@@ -160,8 +157,10 @@ public class SdApiController {
         return R.ok(sdComfyuiApiService.queryFixedFlowList());
     }
 
+
+
     /**
-     * [ComfyUI]提交模型生图任务
+     * [ComfyUI]提交模型生图任务(从模型列表获取模型)
      * @param bo 模型任务提交参数[必填]
      * @return 任务id
      */
@@ -223,21 +222,6 @@ public class SdApiController {
     @GetMapping("/comfy/model/task-progress")
     public R<Integer> getComfyTaskProgress(@RequestParam String taskId) {
         return R.ok(sdComfyuiApiService.getComfyTaskProgress(taskId));
-    }
-
-    /**
-     * [测试]上传图片到comfyui
-     * @param image 图片
-     * @return 任务id
-     */
-    @PostMapping("/comfy/upload/image")
-    public R<ComfyUploadImage> uploadImage(@RequestParam(required = false) MultipartFile image) throws IOException {
-        SdDrawNode node = sdDrawNodeService.findById(1L);
-//        File file = FileUtils.multipartFileToTempFile(image, image.getOriginalFilename());
-//        ComfyTaskImage taskImage = sdComfyuiApiService.uploadImage(file, node, ImageType.input);
-//        FileUtils.deleteFile(file);
-        ComfyUploadImage taskImage = sdComfyuiApiService.uploadImage(image.getBytes(), node, image.getOriginalFilename(), ImageType.temp);
-        return R.ok(taskImage);
     }
 
 }

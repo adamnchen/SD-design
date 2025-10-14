@@ -55,19 +55,19 @@ public class SysUserMember  implements Serializable {
      */
     private String outTradeNo;
     /**
-     * 原始会员训练次数
+     * 原始会员训练次数(主要记录叠加购买会员前的训练次数)
      */
     private Integer oldLimitTrainTimes;
     /**
-     * 原始会员绘图次数
+     * 原始会员绘图次数(主要记录叠加购买会员前的绘图次数)
      */
     private Integer oldLimitDrawNum;
     /**
-     * 会员训练次数
+     * 会员训练次数(主要记录购买会员的总训练次数)
      */
     private Integer limitTrainTimes;
     /**
-     * 会员绘图次数
+     * 会员绘图次数(主要记录购买会员的总绘图次数)
      */
     private Integer limitDrawNum;
     /**

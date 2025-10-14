@@ -1,9 +1,8 @@
 package com.sutran.sd.system.mapper;
 
-import com.sutran.sd.common.core.mapper.BaseMapperPlus;
 import com.sutran.sd.common.core.domain.entity.SysUserMember;
+import com.sutran.sd.common.core.mapper.BaseMapperPlus;
 import org.apache.ibatis.annotations.*;
-import org.apache.ibatis.annotations.Param;
 
 import java.util.Date;
 import java.util.List;
@@ -15,6 +14,7 @@ import java.util.Map;
  */
 @Mapper
 public interface SysUserMemberMapper extends BaseMapperPlus<SysUserMemberMapper, SysUserMember, SysUserMember> {
+
     /**
      * 获取当前用户已购买且处于生效中的会员ID
      * @param userId 用户ID

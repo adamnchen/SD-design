@@ -1,6 +1,7 @@
 package com.sutran.sd.common.core.service;
 
 import com.sutran.sd.common.core.domain.entity.PayMember;
+import com.sutran.sd.common.core.domain.entity.SysUserMember;
 
 import java.util.Date;
 
@@ -102,4 +103,11 @@ public interface UserService {
      * @param drawNum 绘图数量
      */
     void checkDrawNumOfMember(Long userId, Integer drawNum);
+
+     /**
+     * 获取用户会员信息
+     * @param userId 用户ID
+     * @return 用户会员信息
+     */
+    SysUserMember selectUserMember(Long userId);
 }

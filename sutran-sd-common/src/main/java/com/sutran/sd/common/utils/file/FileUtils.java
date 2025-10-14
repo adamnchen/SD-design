@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.coobird.thumbnailator.Thumbnails;
 import org.apache.commons.compress.utils.IOUtils;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.imageio.ImageIO;
 import javax.servlet.http.HttpServletResponse;
@@ -38,16 +39,15 @@ public class FileUtils extends FileUtil {
     public static void setAttachmentResponseHeader(HttpServletResponse response, String realFileName) throws UnsupportedEncodingException {
         String percentEncodedFileName = percentEncode(realFileName);
 
-        StringBuilder contentDispositionValue = new StringBuilder();
-        contentDispositionValue.append("attachment; filename=")
-            .append(percentEncodedFileName)
-            .append(";")
-            .append("filename*=")
-            .append("utf-8''")
-            .append(percentEncodedFileName);
+        String contentDispositionValue = "attachment; filename=" +
+            percentEncodedFileName +
+            ";" +
+            "filename*=" +
+            "utf-8''" +
+            percentEncodedFileName;
 
         response.addHeader("Access-Control-Expose-Headers", "Content-Disposition,download-filename");
-        response.setHeader("Content-disposition", contentDispositionValue.toString());
+        response.setHeader("Content-disposition", contentDispositionValue);
         response.setHeader("download-filename", percentEncodedFileName);
     }
 
@@ -226,5 +226,78 @@ public class FileUtils extends FileUtil {
             log.error("stream流转file异常：", e);
             return null;
         }
+    }
+
+    public static File multipartFileToTempFile(MultipartFile multipartFile, String fileName) {
+        // 参数校验
+        if (multipartFile == null) {
+            log.error("文件不能不能为null");
+            return null;
+        }
+        if (fileName == null || fileName.trim().isEmpty()) {
+            log.error("文件名不能为null或空");
+            return null;
+        }
+        try {
+            String prefixName = fileName.substring(fileName.lastIndexOf("."));
+            File file = File.createTempFile("tempFile",prefixName);
+            FileOutputStream fileOutputStream = new FileOutputStream(file);
+            IOUtils.copy(multipartFile.getInputStream(),fileOutputStream);
+            return file;
+        } catch (IOException e) {
+            log.error("stream流转file异常：", e);
+            return null;
+        }
+    }
+
+    public static File bytesToTempFile(byte[] bytes, String fileName) {
+        // 参数校验
+        if (bytes == null) {
+            log.error("字节数组不能为null");
+            return null;
+        }
+        if (fileName == null || fileName.trim().isEmpty()) {
+            log.error("文件名不能为null或空");
+            return null;
+        }
+        File file = null;
+        try {
+            // 提取文件扩展名
+            String fileExtension = "";
+            int lastDotIndex = fileName.lastIndexOf(".");
+            if (lastDotIndex > 0 && lastDotIndex < fileName.length() - 1) {
+                fileExtension = fileName.substring(lastDotIndex);
+            }
+
+            // 创建临时文件
+            file = File.createTempFile("tempFile", fileExtension);
+
+            // 写入文件内容
+            try (FileOutputStream fos = new FileOutputStream(file)) {
+                fos.write(bytes);
+                fos.flush();
+            }
+            return file;
+        }
+        catch (IOException e) {
+            log.error("字节流转文件异常，文件名：{}", fileName, e);
+            // 如果创建文件过程中出现异常，删除可能已创建的不完整文件
+            if (file != null && file.exists()) {
+                if (!file.delete()) {
+                    log.warn("无法删除临时文件：{}", file.getAbsolutePath());
+                }
+            }
+            return null;
+        }
+    }
+
+    public static void deleteFile(File file) {
+        if (file==null) {
+            return;
+        }
+        try{
+            file.deleteOnExit();
+        }
+        catch (Exception ignored) {}
     }
 }

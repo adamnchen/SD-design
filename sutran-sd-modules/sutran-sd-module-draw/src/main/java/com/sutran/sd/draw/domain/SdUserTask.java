@@ -67,6 +67,11 @@ public class SdUserTask implements Serializable {
     @Schema(name = "nodeId", description = "comfy任务执行的节点ID")
     private Long nodeId;
     /**
+     * 参考图片地址数组
+     */
+    @Schema(name = "initImgList", description = "参考图片地址数组")
+    private String initImgList;
+    /**
      * 任务归属人ID
      */
     @Schema(name = "belongUserId", description = "任务归属人ID")

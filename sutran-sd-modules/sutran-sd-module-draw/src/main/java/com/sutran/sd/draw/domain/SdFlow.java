@@ -29,6 +29,14 @@ public class SdFlow {
      */
     private Integer drawNum;
     /**
+     * 初始化prompt
+     */
+    private String initPrompt;
+    /**
+     * 初始化prompt中文
+     */
+    private String initPromptZh;
+    /**
      * 创建时间
      */
     private Date createTime;

@@ -86,9 +86,11 @@ public interface SysUserMemberMapper extends BaseMapperPlus<SysUserMemberMapper,
 
     /**
      * 已会使用绘图次数-1
+     *
      * @param userId 用户ID
-     * @param num 绘图次数
+     * @param num    绘图次数
+     * @param now    当前时间
      */
     @Update("UPDATE sys_user_member SET use_draw_num = use_draw_num - #{num} WHERE user_id = #{userId} and status = 1 AND end_time >= #{now} ORDER BY id DESC LIMIT 1")
-    void returnedDrawNum(@Param("userId") Long userId, @Param("num") int num);
+    void returnedDrawNum(@Param("userId") Long userId, @Param("num") int num, @Param("now") Date now);
 }

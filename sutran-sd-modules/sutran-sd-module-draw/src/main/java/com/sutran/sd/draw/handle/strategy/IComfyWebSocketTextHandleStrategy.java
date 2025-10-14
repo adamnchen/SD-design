@@ -1,7 +1,6 @@
 package com.sutran.sd.draw.handle.strategy;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.sutran.sd.draw.enums.ComfyWebSocketMessageType;
 
 /**
  * 处理ComfyUI ws的文本消息

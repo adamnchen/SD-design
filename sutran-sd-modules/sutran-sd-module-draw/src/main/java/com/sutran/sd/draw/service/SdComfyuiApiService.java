@@ -1,12 +1,14 @@
 package com.sutran.sd.draw.service;
 
 import com.sutran.sd.draw.domain.SdDrawNode;
-import com.sutran.sd.draw.domain.SdFlow;
 import com.sutran.sd.draw.domain.bo.ComfyModelTaskSubmitBo;
 import com.sutran.sd.draw.domain.pojo.*;
+import com.sutran.sd.draw.domain.vo.ComfyuiImageToolVo;
+import com.sutran.sd.draw.enums.ImageType;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -20,7 +22,7 @@ public interface SdComfyuiApiService {
      * 查询固定工作流列表
      * @return 工作流列表
      */
-    List<SdFlow> queryFixedFlowList();
+    List<ComfyuiImageToolVo> queryFixedFlowList();
 
     /**
      * 提交模型生图任务
@@ -35,11 +37,11 @@ public interface SdComfyuiApiService {
      * @param flowId   工作流id
      * @param prompt 描述词(英文)
      * @param promptZh 描述词(中文)
-     * @param image1 图片1
-     * @param image2 图片2
+     * @param images 图片列表
+     * @throws IOException 文件IO异常
      * @return 任务id
      */
-    String submitComfyFlowTask(String flowId, String prompt, String promptZh, MultipartFile image1, MultipartFile image2);
+    String submitComfyFlowTask(String flowId, String prompt, String promptZh, MultipartFile[] images) throws IOException;
 
     /**
      * 获取模型指定历史任务详情
@@ -124,19 +126,22 @@ public interface SdComfyuiApiService {
      *
      * @param file 图片对象
      * @param node 节点信息
+     * @param type 图片存放位置(input | temp | output （默认 input ）)
      * @return 上传后的图片信息
      */
-    ComfyTaskImage uploadImage(File file, SdDrawNode node);
+    ComfyUploadImage uploadImage(File file, SdDrawNode node, ImageType type);
 
     /**
      * api: /upload/image<br>
      * 上传图片到ComfyUI服务器
      *
-     * @param file 图片对象
+     * @param bytes 图片字节流
      * @param node 节点信息
+     * @param type 图片存放位置(input | temp | output （默认 input ）)
+     * @param fileName 文件名称携带后缀
      * @return 上传后的图片信息
      */
-    ComfyTaskImage uploadImage(MultipartFile file, SdDrawNode node);
+    ComfyUploadImage uploadImage(byte[] bytes, SdDrawNode node, String fileName, ImageType type);
 
     /**
      * api: /view

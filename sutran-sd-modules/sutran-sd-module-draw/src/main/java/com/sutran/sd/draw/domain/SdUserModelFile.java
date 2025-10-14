@@ -34,9 +34,9 @@ public class SdUserModelFile implements Serializable {
     @Schema(description="任务ID")
     private Long taskId;
     /**
-     * 分类[0-文生图，1-图生图]
+     * 分类[0-SD文生图,1-SD图生图,2-测试,3-Comfy生图]
      */
-    @Schema(description="分类[0-文生图，1-图生图]")
+    @Schema(description="分类[0-SD文生图,1-SD图生图,2-测试,3-Comfy生图]")
     private Integer category;
     /**
      * 是否局部重绘
@@ -44,8 +44,6 @@ public class SdUserModelFile implements Serializable {
     @Schema(name = "isRedraw", description = "isRedraw")
     private Integer isRedraw;
 
-    @Schema(name = "summonWord", description = "召唤词")
-    private String summonWord;
     @Schema(name = "prompt", description = "提示词(译文)")
     private String prompt;
     @Schema(name = "promptZh", description = "提示词(中文)")

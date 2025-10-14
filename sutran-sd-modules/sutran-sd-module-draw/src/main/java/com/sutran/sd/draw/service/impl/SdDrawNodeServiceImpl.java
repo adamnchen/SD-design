@@ -9,6 +9,7 @@ import com.sutran.sd.common.utils.StringUtils;
 import com.sutran.sd.common.utils.redis.RedisUtils;
 import com.sutran.sd.draw.domain.SdDrawNode;
 import com.sutran.sd.draw.domain.pojo.ComfyTaskQueueStatus;
+import com.sutran.sd.draw.domain.pojo.FluxGymHealthInfo;
 import com.sutran.sd.draw.enums.LoadBalanceStrategy;
 import com.sutran.sd.draw.enums.NodeStatus;
 import com.sutran.sd.draw.enums.NodeType;
@@ -167,11 +168,7 @@ public class SdDrawNodeServiceImpl implements SdDrawNodeService {
      */
     @Override
     public SdDrawNode findById(Long id) {
-        SdDrawNode drawNode = DRAW_NODE_CACHE.get(id.toString());
-        if (drawNode!=null) {
-            return drawNode;
-        }
-        return TRAIN_NODE_CACHE.get(id.toString());
+        return sdDrawNodeMapper.selectById(id);
     }
 
     /**
@@ -239,7 +236,7 @@ public class SdDrawNodeServiceImpl implements SdDrawNodeService {
     /** 检查fluxgym节点健康状态 **/
     private void checkTrainNodeHealth(SdDrawNode drawNode) {
         try {
-            ComfyTaskQueueStatus info = getHealthStatus(drawNode.getBaseUrl());
+            FluxGymHealthInfo info = getHealthStatus(drawNode.getBaseUrl());
             if (info!=null) {
                 // 更新节点状态
                 Optional.ofNullable(TRAIN_NODE_CACHE.get(drawNode.getId().toString())).ifPresent(node -> {
@@ -266,10 +263,10 @@ public class SdDrawNodeServiceImpl implements SdDrawNodeService {
         }
     }
     /** 检查fluxgym节点健康状态 **/
-    public ComfyTaskQueueStatus getHealthStatus(String url) {
+    public FluxGymHealthInfo getHealthStatus(String url) {
         HttpRequest request = HttpRequest.get(url + "/api/health").timeout(3000);
         String queueStatusInfo = execHttpRequest(request);
-        return JsonUtils.toObject(queueStatusInfo, ComfyTaskQueueStatus.class);
+        return JsonUtils.toObject(queueStatusInfo, FluxGymHealthInfo.class);
     }
 
     /** 执行request 并自动关闭response **/

@@ -16,14 +16,18 @@ import com.sutran.sd.common.exception.TaskErrorException;
 import com.sutran.sd.common.exception.WorkFlowErrorException;
 import com.sutran.sd.common.helper.LoginHelper;
 import com.sutran.sd.common.utils.StringUtils;
+import com.sutran.sd.common.utils.file.FileUtils;
 import com.sutran.sd.common.utils.redis.RedisUtils;
 import com.sutran.sd.draw.domain.SdDrawNode;
 import com.sutran.sd.draw.domain.SdFlow;
 import com.sutran.sd.draw.domain.SdUserTask;
 import com.sutran.sd.draw.domain.bo.ComfyModelTaskSubmitBo;
+import com.sutran.sd.draw.domain.bo.DrawingImageInfoBo;
 import com.sutran.sd.draw.domain.bo.DrawingTaskInfo;
 import com.sutran.sd.draw.domain.pojo.*;
+import com.sutran.sd.draw.domain.vo.ComfyuiImageToolVo;
 import com.sutran.sd.draw.domain.vo.SdUserTaskVo;
+import com.sutran.sd.draw.enums.ImageType;
 import com.sutran.sd.draw.enums.LoadBalanceStrategy;
 import com.sutran.sd.draw.service.*;
 import com.sutran.sd.draw.utils.JsonUtils;
@@ -31,6 +35,7 @@ import com.sutran.sd.draw.websocket.ComfyWebsocketClient;
 import com.sutran.sd.oss.core.OssClient;
 import com.sutran.sd.oss.entity.UploadResult;
 import com.sutran.sd.oss.factory.OssFactory;
+import com.sutran.sd.system.domain.vo.SysOssVo;
 import com.sutran.sd.system.service.ISysOssService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -46,6 +51,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -62,6 +68,7 @@ import static com.sutran.sd.draw.mq.MqConstant.*;
  *
  * @author zj
  */
+@SuppressWarnings({"AlibabaAvoidComplexCondition", "AlibabaUndefineMagicConstant"})
 @Service
 @Slf4j
 @RequiredArgsConstructor
@@ -81,7 +88,7 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
      * @return 工作流列表
      */
     @Override
-    public List<SdFlow> queryFixedFlowList() {
+    public List<ComfyuiImageToolVo> queryFixedFlowList() {
         return sdFlowService.queryFixedFlowList();
     }
 
@@ -107,19 +114,23 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
         // 校验生图数量,获取当前用户对应的会员的剩余数量并扣除本次绘图数量
         userService.checkDrawNumOfMember(userId,batchSize);
 
-        // 替换lora模型和强度(强度和生图数量是数值型，需要去除引号)
-        String flow = sdFlow.getFlow().replace("{{lora_model}}",modelTaskBo.getModelName())
-            .replace("\"{{lora_model_strength}}\"",modelTaskBo.getModelStrength())
-            .replace("\"{{batch_size}}\"",modelTaskBo.getBatchSize());
-        if (StringUtils.isNotBlank(modelTaskBo.getPrompt())) {
-            flow = flow.replace("{{prompt}}",modelTaskBo.getPrompt());
-        }
-
         // 生图任务落库
         final String taskId = IdUtil.getSnowflakeNextIdStr();
-        sdUserTaskService.addComfyTask(taskId,userId,userName,flow,modelTaskBo.getPrompt(),modelTaskBo.getPromptZh());
+
+        // 替换lora模型和强度(强度和生图数量是数值型，需要去除引号)
+        String flow = sdFlow.getFlow().replace("{{modelName}}",modelTaskBo.getModelName())
+            .replace("\"{{modelStrength}}\"",modelTaskBo.getModelStrength())
+            .replace("\"{{batchSize}}\"",modelTaskBo.getBatchSize())
+            .replace("{{fileNamePrefix}}",taskId);
+        String prompt = StringUtils.isBlank(modelTaskBo.getPrompt())?sdFlow.getInitPrompt():modelTaskBo.getPrompt();
+        String promptZh = StringUtils.isBlank(modelTaskBo.getPromptZh())?sdFlow.getInitPromptZh():modelTaskBo.getPromptZh();
+        if (prompt!=null) {
+            flow = flow.replace("{{prompt}}",prompt);
+        }
+
+        sdUserTaskService.addComfyTask(taskId,userId,userName,flow,prompt,promptZh,null);
         // 生图任务存放到MQ队列
-        DrawingTaskInfo taskInfo = new DrawingTaskInfo(taskId, flow,10,userId,batchSize,null,null);
+        DrawingTaskInfo taskInfo = new DrawingTaskInfo(taskId, flow,10,userId,batchSize,null);
         submitComfyTaskToQueue(taskInfo);
         return taskId;
     }
@@ -130,14 +141,14 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
      * @param flowId   工作流id
      * @param prompt 描述词(英文)
      * @param promptZh 描述词(中文)
-     * @param image1 图片1
-     * @param image2 图片2
+     * @param imageList 图片列表
      * @return 任务id
      */
     @Override
-    public String submitComfyFlowTask(String flowId, String prompt, String promptZh, MultipartFile image1, MultipartFile image2) {
+    public String submitComfyFlowTask(String flowId, String prompt, String promptZh, MultipartFile[] imageList) throws IOException {
         final Long userId = LoginHelper.getUserId();
         final String userName = LoginHelper.getUsername();
+
         // 根据模型类型获取工作流
         SdFlow sdFlow = sdFlowService.getFixedFlowById(flowId);
         if (sdFlow == null || StringUtils.isBlank(sdFlow.getFlow())) {
@@ -147,19 +158,32 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
             throw new TaskErrorException(String.format("工作流[%s]未配置生图数量", sdFlow.getName()));
         }
 
-        String flowStr = sdFlow.getFlow();
-        if (StringUtils.isNotBlank(prompt)) {
-            flowStr = flowStr.replace("{{prompt}}",prompt);
-        }
-
         // 校验生图数量,获取当前用户对应的会员的剩余数量并扣除本次绘图数量
         userService.checkDrawNumOfMember(userId, sdFlow.getDrawNum());
 
+        // 处理参考图片
+        List<String> imageUrls = new ArrayList<>();
+        List<DrawingImageInfoBo> images = new ArrayList<>();
+        for (MultipartFile file : imageList) {
+            SysOssVo ossVo = sysOssService.upload(file);
+            imageUrls.add(ossVo.getUrl());
+            images.add(new DrawingImageInfoBo().setImageName(file.getOriginalFilename()).setContentType(file.getContentType()).setFileData(file.getBytes()));
+        }
         // 生图任务落库
         final String taskId = IdUtil.getSnowflakeNextIdStr();
-        sdUserTaskService.addComfyTask(taskId, userId, userName, flowStr, null, null);
+
+        // 处理工作流引导词
+        String flowStr = sdFlow.getFlow().replace("{{fileNamePrefix}}",taskId);
+        // 只判断是否为null，空字符串还是需要替换的
+        prompt = StringUtils.isBlank(prompt)?sdFlow.getInitPrompt():prompt;
+        promptZh = StringUtils.isBlank(promptZh)?sdFlow.getInitPromptZh():promptZh;
+        if (prompt!=null) {
+            flowStr = flowStr.replace("{{prompt}}",prompt);
+        }
+
+        sdUserTaskService.addComfyTask(taskId, userId, userName, flowStr, prompt, promptZh, imageUrls);
         // 生图任务存放到MQ队列
-        DrawingTaskInfo taskInfo = new DrawingTaskInfo(taskId, flowStr, 10, userId, sdFlow.getDrawNum(),image1,image2);
+        DrawingTaskInfo taskInfo = new DrawingTaskInfo(taskId, flowStr, 10, userId, sdFlow.getDrawNum(),images);
         submitComfyTaskToQueue(taskInfo);
         return taskId;
     }
@@ -180,9 +204,9 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
         if (status==0) {
             throw new TaskErrorException("任务处于队列中");
         }
-        if (status==1) {
-            throw new TaskErrorException("任务处于执行中");
-        }
+//        if (status==1) {
+//            throw new TaskErrorException("任务处于执行中");
+//        }
         String promptId = sdUserTaskService.getPromptIdByTaskId(taskId);
         if (StringUtils.isBlank(promptId)) {
             throw new TaskErrorException("任内务处于队列中");
@@ -262,62 +286,38 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
                     log.warn("[MQ消息消费]>>>>>>>>>没有可用节点,任务ID: {}", taskId);
                     try {
                         channel.basicNack(deliveryTag, false, true);
-                    } catch (IOException ex) {
+                    }
+                    catch (IOException ex) {
                         log.error("[MQ消息消费]>>>>>>>>>MQ消息消费异常重新入队列异常,异常信息: ", ex);
                     }
                     return;
                 }
                 // 处理工作流字符串
-                String flowStr = dealInputImage(taskInfo,node);
+                String flowStr;
+                try{
+                    flowStr = dealInputImage(taskInfo,node);
+                    if (CollectionUtil.isNotEmpty(taskInfo.getImages())) {
+                        sdUserTaskService.updateFlowOfComfyTask(taskId, flowStr);
+                    }
+                }
+                catch (Exception e){
+                    sdUserTaskService.failComfyTask(taskId,"初始图片上传到comfyui失败!",new Date());
+                    // 归还绘图次数
+                    userService.returnedDrawNum(taskInfo.getUserId(), taskInfo.getDrawNum());
+                    // 归还节点
+                    RedisUtils.delCacheMapValue(DRAW_NODE_TASK_MAP, node.getId().toString());
+                    // 消费该消息
+                    channel.basicAck(deliveryTag, false);
+                    return;
+                }
                 // 提交任务，返回ComfyUI内部任务ID
                 String promptId = submitDrawTask(taskId, JSONObject.parseObject(flowStr), node);
-                // 提交失败 或者 已有缓存任务
                 if (StringUtils.isNotBlank(promptId)) {
-                    // 修改存储节点任务ID以及开始时间
-                    sdUserTaskService.startComfyTask(taskId, new Date(), promptId, node.getId());
-                    // 获取历史任务信息
-                    ComfyTaskHistoryInfo historyInfo = getTaskInfoById(promptId, node);
-                    // 判断任务是否已完成或缓存，任务完成则直接生成图片数据
-                    if (historyInfo!=null && historyInfo.getCompleted()!=null && historyInfo.getCompleted()) {
-                        // 任务已完成
-                        sdUserTaskService.completeComfyTask(taskId, new Date());
-                        if (CollectionUtil.isEmpty(historyInfo.getOutputs())) {
-                            // 归还绘图次数
-                            userService.returnedDrawNum(taskInfo.getUserId(), taskInfo.getDrawNum());
-                            return;
-                        }
-                        List<String> urlList = new ArrayList<>();
-                        for (ComfyTaskImage image : historyInfo.getOutputs()) {
-                            try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-                                UrlBuilder builder = UrlBuilder.of(node.getBaseUrl()).addPath("/view")
-                                    .addQuery("filename", image.getFileName())
-                                    .addQuery("type", image.getFolder())
-                                    .addQuery("subfolder", image.getSubFolder());
-                                HttpUtil.download(builder.build(), out, false);
-                                OssClient storage = OssFactory.instance();
-                                UploadResult uploadResult = storage.uploadSuffix(out.toByteArray(),JPG,"image/jpeg");
-                                urlList.add(uploadResult.getUrl());
-                                sysOssService.insertOssData(SD + DateUtil.format(new Date(),"yyyyMMdd")+"_"+ IdUtil.getSnowflakeNextIdStr()+JPG,JPG,storage.getConfigKey(),uploadResult.getUrl(),uploadResult.getFilename(),task.getBelongUserName());
-                            } catch (Exception e) {
-                                log.error("[任务输出图片][上传失败]>>>>>>>>>任务id: {},comfyui内部任务id: {},异常原因: ", taskId, promptId,e);
-                                // 归还绘图次数
-                                userService.returnedDrawNum(taskInfo.getUserId(), taskInfo.getDrawNum());
-                            }
-                        }
-                        if (CollectionUtil.isNotEmpty(urlList)) {
-                            sdUserModelFileService.asyncBatchInsert(task,urlList,null);
-                        }
-                        // 归还节点
-                        RedisUtils.delCacheMapValue(DRAW_NODE_TASK_MAP, node.getId().toString());
-                        return;
-                    }
-
-                    // 添加任务进度缓存
-                    RedisUtils.setCacheMapValue(DRAW_TASK_PROGRESS, taskId, 0);
-                    // 连接comfyui的websocket获取进度
-                    String wsUrl = node.getBaseUrl().replace("https", "wss").replace("http", "ws") + "/ws?clientId=" + taskId;
-                    comfyWebsocketClient.createComfyUiWebSocket(wsUrl, promptId, taskId);
+                    RedisUtils.setCacheObject("comfy_task:"+taskId,promptId, Duration.ofMinutes(1));
+                    RedisUtils.setCacheObject("comfy_task:"+promptId,taskId, Duration.ofMinutes(1));
                 }
+                // 检查任务是否有缓存
+                checkCacheTask(promptId,taskId,node,taskInfo,task);
             }
             // 消费该消息
             channel.basicAck(deliveryTag, false);
@@ -326,27 +326,95 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
             log.error("[MQ消息消费]>>>>>>>>>MQ消息消费异常,异常信息: ", e);
             try {
                 channel.basicNack(deliveryTag, false, true);
-            } catch (IOException ex) {
+            }
+            catch (IOException ex) {
                 log.error("[MQ消息消费]>>>>>>>>>MQ消息消费异常重新入队列异常,异常信息: ", ex);
             }
         }
     }
 
     /**
+     * 检查是否有任务缓存 以及 处理提交任务后的操作
+     * @param promptId  comfyui内部任务ID
+     * @param taskId    任务ID
+     * @param node      执行任务节点
+     * @param taskInfo  绘图任务提交信息
+     * @param task      任务实体类
+     */
+    private void checkCacheTask(String promptId, String taskId, SdDrawNode node, DrawingTaskInfo taskInfo, SdUserTaskVo task) {
+        if (StringUtils.isBlank(promptId)) {
+            return;
+        }
+        // 修改存储节点任务ID以及开始时间
+        sdUserTaskService.startComfyTask(taskId, new Date(), promptId, node.getId());
+
+        // 获取历史任务信息
+        ComfyTaskHistoryInfo historyInfo = getTaskInfoById(promptId, node);
+        // 判断任务是否已完成或缓存，任务完成则直接生成图片数据
+        if (historyInfo!=null && historyInfo.getCompleted()!=null && historyInfo.getCompleted()) {
+            // 任务已完成：如果更新失败，则表示有其他地方以及完成且更新任务完成状态，此时则不用再处理新增生图了
+            boolean isComplete = sdUserTaskService.completeComfyTask(taskId, new Date());
+            if (!isComplete) {
+                dealTaskAndNodeAndWebsocket(taskId, node.getId().toString());
+                return;
+            }
+            if (CollectionUtil.isEmpty(historyInfo.getOutputs())) {
+                // 归还绘图次数
+                userService.returnedDrawNum(taskInfo.getUserId(), taskInfo.getDrawNum());
+                return;
+            }
+            List<String> urlList = new ArrayList<>();
+            for (ComfyTaskImage image : historyInfo.getOutputs()) {
+                // 只保留任务输出图片
+                if (image.getFileName().startsWith(taskId)) {
+                    continue;
+                }
+                try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+                    UrlBuilder builder = UrlBuilder.of(node.getBaseUrl()).addPath("/view").addQuery("filename", image.getFileName()).addQuery("type", image.getFolder()).addQuery("subfolder", image.getSubFolder());
+                    HttpUtil.download(builder.build(), out, false);
+                    OssClient storage = OssFactory.instance();
+                    UploadResult uploadResult = storage.uploadSuffix(out.toByteArray(),JPG,"image/jpeg");
+                    sysOssService.insertOssData(SD + DateUtil.format(new Date(),"yyyyMMdd")+"_"+ IdUtil.getSnowflakeNextIdStr()+JPG,JPG,storage.getConfigKey(),uploadResult.getUrl(),uploadResult.getFilename(),task.getBelongUserName());
+                    urlList.add(uploadResult.getUrl());
+                } catch (Exception e) {
+                    log.error("[任务输出图片][上传失败]>>>>>>>>>任务id: {},comfyui内部任务id: {},异常原因: ", taskId, promptId,e);
+                    // 归还绘图次数
+                    userService.returnedDrawNum(taskInfo.getUserId(), taskInfo.getDrawNum());
+                }
+            }
+            if (CollectionUtil.isNotEmpty(urlList)) {
+                sdUserModelFileService.asyncBatchInsert(task,urlList);
+            }
+            // 归还节点
+            RedisUtils.delCacheMapValue(DRAW_NODE_TASK_MAP, node.getId().toString());
+            return;
+        }
+
+        // 添加任务进度缓存
+        RedisUtils.setCacheMapValue(DRAW_TASK_PROGRESS, taskId, 0);
+        // 连接comfyui的websocket获取进度
+        String wsUrl = node.getBaseUrl().replace("https", "wss").replace("http", "ws") + "/ws?clientId=" + taskId;
+        comfyWebsocketClient.createComfyUiWebSocket(wsUrl, promptId, taskId);
+    }
+
+    /**
      * 处理图片上传到comfyui
-     * @param taskInfo  任务信息
-     * @param node      生图节点
-     * @return  处理后的工作流字符串
+     *
+     * @param taskInfo    任务信息
+     * @param node        生图节点
+     * @return 处理后的工作流字符串
      */
     private String dealInputImage(DrawingTaskInfo taskInfo, SdDrawNode node) {
         String flowStr = taskInfo.getFlow();
-        ComfyTaskImage image1 = uploadImage(taskInfo.getImage1(), node);
-        ComfyTaskImage image2 = uploadImage(taskInfo.getImage2(), node);
-        if (image1!=null) {
-            flowStr = flowStr.replace("{{inputImage1}}",image1.getFileName());
+        if (CollectionUtil.isEmpty(taskInfo.getImages())) {
+            return flowStr;
         }
-        if (image2!=null) {
-            flowStr = flowStr.replace("{{inputImage2}}",image2.getFileName());
+        for (int i = 0; i < taskInfo.getImages().size(); i++) {
+            DrawingImageInfoBo file = taskInfo.getImages().get(i);
+            ComfyUploadImage image = uploadImage(file.getFileData(), node, file.getImageName(), ImageType.input);
+            if (image!=null) {
+                flowStr = flowStr.replace("{{inputImage"+(i+1)+"}}",image.getName());
+            }
         }
         return flowStr;
     }
@@ -439,10 +507,19 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
      */
     @Override
     public ComfyTaskHistoryInfo getTaskInfoById(String promptId, SdDrawNode node) {
-        HttpRequest request = HttpRequest.get(node.getBaseUrl() + "/history/" + promptId).timeout(2000);
-        String historyInfo = execHttpRequest(request);
-        JsonNode taskNode = JsonUtils.toJsonNode(historyInfo).get(promptId);
-        return JsonUtils.toObject(taskNode, ComfyTaskHistoryInfo.class);
+        try{
+            HttpRequest request = HttpRequest.get(node.getBaseUrl() + "/history/" + promptId).timeout(2000);
+            String historyInfo = execHttpRequest(request);
+            JsonNode taskNode = JsonUtils.toJsonNode(historyInfo).get(promptId);
+            if (taskNode == null) {
+                return null;
+            }
+            return JsonUtils.toObject(taskNode, ComfyTaskHistoryInfo.class);
+        }
+        catch (Exception e){
+            log.error("[获取任务信息]>>>>>>>>>获取任务信息异常,异常信息: ", e);
+            return null;
+        }
     }
 
     /**
@@ -502,13 +579,18 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
      *
      * @param node 节点信息
      * @param file 图片对象
+     * @param type 图片存放位置(input | temp | output （默认 input ）)
      * @return 上传后的图片信息
      */
     @Override
-    public ComfyTaskImage uploadImage(File file, SdDrawNode node) {
-        HttpRequest request = HttpRequest.post(node.getBaseUrl() + "/upload/image").form("file", file).timeout(2000);
+    public ComfyUploadImage uploadImage(File file, SdDrawNode node, ImageType type) {
+        // type 图片存放位置(input | temp | output （默认 input ）)
+        HttpRequest request = HttpRequest.post(node.getBaseUrl() + "/upload/image").form("image", file).timeout(2000);
+        if (type!=null) {
+            request.form("type", type.name());
+        }
         String resp = execHttpRequest(request);
-        return JsonUtils.toObject(resp, ComfyTaskImage.class);
+        return JsonUtils.toObject(resp, ComfyUploadImage.class);
     }
 
     /**
@@ -516,24 +598,21 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
      * 上传图片到ComfyUI服务器
      *
      * @param node 节点信息
-     * @param file 图片对象
+     * @param bytes 图片对象
+     * @param type 图片存放位置(input | temp | output （默认 input ）)
+     * @param fileName 文件名称携带后缀
      * @return 上传后的图片信息
      */
     @Override
-    public ComfyTaskImage uploadImage(MultipartFile file, SdDrawNode node) {
-        if (file == null) {
+    public ComfyUploadImage uploadImage(byte[] bytes, SdDrawNode node, String fileName, ImageType type) {
+        if (bytes == null) {
             return null;
         }
-        byte[] bytes;
-        try {
-            bytes = file.getBytes();
-        }
-        catch (IOException e) {
-            return null;
-        }
-        HttpRequest request = HttpRequest.post(node.getBaseUrl() + "/upload/image").form("file", bytes,file.getOriginalFilename()).timeout(2000);
-        String resp = execHttpRequest(request);
-        return JsonUtils.toObject(resp, ComfyTaskImage.class);
+        File file = FileUtils.bytesToTempFile(bytes, fileName);
+        ComfyUploadImage taskImage = uploadImage(file, node, type);
+        // 上传到comfyui后删除临时文件
+        FileUtils.deleteFile(file);
+        return taskImage;
     }
 
     /**
@@ -570,43 +649,41 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
     @Async("threadPoolTaskExecutor")
     public void autoDealComfyTask(String nodeId, String taskId) {
         SdUserTaskVo taskVo = sdUserTaskService.getDrawTaskInfoByTaskId(taskId);
-        if (taskVo == null) {
-            // 归还节点
-            RedisUtils.delCacheMapValue(DRAW_NODE_TASK_MAP, nodeId);
-            // 清除缓存中的任务进度
-            RedisUtils.delCacheMapValue(DRAW_TASK_PROGRESS, taskId);
-            // 关闭websocket
-            comfyWebsocketClient.closeComfyUiWebSocket(taskId);
+        // 任务不存在或不处于进行中
+        if (taskVo == null || (taskVo.getStatus()!=null && taskVo.getStatus()==2)) {
+            dealTaskAndNodeAndWebsocket(taskId, nodeId);
             return;
         }
         SdDrawNode node = sdDrawNodeService.findById(Long.parseLong(nodeId));
         if (node == null) {
-            // 归还节点
-            RedisUtils.delCacheMapValue(DRAW_NODE_TASK_MAP, nodeId);
-            // 清除缓存中的任务进度
-            RedisUtils.delCacheMapValue(DRAW_TASK_PROGRESS, taskId);
-            // 关闭websocket
-            comfyWebsocketClient.closeComfyUiWebSocket(taskId);
+            dealTaskAndNodeAndWebsocket(taskId, nodeId);
             return;
         }
         ComfyTaskHistoryInfo taskInfo = getTaskInfoById(taskId, node);
         if (taskInfo == null) {
-            // 归还节点
-            RedisUtils.delCacheMapValue(DRAW_NODE_TASK_MAP, nodeId);
-            // 清除缓存中的任务进度
-            RedisUtils.delCacheMapValue(DRAW_TASK_PROGRESS, taskId);
-            // 关闭websocket
-            comfyWebsocketClient.closeComfyUiWebSocket(taskId);
+            // 任务还处于执行中
+            if (taskVo.getStatus()==1) {
+                return;
+            }
+            dealTaskAndNodeAndWebsocket(taskId, nodeId);
             return;
         }
         // 任务已完成
         if (taskInfo.getCompleted() != null && taskInfo.getCompleted()) {
-            sdUserTaskService.completeComfyTask(taskId, new Date());
+            boolean isComplete = sdUserTaskService.completeComfyTask(taskId, new Date());
+            if (!isComplete) {
+                dealTaskAndNodeAndWebsocket(taskId, nodeId);
+                return;
+            }
             if (CollectionUtil.isEmpty(taskInfo.getOutputs())) {
                 return;
             }
             List<String> urlList = new ArrayList<>();
             for (ComfyTaskImage image : taskInfo.getOutputs()) {
+                // 只保留任务输出图片
+                if (image.getFileName().startsWith(taskId)) {
+                    continue;
+                }
                 try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
                     UrlBuilder builder = UrlBuilder.of(node.getBaseUrl()).addPath("/view")
                         .addQuery("filename", image.getFileName())
@@ -622,11 +699,19 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
                 }
             }
             if (CollectionUtil.isNotEmpty(urlList)) {
-                sdUserModelFileService.asyncBatchInsert(taskVo,urlList,null);
+                sdUserModelFileService.asyncBatchInsert(taskVo,urlList);
             }
-            // 归还节点
-            RedisUtils.delCacheMapValue(DRAW_NODE_TASK_MAP, node.getId().toString());
+            dealTaskAndNodeAndWebsocket(taskId, nodeId);
         }
+    }
+
+    private void dealTaskAndNodeAndWebsocket(String taskId, String nodeId) {
+        // 归还节点
+        RedisUtils.delCacheMapValue(DRAW_NODE_TASK_MAP, nodeId);
+        // 清除缓存中的任务进度
+        RedisUtils.delCacheMapValue(DRAW_TASK_PROGRESS, taskId);
+        // 关闭websocket
+        comfyWebsocketClient.closeComfyUiWebSocket(taskId);
     }
 
     /**

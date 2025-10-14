@@ -6,7 +6,7 @@ import com.sutran.sd.common.core.domain.R;
 import com.sutran.sd.common.core.page.TableDataInfo;
 import com.sutran.sd.common.exception.TaskErrorException;
 import com.sutran.sd.common.utils.StringUtils;
-import com.sutran.sd.draw.domain.SdFlow;
+import com.sutran.sd.draw.domain.SdDrawNode;
 import com.sutran.sd.draw.domain.SdUserModel;
 import com.sutran.sd.draw.domain.bo.ComfyModelTaskBo;
 import com.sutran.sd.draw.domain.bo.ComfyModelTaskSubmitBo;
@@ -14,10 +14,14 @@ import com.sutran.sd.draw.domain.dto.img2img.SdImg2ImgDto;
 import com.sutran.sd.draw.domain.dto.task.SdUserTaskPageDto;
 import com.sutran.sd.draw.domain.dto.txt2img.SdText2ImgDto;
 import com.sutran.sd.draw.domain.pojo.ComfyTaskHistoryInfo;
+import com.sutran.sd.draw.domain.pojo.ComfyUploadImage;
+import com.sutran.sd.draw.domain.vo.ComfyuiImageToolVo;
 import com.sutran.sd.draw.domain.vo.SdUserModelFileVo;
 import com.sutran.sd.draw.domain.vo.SdUserTaskVo;
 import com.sutran.sd.draw.domain.vo.SdWebuiProgressVo;
+import com.sutran.sd.draw.enums.ImageType;
 import com.sutran.sd.draw.service.SdComfyuiApiService;
+import com.sutran.sd.draw.service.SdDrawNodeService;
 import com.sutran.sd.draw.service.SdUserModelService;
 import com.sutran.sd.draw.service.SdWebuiApiService;
 import lombok.RequiredArgsConstructor;
@@ -43,6 +47,7 @@ public class SdApiController {
     private final SdWebuiApiService sdWebuiApiService;
     private final SdComfyuiApiService sdComfyuiApiService;
     private final SdUserModelService sdUserModelService;
+    private final SdDrawNodeService sdDrawNodeService;
 
     /**
      * [WebUI]文生图
@@ -151,7 +156,7 @@ public class SdApiController {
      * @return 修图工具列表
      */
     @PostMapping("/comfy/photo-edit-tool/list")
-    public R<List<SdFlow>> queryPhotoEditToolList() {
+    public R<List<ComfyuiImageToolVo>> queryPhotoEditToolList() {
         return R.ok(sdComfyuiApiService.queryFixedFlowList());
     }
 
@@ -175,7 +180,7 @@ public class SdApiController {
             .setModelStrength(StringUtils.isNotBlank(bo.getModelStrength())?bo.getModelStrength():model.getModelStrength())
             .setBatchSize(bo.getBatchSize());
         String taskId = sdComfyuiApiService.submitComfyModelTask(modelTaskBo);
-        return R.ok(taskId);
+        return R.ok("提交成功",taskId);
     }
 
     /**
@@ -192,9 +197,12 @@ public class SdApiController {
                                          @RequestParam(required = false) String prompt,
                                          @RequestParam(required = false) String promptZh,
                                          @RequestParam(required = false) MultipartFile image1,
-                                         @RequestParam(required = false) MultipartFile image2) {
-        String taskId = sdComfyuiApiService.submitComfyFlowTask(flowId,prompt,promptZh,image1,image2);
-        return R.ok(taskId);
+                                         @RequestParam(required = false) MultipartFile image2) throws IOException {
+        MultipartFile[] images = new MultipartFile[2];
+        images[0] = image1;
+        images[1] = image2;
+        String taskId = sdComfyuiApiService.submitComfyFlowTask(flowId,prompt,promptZh,images);
+        return R.ok("提交成功",taskId);
     }
 
     /**
@@ -215,6 +223,21 @@ public class SdApiController {
     @GetMapping("/comfy/model/task-progress")
     public R<Integer> getComfyTaskProgress(@RequestParam String taskId) {
         return R.ok(sdComfyuiApiService.getComfyTaskProgress(taskId));
+    }
+
+    /**
+     * [测试]上传图片到comfyui
+     * @param image 图片
+     * @return 任务id
+     */
+    @PostMapping("/comfy/upload/image")
+    public R<ComfyUploadImage> uploadImage(@RequestParam(required = false) MultipartFile image) throws IOException {
+        SdDrawNode node = sdDrawNodeService.findById(1L);
+//        File file = FileUtils.multipartFileToTempFile(image, image.getOriginalFilename());
+//        ComfyTaskImage taskImage = sdComfyuiApiService.uploadImage(file, node, ImageType.input);
+//        FileUtils.deleteFile(file);
+        ComfyUploadImage taskImage = sdComfyuiApiService.uploadImage(image.getBytes(), node, image.getOriginalFilename(), ImageType.temp);
+        return R.ok(taskImage);
     }
 
 }

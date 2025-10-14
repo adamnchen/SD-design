@@ -7,6 +7,8 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.sutran.sd.common.core.domain.PageQuery;
 import com.sutran.sd.common.core.page.TableDataInfo;
+import com.sutran.sd.common.utils.StringUtils;
+import com.sutran.sd.common.utils.redis.RedisUtils;
 import com.sutran.sd.draw.domain.SdUserTask;
 import com.sutran.sd.draw.domain.vo.SdUserModelFileVo;
 import com.sutran.sd.draw.domain.vo.SdUserTaskVo;
@@ -18,8 +20,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.util.Collections;
 import java.util.Date;
+import java.util.List;
 
 /**
  * @author zj
@@ -36,15 +40,16 @@ public class SdUserTaskServiceImpl implements SdUserTaskService {
     /**
      * 新增ComfyUI任务
      *
-     * @param taskId   任务ID
-     * @param userId   用户ID
-     * @param userName 用户名
-     * @param flow     工作流
-     * @param prompt     英文提示词
-     * @param promptZh   中文提示词
+     * @param taskId    任务ID
+     * @param userId    用户ID
+     * @param userName  用户名
+     * @param flow      工作流
+     * @param prompt    英文提示词
+     * @param promptZh  中文提示词
+     * @param imageUrls 参考图地址集合
      */
     @Override
-    public void addComfyTask(String taskId, Long userId, String userName, String flow, String prompt, String promptZh) {
+    public void addComfyTask(String taskId, Long userId, String userName, String flow, String prompt, String promptZh, List<String> imageUrls) {
         Date now = new Date();
         SdUserTask task = new SdUserTask()
             .setTaskId(Long.parseLong(taskId))
@@ -59,6 +64,9 @@ public class SdUserTaskServiceImpl implements SdUserTaskService {
             .setCrtTime(now)
             .setUpdTime(now)
             .setFlow(flow);
+        if (CollectionUtil.isNotEmpty(imageUrls)) {
+            task.setInitImgList(JSONObject.toJSONString(imageUrls));
+        }
         baseMapper.insert(task);
     }
 
@@ -106,13 +114,10 @@ public class SdUserTaskServiceImpl implements SdUserTaskService {
      * @param endTime       完成时间
      */
     @Override
-    public void completeComfyTask(String taskId, Date endTime) {
-        SdUserTask task = new SdUserTask()
-            .setTaskId(Long.parseLong(taskId))
-            .setStatus(2)
-            .setEndTime(endTime)
-            .setUpdTime(new Date());
-        baseMapper.updateById(task);
+    public boolean completeComfyTask(String taskId, Date endTime) {
+        SdUserTask task = new SdUserTask().setStatus(2).setEndTime(endTime).setUpdTime(new Date());
+        int update = baseMapper.update(task, new LambdaQueryWrapper<SdUserTask>().eq(SdUserTask::getTaskId, taskId).eq(SdUserTask::getStatus, 1));
+        return update>0;
     }
 
     /**
@@ -285,7 +290,15 @@ public class SdUserTaskServiceImpl implements SdUserTaskService {
      */
     @Override
     public String getPromptIdByTaskId(String taskId) {
-        return baseMapper.getPromptIdByTaskId(taskId);
+        String promptId = RedisUtils.getCacheObject("comfy_task:"+taskId);
+        if (StringUtils.isNotBlank(promptId)) {
+            return promptId;
+        }
+        promptId = baseMapper.getPromptIdByTaskId(taskId);
+        if (StringUtils.isNotBlank(promptId)) {
+            RedisUtils.setCacheObject("comfy_task:"+taskId,promptId, Duration.ofMinutes(1));
+        }
+        return promptId;
     }
 
     /**
@@ -295,7 +308,15 @@ public class SdUserTaskServiceImpl implements SdUserTaskService {
      */
     @Override
     public SdUserTaskVo getDrawTaskInfoByTaskId(String taskId) {
-        return baseMapper.getDrawTaskInfoByTaskId(taskId);
+        String taskVoStr = RedisUtils.getCacheObject("SD_USER_TASK:" + taskId);
+        if (StringUtils.isNotBlank(taskVoStr)) {
+            return JSONObject.parseObject(taskVoStr,SdUserTaskVo.class);
+        }
+        SdUserTaskVo taskVo = baseMapper.getDrawTaskInfoByTaskId(taskId);
+        if (taskVo != null) {
+            RedisUtils.setCacheObject("SD_USER_TASK:" + taskId, JSONObject.toJSONString(taskVo), Duration.ofMinutes(1));
+        }
+        return taskVo;
     }
 
     /**
@@ -305,7 +326,15 @@ public class SdUserTaskServiceImpl implements SdUserTaskService {
      */
     @Override
     public String getTaskIdByPromptId(String promptId) {
-        return baseMapper.getTaskIdByPromptId(promptId);
+        String taskId = RedisUtils.getCacheObject("comfy_task:"+promptId);
+        if (StringUtils.isNotBlank(taskId)) {
+            return taskId;
+        }
+        taskId = baseMapper.getTaskIdByPromptId(promptId);
+        if (StringUtils.isNotBlank(taskId)) {
+            RedisUtils.setCacheObject("comfy_task:"+promptId,taskId, Duration.ofMinutes(1));
+        }
+        return taskId;
     }
 
     /**
@@ -315,6 +344,27 @@ public class SdUserTaskServiceImpl implements SdUserTaskService {
      */
     @Override
     public SdUserTask getTaskInfoByPromptId(String promptId) {
-        return baseMapper.selectOne(new LambdaQueryWrapper<SdUserTask>().eq(SdUserTask::getPromptId,promptId));
+        String taskVoStr = RedisUtils.getCacheObject("SD_USER_TASK:" + promptId);
+        if (StringUtils.isNotBlank(taskVoStr)) {
+            return JSONObject.parseObject(taskVoStr,SdUserTask.class);
+        }
+        SdUserTask taskVo = baseMapper.selectOne(new LambdaQueryWrapper<SdUserTask>().eq(SdUserTask::getPromptId,promptId));
+        if (taskVo != null) {
+            RedisUtils.setCacheObject("SD_USER_TASK:" + promptId, JSONObject.toJSONString(taskVo), Duration.ofMinutes(1));
+        }
+        return taskVo;
+    }
+
+    /**
+     * 更新ComfyUI任务的工作流
+     * @param taskId    任务ID
+     * @param flowStr   工作流字符串
+     */
+    @Override
+    public void updateFlowOfComfyTask(String taskId, String flowStr) {
+        SdUserTask task = new SdUserTask()
+            .setTaskId(Long.parseLong(taskId))
+            .setFlow(flowStr);
+        baseMapper.updateById(task);
     }
 }

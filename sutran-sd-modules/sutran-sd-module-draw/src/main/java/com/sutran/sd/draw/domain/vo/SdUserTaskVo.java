@@ -62,6 +62,11 @@ public class SdUserTaskVo implements Serializable {
     @Schema(name = "nodeUrl", description = "comfy任务执行的节点URL")
     private String nodeUrl;
     /**
+     * 参考图片地址数组
+     */
+    @Schema(name = "initImgList", description = "参考图片地址数组")
+    private String initImgList;
+    /**
      * 任务归属人ID
      */
     @Schema(name = "belongUserId", description = "任务归属人ID")

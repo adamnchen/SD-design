@@ -51,7 +51,11 @@ public enum ComfyWebSocketMessageType {
     /**
      * 系统性能状态更新
      */
-    MONITOR("crystools.monitor");
+    MONITOR("crystools.monitor"),
+    /**
+     * 任务执行错误
+     */
+    EXECUTION_ERROR("execution_error");
     /**
      * 消息json中的消息类型字符串
      */

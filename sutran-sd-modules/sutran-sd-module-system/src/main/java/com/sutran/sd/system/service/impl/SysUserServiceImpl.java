@@ -15,8 +15,8 @@ import com.sutran.sd.common.constant.CacheNames;
 import com.sutran.sd.common.constant.TagConstants;
 import com.sutran.sd.common.constant.UserConstants;
 import com.sutran.sd.common.core.domain.PageQuery;
-import com.sutran.sd.common.core.domain.entity.*;
 import com.sutran.sd.common.core.domain.dto.UserTagDTO;
+import com.sutran.sd.common.core.domain.entity.*;
 import com.sutran.sd.common.core.page.TableDataInfo;
 import com.sutran.sd.common.core.service.UserService;
 import com.sutran.sd.common.exception.ServiceException;
@@ -28,7 +28,6 @@ import com.sutran.sd.common.utils.StringUtils;
 import com.sutran.sd.system.domain.SysPost;
 import com.sutran.sd.system.domain.SysUserPost;
 import com.sutran.sd.system.domain.SysUserRole;
-import com.sutran.sd.common.core.domain.entity.SysAddress;
 import com.sutran.sd.system.domain.bo.SysUserMemberBo;
 import com.sutran.sd.system.mapper.*;
 import com.sutran.sd.system.service.ISysUserService;
@@ -316,18 +315,18 @@ public class SysUserServiceImpl implements ISysUserService, UserService {
         user.setCreateBy(user.getUserName());
         user.setUpdateBy(user.getUserName());
         boolean result = baseMapper.insert(user) > 0;
-        
+
         if (result) {
             // 自动为用户创建默认身份标签（普通用户）
             createDefaultIdentityTag(user.getUserId());
         }
-        
+
         return result;
     }
-    
+
     /**
      * 为用户创建默认身份标签
-     * 
+     *
      * @param userId 用户ID
      */
     private void createDefaultIdentityTag(Long userId) {
@@ -338,7 +337,7 @@ public class SysUserServiceImpl implements ISysUserService, UserService {
             defaultTagDTO.setBizType(TagConstants.IDENTITY_TAG_USER); // 2 = 普通用户
             defaultTagDTO.setTagLevel(TagConstants.TAG_LEVEL_NORMAL); // 1 = 普通等级
             defaultTagDTO.setSortOrder(TagConstants.DEFAULT_SORT_ORDER); // 0 = 默认排序
-            
+
             // 使用系统用户标签服务创建标签
             if (sysUserTagService != null) {
                 sysUserTagService.addTag(userId, defaultTagDTO);
@@ -730,7 +729,7 @@ public class SysUserServiceImpl implements ISysUserService, UserService {
 
     @Override
     public void returnedDrawNum(Long userId, int num) {
-        userMemberMapper.returnedDrawNum(userId,num);
+        userMemberMapper.returnedDrawNum(userId,num,new Date());
     }
 
     /**

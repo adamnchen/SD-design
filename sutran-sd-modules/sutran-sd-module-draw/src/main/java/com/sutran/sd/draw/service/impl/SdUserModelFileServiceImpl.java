@@ -11,7 +11,6 @@ import com.sutran.sd.common.core.domain.PageQuery;
 import com.sutran.sd.common.core.page.TableDataInfo;
 import com.sutran.sd.common.enums.TranslateType;
 import com.sutran.sd.common.exception.ServiceException;
-import com.sutran.sd.common.utils.BeanCopyUtils;
 import com.sutran.sd.common.utils.redis.RedisUtils;
 import com.sutran.sd.draw.domain.SdUserModelFile;
 import com.sutran.sd.draw.domain.dto.SdUserModelFilePageDto;
@@ -25,6 +24,7 @@ import com.sutran.sd.system.service.SysTranslateService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.text.StringEscapeUtils;
+import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -62,19 +62,18 @@ public class SdUserModelFileServiceImpl implements SdUserModelFileService {
      * @param initImg       初始化图片
      * @param promptDesc    提示词描述
      * @param promptZh      提示词中文
-     * @param summonWord    召唤词
      * @param negativePrompt    负面提示词
      * @param negativePromptZh  负面提示词中文
      * @param isRedraw      是否重绘
      */
     @Override
-    public void asyncBatchInsert(SdApiResult rs, Long userId, String userName, List<JSONObject> loraInfos, String modelName, String taskId, int category, String prompt, String initImg, String promptDesc, String promptZh, String summonWord, String negativePrompt, String negativePromptZh, Integer isRedraw) {
+    public void asyncBatchInsert(SdApiResult rs, Long userId, String userName, List<JSONObject> loraInfos, String modelName, String taskId, int category, String prompt, String initImg, String promptDesc, String promptZh, String negativePrompt, String negativePromptZh, Integer isRedraw) {
         if (CollectionUtil.isEmpty(rs.getImages())) {
             return;
         }
         Integer isRedrawEntity = isRedraw==null?0:isRedraw;
         List<SdUserModelFile> list = rs.getImages().stream().map(url -> new SdUserModelFile().setIsRedraw(isRedrawEntity).setId(IdUtil.getSnowflakeNextId()).setTaskId(Long.parseLong(taskId))
-            .setPrompt(prompt).setPromptZh(promptZh).setPromptDesc(promptDesc).setSummonWord(summonWord).setNegativePrompt(negativePrompt).setNegativePromptZh(negativePromptZh)
+            .setPrompt(prompt).setPromptZh(promptZh).setPromptDesc(promptDesc).setNegativePrompt(negativePrompt).setNegativePromptZh(negativePromptZh)
             .setFileInfo(JSONObject.toJSONString(rs.getInfo(), WriteMapNullValue)).setInitImg(initImg).setCategory(category).setFileUrl(url)
             .setFileParameters(JSONObject.toJSONString(rs.getParameters(), WriteMapNullValue)).setBelongUserId(userId).setBelongUserName(userName)
             .setLoraTitle(loraInfos.get(0).getString("loraTitle")).setLoraTitle(loraInfos.get(0).getString("loraTitleZh")).setLoraModelId(loraInfos.get(0).getLongValue("loraModelId")).setModelStrength(loraInfos.get(0).getString("modelStrength"))
@@ -83,15 +82,16 @@ public class SdUserModelFileServiceImpl implements SdUserModelFileService {
     }
 
     @Override
-    public void asyncBatchInsert(SdUserTaskVo sdUserTaskVo, List<String> urlList, String initImgUrl) {
+    public void asyncBatchInsert(SdUserTaskVo taskVo, List<String> urlList) {
         if (CollectionUtil.isEmpty(urlList)) {
             return;
         }
         List<SdUserModelFile> list = urlList.stream().map(url ->{
-            SdUserModelFile entity = BeanCopyUtils.copy(sdUserTaskVo,SdUserModelFile.class);
+            SdUserModelFile entity = new SdUserModelFile();
+            BeanUtils.copyProperties(taskVo,entity);
             entity.setId(IdUtil.getSnowflakeNextId())
-                .setTaskId(Long.parseLong(sdUserTaskVo.getTaskId()))
-                .setInitImg(initImgUrl)
+                .setTaskId(Long.parseLong(taskVo.getTaskId()))
+                .setBelongUserId(Long.parseLong(taskVo.getBelongUserId()))
                 .setFileUrl(url)
                 .setCrtTime(new Date());
             return entity;
@@ -187,15 +187,20 @@ public class SdUserModelFileServiceImpl implements SdUserModelFileService {
                     loraInfo.put("loraModelId",vo.getLoraModelId());
                     loraInfo.put("loraModelUrl",vo.getLoraModelUrl());
                     loraInfo.put("modelStrength",vo.getModelStrength());
+                    loraInfo.put("ss_tag_frequency", Collections.emptyMap());
+                    loraInfo.put("ss_tag_frequency_translate_map", Collections.emptyMap());
+                    loraInfo.put("additionTag",Collections.emptyList());
                     JSONObject object = map.get(loraInfo.getString("loraModelId"));
-                    JSONObject config = object.getJSONObject("config");
-                    JSONObject tag = config.containsKey("ss_tag_frequency")?config.getJSONObject("ss_tag_frequency"):config.getJSONObject("ssTagFrequency");
-                    JSONObject tagTranslate = dealTagTranslate(tag);
+                    if (CollectionUtil.isNotEmpty(object)) {
+                        JSONObject config = object.getJSONObject("config");
+                        JSONObject tag = config.containsKey("ss_tag_frequency")?config.getJSONObject("ss_tag_frequency"):config.getJSONObject("ssTagFrequency");
+                        JSONObject tagTranslate = dealTagTranslate(tag);
 
-                    JSONArray additionTag = object.getJSONArray("additionTag");
-                    loraInfo.put("ss_tag_frequency", tag);
-                    loraInfo.put("ss_tag_frequency_translate_map", tagTranslate);
-                    loraInfo.put("additionTag", CollectionUtil.isEmpty(additionTag)?Collections.emptyList():additionTag);
+                        JSONArray additionTag = object.getJSONArray("additionTag");
+                        loraInfo.put("ss_tag_frequency", tag);
+                        loraInfo.put("ss_tag_frequency_translate_map", tagTranslate);
+                        loraInfo.put("additionTag", CollectionUtil.isEmpty(additionTag)?Collections.emptyList():additionTag);
+                    }
                     vo.setLoraInfo(Collections.singletonList(loraInfo));
                 }
             }

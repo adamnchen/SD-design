@@ -28,8 +28,6 @@ public class SdText2ImgDto implements Serializable {
     @Schema(name = "modelInfos", description = "Lora多模型集合")
     private List<SdApiModelParamDto> modelInfos;
 
-    @Schema(name = "summonWord", description = "召唤词")
-    private String summonWord;
     @Schema(name = "prompt", description = "提示词(译文)")
     private String prompt;
     @Schema(name = "promptZh", description = "提示词(中文)")

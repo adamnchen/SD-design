@@ -10,7 +10,6 @@
         <result property="prompt" column="prompt" jdbcType="VARCHAR"/>
         <result property="promptDesc" column="prompt_desc" jdbcType="VARCHAR"/>
         <result property="promptZh" column="prompt_zh" jdbcType="VARCHAR"/>
-        <result property="summonWord" column="summon_word" jdbcType="VARCHAR"/>
         <result property="negativePrompt" column="negative_prompt" jdbcType="VARCHAR"/>
         <result property="negativePromptZh" column="negative_prompt_zh" jdbcType="VARCHAR"/>
         <result property="modelStrength" column="model_strength" jdbcType="VARCHAR"/>

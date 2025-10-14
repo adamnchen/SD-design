@@ -4,9 +4,9 @@ import com.sutran.sd.common.core.domain.PageQuery;
 import com.sutran.sd.common.core.page.TableDataInfo;
 import com.sutran.sd.draw.domain.SdUserTask;
 import com.sutran.sd.draw.domain.vo.SdUserTaskVo;
-import org.apache.ibatis.annotations.Param;
 
 import java.util.Date;
+import java.util.List;
 
 /**
  * @author zj
@@ -17,14 +17,15 @@ public interface SdUserTaskService {
     /**
      * 新增ComfyUI任务
      *
-     * @param taskId   任务ID
-     * @param userId   用户ID
-     * @param userName 用户名
-     * @param flow     工作流
-     * @param prompt     英文提示词
-     * @param promptZh   中文提示词
+     * @param taskId    任务ID
+     * @param userId    用户ID
+     * @param userName  用户名
+     * @param flow      工作流
+     * @param prompt    英文提示词
+     * @param promptZh  中文提示词
+     * @param imageUrls 参考图地址集合
      */
-    void addComfyTask(String taskId, Long userId, String userName, String flow, String prompt, String promptZh);
+    void addComfyTask(String taskId, Long userId, String userName, String flow, String prompt, String promptZh, List<String> imageUrls);
     /**
      * 新增用户任务
      * @param taskId    任务ID
@@ -46,8 +47,9 @@ public interface SdUserTaskService {
      * 完成ComfyUI任务
      * @param taskId        任务ID
      * @param endTime       完成时间
+     * @return          是否完成
      */
-    void completeComfyTask(String taskId, Date endTime);
+    boolean completeComfyTask(String taskId, Date endTime);
 
 
     /**
@@ -153,7 +155,7 @@ public interface SdUserTaskService {
      * @param promptId  promptID
      * @return          任务ID
      */
-    String getTaskIdByPromptId(@Param("promptId") String promptId);
+    String getTaskIdByPromptId(String promptId);
 
     /**
      * 根据promptID查询任务信息
@@ -162,4 +164,10 @@ public interface SdUserTaskService {
      */
     SdUserTask getTaskInfoByPromptId(String promptId);
 
+    /**
+     * 更新ComfyUI任务的工作流
+     * @param taskId    任务ID
+     * @param flowStr   工作流字符串
+     */
+    void updateFlowOfComfyTask(String taskId, String flowStr);
 }

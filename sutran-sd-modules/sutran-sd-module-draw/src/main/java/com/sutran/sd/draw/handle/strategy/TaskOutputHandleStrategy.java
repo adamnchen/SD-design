@@ -48,19 +48,24 @@ public class TaskOutputHandleStrategy implements IComfyWebSocketTextHandleStrate
      */
     @Override
     public void handleMessage(JsonNode dataNode) {
-        log.warn("[任务输出的图片]>>>>>>>>>节点: {}", dataNode);
         String promptId = dataNode.get("prompt_id").asText();
         String taskId = sdUserTaskService.getTaskIdByPromptId(promptId);
         JsonNode imagesNode = dataNode.get("output").get("images");
         //获取上下文输出的图片信息
         List<ComfyTaskImage> currentOutputImages = new ArrayList<>();
-        for (JsonNode imageNode : imagesNode) {
-            ComfyTaskImage imageInfo = JsonUtils.toObject(imageNode, ComfyTaskImage.class);
-            currentOutputImages.add(imageInfo);
+        if (imagesNode!=null){
+            for (JsonNode imageNode : imagesNode) {
+                ComfyTaskImage imageInfo = JsonUtils.toObject(imageNode, ComfyTaskImage.class);
+                // 只保留任务输出图片
+                if (imageInfo.getFileName().startsWith(taskId)) {
+                    currentOutputImages.add(imageInfo);
+                }
+            }
         }
         if (CollectionUtil.isEmpty(currentOutputImages)) {
             return;
         }
+        log.warn("[任务输出的图片]>>>>>>>>>节点: {}", dataNode);
         SdUserTaskVo task = sdUserTaskService.getDrawTaskInfoByTaskId(taskId);
         if (task == null || StringUtils.isBlank(task.getNodeUrl())) {
             return;
@@ -82,7 +87,7 @@ public class TaskOutputHandleStrategy implements IComfyWebSocketTextHandleStrate
             }
         }
         if (CollectionUtil.isNotEmpty(urlList)) {
-            sdUserModelFileService.asyncBatchInsert(task,urlList,null);
+            sdUserModelFileService.asyncBatchInsert(task,urlList);
         }
     }
 }

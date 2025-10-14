@@ -36,54 +36,55 @@ public class ComfyWebsocketClient {
     public void createComfyUiWebSocket(String wsUrl, String promptId, String taskId) {
         try{
             WebSocketClient webSocketClient = NODE_WS_CLIENT_MAP.get(taskId);
-            if (Objects.isNull(webSocketClient)){
-                // 连接comfyui的websocket
-                webSocketClient = new WebSocketClient(new URI(wsUrl)) {
-                    @Override
-                    public void onOpen(ServerHandshake handshake) {
-                        log.warn("连接到任务：{}，内部任务ID：{}",taskId,promptId);
-                    }
-                    @Override
-                    public void onMessage(String message) {
-                        try {
-                            //解析websocket消息
-                            JsonNode messageNode = JsonUtils.toJsonNode(message);
-                            JsonNode dataNode = messageNode.get("data");
-                            JsonNode type = messageNode.get("type");
-                            log.warn("websocket消息-type:{}，dataNode：{}",type,dataNode);
-                            //获取消息类型
-                            // status=TASK_NUMBER：系统队列任务数量更新
-                            // executing=EXECUTING：当前任务节点更新
-                            // progress_state=PROGRESS_STATE：当前运行的耗时节点执行进度更新
-                            ComfyWebSocketMessageType msgType = ComfyWebSocketMessageType.fromType(type.asText());
-                            if (msgType == ComfyWebSocketMessageType.EXECUTING) {
-                                log.warn("[ComfUI][任务节点更新]>>>>>>>>>任务节点ID：{}",dataNode.get("node"));
-                            }
-                            else if (msgType == ComfyWebSocketMessageType.MONITOR) {
-                                log.warn("[ComfUI][系统性能状态更新]>>>>>>>>>{}",dataNode);
-                            }
-                            else if (msgType == ComfyWebSocketMessageType.TASK_NUMBER || Objects.equals(dataNode.get("prompt_id").asText(), promptId)) {
-                                //ComfyUI状态更新消息直接进行处理
-                                messageHandler.handleMessage(msgType, dataNode);
-                            }
-                        }
-                        catch (Exception e) {
-                            if (log != null) {
-                                log.error("comfyui的websocket异常,异常信息: ", e);
-                            }
-                        }
-                    }
-
-                    @Override
-                    public void onError(Exception ex) {
-                        log.error("Error: {}", ex.getMessage());
-                    }
-                    @Override
-                    public void onClose(int code, String reason, boolean remote) {
-                    }
-                };
-                webSocketClient.connect();
+            if (!Objects.isNull(webSocketClient)) {
+                return;
             }
+            // 连接comfyui的websocket
+            webSocketClient = new WebSocketClient(new URI(wsUrl)) {
+                @Override
+                public void onOpen(ServerHandshake handshake) {
+                    log.warn("连接到任务：{}，内部任务ID：{}",taskId,promptId);
+                }
+                @Override
+                public void onMessage(String message) {
+                    try {
+                        //解析websocket消息
+                        JsonNode messageNode = JsonUtils.toJsonNode(message);
+                        JsonNode dataNode = messageNode.get("data");
+                        JsonNode type = messageNode.get("type");
+                        log.info("websocket消息-type:{}，dataNode：{}",type,dataNode);
+                        //获取消息类型
+                        // status=TASK_NUMBER：系统队列任务数量更新
+                        // executing=EXECUTING：当前任务节点更新
+                        // progress_state=PROGRESS_STATE：当前运行的耗时节点执行进度更新
+                        ComfyWebSocketMessageType msgType = ComfyWebSocketMessageType.fromType(type.asText());
+                        if (msgType == ComfyWebSocketMessageType.EXECUTING) {
+                            log.info("[ComfUI][任务节点更新]>>>>>>>>>任务节点ID：{}",dataNode.get("node"));
+                        }
+                        else if (msgType == ComfyWebSocketMessageType.MONITOR) {
+                            log.info("[ComfUI][系统性能状态更新]>>>>>>>>>{}",dataNode);
+                        }
+                        else if (msgType == ComfyWebSocketMessageType.TASK_NUMBER || Objects.equals(dataNode.get("prompt_id").asText(), promptId)) {
+                            //ComfyUI状态更新消息直接进行处理
+                            messageHandler.handleMessage(msgType, dataNode);
+                        }
+                    }
+                    catch (Exception e) {
+                        if (log != null) {
+                            log.error("comfyui的websocket异常,异常信息: ", e);
+                        }
+                    }
+                }
+
+                @Override
+                public void onError(Exception ex) {
+                    log.error("Error: {}", ex.getMessage());
+                }
+                @Override
+                public void onClose(int code, String reason, boolean remote) {
+                }
+            };
+            webSocketClient.connect();
             NODE_WS_CLIENT_MAP.put(taskId,webSocketClient);
         }
         catch (Exception e) {

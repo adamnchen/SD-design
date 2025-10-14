@@ -19,6 +19,6 @@ public class TaskStartHandleStrategy implements IComfyWebSocketTextHandleStrateg
      */
     @Override
     public void handleMessage(JsonNode dataNode) {
-        log.warn("[任务开始]>>>>>>>>>节点: {}", dataNode);
+        log.info("[任务开始]>>>>>>>>>节点: {}", dataNode);
     }
 }

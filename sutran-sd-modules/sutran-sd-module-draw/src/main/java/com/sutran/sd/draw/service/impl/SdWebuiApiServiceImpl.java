@@ -729,14 +729,11 @@ public class SdWebuiApiServiceImpl implements SdWebuiApiService {
         String prompt = dto.getPrompt();
         // 提示词译文
         String promptZh = dto.getPromptZh();
-        // 召唤词
-        String summonWord = dto.getSummonWord();
         // 反向提示词原文
         String negativePrompt = dto.getNegative_prompt();
         // 反向提示词译文
         String negativePromptZh = dto.getNegativePromptZh();
 
-        // 提交给SD的提示词 summonWord+", "+prompt
         StringBuilder newPrompt = new StringBuilder(prompt);
 
         // 多模型集合
@@ -815,7 +812,6 @@ public class SdWebuiApiServiceImpl implements SdWebuiApiService {
         map.remove("modelId");
         map.remove("modelStrength");
         map.remove("modelInfos");
-        map.remove("summonWord");
         map.remove("promptZh");
         map.remove("negativePromptZh");
 
@@ -836,7 +832,6 @@ public class SdWebuiApiServiceImpl implements SdWebuiApiService {
         msg.put("prompt", prompt);
         msg.put("promptZh", promptZh);
         msg.put("promptDesc", prompt);
-        msg.put("summonWord", summonWord);
         msg.put("negativePrompt", negativePrompt);
         msg.put("negativePromptZh", negativePromptZh);
         return msg;
@@ -882,7 +877,6 @@ public class SdWebuiApiServiceImpl implements SdWebuiApiService {
         String prompt = msg.getString("prompt");
         String promptDesc = msg.getString("promptDesc");
         String promptZh = msg.getString("promptZh");
-        String summonWord = msg.getString("summonWord");
         String negativePrompt = msg.getString("negativePrompt");
         String negativePromptZh = msg.getString("negativePromptZh");
         // 获取模型数据信息集合
@@ -911,7 +905,7 @@ public class SdWebuiApiServiceImpl implements SdWebuiApiService {
                         }
                     }
                     if (CollectionUtil.isNotEmpty(rs.getImages())) {
-                        sdUserModelFileService.asyncBatchInsert(rs,msg.getLong("userId"),msg.getString("userName"),loraInfo,msg.getString("modelName"), taskId, isTest?2:0, prompt, null, promptDesc, promptZh, summonWord, negativePrompt, negativePromptZh, 0);
+                        sdUserModelFileService.asyncBatchInsert(rs,msg.getLong("userId"),msg.getString("userName"),loraInfo,msg.getString("modelName"), taskId, isTest?2:0, prompt, null, promptDesc, promptZh, negativePrompt, negativePromptZh, 0);
                     }
                     // 更新进度状态
                     sdUserTaskService.completeWebuiTask(taskId,res.getTimeAsMillisecond());
@@ -1024,10 +1018,8 @@ public class SdWebuiApiServiceImpl implements SdWebuiApiService {
         String promptZh = dto.getPromptZh();
         String prompt = dto.getPrompt();
         // 召唤词
-        String summonWord = dto.getSummonWord();
         String negativePrompt = dto.getNegative_prompt();
         String negativePromptZh = dto.getNegativePromptZh();
-        //TODO 提交给SD的提示词 summonWord+", "+prompt
         StringBuilder newPrompt = new StringBuilder(prompt);
         // 多模型集合
         List<JSONObject> loraInfo = new ArrayList<>();
@@ -1115,7 +1107,6 @@ public class SdWebuiApiServiceImpl implements SdWebuiApiService {
         map.remove("modelId");
         map.remove("modelStrength");
         map.remove("modelInfos");
-        map.remove("summonWord");
         map.remove("promptZh");
         map.remove("negativePromptZh");
 
@@ -1135,7 +1126,6 @@ public class SdWebuiApiServiceImpl implements SdWebuiApiService {
         msg.put("isTest", false);
         msg.put("prompt", prompt);
         msg.put("promptDesc", prompt);
-        msg.put("summonWord", summonWord);
         msg.put("promptZh", promptZh);
         msg.put("negativePrompt", negativePrompt);
         msg.put("negativePromptZh", negativePromptZh);
@@ -1191,7 +1181,6 @@ public class SdWebuiApiServiceImpl implements SdWebuiApiService {
         String prompt = msg.getString("prompt");
         String promptDesc = msg.getString("promptDesc");
         String promptZh = msg.getString("promptZh");
-        String summonWord = msg.getString("summonWord");
         String negativePrompt = msg.getString("negativePrompt");
         String negativePromptZh = msg.getString("negativePromptZh");
         String initImg = msg.getString("initImg");
@@ -1229,7 +1218,7 @@ public class SdWebuiApiServiceImpl implements SdWebuiApiService {
                         }
                     }
                     if (CollectionUtil.isNotEmpty(rs.getImages())) {
-                        sdUserModelFileService.asyncBatchInsert(rs,msg.getLong("userId"),msg.getString("userName"),loraInfo,msg.getString("modelName"), taskId, isTest?2:1, prompt, newInitImg, promptDesc, promptZh, summonWord, negativePrompt, negativePromptZh, isRedraw);
+                        sdUserModelFileService.asyncBatchInsert(rs,msg.getLong("userId"),msg.getString("userName"),loraInfo,msg.getString("modelName"), taskId, isTest?2:1, prompt, newInitImg, promptDesc, promptZh, negativePrompt, negativePromptZh, isRedraw);
                     }
                     // 更新进度状态
                     sdUserTaskService.completeWebuiTask(taskId,res.getTimeAsMillisecond());

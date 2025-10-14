@@ -12,6 +12,7 @@
         <result property="promptZh" column="prompt_zh" jdbcType="VARCHAR"/>
         <result property="nodeId" column="node_id" jdbcType="INTEGER"/>
         <result property="nodeUrl" column="node_url" jdbcType="VARCHAR"/>
+        <result property="initImgList" column="init_img_list" jdbcType="VARCHAR"/>
         <result property="isRedraw" column="is_redraw" jdbcType="INTEGER"/>
         <result property="reason" column="reason" jdbcType="VARCHAR"/>
         <result property="belongUserId" column="belong_user_id" jdbcType="INTEGER"/>
@@ -34,7 +35,7 @@
     </select>
 
     <select id="getDrawTaskInfoByTaskId" resultMap="SdUserTaskVoMap">
-        SELECT A.*, B.base_url AS nodeUrl FROM sd_user_task AS A LEFT JOIN sd_draw_node AS B ON A.node_id = B.id WHERE A.task_id = #{taskId}
+        SELECT A.*, B.base_url AS node_url FROM sd_user_task AS A LEFT JOIN sd_draw_node AS B ON A.node_id = B.id WHERE A.task_id = #{taskId}
     </select>
 
 </mapper>

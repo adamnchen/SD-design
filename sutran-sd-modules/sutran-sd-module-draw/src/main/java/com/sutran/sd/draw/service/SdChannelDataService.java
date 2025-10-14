@@ -34,6 +34,7 @@ public interface SdChannelDataService {
 
     /**
      * 查询列表
+     * @param msg 查询
      * @return 列表数据
      */
     List<SdChannelData> queryList(SdChannelData msg);

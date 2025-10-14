@@ -29,20 +29,19 @@ public interface SdUserModelFileService {
      * @param initImg       初始化图片
      * @param promptDesc    提示词描述
      * @param promptZh      提示词中文
-     * @param summonWord    召唤词
      * @param negativePrompt    负面提示词
      * @param negativePromptZh  负面提示词中文
      * @param isRedraw      是否重绘
      */
-    void asyncBatchInsert(SdApiResult rs, Long userId, String userName, List<JSONObject> loraInfos, String modelName, String taskId, int category, String prompt, String initImg, String promptDesc, String promptZh, String summonWord, String negativePrompt, String negativePromptZh, Integer isRedraw);
+    void asyncBatchInsert(SdApiResult rs, Long userId, String userName, List<JSONObject> loraInfos, String modelName, String taskId, int category, String prompt, String initImg, String promptDesc, String promptZh, String negativePrompt, String negativePromptZh, Integer isRedraw);
 
     /**
      * 异步批量插入
+     *
      * @param sdUserTaskVo 任务信息
      * @param urlList      图片url列表
-     * @param initImgUrl  初始化图片url
      */
-    void asyncBatchInsert(SdUserTaskVo sdUserTaskVo, List<String> urlList, String initImgUrl);
+    void asyncBatchInsert(SdUserTaskVo sdUserTaskVo, List<String> urlList);
 
     /**
      * 分页查询用户模型文件列表

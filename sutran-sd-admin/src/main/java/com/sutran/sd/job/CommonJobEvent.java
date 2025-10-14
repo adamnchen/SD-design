@@ -128,13 +128,13 @@ public class CommonJobEvent {
 
     /**
      * 定时推送消息
-     * 每1分钟执行一次
+     * 每5分钟执行一次
      */
-    @Scheduled(cron="0 0/1 * * * ?")
+    @Scheduled(cron="0 0/5 * * * ?")
     public void executeSendChannelMsg(){
         try{
-            // 5分钟前的数据
-            DateTime dateTime = DateUtil.offsetMinute(new Date(), -4);
+            // 10分钟前的数据
+            DateTime dateTime = DateUtil.offsetMinute(new Date(), -10);
             List<SdChannelData> list = sdChannelDataService.queryList(new SdChannelData().setIsSend(0).setSendTime(dateTime));
             if (CollectionUtil.isEmpty(list)) {
                 return;

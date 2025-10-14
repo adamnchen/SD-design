@@ -2,13 +2,13 @@ package com.sutran.sd.draw.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.sutran.sd.draw.domain.SdFlow;
+import com.sutran.sd.draw.domain.vo.ComfyuiImageToolVo;
 import com.sutran.sd.draw.mapper.SdFlowMapper;
 import com.sutran.sd.draw.service.SdFlowService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -68,8 +68,8 @@ public class SdFlowServiceImpl implements SdFlowService {
      * @return 工作流列表
      */
     @Override
-    public List<SdFlow> queryFixedFlowList() {
-        return sdFlowMapper.selectList(new LambdaQueryWrapper<SdFlow>().eq(SdFlow::getIsFixed, 1));
+    public List<ComfyuiImageToolVo> queryFixedFlowList() {
+        return sdFlowMapper.queryFixedFlowList();
     }
 }
 

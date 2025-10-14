@@ -1,6 +1,7 @@
 package com.sutran.sd.draw.service;
 
 import com.sutran.sd.draw.domain.SdFlow;
+import com.sutran.sd.draw.domain.vo.ComfyuiImageToolVo;
 
 import java.util.List;
 
@@ -54,5 +55,5 @@ public interface SdFlowService {
      * 查询固定工作流列表
      * @return 工作流列表
      */
-    List<SdFlow> queryFixedFlowList();
+    List<ComfyuiImageToolVo> queryFixedFlowList();
 }

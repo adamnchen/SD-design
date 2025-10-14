@@ -10,7 +10,6 @@ import java.util.Date;
 /**
 * SD绘图 || 用户生图文件数据记录
 * @author zj
-* @TableName sd_user_model_file
 */
 @Data
 @Accessors(chain = true)
@@ -37,8 +36,6 @@ public class SdUserModelFileVo implements Serializable {
     @Schema(name = "isRedraw", description = "isRedraw")
     private Integer isRedraw;
 
-    @Schema(name = "summonWord", description = "召唤词")
-    private String summonWord;
     @Schema(name = "prompt", description = "提示词(译文)")
     private String prompt;
     @Schema(name = "promptZh", description = "提示词(中文)")

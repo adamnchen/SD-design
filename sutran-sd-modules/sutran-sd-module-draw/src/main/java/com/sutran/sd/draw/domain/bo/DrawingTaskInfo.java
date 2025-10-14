@@ -1,10 +1,10 @@
 package com.sutran.sd.draw.domain.bo;
 
 import lombok.Getter;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.beans.ConstructorProperties;
 import java.io.Serializable;
+import java.util.List;
 
 /**
  * 绘图任务信息
@@ -24,8 +24,10 @@ public class DrawingTaskInfo implements Serializable {
      */
     private final String flow;
 
-    private final MultipartFile image1;
-    private final MultipartFile image2;
+    /**
+     * 参考图片集合
+     */
+    private final List<DrawingImageInfoBo> images;
 
     /**
      * 任务超时时间(分钟)
@@ -35,12 +37,12 @@ public class DrawingTaskInfo implements Serializable {
     /**
      * 用户ID
      */
-    private long userId;
+    private final long userId;
 
     /**
      * 绘图次数
      */
-    private int drawNum;
+    private final int drawNum;
 
     /**
      * @param taskId  自定义的任务id
@@ -48,17 +50,15 @@ public class DrawingTaskInfo implements Serializable {
      * @param timeout 任务超时时间
      * @param userId    用户ID
      * @param drawNum   绘图次数
-     * @param image1 图片1
-     * @param image2 图片2
+     * @param images 参考图片集合
      */
     @ConstructorProperties({"taskId", "flow", "timeout"})
-    public DrawingTaskInfo(String taskId, String flow, long timeout, Long userId, Integer drawNum, MultipartFile image1, MultipartFile image2) {
+    public DrawingTaskInfo(String taskId, String flow, long timeout, Long userId, Integer drawNum, List<DrawingImageInfoBo> images) {
         this.taskId = taskId;
         this.flow = flow;
         this.timeout = timeout;
         this.userId = userId;
         this.drawNum = drawNum;
-        this.image1 = image1;
-        this.image2 = image2;
+        this.images = images;
     }
 }

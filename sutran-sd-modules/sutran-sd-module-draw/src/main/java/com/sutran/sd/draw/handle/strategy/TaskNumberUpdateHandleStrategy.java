@@ -18,6 +18,6 @@ public class TaskNumberUpdateHandleStrategy implements IComfyWebSocketTextHandle
      */
     @Override
     public void handleMessage(JsonNode dataNode) {
-        log.warn("[任务队列数量更新]>>>>>>>>>节点信息: {}", dataNode);
+        log.info("[任务队列数量更新]>>>>>>>>>节点信息: {}", dataNode);
     }
 }

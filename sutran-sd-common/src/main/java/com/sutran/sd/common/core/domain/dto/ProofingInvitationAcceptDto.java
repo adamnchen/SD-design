@@ -2,7 +2,6 @@ package com.sutran.sd.common.core.domain.dto;
 
 import lombok.Data;
 
-import javax.validation.Valid;
 import javax.validation.constraints.DecimalMax;
 import javax.validation.constraints.DecimalMin;
 import javax.validation.constraints.NotNull;
@@ -19,9 +18,8 @@ public class ProofingInvitationAcceptDto implements Serializable {
     private static final long serialVersionUID = 1L;
 
     /**
-     * 【必填】邀约单ID
+     * 邀约单ID (由路径参数自动设置，前端无需传递)
      */
-    @NotNull(message = "邀约单ID不能为空")
     private Long invitationId;
 
     /**
@@ -46,8 +44,8 @@ public class ProofingInvitationAcceptDto implements Serializable {
      * 阶梯价格配置
      * - 商家输入价格点，程序自动计算区间
      * - 例如：[20, 30, 40] 对应 0-20, 20-30, 30-40 区间
+     * - 注意：当 isQuoteBatchPlan = true 时，此字段必填
      */
-    @Valid
     private List<BigDecimal> tieredPricing;
 
     /**

@@ -230,10 +230,9 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
         }
 
 
-        // 通过候选记录校验：当前用户必须是该邀约的候选厂家之一
-        SdProofingInvitationCandidate candidate = candidateMapper.selectOneByInvitationAndInvitee(acceptDTO.getInvitationId(), currentUserId);
-        if (candidate == null) {
-            throw new ServiceException("权限不足，您不是该邀约的候选接收人");
+        // 检查当前用户是否为被邀约人
+        if (!currentUserId.equals(invitation.getInviteeUserId())) {
+            throw new ServiceException("权限不足，您不是该邀约的被邀约人");
         }
 
         if (!ProofingInvitationConstants.STATUS_PENDING.equals(invitation.getStatus())) {
@@ -253,6 +252,17 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
                 throw new ServiceException("利润分成比例区间为0-100");
             }
         }
+        
+        // 条件验证：如果提供批量生产方案，阶梯价格必填
+        if (Boolean.TRUE.equals(acceptDTO.getIsQuoteBatchPlan())) {
+            if (acceptDTO.getTieredPricing() == null || acceptDTO.getTieredPricing().isEmpty()) {
+                throw new ServiceException("提供批量生产方案时，阶梯价格不能为空");
+            }
+            // 验证阶梯价格格式
+            if (acceptDTO.getTieredPricing().stream().anyMatch(price -> price == null || price.signum() <= 0)) {
+                throw new ServiceException("阶梯价格必须为正数");
+            }
+        }
 
         // 处理阶梯价格为JSON
         String tieredPricingJson = null;
@@ -265,22 +275,22 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
             }
         }
 
-        // 写入候选报价信息（不改变主表状态）
-        candidate.setQuotedPrice(acceptDTO.getQuotedPrice());
-        candidate.setQuotedPeriodDays(acceptDTO.getQuotedPeriodDays());
-        candidate.setIsQuoteBatchPlan(Boolean.TRUE.equals(acceptDTO.getIsQuoteBatchPlan()));
-        candidate.setQuoteSubmitAt(new java.util.Date());
-        candidate.setTieredPricing(tieredPricingJson);
-        candidate.setProfitShareRatio(acceptDTO.getProfitShareRatio());
-        candidate.setStatus(ProofingInvitationConstants.STATUS_ACCEPTED);
+        // 更新邀约状态和报价信息
+        invitation.setQuotedPrice(acceptDTO.getQuotedPrice());
+        invitation.setQuotedPeriodDays(acceptDTO.getQuotedPeriodDays());
+        invitation.setIsQuoteBatchPlan(Boolean.TRUE.equals(acceptDTO.getIsQuoteBatchPlan()));
+        invitation.setQuoteSubmitAt(new java.util.Date());
+        invitation.setTieredPricing(tieredPricingJson);
+        invitation.setProfitShareRatio(acceptDTO.getProfitShareRatio());
+        invitation.setStatus(ProofingInvitationConstants.STATUS_ACCEPTED);
 
-        int rows = candidateMapper.updateById(candidate);
-
-        log.info("用户 {} 接受邀约 {} 成功", currentUserId, acceptDTO.getInvitationId());
+        int rows = invitationMapper.updateById(invitation);
 
         if (rows == 0) {
             throw new ServiceException("操作失败，请重试");
         }
+        
+        log.info("用户 {} 接受邀约 {} 成功", currentUserId, acceptDTO.getInvitationId());
     }
 
     /**
@@ -297,18 +307,18 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
             throw new ServiceException("操作失败，该邀约不存在或已被删除");
         }
 
-        SdProofingInvitationCandidate candidate = candidateMapper.selectOneByInvitationAndInvitee(invitationId, currentUserId);
-        if (candidate == null) {
-            throw new ServiceException("权限不足，您不是该邀约的候选接收人");
+        // 检查当前用户是否为被邀约人
+        if (!currentUserId.equals(invitation.getInviteeUserId())) {
+            throw new ServiceException("权限不足，您不是该邀约的被邀约人");
         }
 
         if (!ProofingInvitationConstants.STATUS_PENDING.equals(invitation.getStatus())) {
             throw new ServiceException("操作失败，该邀约已被处理或已取消，无法拒绝");
         }
 
-        candidate.setStatus(ProofingInvitationConstants.STATUS_REJECTED);
-
-        int rows = candidateMapper.updateById(candidate);
+        // 更新邀约状态为已拒绝
+        invitation.setStatus(ProofingInvitationConstants.STATUS_REJECTED);
+        int rows = invitationMapper.updateById(invitation);
         if (rows == 0) {
             throw new ServiceException("数据库操作失败，请重试");
         }

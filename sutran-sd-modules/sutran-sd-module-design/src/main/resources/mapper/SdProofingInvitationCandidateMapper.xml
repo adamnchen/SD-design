@@ -66,6 +66,13 @@
         ORDER BY c.status DESC, c.quote_submit_at DESC, c.id DESC
     </select>
 
+    <!-- 删除其他候选人的记录 -->
+    <delete id="deleteOtherCandidates">
+        DELETE FROM sd_proofing_invitation_candidates
+        WHERE invitation_id = #{invitationId}
+          AND invitee_user_id != #{acceptedUserId}
+    </delete>
+
 </mapper>
 
 

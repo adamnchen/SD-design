@@ -44,11 +44,11 @@ public class ProofingInvitationController {
     @GetMapping("/received")
     public R<List<ProofingInvitationDetailVO>> getMyReceivedInvitations() {
         List<ProofingInvitationDetailVO> list = invitationService.getReceivedInvitations();
-        
+
         if (list == null || list.isEmpty()) {
             return R.ok("暂无收到的邀约", list);
         }
-        
+
         return R.ok("成功获取 " + list.size() + " 个邀约", list);
     }
 
@@ -58,11 +58,11 @@ public class ProofingInvitationController {
     @GetMapping("/sent")
     public R<List<ProofingInvitationDetailVO>> getMySentInvitations() {
         List<ProofingInvitationDetailVO> list = invitationService.getSentInvitations();
-        
+
         if (list == null || list.isEmpty()) {
             return R.ok("暂无发出的邀约", list);
         }
-        
+
         return R.ok("成功获取 " + list.size() + " 个邀约", list);
     }
 
@@ -87,11 +87,7 @@ public class ProofingInvitationController {
      */
     @PutMapping("/{id}/accept")
     public R<Void> acceptInvitation(@PathVariable("id") Long id, @Validated @RequestBody com.sutran.sd.common.core.domain.dto.ProofingInvitationAcceptDto dto) {
-        if (dto.getInvitationId() == null) {
-            dto.setInvitationId(id);
-        } else if (!id.equals(dto.getInvitationId())) {
-            return R.fail("路径ID与请求体的邀约ID不一致");
-        }
+        dto.setInvitationId(id);
         invitationService.acceptInvitation(dto);
         return R.ok("已接受合作邀约");
     }

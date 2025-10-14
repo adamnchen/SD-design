@@ -131,7 +131,10 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
     @Override
     public List<ProofingInvitationDetailVO> getReceivedInvitations() {
         Long currentUserId = LoginHelper.getUserId();
+        log.info("开始查询用户 {} 收到的邀约", currentUserId);
+        
         List<ProofingInvitationDetailVO> invitationList = invitationMapper.selectReceivedInvitationList(currentUserId);
+        log.info("数据库查询返回 {} 条记录", invitationList != null ? invitationList.size() : "null");
 
         if (invitationList == null || invitationList.isEmpty()) {
             log.info("用户 {} 没有收到任何邀约", currentUserId);
@@ -165,7 +168,17 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
     @Override
     public TableDataInfo<ProofingInvitationDetailVO> getReceivedInvitationsPage(PageQuery pageQuery) {
         Long currentUserId = LoginHelper.getUserId();
+        log.info("开始分页查询用户 {} 收到的邀约，分页参数：pageNum={}, pageSize={}", 
+                currentUserId, pageQuery.getPageNum(), pageQuery.getPageSize());
+        
         IPage<ProofingInvitationDetailVO> page = invitationMapper.selectReceivedInvitationPage(pageQuery.build(), currentUserId);
+        log.info("分页查询返回 {} 条记录", page.getRecords() != null ? page.getRecords().size() : "null");
+        
+        // 手动设置total，因为自定义SQL可能无法被分页插件正确计算
+        Long total = invitationMapper.countReceivedInvitations(currentUserId);
+        log.info("统计查询返回总数：{}", total);
+        page.setTotal(total);
+        
         return TableDataInfo.build(page);
     }
 
@@ -176,6 +189,11 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
     public TableDataInfo<ProofingInvitationDetailVO> getSentInvitationsPage(PageQuery pageQuery) {
         Long currentUserId = LoginHelper.getUserId();
         IPage<ProofingInvitationDetailVO> page = invitationMapper.selectSentInvitationPage(pageQuery.build(), currentUserId);
+        
+        // 手动设置total，因为自定义SQL可能无法被分页插件正确计算
+        Long total = invitationMapper.countSentInvitations(currentUserId);
+        page.setTotal(total);
+        
         return TableDataInfo.build(page);
     }
 

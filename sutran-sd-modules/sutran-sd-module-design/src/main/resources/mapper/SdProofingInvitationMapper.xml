@@ -61,12 +61,19 @@
 
             -- 关联查询【发起人】的用户信息
             inviter.nick_name AS inviter_nick_name,
-            inviter.avatar    AS inviter_avatar
+            inviter.avatar    AS inviter_avatar,
+
+            -- 关联查询【被邀约人】的用户信息
+            invitee.nick_name AS invitee_nick_name,
+            invitee.avatar    AS invitee_avatar
         FROM
             sd_proofing_invitations inv
                 LEFT JOIN
             -- 关联用户表，获取【发起人】的信息
                 sys_user inviter ON inv.inviter_user_id = inviter.user_id
+                LEFT JOIN
+            -- 关联用户表，获取【被邀约人】的信息
+                sys_user invitee ON inv.invitee_user_id = invitee.user_id
         WHERE
             -- 查询条件：我是【被邀约人】
             inv.invitee_user_id = #{userId}
@@ -99,11 +106,18 @@
             inv.invitee_user_id,
             inv.draw_number,
 
+            -- 关联查询【发起人】的用户信息
+            inviter.nick_name AS inviter_nick_name,
+            inviter.avatar    AS inviter_avatar,
+
             -- 关联查询【被邀约人】的用户信息
             invitee.nick_name AS invitee_nick_name,
             invitee.avatar    AS invitee_avatar
         FROM
             sd_proofing_invitations inv
+                LEFT JOIN
+            -- 关联用户表，获取【发起人】的信息
+                sys_user inviter ON inv.inviter_user_id = inviter.user_id
                 LEFT JOIN
             -- 关联用户表，获取【被邀约人】的信息
                 sys_user invitee ON inv.invitee_user_id = invitee.user_id
@@ -200,6 +214,20 @@
             inv.inviter_user_id = #{userId}
         ORDER BY
             inv.created_at DESC
+    </select>
+
+    <!-- 统计我收到的邀约总数 -->
+    <select id="countReceivedInvitations" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        FROM sd_proofing_invitations inv
+        WHERE inv.invitee_user_id = #{userId}
+    </select>
+
+    <!-- 统计我发出的邀约总数 -->
+    <select id="countSentInvitations" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        FROM sd_proofing_invitations inv
+        WHERE inv.inviter_user_id = #{userId}
     </select>
 
 </mapper>

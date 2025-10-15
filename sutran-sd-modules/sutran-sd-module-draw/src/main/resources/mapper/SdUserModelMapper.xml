@@ -7,6 +7,7 @@
     <resultMap type="com.sutran.sd.draw.domain.vo.SdUserModelVo" id="BaseModelVo">
         <id property="id" column="id"/>
         <result property="title" column="title"/>
+        <result property="taskId" column="task_id"/>
         <result property="classifyId" column="classify_id"/>
         <result property="classifyName" column="classify_name"/>
         <result property="modelName" column="model_name"/>
@@ -30,6 +31,7 @@
     <resultMap type="com.sutran.sd.draw.domain.vo.ComfyUserModelVo" id="BaseComfyuiModelVo">
         <id property="id" column="id"/>
         <result property="title" column="title"/>
+        <result property="taskId" column="task_id"/>
         <result property="classifyId" column="classify_id"/>
         <result property="classifyName" column="classify_name"/>
         <result property="modelName" column="model_name"/>
@@ -160,7 +162,7 @@
 
     <!-- 获取ComfyUI最近使用的n个模型列表 -->
     <select id="getLatestModelInfoOfComfyui" resultMap="BaseComfyuiModelVo">
-        SELECT DISTINCT B.id, A.crt_time, A.use_times, B.classify_id, B.title, B.model_name, B.model_name_zh, B.file_name, B.url, B.remark, B.type, IFNULL(A.model_strength,B.model_strength) AS model_strength, B.is_open, B.belong_user_id, B.publish_status,C.user_name AS belong_user_name
+        SELECT DISTINCT B.id, A.crt_time, A.use_times, B.classify_id, B.title, B.model_name, B.model_name_zh, B.file_name, B.url, B.remark, B.type, IFNULL(A.model_strength,B.model_strength) AS model_strength, B.is_open, B.belong_user_id, B.publish_status, B.task_id,C.user_name AS belong_user_name
         FROM sd_user_model_log AS A
              LEFT JOIN sd_user_model AS B ON A.lora_model_id=B.id
              LEFT JOIN sys_user AS C ON B.belong_user_id=C.user_id

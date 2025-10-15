@@ -24,16 +24,15 @@ import com.sutran.sd.common.exception.ServiceException;
 import com.sutran.sd.common.helper.LoginHelper;
 import com.sutran.sd.common.utils.StringUtils;
 import com.sutran.sd.common.utils.redis.RedisUtils;
-import com.sutran.sd.draw.domain.SdDrawNode;
-import com.sutran.sd.draw.domain.pojo.ComfyTaskImage;
-import com.sutran.sd.draw.domain.vo.*;
-import com.sutran.sd.draw.domain.dto.train.*;
-import com.sutran.sd.draw.mq.MqConstant;
-import com.sutran.sd.draw.events.RefreshLoraEvent;
-import com.sutran.sd.draw.service.*;
 import com.sutran.sd.draw.domain.SdCommonConfig;
+import com.sutran.sd.draw.domain.SdDrawNode;
 import com.sutran.sd.draw.domain.SdGpuPool;
 import com.sutran.sd.draw.domain.SdTrainTask;
+import com.sutran.sd.draw.domain.dto.train.*;
+import com.sutran.sd.draw.domain.vo.*;
+import com.sutran.sd.draw.events.RefreshLoraEvent;
+import com.sutran.sd.draw.mq.MqConstant;
+import com.sutran.sd.draw.service.*;
 import com.sutran.sd.draw.utils.CommonUtil;
 import com.sutran.sd.draw.utils.JsonUtils;
 import com.sutran.sd.system.service.ISysDictDataService;
@@ -1468,21 +1467,17 @@ public class SdTrainServiceImpl implements SdTrainService {
         }
         // 创建任务
 //        sdTrainTaskService.insert();
-
-
-        CompletableFuture.runAsync(() -> {
-            try {
-                HttpRequest request = HttpRequest.post(node.getBaseUrl() + "/api/caption").form("images", images).form("concept_sentence", conceptSentence).timeout(30000);
-                String resp = execHttpRequest(request);
-                List<FluxgymTainTaskVo> list = JsonUtils.toListObject(resp, FluxgymTainTaskVo.class);
-                if (CollectionUtil.isEmpty(list)) {
-                    throw new ServiceException("图片识别失败!");
-                }
-            } catch (Exception e) {
-                log.error("[FLuxGym]>>>>>>>>>图片识别失败!原因：", e);
+        try {
+            HttpRequest request = HttpRequest.post(node.getBaseUrl() + "/api/caption").form("images", images).form("concept_sentence", conceptSentence).timeout(30000);
+            String resp = execHttpRequest(request);
+            List<FluxgymTainTaskVo> list = JsonUtils.toListObject(resp, FluxgymTainTaskVo.class);
+            if (CollectionUtil.isEmpty(list)) {
                 throw new ServiceException("图片识别失败!");
             }
-        },executor);
+        } catch (Exception e) {
+            log.error("[FLuxGym]>>>>>>>>>图片识别失败!原因：", e);
+            throw new ServiceException("图片识别失败!");
+        }
     }
 
     /** 执行request 并自动关闭response **/

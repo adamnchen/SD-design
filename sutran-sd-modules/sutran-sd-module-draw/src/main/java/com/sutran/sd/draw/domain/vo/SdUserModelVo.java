@@ -23,6 +23,11 @@ public class SdUserModelVo implements Serializable {
     @Schema(name = "id", description = "模型ID")
     private String id;
     /**
+     * 关联训练任务ID
+     */
+    @Schema(name = "taskId", description = "关联训练任务ID")
+    private String taskId;
+    /**
      * 模型标题
      */
     @Schema(name = "title", description = "模型标题")
@@ -88,6 +93,11 @@ public class SdUserModelVo implements Serializable {
     @Schema(name = "remark", description = "模型描述")
     private String remark;
     /**
+     * 模型标签
+     */
+    @Schema(name = "model_tag", description = "模型标签")
+    private String modelTag;
+    /**
      * 模型归属类型[0-系统,1-个人]
      */
     @Schema(name = "type", description = "模型归属类型[0-系统,1-个人]")
@@ -125,7 +135,7 @@ public class SdUserModelVo implements Serializable {
     /**
      * 模型训练时的预处理任务ID
      */
-    @Schema(name = "preTaskId", description = "模型训练时的预处理任务ID")
+    @Schema(name = "preTaskId", description = "模型训练时的任务ID")
     private String preTaskId;
     /**
      * 用户是否已删除该模型[0-否,1-是]

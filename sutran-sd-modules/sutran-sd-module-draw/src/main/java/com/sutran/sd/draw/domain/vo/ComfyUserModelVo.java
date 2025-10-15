@@ -22,6 +22,11 @@ public class ComfyUserModelVo implements Serializable {
     @Schema(name = "id", description = "模型ID")
     private String id;
     /**
+     * 关联训练任务ID
+     */
+    @Schema(name = "taskId", description = "关联训练任务ID")
+    private String taskId;
+    /**
      * 模型标题
      */
     @Schema(name = "title", description = "模型标题")
@@ -101,11 +106,6 @@ public class ComfyUserModelVo implements Serializable {
      */
     @Schema(name = "crtTime", description = "模型创建时间")
     private Date crtTime;
-    /**
-     * 模型训练任务ID
-     */
-    @Schema(name = "taskId", description = "模型训练任务ID")
-    private String taskId;
     /**
      * 用户是否已删除该模型[0-否,1-是]
      */

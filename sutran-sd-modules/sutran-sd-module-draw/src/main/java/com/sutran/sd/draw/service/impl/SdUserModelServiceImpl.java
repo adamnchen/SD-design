@@ -399,6 +399,8 @@ public class SdUserModelServiceImpl implements SdUserModelService {
         }
         // 获取每个模型对应的训练数据中的提示词文件
         for (ComfyUserModelVo vo : list) {
+            // 获取关联训练任务ID
+            vo.getTaskId();
             // 获取模型文件路径
         }
         return Collections.emptyList();

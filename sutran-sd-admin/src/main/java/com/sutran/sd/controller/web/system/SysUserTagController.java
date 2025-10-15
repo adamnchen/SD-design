@@ -111,7 +111,7 @@ public class SysUserTagController extends BaseController {
     /**
      * 获取指定用户的身份标签（所有身份标签）
      */
-    @SaCheckPermission("system:user:query")
+
     @Operation(summary = "获取用户身份标签", description = "获取指定用户的所有身份标签")
     @GetMapping("/{userId}/identity")
     public R<List<TagDetailVO>> getUserIdentityTags(@PathVariable Long userId) {

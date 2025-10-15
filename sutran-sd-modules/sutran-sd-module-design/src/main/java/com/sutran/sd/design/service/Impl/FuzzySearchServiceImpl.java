@@ -10,6 +10,7 @@ import com.sutran.sd.system.mapper.SysUserMapper;
 import com.sutran.sd.system.mapper.SysUserTagMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import me.chanjar.weixin.mp.enums.WxMpApiUrl;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -53,7 +54,7 @@ public class FuzzySearchServiceImpl implements IFuzzySearchService {
         for (SysUser manufacturer : manufacturers) {
             List<SysUserTag> userTags = userTagsMap.getOrDefault(manufacturer.getUserId(), Collections.emptyList());
             ManufacturerSearchResultVO result = calculateMatch(manufacturer, userTags, keywords);
-            
+
             if (result.getMatchScore() > 0) {
                 results.add(result);
             }
@@ -73,6 +74,7 @@ public class FuzzySearchServiceImpl implements IFuzzySearchService {
         }
 
         log.info("开始根据标签搜索厂商，标签：{}", tags);
+        log.info("搜索标签详情：{}", tags.stream().map(tag -> "'" + tag + "'").collect(Collectors.joining(", ")));
 
         // 1. 获取所有厂商用户
         List<SysUser> manufacturers = getAllManufacturers();
@@ -82,14 +84,20 @@ public class FuzzySearchServiceImpl implements IFuzzySearchService {
 
         // 2. 获取所有厂商的标签
         Map<Long, List<SysUserTag>> userTagsMap = getUserTagsMap(manufacturers);
+        log.info("找到 {} 个厂商，共 {} 个标签映射", manufacturers.size(), userTagsMap.size());
 
         // 3. 进行标签匹配
         List<ManufacturerSearchResultVO> results = new ArrayList<>();
         for (SysUser manufacturer : manufacturers) {
             List<SysUserTag> userTags = userTagsMap.getOrDefault(manufacturer.getUserId(), Collections.emptyList());
-            ManufacturerSearchResultVO result = calculateTagMatch(manufacturer, userTags, tags);
+            log.debug("厂商 {} 的标签：{}", manufacturer.getNickName(), 
+                userTags.stream().map(SysUserTag::getTagName).collect(Collectors.joining(", ")));
             
+            ManufacturerSearchResultVO result = calculateTagMatch(manufacturer, userTags, tags);
+
             if (result.getMatchScore() > 0) {
+                log.info("厂商 {} 匹配成功，得分：{}，匹配标签：{}", 
+                    manufacturer.getNickName(), result.getMatchScore(), result.getMatchedTags());
                 results.add(result);
             }
         }
@@ -105,10 +113,28 @@ public class FuzzySearchServiceImpl implements IFuzzySearchService {
      * 获取所有厂商用户
      */
     private List<SysUser> getAllManufacturers() {
-        LambdaQueryWrapper<SysUser> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(SysUser::getUserType, "bs_user")
-               .eq(SysUser::getDelFlag, "0"); // 未删除的用户
-        return sysUserMapper.selectList(wrapper);
+        // 1. 查询所有 bizType 为 "0" 的 SysUserTag 记录
+        LambdaQueryWrapper<SysUserTag> tagWrapper = new LambdaQueryWrapper<>();
+        tagWrapper.eq(SysUserTag::getBizType, "0");
+        // 仅查询 userId 字段
+        tagWrapper.select(SysUserTag::getUserId);
+
+        List<SysUserTag> tagList = sysUserTagMapper.selectList(tagWrapper);
+
+        if (tagList.isEmpty()) {
+            return Collections.emptyList(); // 没有找到任何厂商用户标签，直接返回空列表
+        }
+
+        // 2. 提取所有关联的用户 ID
+        Set<Long> userIds = tagList.stream()
+            .map(SysUserTag::getUserId) // 假设 SysUserTag 有 getUserId() 方法
+            .collect(Collectors.toSet());
+
+        // 3. 根据用户 ID 集合批量查询 SysUser
+        LambdaQueryWrapper<SysUser> userWrapper = new LambdaQueryWrapper<>();
+        userWrapper.in(SysUser::getUserId, userIds); // 假设 SysUser 的主键是 getId()
+
+        return sysUserMapper.selectList(userWrapper); // 假设您有 SysUser 的 Mapper：sysUserMapper
     }
 
     /**
@@ -150,7 +176,7 @@ public class FuzzySearchServiceImpl implements IFuzzySearchService {
 
         for (SysUserTag tag : userTags) {
             String tagName = tag.getTagName().toLowerCase();
-            
+
             // 完全匹配
             if (tagName.equals(lowerKeywords)) {
                 matchScore += 100;
@@ -193,15 +219,24 @@ public class FuzzySearchServiceImpl implements IFuzzySearchService {
         int matchScore = 0;
         List<String> matchedTags = new ArrayList<>();
 
+        log.debug("开始计算厂商 {} 的标签匹配度", manufacturer.getNickName());
+        log.debug("用户标签：{}", userTags.stream().map(SysUserTag::getTagName).collect(Collectors.joining(", ")));
+        log.debug("搜索标签：{}", searchTags);
+
         for (String searchTag : searchTags) {
-            String lowerSearchTag = searchTag.toLowerCase();
-            
+            // 去除前后空格，避免空格导致的匹配问题
+            String trimmedSearchTag = searchTag.trim();
+            String lowerSearchTag = trimmedSearchTag.toLowerCase();
+            log.debug("正在搜索标签：'{}' (小写：'{}')", searchTag, lowerSearchTag);
+
             for (SysUserTag userTag : userTags) {
                 String tagName = userTag.getTagName().toLowerCase();
-                
+                log.debug("比较用户标签：'{}' (小写：'{}')", userTag.getTagName(), tagName);
+
                 // 完全匹配
                 if (tagName.equals(lowerSearchTag)) {
                     matchScore += 100;
+                    log.debug("完全匹配！得分+100");
                     if (!matchedTags.contains(userTag.getTagName())) {
                         matchedTags.add(userTag.getTagName());
                     }
@@ -209,6 +244,7 @@ public class FuzzySearchServiceImpl implements IFuzzySearchService {
                 // 包含匹配
                 else if (tagName.contains(lowerSearchTag) || lowerSearchTag.contains(tagName)) {
                     matchScore += 80;
+                    log.debug("包含匹配！得分+80");
                     if (!matchedTags.contains(userTag.getTagName())) {
                         matchedTags.add(userTag.getTagName());
                     }
@@ -216,9 +252,12 @@ public class FuzzySearchServiceImpl implements IFuzzySearchService {
                 // 模糊匹配
                 else if (calculateSimilarity(tagName, lowerSearchTag) > 0.6) {
                     matchScore += 60;
+                    log.debug("模糊匹配！得分+60");
                     if (!matchedTags.contains(userTag.getTagName())) {
                         matchedTags.add(userTag.getTagName());
                     }
+                } else {
+                    log.debug("无匹配");
                 }
             }
         }
@@ -238,7 +277,7 @@ public class FuzzySearchServiceImpl implements IFuzzySearchService {
 
         int maxLength = Math.max(s1.length(), s2.length());
         int editDistance = calculateEditDistance(s1, s2);
-        
+
         return 1.0 - (double) editDistance / maxLength;
     }
 
@@ -247,7 +286,7 @@ public class FuzzySearchServiceImpl implements IFuzzySearchService {
      */
     private int calculateEditDistance(String s1, String s2) {
         int[][] dp = new int[s1.length() + 1][s2.length() + 1];
-        
+
         for (int i = 0; i <= s1.length(); i++) {
             for (int j = 0; j <= s2.length(); j++) {
                 if (i == 0) {
@@ -262,7 +301,7 @@ public class FuzzySearchServiceImpl implements IFuzzySearchService {
                 }
             }
         }
-        
+
         return dp[s1.length()][s2.length()];
     }
 
@@ -287,11 +326,11 @@ public class FuzzySearchServiceImpl implements IFuzzySearchService {
         // 3. 进行名字模糊匹配
         List<ManufacturerSearchResultVO> results = new ArrayList<>();
         String lowerName = name.toLowerCase();
-        
+
         for (SysUser manufacturer : manufacturers) {
             List<SysUserTag> userTags = userTagsMap.getOrDefault(manufacturer.getUserId(), Collections.emptyList());
             ManufacturerSearchResultVO result = calculateNameMatch(manufacturer, userTags, lowerName);
-            
+
             if (result.getMatchScore() > 0) {
                 results.add(result);
             }
@@ -326,7 +365,7 @@ public class FuzzySearchServiceImpl implements IFuzzySearchService {
         // 检查用户昵称匹配
         if (StringUtils.hasText(manufacturer.getNickName())) {
             String nickName = manufacturer.getNickName().toLowerCase();
-            
+
             // 完全匹配
             if (nickName.equals(searchName)) {
                 matchScore += 100;
@@ -344,7 +383,7 @@ public class FuzzySearchServiceImpl implements IFuzzySearchService {
         // 检查用户名匹配
         if (StringUtils.hasText(manufacturer.getUserName())) {
             String userName = manufacturer.getUserName().toLowerCase();
-            
+
             // 完全匹配
             if (userName.equals(searchName)) {
                 matchScore += 90;
@@ -362,7 +401,7 @@ public class FuzzySearchServiceImpl implements IFuzzySearchService {
         // 检查标签匹配（作为辅助匹配）
         for (SysUserTag tag : userTags) {
             String tagName = tag.getTagName().toLowerCase();
-            
+
             if (tagName.contains(searchName) || searchName.contains(tagName)) {
                 matchScore += 30;
                 if (!matchedTags.contains(tag.getTagName())) {

@@ -7,6 +7,7 @@ import com.sutran.sd.common.core.domain.dto.ProofingInvitationRequestDTO;
 import com.sutran.sd.common.core.domain.dto.ProofingInvitationChooseDto;
 import com.sutran.sd.common.core.domain.entity.SdProofingInvitation;
 import com.sutran.sd.common.core.domain.vo.ProofingInvitationDetailVO;
+import com.sutran.sd.common.core.domain.vo.MerchantProcessedInvitationVO;
 import com.sutran.sd.common.core.page.TableDataInfo;
 import com.sutran.sd.common.core.domain.PageQuery;
 import com.sutran.sd.common.constant.ProofingInvitationConstants;
@@ -524,6 +525,67 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
         }
         
         throw new ServiceException("邀约详情获取失败");
+    }
+    
+    // === 商家查看已处理邀约相关方法 ===
+    
+    @Override
+    public TableDataInfo<MerchantProcessedInvitationVO> getMerchantProcessedInvitationsPage(PageQuery pageQuery, Integer status) {
+        Long currentUserId = LoginHelper.getUserId();
+        log.info("分页查询商家 {} 已处理的邀约，状态：{}", currentUserId, status);
+        
+        IPage<MerchantProcessedInvitationVO> page = invitationMapper.selectMerchantProcessedInvitationPage(
+            pageQuery.build(), currentUserId, status);
+        
+        // 手动设置总数，确保分页正确
+        Long total = invitationMapper.countMerchantProcessedInvitations(currentUserId, status);
+        page.setTotal(total);
+        
+        log.info("查询完成，共找到 {} 个已处理的邀约", total);
+        return TableDataInfo.build(page);
+    }
+    
+    @Override
+    public List<MerchantProcessedInvitationVO> getMerchantProcessedInvitationsList(Integer status) {
+        Long currentUserId = LoginHelper.getUserId();
+        log.info("查询商家 {} 已处理的邀约列表，状态：{}", currentUserId, status);
+        
+        List<MerchantProcessedInvitationVO> invitations = invitationMapper.selectMerchantProcessedInvitationList(
+            currentUserId, status);
+        
+        log.info("查询完成，共找到 {} 个已处理的邀约", invitations.size());
+        return invitations;
+    }
+    
+    @Override
+    public MerchantProcessedInvitationVO getMerchantProcessedInvitationById(Long invitationId) {
+        if (invitationId == null) {
+            throw new ServiceException("邀约ID不能为空");
+        }
+        
+        Long currentUserId = LoginHelper.getUserId();
+        log.info("查询商家 {} 已处理的邀约详情，邀约ID：{}", currentUserId, invitationId);
+        
+        MerchantProcessedInvitationVO invitation = invitationMapper.selectMerchantProcessedInvitationById(
+            invitationId, currentUserId);
+        
+        if (invitation == null) {
+            throw new ServiceException("邀约不存在或您无权查看该邀约");
+        }
+        
+        log.info("查询完成，邀约标题：{}", invitation.getProductTitle());
+        return invitation;
+    }
+    
+    @Override
+    public Long countMerchantProcessedInvitations(Integer status) {
+        Long currentUserId = LoginHelper.getUserId();
+        log.info("统计商家 {} 已处理的邀约数量，状态：{}", currentUserId, status);
+        
+        Long count = invitationMapper.countMerchantProcessedInvitations(currentUserId, status);
+        
+        log.info("统计完成，共 {} 个已处理的邀约", count);
+        return count;
     }
 
 }

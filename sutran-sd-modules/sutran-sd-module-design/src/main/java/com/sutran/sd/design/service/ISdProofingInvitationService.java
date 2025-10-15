@@ -5,6 +5,7 @@ import com.sutran.sd.common.core.domain.dto.ProofingInvitationChooseDto;
 import com.sutran.sd.common.core.domain.dto.ProofingInvitationAcceptDto;
 import com.sutran.sd.common.core.domain.entity.SdProofingInvitation;
 import com.sutran.sd.common.core.domain.vo.ProofingInvitationDetailVO;
+import com.sutran.sd.common.core.domain.vo.MerchantProcessedInvitationVO;
 import com.sutran.sd.common.core.page.TableDataInfo;
 import com.sutran.sd.common.core.domain.PageQuery;
 
@@ -99,4 +100,40 @@ public interface ISdProofingInvitationService {
      * @return 邀约详情
      */
     ProofingInvitationDetailVO getInvitationDetail(Long invitationId);
+    
+    // === 商家查看已处理邀约相关方法 ===
+    
+    /**
+     * 分页查询商家已处理的邀约列表
+     * 商家只能查看自己作为被邀约人的邀约，且只能看到自己的报价信息
+     *
+     * @param pageQuery 分页查询参数
+     * @param status 邀约状态（可选）
+     * @return 分页邀约详情列表
+     */
+    TableDataInfo<MerchantProcessedInvitationVO> getMerchantProcessedInvitationsPage(PageQuery pageQuery, Integer status);
+    
+    /**
+     * 查询商家已处理的邀约列表（不分页）
+     *
+     * @param status 邀约状态（可选）
+     * @return 邀约详情列表
+     */
+    List<MerchantProcessedInvitationVO> getMerchantProcessedInvitationsList(Integer status);
+    
+    /**
+     * 根据ID查询商家已处理的邀约详情
+     *
+     * @param invitationId 邀约ID
+     * @return 邀约详情
+     */
+    MerchantProcessedInvitationVO getMerchantProcessedInvitationById(Long invitationId);
+    
+    /**
+     * 统计商家已处理的邀约总数
+     *
+     * @param status 邀约状态（可选）
+     * @return 邀约总数
+     */
+    Long countMerchantProcessedInvitations(Integer status);
 }

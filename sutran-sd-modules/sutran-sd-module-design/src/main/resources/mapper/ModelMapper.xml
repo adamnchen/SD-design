@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sutran.sd.design.mapper.ModelMapper">
+
+    <!-- 基础结果映射 -->
+    <resultMap id="BaseResultMap" type="com.sutran.sd.common.core.domain.entity.Model">
+        <id column="id" property="id" />
+        <result column="classify_id" property="classifyId" />
+        <result column="title" property="title" />
+        <result column="model_name" property="modelName" />
+        <result column="model_name_zh" property="modelNameZh" />
+        <result column="model_strength" property="modelStrength" />
+        <result column="addition_tag" property="additionTag" />
+        <result column="hash" property="hash" />
+        <result column="file_name" property="fileName" />
+        <result column="config" property="config" />
+        <result column="url" property="url" />
+        <result column="remark" property="remark" />
+        <result column="type" property="type" />
+        <result column="is_open" property="isOpen" />
+        <result column="belong_user_id" property="belongUserId" />
+        <result column="publish_status" property="publishStatus" />
+        <result column="crt_time" property="crtTime" />
+        <result column="is_user_del" property="isUserDel" />
+        <result column="model_type" property="modelType" />
+    </resultMap>
+
+    <!-- 分页查询用户的模型列表 -->
+    <select id="selectUserModelPage" resultMap="BaseResultMap">
+        SELECT 
+            id, classify_id, title, model_name, model_name_zh, model_strength,
+            addition_tag, hash, file_name, config, url, remark, type,
+            is_open, belong_user_id, publish_status, crt_time, is_user_del, model_type
+        FROM model
+        WHERE belong_user_id = #{userId}
+        <if test="modelType != null and modelType != ''">
+            AND model_type = #{modelType}
+        </if>
+        <if test="isUserDel != null">
+            AND is_user_del = #{isUserDel}
+        </if>
+        ORDER BY crt_time DESC
+    </select>
+
+    <!-- 查询用户的模型列表（不分页） -->
+    <select id="selectUserModelList" resultMap="BaseResultMap">
+        SELECT 
+            id, classify_id, title, model_name, model_name_zh, model_strength,
+            addition_tag, hash, file_name, config, url, remark, type,
+            is_open, belong_user_id, publish_status, crt_time, is_user_del, model_type
+        FROM model
+        WHERE belong_user_id = #{userId}
+        <if test="modelType != null and modelType != ''">
+            AND model_type = #{modelType}
+        </if>
+        <if test="isUserDel != null">
+            AND is_user_del = #{isUserDel}
+        </if>
+        ORDER BY crt_time DESC
+    </select>
+
+    <!-- 根据ID查询用户的模型详情 -->
+    <select id="selectUserModelById" resultMap="BaseResultMap">
+        SELECT 
+            id, classify_id, title, model_name, model_name_zh, model_strength,
+            addition_tag, hash, file_name, config, url, remark, type,
+            is_open, belong_user_id, publish_status, crt_time, is_user_del, model_type
+        FROM model
+        WHERE id = #{id} AND belong_user_id = #{userId}
+    </select>
+
+    <!-- 统计用户的模型数量 -->
+    <select id="countUserModels" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        FROM model
+        WHERE belong_user_id = #{userId}
+        <if test="modelType != null and modelType != ''">
+            AND model_type = #{modelType}
+        </if>
+        <if test="isUserDel != null">
+            AND is_user_del = #{isUserDel}
+        </if>
+    </select>
+
+    <!-- 删除用户的模型 -->
+    <delete id="deleteUserModel">
+        DELETE FROM model 
+        WHERE id = #{id} AND belong_user_id = #{userId}
+    </delete>
+
+</mapper>

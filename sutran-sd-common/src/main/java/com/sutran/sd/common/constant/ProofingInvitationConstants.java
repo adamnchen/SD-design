@@ -17,6 +17,7 @@ public class ProofingInvitationConstants {
     public static final Integer STATUS_ACCEPTED = 1;    // 已接受
     public static final Integer STATUS_REJECTED = 2;    // 已拒绝
     public static final Integer STATUS_CANCELLED = 3;    // 已取消
+    public static final Integer STATUS_REPLYING  = 4;    //待回应
 
     /**
      * 自动取消时限常量
@@ -67,9 +68,9 @@ public class ProofingInvitationConstants {
      * @return 是否有效
      */
     public static boolean isValidCancelTimeLimit(Integer cancelTimeLimit) {
-        return cancelTimeLimit != null && 
-               (cancelTimeLimit == CANCEL_TIME_ONE_DAY || 
-                cancelTimeLimit == CANCEL_TIME_TWO_DAYS || 
+        return cancelTimeLimit != null &&
+               (cancelTimeLimit == CANCEL_TIME_ONE_DAY ||
+                cancelTimeLimit == CANCEL_TIME_TWO_DAYS ||
                 cancelTimeLimit == CANCEL_TIME_THREE_DAYS);
     }
 

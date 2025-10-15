@@ -6,17 +6,19 @@ import com.sutran.sd.common.core.domain.PageQuery;
 import com.sutran.sd.common.core.domain.R;
 import com.sutran.sd.common.core.page.TableDataInfo;
 import com.sutran.sd.common.exception.ServiceException;
+import com.sutran.sd.common.helper.LoginHelper;
 import com.sutran.sd.draw.domain.dto.model.SdUserModelClassifyDto;
 import com.sutran.sd.draw.domain.dto.model.SdUserModelModifyDto;
 import com.sutran.sd.draw.domain.dto.model.SdUserModelPageDto;
 import com.sutran.sd.draw.domain.dto.model.SdUserModelShareDto;
-import com.sutran.sd.draw.service.SdWebuiApiService;
+import com.sutran.sd.draw.domain.vo.ComfyUserModelVo;
 import com.sutran.sd.draw.domain.vo.SdUserModelClassifyVo;
 import com.sutran.sd.draw.domain.vo.SdUserModelVo;
+import com.sutran.sd.draw.service.SdUserModelService;
+import com.sutran.sd.draw.service.SdWebuiApiService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
-import javax.annotation.Resource;
 import java.util.List;
 
 /**
@@ -29,11 +31,11 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SdModelController {
 
-    @Resource
-    private SdWebuiApiService sdWebuiApiService;
+    private final SdWebuiApiService sdWebuiApiService;
+    private final SdUserModelService sdUserModelService;
 
     /**
-     * [业务接口]SD Lora模型-获取lora模型分类列表
+     * [webui]SD Lora模型-获取lora模型分类列表
      */
     @GetMapping("/lora/classify/list")
     public R<List<SdUserModelClassifyVo>> listModelClassify() {
@@ -41,7 +43,7 @@ public class SdModelController {
     }
 
     /**
-     * [业务接口]SD Lora模型-添加lora模型分类列表
+     * [webui]SD Lora模型-添加lora模型分类列表
      */
     @PostMapping("/lora/classify/add")
     public R<Void> addModelClassify(@RequestBody SdUserModelClassifyDto dto) {
@@ -50,7 +52,7 @@ public class SdModelController {
     }
 
     /**
-     * [业务接口]SD Lora模型-修改lora模型分类列表
+     * [webui]SD Lora模型-修改lora模型分类列表
      */
     @PutMapping("/lora/classify/modify")
     public R<Void> modifyModelClassify(@RequestBody SdUserModelClassifyDto dto) {
@@ -62,7 +64,7 @@ public class SdModelController {
     }
 
     /**
-     * [业务接口]SD Lora模型-删除lora模型分类列表
+     * [webui]SD Lora模型-删除lora模型分类列表
      */
     @DeleteMapping("/lora/classify/remove")
     public R<Void> removeModelClassify(@RequestParam String id) {
@@ -74,7 +76,7 @@ public class SdModelController {
     }
 
     /**
-     * [业务接口]SD Lora模型-获取lora模型列表
+     * [webui]SD Lora模型-获取lora模型列表
      */
     @GetMapping("/lora/list")
     public TableDataInfo<SdUserModelVo> listLoraModels(SdUserModelPageDto dto) {
@@ -87,7 +89,7 @@ public class SdModelController {
     }
 
     /**
-     * [业务接口]SD Lora模型-修改模型基础信息(仅能修改个人模型,系统模型不能修改)
+     * [webui]SD Lora模型-修改模型基础信息(仅能修改个人模型,系统模型不能修改)
      */
     @PutMapping("/lora")
     public R<Void> modifyModel(@RequestBody SdUserModelModifyDto dto) {
@@ -96,7 +98,7 @@ public class SdModelController {
     }
 
     /**
-     * [业务接口]SD Lora模型-根据ID删除个人模型
+     * [webui]SD Lora模型-根据ID删除个人模型
      */
     @DeleteMapping("/lora/remove")
     public R<Void> removeModel(@RequestParam String id) {
@@ -105,7 +107,7 @@ public class SdModelController {
     }
 
     /**
-     *  [业务接口]SD Lora模型-获取模型详情
+     *  [webui]SD Lora模型-获取模型详情
      */
     @GetMapping("/lora/info")
     public R<SdUserModelVo> getModelInfo(@RequestParam String id) {
@@ -113,7 +115,7 @@ public class SdModelController {
     }
 
     /**
-     * [业务接口]SD Lora模型-获取最近使用的模型(返回最近5个模型)
+     * [webui]SD Lora模型-获取最近使用的模型(返回最近5个模型)
      */
     @GetMapping("/lora/latest")
     public R<List<SdUserModelVo>> getLatestModelInfo() {
@@ -121,7 +123,7 @@ public class SdModelController {
     }
 
     /**
-     * [业务接口]SD Lora模型-分享模型
+     * [webui]SD Lora模型-分享模型
      * @param dto 分享请求参数
      * @return 返回分享结果
      */
@@ -135,6 +137,15 @@ public class SdModelController {
         }
         sdWebuiApiService.shareModel(dto);
         return R.ok();
+    }
+
+
+    /**
+     * [comfyui]获取最近使用的模型(返回最近5个模型)
+     */
+    @GetMapping("/comfyui/lora/latest")
+    public R<List<ComfyUserModelVo>> getLatestModelInfoOfComfyui() {
+        return R.ok(sdUserModelService.getLatestModelInfoOfComfyui(LoginHelper.getUserId(),5));
     }
 
 }

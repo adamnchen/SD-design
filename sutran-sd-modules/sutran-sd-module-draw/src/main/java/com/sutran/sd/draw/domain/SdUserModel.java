@@ -24,15 +24,20 @@ public class SdUserModel implements Serializable {
     @Schema(name = "id", description = "模型ID")
     private Long id;
     /**
-     * 模型标题
-     */
-    @Schema(name = "title", description = "模型标题")
-    private String title;
-    /**
      * 模型分类ID
      */
     @Schema(name = "classifyId", description = "模型分类ID")
     private Long classifyId;
+     /**
+     * 关联训练任务ID
+     */
+    @Schema(name = "taskId", description = "关联训练任务ID")
+    private Long taskId;
+    /**
+     * 模型标题
+     */
+    @Schema(name = "title", description = "模型标题")
+    private String title;
     /**
      * 模型名称
      */
@@ -78,6 +83,11 @@ public class SdUserModel implements Serializable {
      */
     @Schema(name = "remark", description = "模型描述")
     private String remark;
+    /**
+     * 模型标签
+     */
+    @Schema(name = "model_tag", description = "模型标签")
+    private String modelTag;
     /**
      * 模型归属类型[0-系统,1-个人]
      */

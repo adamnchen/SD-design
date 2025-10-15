@@ -8,6 +8,7 @@ import com.sutran.sd.draw.domain.dto.model.SdUserModelDto;
 import com.sutran.sd.draw.domain.dto.model.SdUserModelPageDto;
 import com.sutran.sd.draw.domain.dto.model.SdUserModelShareDto;
 import com.sutran.sd.draw.domain.SdUserModel;
+import com.sutran.sd.draw.domain.vo.ComfyUserModelVo;
 import com.sutran.sd.draw.domain.vo.SdUserModelVo;
 import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Mapper;
@@ -50,4 +51,12 @@ public interface SdUserModelMapper extends BaseMapperPlus<SdUserModelMapper, SdU
     void removeShareModelById(@Param("modelId") String modelId, @Param("userId") Long userId);
 
     void shareModel(@Param("dto") SdUserModelShareDto dto, @Param("userId") Long userId, @Param("crtTime") Date crtTime);
+
+    /**
+     * 获取ComfyUI最近使用的n个模型列表
+     * @param userId    用户ID
+     * @param limit     数量
+     * @return          模型列表
+     */
+    List<ComfyUserModelVo> getLatestModelInfoOfComfyui(@Param("userId") Long userId, @Param("limit") int limit);
 }

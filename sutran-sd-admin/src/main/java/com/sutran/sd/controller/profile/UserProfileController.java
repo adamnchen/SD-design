@@ -9,8 +9,10 @@ import com.sutran.sd.common.core.domain.dto.UserProfileUpdateDTO;
 import com.sutran.sd.common.core.domain.dto.UserTagDTO;
 import com.sutran.sd.common.core.domain.entity.SysAddress;
 import com.sutran.sd.common.core.domain.entity.SysAddressArea;
+import com.sutran.sd.common.core.domain.entity.SysUserMember;
 import com.sutran.sd.common.core.domain.vo.TagDetailVO;
 import com.sutran.sd.common.core.domain.vo.UserProfileVO;
+import com.sutran.sd.common.core.service.UserService;
 import com.sutran.sd.common.enums.BusinessType;
 import com.sutran.sd.common.helper.LoginHelper;
 import com.sutran.sd.user.service.IUserAddressService;
@@ -44,6 +46,7 @@ public class UserProfileController extends BaseController {
     private final IUserProfileService userProfileService;
     private final IUserAddressService addressService;
     private final IUserTagService tagService;
+    private final UserService userService;
 
     /**
      * 获取个人信息
@@ -346,5 +349,19 @@ public class UserProfileController extends BaseController {
     @GetMapping("/tag/suggestions")
     public R<List<String>> getTagSuggestions() {
         return R.ok(com.sutran.sd.common.utils.TagNameValidator.getSuggestedTagNames());
+    }
+
+    /**
+     * 获取用户会员信息
+     */
+    @Operation(summary = "获取用户当前会员信息", description = "获取用户会员信息(携带会员状态0-失效,1-有效)")
+    @GetMapping("/member")
+    public R<SysUserMember> getUserMember() {
+        Long userId = LoginHelper.getUserId();
+        if (userId == null) {
+            return R.fail("用户未登录或Token无效。");
+        }
+        SysUserMember member = userService.selectUserMember(userId);
+        return R.ok(member);
     }
 }

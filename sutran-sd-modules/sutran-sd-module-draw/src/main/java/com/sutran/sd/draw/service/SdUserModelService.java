@@ -8,6 +8,7 @@ import com.sutran.sd.draw.domain.dto.model.SdUserModelModifyDto;
 import com.sutran.sd.draw.domain.dto.model.SdUserModelPageDto;
 import com.sutran.sd.draw.domain.dto.model.SdUserModelShareDto;
 import com.sutran.sd.draw.domain.SdUserModel;
+import com.sutran.sd.draw.domain.vo.ComfyUserModelVo;
 import com.sutran.sd.draw.domain.vo.SdUserModelVo;
 
 import java.util.List;
@@ -140,4 +141,12 @@ public interface SdUserModelService {
      * @param userId    模型拥有者userId
      */
     void shareModel(SdUserModelShareDto dto, Long userId);
+
+     /**
+     * 获取ComfyUI最近使用的n个模型列表
+     * @param userId    用户ID
+     * @param num       数量
+     * @return          模型列表
+     */
+    List<ComfyUserModelVo> getLatestModelInfoOfComfyui(Long userId, int num);
 }

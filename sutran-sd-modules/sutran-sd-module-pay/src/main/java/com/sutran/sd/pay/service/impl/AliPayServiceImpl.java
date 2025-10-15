@@ -99,9 +99,7 @@ public class AliPayServiceImpl implements AliPayService {
         final String body = payMember.getDescription();
         final Date now = new Date();
 
-//        final Long userId = 1L;
         final Long userId = LoginHelper.getUserId();
-//        final String username = "测试用户";
         final String username = LoginHelper.getUsername();
         final String appId = aliPayConfig.getAppId();
 
@@ -215,12 +213,12 @@ public class AliPayServiceImpl implements AliPayService {
                             try {
                                 // 通过HTTP调用众筹模块的支付成功回调
                                 String crowdfundingNotifyUrl = aliPayConfig.getDomain() + "/design/crowdfunding/payment/alipay/notify";
-                                
+
                                 // 构建请求参数
                                 Map<String, String> crowdfundingParams = new HashMap<>();
                                 crowdfundingParams.put("out_trade_no", outTradeNo);
                                 crowdfundingParams.put("orderNo", outTradeNo);
-                                
+
                                 // 发送HTTP POST请求
                                 String response = restTemplate.postForObject(crowdfundingNotifyUrl, crowdfundingParams, String.class);
                                 log.info("众筹支付成功回调调用完成: 订单号={}, 响应={}", outTradeNo, response);

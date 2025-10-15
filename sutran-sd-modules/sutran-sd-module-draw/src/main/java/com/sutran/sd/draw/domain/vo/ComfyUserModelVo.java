@@ -1,6 +1,5 @@
 package com.sutran.sd.draw.domain.vo;
 
-import com.alibaba.fastjson.JSONObject;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.experimental.Accessors;
@@ -10,15 +9,15 @@ import java.util.Date;
 import java.util.List;
 
 /**
- * SD的基础大模型
+ * Comfyui模型实体类
  * @author zj
  * @date 2024-03-01
  */
 @SuppressWarnings("AlibabaLowerCamelCaseVariableNaming")
 @Data
 @Accessors(chain = true)
-@Schema(name = "SdUserModelVo", description = "SD-Lora模型")
-public class SdUserModelVo implements Serializable {
+@Schema(name = "ComfyUserModelVo", description = "Lora模型")
+public class ComfyUserModelVo implements Serializable {
 
     @Schema(name = "id", description = "模型ID")
     private String id;
@@ -43,14 +42,14 @@ public class SdUserModelVo implements Serializable {
     @Schema(name = "classifyName", description = "模型分类名称")
     private String classifyName;
     /**
-     * 模型名称
+     * 模型名称(训练完成后的文件名称)
      */
-    @Schema(name = "modelName", description = "模型名称")
+    @Schema(name = "modelName", description = "模型名称(训练完成后的文件名称)")
     private String modelName;
     /**
-     * 模型名称
+     * 模型别名(中文)
      */
-    @Schema(name = "modelNameZh", description = "模型别名")
+    @Schema(name = "modelNameZh", description = "模型别名(中文)")
     private String modelNameZh;
     /**
      * 模型强度
@@ -58,25 +57,10 @@ public class SdUserModelVo implements Serializable {
     @Schema(name = "modelStrength", description = "模型强度")
     private String modelStrength;
     /**
-     * 模型共性词
-     */
-    @Schema(name = "additionTag", description = "模型共性词")
-    private Object additionTag;
-    /**
-     * 模型hash值
-     */
-    @Schema(name = "hash", description = "模型hash值")
-    private String hash;
-    /**
      * 模型存储位置
      */
     @Schema(name = "fileName", description = "模型存储位置")
     private String fileName;
-    /**
-     * 模型配置
-     */
-    @Schema(name = "config", description = "模型配置")
-    private Object config;
     /**
      * 模型封面地址
      */
@@ -92,11 +76,6 @@ public class SdUserModelVo implements Serializable {
      */
     @Schema(name = "remark", description = "模型描述")
     private String remark;
-    /**
-     * 模型标签
-     */
-    @Schema(name = "model_tag", description = "模型标签")
-    private String modelTag;
     /**
      * 模型归属类型[0-系统,1-个人]
      */
@@ -128,19 +107,23 @@ public class SdUserModelVo implements Serializable {
     @Schema(name = "crtTime", description = "模型创建时间")
     private Date crtTime;
     /**
-     * 模型创建时间
-     */
-    @Schema(name = "taskList", description = "模型关联测试任务数据")
-    private List<JSONObject> taskList;
-    /**
-     * 模型训练时的预处理任务ID
-     */
-    @Schema(name = "preTaskId", description = "模型训练时的任务ID")
-    private String preTaskId;
-    /**
      * 用户是否已删除该模型[0-否,1-是]
      */
     @Schema(name = "isUserDel", description = "用户是否已删除该模型[0-否,1-是]")
     private Integer isUserDel;
+    /**
+     * 模型提示词列表
+     */
+    @Schema(name = "promptList", description = "模型提示词列表")
+    private List<PromptVo> promptList;
+
+    @Data
+    @Accessors(chain = true)
+    public static class PromptVo {
+        @Schema(name = "prompt", description = "模型提示词")
+        private String prompt;
+        @Schema(name = "promptZh", description = "模型提示词(中文)")
+        private String promptZh;
+    }
 
 }

@@ -37,7 +37,7 @@ public class SysUserTagController extends BaseController {
     /**
      * 为指定用户添加身份标签（厂商+设计师）
      */
-    @SaCheckPermission("system:user:edit")
+
     @Operation(summary = "添加身份标签-厂商+设计师", description = "管理员为用户添加厂商+设计师身份标签")
     @Log(title = "用户标签管理", businessType = BusinessType.INSERT)
     @PostMapping("/identity/manufacturer-designer/{userId}")
@@ -53,7 +53,7 @@ public class SysUserTagController extends BaseController {
     /**
      * 为指定用户添加身份标签（设计师）
      */
-    @SaCheckPermission("system:user:edit")
+
     @Operation(summary = "添加身份标签-设计师", description = "管理员为用户添加设计师身份标签")
     @Log(title = "用户标签管理", businessType = BusinessType.INSERT)
     @PostMapping("/identity/designer/{userId}")
@@ -69,7 +69,7 @@ public class SysUserTagController extends BaseController {
     /**
      * 为指定用户添加身份标签（普通用户）
      */
-    @SaCheckPermission("system:user:edit")
+
     @Operation(summary = "添加身份标签-普通用户", description = "管理员为用户添加普通用户身份标签")
     @Log(title = "用户标签管理", businessType = BusinessType.INSERT)
     @PostMapping("/identity/user/{userId}")
@@ -85,7 +85,7 @@ public class SysUserTagController extends BaseController {
     /**
      * 为指定用户添加业务标签
      */
-    @SaCheckPermission("system:user:edit")
+
     @Operation(summary = "添加业务标签", description = "管理员为用户添加业务标签")
     @Log(title = "用户标签管理", businessType = BusinessType.INSERT)
     @PostMapping("/business/{userId}")
@@ -100,7 +100,7 @@ public class SysUserTagController extends BaseController {
     /**
      * 获取指定用户的所有标签
      */
-    @SaCheckPermission("system:user:query")
+
     @Operation(summary = "获取用户标签列表", description = "获取指定用户的所有标签")
     @GetMapping("/{userId}")
     public R<List<TagDetailVO>> getUserTags(@PathVariable Long userId) {
@@ -126,7 +126,7 @@ public class SysUserTagController extends BaseController {
     /**
      * 获取指定用户的厂商+设计师标签
      */
-    @SaCheckPermission("system:user:query")
+
     @Operation(summary = "获取厂商+设计师标签", description = "获取指定用户的厂商+设计师身份标签")
     @GetMapping("/{userId}/identity/manufacturer-designer")
     public R<List<TagDetailVO>> getManufacturerDesignerTags(@PathVariable Long userId) {
@@ -137,7 +137,7 @@ public class SysUserTagController extends BaseController {
     /**
      * 获取指定用户的设计师标签
      */
-    @SaCheckPermission("system:user:query")
+
     @Operation(summary = "获取设计师标签", description = "获取指定用户的设计师身份标签")
     @GetMapping("/{userId}/identity/designer")
     public R<List<TagDetailVO>> getDesignerTags(@PathVariable Long userId) {
@@ -148,7 +148,7 @@ public class SysUserTagController extends BaseController {
     /**
      * 获取指定用户的普通用户标签
      */
-    @SaCheckPermission("system:user:query")
+
     @Operation(summary = "获取普通用户标签", description = "获取指定用户的普通用户身份标签")
     @GetMapping("/{userId}/identity/user")
     public R<List<TagDetailVO>> getNormalUserTags(@PathVariable Long userId) {
@@ -159,7 +159,7 @@ public class SysUserTagController extends BaseController {
     /**
      * 获取指定用户的业务标签
      */
-    @SaCheckPermission("system:user:query")
+
     @Operation(summary = "获取用户业务标签", description = "获取指定用户的业务标签")
     @GetMapping("/{userId}/business")
     public R<List<TagDetailVO>> getUserBusinessTags(@PathVariable Long userId) {
@@ -170,7 +170,7 @@ public class SysUserTagController extends BaseController {
     /**
      * 更新用户标签
      */
-    @SaCheckPermission("system:user:edit")
+
     @Operation(summary = "更新用户标签", description = "管理员更新用户标签")
     @Log(title = "用户标签管理", businessType = BusinessType.UPDATE)
     @PutMapping("/{userId}")
@@ -182,7 +182,7 @@ public class SysUserTagController extends BaseController {
     /**
      * 删除用户标签
      */
-    @SaCheckPermission("system:user:edit")
+
     @Operation(summary = "删除用户标签", description = "管理员删除用户标签")
     @Log(title = "用户标签管理", businessType = BusinessType.DELETE)
     @DeleteMapping("/{userId}/{tagId}")
@@ -194,7 +194,7 @@ public class SysUserTagController extends BaseController {
     /**
      * 获取标签详情
      */
-    @SaCheckPermission("system:user:query")
+
     @Operation(summary = "获取标签详情", description = "获取指定标签的详细信息")
     @GetMapping("/{userId}/{tagId}")
     public R<TagDetailVO> getTagDetail(@PathVariable Long userId, @PathVariable Long tagId) {

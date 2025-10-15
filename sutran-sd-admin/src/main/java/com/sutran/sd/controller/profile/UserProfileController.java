@@ -119,7 +119,7 @@ public class UserProfileController extends BaseController {
     /**
      * 添加地址
      */
-    @Operation(summary = "添加地址", description = "为用户添加新的收货地址")
+    @Operation(summary = "添加地址", description = "为用户添加新的收货地址，包含省市区街道四级选择和详细地址手动填写")
     @Log(title = "用户地址管理", businessType = BusinessType.INSERT)
     @PostMapping("/address")
     public R<Void> addAddress(@RequestBody @Valid SysAddress address) {
@@ -127,14 +127,38 @@ public class UserProfileController extends BaseController {
         if (currentUserId == null) {
             return R.fail("用户未登录或Token无效");
         }
+        
+        // 验证必填字段
+        if (address.getName() == null || address.getName().trim().isEmpty()) {
+            return R.fail("收件人姓名不能为空");
+        }
+        if (address.getProvince() == null || address.getProvince().trim().isEmpty()) {
+            return R.fail("省份不能为空");
+        }
+        if (address.getCity() == null || address.getCity().trim().isEmpty()) {
+            return R.fail("城市不能为空");
+        }
+        if (address.getCounty() == null || address.getCounty().trim().isEmpty()) {
+            return R.fail("区县不能为空");
+        }
+        if (address.getAddress() == null || address.getAddress().trim().isEmpty()) {
+            return R.fail("街道不能为空");
+        }
+        if (address.getHome() == null || address.getHome().trim().isEmpty()) {
+            return R.fail("详细地址不能为空");
+        }
+        if (address.getPhonenumber() == null || address.getPhonenumber().trim().isEmpty()) {
+            return R.fail("手机号不能为空");
+        }
+        
         addressService.addAddress(address);
-        return R.ok();
+        return R.ok("地址添加成功");
     }
 
     /**
      * 修改地址
      */
-    @Operation(summary = "修改地址", description = "修改用户的收货地址信息")
+    @Operation(summary = "修改地址", description = "修改用户的收货地址信息，包含省市区街道四级选择和详细地址手动填写")
     @Log(title = "用户地址管理", businessType = BusinessType.UPDATE)
     @PutMapping("/address")
     public R<Void> updateAddress(@RequestBody @Valid SysAddress address) {
@@ -142,8 +166,36 @@ public class UserProfileController extends BaseController {
         if (currentUserId == null) {
             return R.fail("用户未登录或Token无效");
         }
+        
+        if (address.getId() == null) {
+            return R.fail("地址ID不能为空");
+        }
+        
+        // 验证必填字段
+        if (address.getName() == null || address.getName().trim().isEmpty()) {
+            return R.fail("收件人姓名不能为空");
+        }
+        if (address.getProvince() == null || address.getProvince().trim().isEmpty()) {
+            return R.fail("省份不能为空");
+        }
+        if (address.getCity() == null || address.getCity().trim().isEmpty()) {
+            return R.fail("城市不能为空");
+        }
+        if (address.getCounty() == null || address.getCounty().trim().isEmpty()) {
+            return R.fail("区县不能为空");
+        }
+        if (address.getAddress() == null || address.getAddress().trim().isEmpty()) {
+            return R.fail("街道不能为空");
+        }
+        if (address.getHome() == null || address.getHome().trim().isEmpty()) {
+            return R.fail("详细地址不能为空");
+        }
+        if (address.getPhonenumber() == null || address.getPhonenumber().trim().isEmpty()) {
+            return R.fail("手机号不能为空");
+        }
+        
         addressService.updateAddress(address);
-        return R.ok();
+        return R.ok("地址修改成功");
     }
 
     /**
@@ -186,7 +238,7 @@ public class UserProfileController extends BaseController {
     }
 
     /**
-     * 省市区三级地址接口
+     * 省市区街道四级地址接口
      */
     @Log(title = "用户地址管理", businessType = BusinessType.OTHER)
     @GetMapping("/address/area")

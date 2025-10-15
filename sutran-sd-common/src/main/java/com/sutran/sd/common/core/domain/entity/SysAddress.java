@@ -65,13 +65,32 @@ public class SysAddress extends BaseEntity {
     private String city;
 
     /**
-     * 区 县
+     * 区县
      */
     @NotBlank(message = "区县不能为空")
     @Size(min = 0, max = 64, message = "区县长度不能超过{max}个字符")
     @TableField(value = "county")
     private String county;
 
+    /**
+     * 街道（从JSON接口获取）
+     */
+    @NotBlank(message = "街道不能为空")
+    @Size(min = 0, max = 64, message = "街道长度不能超过{max}个字符")
+    @TableField(value = "address")
+    private String address;
+
+    /**
+     * 详细地址（用户手动填写）
+     */
+    @Xss(message = "详细地址不能包含脚本字符")
+    @NotBlank(message = "详细地址不能为空")
+    @Size(min = 0, max = 500, message = "详细地址长度不能超过{max}个字符")
+    @TableField(value = "home")
+    private String home;
+
+    // === 非数据库字段，用于显示中文名称 ===
+    
     @TableField(exist = false)
     private String provinceName;
 
@@ -83,14 +102,6 @@ public class SysAddress extends BaseEntity {
 
     @TableField(exist = false)
     private String addressName;
-    /**
-     * 用户具体地址
-     */
-    @Xss(message = "详细地址不能包含脚本字符")
-    @NotBlank(message = "详细地址不能为空")
-    @Size(min = 0, max = 500, message = "详细地址长度不能超过{max}个字符")
-    @TableField(value = "address")
-    private String address;
     /**
      * 手机号码
      */

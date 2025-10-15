@@ -3,7 +3,6 @@ package com.sutran.sd.controller.design;
 import com.sutran.sd.common.core.domain.R;
 import com.sutran.sd.common.core.domain.dto.ProofingInvitationRequestDTO;
 import com.sutran.sd.common.core.domain.vo.ProofingInvitationDetailVO;
-import com.sutran.sd.common.core.domain.vo.MerchantProcessedInvitationVO;
 import com.sutran.sd.common.core.domain.dto.ProofingInvitationChooseDto;
 import com.sutran.sd.common.core.domain.vo.ManufacturerSearchResultVO;
 import com.sutran.sd.common.core.page.TableDataInfo;
@@ -245,17 +244,17 @@ public class ProofingInvitationController {
     
     /**
      * 分页查询商家已处理的邀约列表
-     * 商家只能查看自己作为被邀约人的邀约，且只能看到自己的报价信息
+     * 商家只能查看自己作为被邀约人的邀约
      * 
      * @param pageQuery 分页参数
      * @param status 邀约状态（可选）：0-待处理, 1-已接受, 2-已拒绝, 3-已取消
      * @return 分页结果
      */
     @GetMapping("/merchant/processed/page")
-    public R<TableDataInfo<MerchantProcessedInvitationVO>> getMerchantProcessedInvitationsPage(PageQuery pageQuery,
-                                                                                               @RequestParam(required = false) Integer status) {
+    public R<TableDataInfo<ProofingInvitationDetailVO>> getMerchantProcessedInvitationsPage(PageQuery pageQuery,
+                                                                                           @RequestParam(required = false) Integer status) {
         try {
-            TableDataInfo<MerchantProcessedInvitationVO> result = invitationService.getMerchantProcessedInvitationsPage(pageQuery, status);
+            TableDataInfo<ProofingInvitationDetailVO> result = invitationService.getMerchantProcessedInvitationsPage(pageQuery, status);
             return R.ok(result);
         } catch (Exception e) {
             e.printStackTrace();
@@ -270,9 +269,9 @@ public class ProofingInvitationController {
      * @return 邀约列表
      */
     @GetMapping("/merchant/processed/list")
-    public R<List<MerchantProcessedInvitationVO>> getMerchantProcessedInvitationsList(@RequestParam(required = false) Integer status) {
+    public R<List<ProofingInvitationDetailVO>> getMerchantProcessedInvitationsList(@RequestParam(required = false) Integer status) {
         try {
-            List<MerchantProcessedInvitationVO> result = invitationService.getMerchantProcessedInvitationsList(status);
+            List<ProofingInvitationDetailVO> result = invitationService.getMerchantProcessedInvitationsList(status);
             return R.ok(result);
         } catch (Exception e) {
             e.printStackTrace();
@@ -287,9 +286,9 @@ public class ProofingInvitationController {
      * @return 邀约详情
      */
     @GetMapping("/merchant/processed/{id}")
-    public R<MerchantProcessedInvitationVO> getMerchantProcessedInvitationById(@PathVariable Long id) {
+    public R<ProofingInvitationDetailVO> getMerchantProcessedInvitationById(@PathVariable Long id) {
         try {
-            MerchantProcessedInvitationVO result = invitationService.getMerchantProcessedInvitationById(id);
+            ProofingInvitationDetailVO result = invitationService.getMerchantProcessedInvitationById(id);
             return R.ok(result);
         } catch (Exception e) {
             e.printStackTrace();

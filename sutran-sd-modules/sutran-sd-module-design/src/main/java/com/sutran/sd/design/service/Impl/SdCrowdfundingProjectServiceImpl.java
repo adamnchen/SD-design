@@ -132,7 +132,7 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
         queryWrapper.eq(SdCrowdfundingProject::getStatus, 1) // 进行中
                    .gt(SdCrowdfundingProject::getEndTime, new Date()) // 未结束
                    .orderByDesc(SdCrowdfundingProject::getCreateTime);
-        
+
         List<SdCrowdfundingProject> projects = crowdfundingProjectMapper.selectList(queryWrapper);
 
         // 转换为VO
@@ -605,7 +605,7 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
     }
 
     /**
-     * 延迟执行抽奖（简单实现，实际项目中可以使用延迟队列）
+     * 延迟执行抽奖（
      */
     private void scheduleDrawExecution(SdCrowdfundingProject project) {
         new Thread(() -> {

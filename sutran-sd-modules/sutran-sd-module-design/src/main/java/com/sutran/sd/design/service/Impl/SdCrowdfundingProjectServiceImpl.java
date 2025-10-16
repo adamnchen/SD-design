@@ -348,12 +348,12 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
             orderNo = OrderNumUtils.getOrderNum(new Date());
             log.info("创建众筹支持订单: 订单号={}, 项目ID={}, 金额={}", orderNo, supportDTO.getProjectId(), supportDTO.getSupportAmount());
 
-            // 2. 落库参与者数据（不设置订单号，等支付成功后再设置）
+            // 2. 落库参与者数据（设置订单号）
             SdCrowdfundingSupport support = new SdCrowdfundingSupport();
             support.setProjectId(supportDTO.getProjectId());
             support.setUserId(supportDTO.getUserId());
             support.setUserName(supportDTO.getUserName());
-            support.setOrderNo(null); // 支付成功后再设置
+            support.setOrderNo(orderNo); // 设置订单号
             support.setSupportAmount(supportDTO.getSupportAmount());
             support.setDrawStatus(0); // 未参与抽奖
             support.setIsWinner(0); // 未中奖
@@ -655,32 +655,62 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
      */
     private void handleRollback(String orderNo, Long projectId, BigDecimal amount) {
         try {
-            // 1. 删除参与者记录（根据项目ID和金额查询，因为orderNo在创建时是null）
+            // 1. 删除参与者记录（根据订单号查询）
             LambdaQueryWrapper<SdCrowdfundingSupport> queryWrapper = new LambdaQueryWrapper<>();
-            queryWrapper.eq(SdCrowdfundingSupport::getProjectId, projectId)
-                       .eq(SdCrowdfundingSupport::getSupportAmount, amount)
-                       .isNull(SdCrowdfundingSupport::getOrderNo) // 未支付的记录
-                       .orderByDesc(SdCrowdfundingSupport::getCreateTime)
-                       .last("LIMIT 1"); // 取最新的一条
+            queryWrapper.eq(SdCrowdfundingSupport::getOrderNo, orderNo);
 
             SdCrowdfundingSupport support = supportMapper.selectOne(queryWrapper);
             if (support != null) {
                 supportMapper.deleteById(support.getId());
                 log.info("回滚参与者记录: 订单号={}, 支持记录ID={}", orderNo, support.getId());
-                } else {
-                log.warn("未找到需要回滚的支持记录: 项目ID={}, 金额={}", projectId, amount);
+            } else {
+                log.warn("未找到需要回滚的支持记录: 订单号={}", orderNo);
             }
 
             // 2. 回退Redis金额
             boolean refunded = crowdfundingRedisService.refundAmount(projectId, amount);
             if (refunded) {
                 log.info("回退Redis金额: 订单号={}, 金额={}", orderNo, amount);
-                } else {
+            } else {
                 log.error("回退Redis金额失败: 订单号={}, 金额={}", orderNo, amount);
             }
 
-                } catch (Exception e) {
+        } catch (Exception e) {
             log.error("回滚处理失败: 订单号={}, 项目ID={}, 金额={}", orderNo, projectId, amount, e);
+        }
+    }
+
+    /**
+     * 清理异常的支持记录（手动调用）
+     * 用于清理之前因为MQ问题导致的异常记录
+     */
+    public void cleanupAbnormalSupportRecords() {
+        try {
+            // 查询所有没有对应支付订单的支持记录
+            LambdaQueryWrapper<SdCrowdfundingSupport> queryWrapper = new LambdaQueryWrapper<>();
+            queryWrapper.isNotNull(SdCrowdfundingSupport::getOrderNo)
+                       .orderByDesc(SdCrowdfundingSupport::getCreateTime);
+
+            List<SdCrowdfundingSupport> supports = supportMapper.selectList(queryWrapper);
+            log.info("查询到{}条支持记录，开始检查异常记录", supports.size());
+
+            for (SdCrowdfundingSupport support : supports) {
+                try {
+                    // 检查是否存在对应的支付订单
+                    // 这里可以调用支付服务检查订单是否存在
+                    // 如果不存在，则删除这条记录并回退Redis金额
+                    
+                    // 暂时先记录日志，后续可以根据实际需求处理
+                    log.info("检查支持记录: 订单号={}, 项目ID={}, 金额={}, 创建时间={}", 
+                            support.getOrderNo(), support.getProjectId(), 
+                            support.getSupportAmount(), support.getCreateTime());
+                            
+                } catch (Exception e) {
+                    log.error("检查支持记录失败: 订单号={}", support.getOrderNo(), e);
+                }
+            }
+        } catch (Exception e) {
+            log.error("清理异常支持记录失败", e);
         }
     }
 

@@ -32,15 +32,24 @@ public class CrowdfundingPaymentOrderConsumer {
     /**
      * 消费众筹支付订单创建消息
      *
-     * @param message MQ消息
+     * @param mqMessage MQ消息
      * @param channel RabbitMQ通道
      */
     @RabbitListener(queues = CROWDFUNDING_PAYMENT_ORDER_QUEUE)
-    public void handlePaymentOrderCreate(CrowdfundingPaymentOrderMessage message, Channel channel, Message mqMessage) {
-        String orderNo = message.getOrderNo();
+    public void handlePaymentOrderCreate(Message mqMessage, Channel channel) {
+        String orderNo = null;
         long deliveryTag = mqMessage.getMessageProperties().getDeliveryTag();
         
         try {
+            // 手动反序列化消息
+            String messageBody = new String(mqMessage.getBody(), "UTF-8");
+            log.info("接收到众筹支付订单消息: {}", messageBody);
+            
+            // 使用Jackson反序列化
+            com.fasterxml.jackson.databind.ObjectMapper objectMapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            CrowdfundingPaymentOrderMessage message = objectMapper.readValue(messageBody, CrowdfundingPaymentOrderMessage.class);
+            
+            orderNo = message.getOrderNo();
             log.info("开始处理众筹支付订单创建消息: 订单号={}, 项目ID={}, 用户ID={}", 
                     orderNo, message.getProjectId(), message.getUserId());
 
@@ -67,25 +76,11 @@ public class CrowdfundingPaymentOrderConsumer {
             log.info("众筹支付订单消息处理完成: 订单号={}", orderNo);
 
         } catch (Exception e) {
-            log.error("处理众筹支付订单消息失败: 订单号={}, 重试次数={}", orderNo, message.getRetryCount(), e);
-
+            log.error("处理众筹支付订单消息失败: 订单号={}", orderNo, e);
             try {
-                // 检查是否需要重试
-                if (message.getRetryCount() < message.getMaxRetryCount()) {
-                    // 发送重试消息
-                    crowdfundingMqService.sendPaymentOrderRetryMessage(message);
-                    log.info("众筹支付订单消息重试投递: 订单号={}, 重试次数={}", orderNo, message.getRetryCount() + 1);
-                    
-                    // 确认消息（避免重复处理）
-                    channel.basicAck(deliveryTag, false);
-                } else {
-                    // 超过最大重试次数，记录错误日志并确认消息
-                    log.error("众筹支付订单消息处理失败，超过最大重试次数: 订单号={}, 最大重试次数={}", 
-                            orderNo, message.getMaxRetryCount());
-                    channel.basicAck(deliveryTag, false);
-                }
+                channel.basicNack(deliveryTag, false, false);
             } catch (IOException ioException) {
-                log.error("确认MQ消息失败: 订单号={}", orderNo, ioException);
+                log.error("消息拒绝失败: 订单号={}", orderNo, ioException);
             }
         }
     }

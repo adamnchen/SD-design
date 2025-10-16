@@ -83,4 +83,7 @@ public class CrowdfundingController extends BaseController {
     public R<List<com.sutran.sd.design.vo.CrowdfundingProjectListVO>> getManufacturerSuccessfulProjects() {
         return R.ok(crowdfundingProjectService.getManufacturerSuccessfulProjects());
     }
+
+    
+    
 }

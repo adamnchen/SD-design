@@ -57,6 +57,14 @@ public interface SdProofingInvitationMapper extends BaseMapper<SdProofingInvitat
     IPage<ProofingInvitationDetailVO> selectSentInvitationPage(IPage<ProofingInvitationDetailVO> page, @Param("userId") Long userId);
 
     /**
+     * 根据邀约ID查询邀约详情（多表联查）
+     *
+     * @param invitationId 邀约ID
+     * @return 邀约详情
+     */
+    ProofingInvitationDetailVO selectInvitationDetailById(@Param("invitationId") Long invitationId);
+
+    /**
      * 统计我收到的邀约总数
      *
      * @param userId 当前登录用户的ID (即接收者ID)

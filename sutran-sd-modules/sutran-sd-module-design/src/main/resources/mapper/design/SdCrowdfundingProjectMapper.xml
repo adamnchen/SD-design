@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.sutran.sd.design.mapper.SdCrowdfundingProjectMapper">
+
+    <resultMap type="com.sutran.sd.design.domain.SdCrowdfundingProject" id="SdCrowdfundingProjectResult">
+        <result property="id" column="id"/>
+        <result property="projectNo" column="project_no"/>
+        <result property="title" column="title"/>
+        <result property="description" column="description"/>
+        <result property="coverImage" column="cover_image"/>
+        <result property="images" column="images"/>
+        <result property="videoUrl" column="video_url"/>
+        <result property="tags" column="tags"/>
+        <result property="creatorUserId" column="creator_user_id"/>
+        <result property="creatorName" column="creator_name"/>
+        <result property="creatorAvatar" column="creator_avatar"/>
+        <result property="proofingInvitationId" column="proofing_invitation_id"/>
+        <result property="manufacturerUserId" column="manufacturer_user_id"/>
+        <result property="manufacturerName" column="manufacturer_name"/>
+        <result property="manufacturerAvatar" column="manufacturer_avatar"/>
+        <result property="targetAmount" column="target_amount"/>
+        <result property="currentAmount" column="current_amount"/>
+        <result property="supportCount" column="support_count"/>
+        <result property="viewCount" column="view_count"/>
+        <result property="startTime" column="start_time"/>
+        <result property="endTime" column="end_time"/>
+        <result property="deliveryTime" column="delivery_time"/>
+        <result property="status" column="status"/>
+        <result property="isFeatured" column="is_featured"/>
+        <result property="isHot" column="is_hot"/>
+        <result property="sortOrder" column="sort_order"/>
+        <result property="riskTips" column="risk_tips"/>
+        <result property="drawNumber" column="draw_number"/>
+        <result property="totalSamples" column="total_samples"/>
+        <result property="drawStatus" column="draw_status"/>
+        <result property="drawTime" column="draw_time"/>
+        <result property="manufacturerPhotos" column="manufacturer_photos"/>
+        <result property="manufacturerUploadTime" column="manufacturer_upload_time"/>
+        <result property="escrowStatus" column="escrow_status"/>
+        <result property="fundReleaseTime" column="fund_release_time"/>
+        <result property="createBy" column="create_by"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateBy" column="update_by"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <sql id="selectSdCrowdfundingProjectVo">
+        SELECT id, project_no, title, description, cover_image, images, video_url, tags,
+               creator_user_id, creator_name, creator_avatar, proofing_invitation_id,
+               manufacturer_user_id, manufacturer_name, manufacturer_avatar,
+               target_amount, current_amount, support_count, view_count,
+               start_time, end_time, delivery_time, status,
+               is_featured, is_hot, sort_order, risk_tips,
+               draw_number, total_samples, draw_status, draw_time,
+               manufacturer_photos, manufacturer_upload_time,
+               escrow_status, fund_release_time,
+               create_by, create_time, update_by, update_time
+        FROM sd_crowdfunding_project
+    </sql>
+
+   
+
+</mapper>

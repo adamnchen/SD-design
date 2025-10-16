@@ -53,13 +53,15 @@ public interface ISdCrowdfundingProjectService {
      */
     TableDataInfo<SdCrowdfundingProject> selectPageCrowdfundingProjectList(SdCrowdfundingProject sdCrowdfundingProject, PageQuery pageQuery);
 
+
+
     /**
-     * 新增众筹项目
+     * 简化新增众筹项目（前端只需要传厂家ID，其他信息从打样邀约中获取）
      *
-     * @param sdCrowdfundingProject 众筹项目
-     * @return 结果
+     * @param createDTO 简化创建DTO
+     * @return 创建的众筹项目
      */
-    int insertSdCrowdfundingProject(SdCrowdfundingProject sdCrowdfundingProject);
+    Void insertSdCrowdfundingProjectSimple(com.sutran.sd.design.dto.CrowdfundingProjectSimpleCreateDTO createDTO);
 
 
 

@@ -7,6 +7,7 @@ import com.sutran.sd.common.core.domain.PageQuery;
 import com.sutran.sd.common.core.page.TableDataInfo;
 import com.sutran.sd.design.domain.SdCrowdfundingProject;
 import com.sutran.sd.design.domain.SdCrowdfundingSupport;
+import com.sutran.sd.design.dto.CrowdfundingProjectSimpleCreateDTO;
 import com.sutran.sd.design.dto.CrowdfundingSupportDTO;
 import com.sutran.sd.design.vo.CrowdfundingProjectDetailVO;
 import com.sutran.sd.design.vo.CrowdfundingProjectListVO;
@@ -20,6 +21,9 @@ import com.sutran.sd.design.service.CrowdfundingMqService;
 import com.sutran.sd.common.helper.LoginHelper;
 import com.sutran.sd.design.config.CrowdfundingConfig;
 import com.sutran.sd.common.utils.OrderNumUtils;
+import com.sutran.sd.common.exception.ServiceException;
+import com.sutran.sd.design.mapper.SdProofingInvitationMapper;
+import com.sutran.sd.system.service.ISysUserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -46,20 +50,34 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
     private final CrowdfundingRedisService crowdfundingRedisService;
     private final CrowdfundingMqService crowdfundingMqService;
     private final CrowdfundingConfig crowdfundingConfig;
+    private final SdProofingInvitationMapper invitationMapper;
+    private final ISysUserService userService;
 
     @Override
     public SdCrowdfundingProject selectSdCrowdfundingProjectById(Long id) {
-        return crowdfundingProjectMapper.selectSdCrowdfundingProjectById(id);
+        return crowdfundingProjectMapper.selectById(id);
     }
 
     @Override
     public SdCrowdfundingProject selectByProofingInvitationId(Long proofingInvitationId) {
-        return crowdfundingProjectMapper.selectByProofingInvitationId(proofingInvitationId);
+        LambdaQueryWrapper<SdCrowdfundingProject> lqw = new LambdaQueryWrapper<>();
+        lqw.eq(SdCrowdfundingProject::getProofingInvitationId, proofingInvitationId);
+        return crowdfundingProjectMapper.selectOne(lqw);
     }
 
     @Override
     public List<SdCrowdfundingProject> selectSdCrowdfundingProjectList(SdCrowdfundingProject sdCrowdfundingProject) {
-        return crowdfundingProjectMapper.selectSdCrowdfundingProjectList(sdCrowdfundingProject);
+        LambdaQueryWrapper<SdCrowdfundingProject> lqw = new LambdaQueryWrapper<>();
+        lqw.eq(sdCrowdfundingProject.getId() != null, SdCrowdfundingProject::getId, sdCrowdfundingProject.getId())
+           .eq(sdCrowdfundingProject.getProjectNo() != null, SdCrowdfundingProject::getProjectNo, sdCrowdfundingProject.getProjectNo())
+           .like(sdCrowdfundingProject.getTitle() != null, SdCrowdfundingProject::getTitle, sdCrowdfundingProject.getTitle())
+           .eq(sdCrowdfundingProject.getCreatorUserId() != null, SdCrowdfundingProject::getCreatorUserId, sdCrowdfundingProject.getCreatorUserId())
+           .eq(sdCrowdfundingProject.getManufacturerUserId() != null, SdCrowdfundingProject::getManufacturerUserId, sdCrowdfundingProject.getManufacturerUserId())
+           .eq(sdCrowdfundingProject.getStatus() != null, SdCrowdfundingProject::getStatus, sdCrowdfundingProject.getStatus())
+           .ge(sdCrowdfundingProject.getStartTime() != null, SdCrowdfundingProject::getStartTime, sdCrowdfundingProject.getStartTime())
+           .le(sdCrowdfundingProject.getEndTime() != null, SdCrowdfundingProject::getEndTime, sdCrowdfundingProject.getEndTime())
+           .orderByDesc(SdCrowdfundingProject::getCreateTime);
+        return crowdfundingProjectMapper.selectList(lqw);
     }
 
     @Override
@@ -75,25 +93,87 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
         return TableDataInfo.build(result);
     }
 
-    @Override
-    public int insertSdCrowdfundingProject(SdCrowdfundingProject sdCrowdfundingProject) {
-        int result = crowdfundingProjectMapper.insertSdCrowdfundingProject(sdCrowdfundingProject);
 
-        // 初始化Redis金额缓存
-        if (result > 0 && sdCrowdfundingProject.getId() != null) {
-            boolean initSuccess = crowdfundingRedisService.initProjectAmount(
-                sdCrowdfundingProject.getId(),
-                sdCrowdfundingProject.getTargetAmount()
-            );
-            if (!initSuccess) {
-                log.error("初始化众筹项目Redis金额缓存失败: 项目ID={}", sdCrowdfundingProject.getId());
-            }
+
+
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Void insertSdCrowdfundingProjectSimple(CrowdfundingProjectSimpleCreateDTO createDTO) {
+        // 1. 通过多表联查获取完整的邀约信息（包括发起人和厂家信息）
+        com.sutran.sd.common.core.domain.vo.ProofingInvitationDetailVO invitationDetail =
+            invitationMapper.selectInvitationDetailById(createDTO.getProofingInvitationId());
+
+        if (invitationDetail == null) {
+            throw new ServiceException("打样邀约不存在");
         }
 
-        return result;
+        // 2. 验证厂家ID是否匹配
+        if (!invitationDetail.getInviteeUserId().equals(createDTO.getManufacturerUserId())) {
+            throw new ServiceException("厂家ID与打样邀约中选中的厂家不匹配");
+        }
+
+        // 3. 生成项目编号
+        String projectNo = "CF" + System.currentTimeMillis();
+
+        // 4. 构建众筹项目对象 - 从多表联查结果中获取所有信息
+        SdCrowdfundingProject project = new SdCrowdfundingProject();
+        project.setProjectNo(projectNo);
+
+        // 从邀约详情获取项目信息
+        project.setTitle(invitationDetail.getProductTitle());
+        project.setDescription(invitationDetail.getProductDescription());
+        project.setCoverImage(invitationDetail.getImageUrl()); // 从联查结果获取图片
+
+        // 发起人信息（从联查结果获取）
+        project.setCreatorUserId(invitationDetail.getInviterUserId());
+        project.setCreatorName(invitationDetail.getInviterNickName());
+        project.setCreatorAvatar(invitationDetail.getInviterAvatar());
+        project.setProofingInvitationId(createDTO.getProofingInvitationId());
+
+        // 厂家信息（从联查结果获取）
+        project.setManufacturerUserId(createDTO.getManufacturerUserId());
+        project.setManufacturerName(invitationDetail.getInviteeNickName());
+        project.setManufacturerAvatar(invitationDetail.getInviteeAvatar());
+
+        // 众筹信息 - 从邀约中获取实际数据
+        project.setTargetAmount(invitationDetail.getQuotedPrice()); // 使用报价作为目标金额
+        project.setCurrentAmount(BigDecimal.ZERO);
+        project.setSupportCount(0);
+        project.setViewCount(0);
+
+        // 设置众筹时间 - 基于报价周期计算
+        java.util.Date now = new java.util.Date();
+        project.setStartTime(now);
+        java.util.Calendar calendar = java.util.Calendar.getInstance();
+        calendar.setTime(now);
+
+        int crowdfundingDays = 60;
+        calendar.add(java.util.Calendar.DAY_OF_MONTH, crowdfundingDays);
+        project.setEndTime(calendar.getTime());
+
+        project.setStatus(1); // 众筹中
+        project.setDrawNumber(invitationDetail.getDrawNumber()); // 使用邀约中的抽奖数量
+        project.setTotalSamples(invitationDetail.getProofingQuantity());
+        project.setDrawStatus(0); // 未开始
+        project.setEscrowStatus(0); // 托管中
+
+        // 5. 插入众筹项目
+        int result = crowdfundingProjectMapper.insert(project);
+
+
+        // 6. 初始化Redis金额缓存
+        if (result > 0 && project.getId() != null) {
+            boolean initSuccess = crowdfundingRedisService.initProjectAmount(
+                project.getId(),
+                project.getTargetAmount()
+            );
+            if (!initSuccess) {
+                log.error("初始化众筹项目Redis金额缓存失败: 项目ID={}", project.getId());
+            }
+        }
+        return null;
     }
-
-
 
     @Override
     public SdCrowdfundingSupport getSupportByOrderNo(String orderNo) {

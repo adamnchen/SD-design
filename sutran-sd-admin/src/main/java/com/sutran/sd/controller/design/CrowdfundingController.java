@@ -5,6 +5,7 @@ import com.sutran.sd.common.core.domain.PageQuery;
 import com.sutran.sd.common.core.domain.R;
 import com.sutran.sd.common.core.page.TableDataInfo;
 import com.sutran.sd.design.domain.SdCrowdfundingProject;
+import com.sutran.sd.design.dto.CrowdfundingProjectSimpleCreateDTO;
 import com.sutran.sd.design.service.ISdCrowdfundingProjectService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -40,15 +41,16 @@ public class CrowdfundingController extends BaseController {
         return R.ok(crowdfundingProjectService.selectSdCrowdfundingProjectById(id));
     }
 
+
+
     /**
-     * 新增众筹项目
+     * 简化新增众筹项目（前端只需要传厂家ID，其他信息从打样邀约中获取）
      */
     @PostMapping
-    public R<Void> add(@RequestBody SdCrowdfundingProject sdCrowdfundingProject) {
-        return toAjax(crowdfundingProjectService.insertSdCrowdfundingProject(sdCrowdfundingProject));
+    public R<Void> addSimple(@RequestBody CrowdfundingProjectSimpleCreateDTO createDTO) {
+        crowdfundingProjectService.insertSdCrowdfundingProjectSimple(createDTO);
+        return R.ok("发布成功");
     }
-
-
 
     /**
      * 获取进行中的众筹项目列表（前端展示用）

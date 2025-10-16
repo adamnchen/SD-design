@@ -97,6 +97,60 @@
             inv.created_at DESC
     </select>
 
+    <select id="selectInvitationDetailById" resultMap="ProofingInvitationDetailResult">
+        SELECT
+            -- 邀请表的基础字段
+            inv.id,
+            inv.work_id,
+            inv.product_title,
+            inv.product_description,
+            inv.model_source,
+            inv.cooperation_content,
+            inv.keywords,
+            inv.is_batch_production,
+            inv.proofing_quantity,
+            inv.delivery_limit_hours,
+            inv.cancel_time_limit,
+            inv.quoted_price,
+            inv.quoted_period_days,
+            inv.is_quote_batch_plan,
+            inv.quote_submit_at,
+            inv.tiered_pricing,
+            inv.profit_share_ratio,
+            inv.status,
+            inv.created_at,
+            inv.updated_at,
+            inv.inviter_user_id,
+            inv.invitee_user_id,
+            inv.draw_number,
+
+            -- 关联查询【发起人】的用户信息
+            inviter.nick_name AS inviter_nick_name,
+            inviter.avatar    AS inviter_avatar,
+
+            -- 关联查询【被邀约人】的用户信息
+            invitee.nick_name AS invitee_nick_name,
+            invitee.avatar    AS invitee_avatar,
+            
+            -- 关联查询【图片】信息 - 获取发起人的最新图片
+            (SELECT file_url FROM sd_user_model_file 
+             WHERE belong_user_id = inv.inviter_user_id 
+             ORDER BY crt_time DESC LIMIT 1) AS image_url,
+            (SELECT category FROM sd_user_model_file 
+             WHERE belong_user_id = inv.inviter_user_id 
+             ORDER BY crt_time DESC LIMIT 1) AS image_type
+        FROM
+            sd_proofing_invitations inv
+                LEFT JOIN
+            -- 关联用户表，获取【发起人】的信息
+                sys_user inviter ON inv.inviter_user_id = inviter.user_id
+                LEFT JOIN
+            -- 关联用户表，获取【被邀约人】的信息
+                sys_user invitee ON inv.invitee_user_id = invitee.user_id
+        WHERE
+            inv.id = #{invitationId}
+    </select>
+
     <select id="selectSentInvitationList" resultMap="ProofingInvitationDetailResult">
         SELECT
             -- 邀请表的基础字段

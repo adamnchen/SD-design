@@ -12,6 +12,7 @@ public class InvitationCandidateVO implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private Long inviteeUserId;
+    private Long invitationId;
     private BigDecimal quotedPrice;
     private Integer quotedPeriodDays;
     private Boolean isQuoteBatchPlan;

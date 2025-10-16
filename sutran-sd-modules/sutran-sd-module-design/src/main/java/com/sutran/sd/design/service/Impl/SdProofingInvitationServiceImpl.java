@@ -6,6 +6,7 @@ import com.sutran.sd.common.core.domain.dto.ProofingInvitationAcceptDto;
 import com.sutran.sd.common.core.domain.dto.ProofingInvitationRequestDTO;
 import com.sutran.sd.common.core.domain.dto.ProofingInvitationChooseDto;
 import com.sutran.sd.common.core.domain.entity.SdProofingInvitation;
+import com.sutran.sd.common.core.domain.vo.InvitationCandidateVO;
 import com.sutran.sd.common.core.domain.vo.ProofingInvitationDetailVO;
 import com.sutran.sd.common.core.page.TableDataInfo;
 import com.sutran.sd.common.core.domain.PageQuery;
@@ -330,21 +331,21 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
                 acceptDTO.getTieredPrices() == null || acceptDTO.getTieredPrices().isEmpty()) {
                 throw new ServiceException("提供批量生产方案时，阶梯价格不能为空");
             }
-            
+
             List<Integer> quantities = acceptDTO.getTieredQuantities();
             List<java.math.BigDecimal> prices = acceptDTO.getTieredPrices();
-            
+
             // 验证数组长度：数量点数组长度应该等于价格数组长度
             // 每个阶梯都有对应的数量点和价格
             if (quantities.size() != prices.size()) {
                 throw new ServiceException("阶梯价格设置错误：数量点数量必须等于价格数量");
             }
-            
+
             // 验证数量点不能为null、0或负数
             if (quantities.stream().anyMatch(qty -> qty == null || qty <= 0)) {
                 throw new ServiceException("阶梯数量点必须大于0");
             }
-            
+
             // 验证价格点不能为null、0或负数
             if (prices.stream().anyMatch(price -> price == null || price.signum() <= 0)) {
                 throw new ServiceException("阶梯价格必须大于0");
@@ -379,26 +380,26 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
 
                 // 第一个阶梯：从0开始到第一个数量点-1
                 java.util.Map<String, Object> firstTier = new java.util.HashMap<>();
-                firstTier.put("minQty", 0);
-                firstTier.put("maxQty", prices.get(0).intValue() - 1);
+                //firstTier.put("minQty", 0);
+                //firstTier.put("maxQty", prices.get(0).intValue() - 1);
                 firstTier.put("unitPrice", quantities.get(0));
                 firstTier.put("node", prices.get(0).intValue());
                 tieredPricingList.add(firstTier);
 
                 // 中间阶梯：从数量点i开始到数量点i+1-1
-                for (int i = 0; i < prices.size() - 1; i++) {
+                for (int i = 0; i < prices.size() - 2; i++) {
                     java.util.Map<String, Object> tier = new java.util.HashMap<>();
-                    tier.put("minQty", prices.get(i).intValue());
-                    tier.put("maxQty", prices.get(i + 1).intValue() - 1);
+                    //tier.put("minQty", prices.get(i).intValue());
+                    //tier.put("maxQty", prices.get(i + 1).intValue() - 1);
                     tier.put("unitPrice", quantities.get(i + 1));
-                    tier.put("node", prices.get(i + 1).intValue());
+                    tier.put("node", prices.get(i+1).intValue());
                     tieredPricingList.add(tier);
                 }
 
                 // 最后一个阶梯：从最后一个数量点开始，无上限
                 java.util.Map<String, Object> lastTier = new java.util.HashMap<>();
-                lastTier.put("minQty", prices.get(prices.size() - 1).intValue());
-                lastTier.put("maxQty", null);
+                //lastTier.put("minQty", prices.get(prices.size() - 1).intValue());
+                //lastTier.put("maxQty", null);
                 lastTier.put("unitPrice", quantities.get(quantities.size() - 1));
                 lastTier.put("node", prices.get(prices.size() - 1).intValue());
                 tieredPricingList.add(lastTier);
@@ -488,7 +489,7 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
         // 检查是否所有邀约都被拒绝或取消
         boolean allRejectedOrCancelled = true;
         for (SdProofingInvitation inv : allInvitations) {
-            if (!ProofingInvitationConstants.STATUS_REJECTED.equals(inv.getStatus()) && 
+            if (!ProofingInvitationConstants.STATUS_REJECTED.equals(inv.getStatus()) &&
                 !ProofingInvitationConstants.STATUS_CANCELLED.equals(inv.getStatus())) {
                 allRejectedOrCancelled = false;
                 break;
@@ -501,7 +502,7 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
             SdProofingInvitation mainInvitation = allInvitations.stream()
                 .min((a, b) -> a.getCreateTime().compareTo(b.getCreateTime()))
                 .orElse(invitation);
-            
+
             if (!mainInvitation.getId().equals(invitationId)) {
                 mainInvitation.setStatus(ProofingInvitationConstants.STATUS_REJECTED);
                 invitationMapper.updateById(mainInvitation);
@@ -589,8 +590,13 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
         }
 
         SdProofingInvitationCandidate selected = candidateMapper.selectOneByInvitationAndInvitee(chooseDto.getInvitationId(), chooseDto.getInviteeUserId());
-        if (selected == null || !ProofingInvitationConstants.STATUS_ACCEPTED.equals(selected.getStatus())) {
-            throw new ServiceException("所选厂家未接受邀约或不存在");
+        if (selected == null) {
+            throw new ServiceException("所选厂家不存在或未提交报价");
+        }
+        
+        // 检查候选人是否已提交报价
+        if (selected.getQuoteSubmitAt() == null) {
+            throw new ServiceException("所选厂家尚未提交报价");
         }
 
         // 更新主表最终选择信息
@@ -631,13 +637,17 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
             invitationMapper.updateById(inv);
         }
 
-        // 关闭其他候选
+        // 更新所有候选人的状态
         List<SdProofingInvitationCandidate> candidates = candidateMapper.selectByInvitationId(chooseDto.getInvitationId());
         for (SdProofingInvitationCandidate c : candidates) {
-            if (!c.getInviteeUserId().equals(chooseDto.getInviteeUserId())) {
-                c.setStatus(4); // 已关闭
-                candidateMapper.updateById(c);
+            if (c.getInviteeUserId().equals(chooseDto.getInviteeUserId())) {
+                // 被选中的候选人：状态设为已接受
+                c.setStatus(ProofingInvitationConstants.STATUS_ACCEPTED);
+            } else {
+                // 其他候选人：状态设为已拒绝
+                c.setStatus(ProofingInvitationConstants.STATUS_REJECTED);
             }
+            candidateMapper.updateById(c);
         }
     }
 
@@ -704,17 +714,8 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
             throw new ServiceException("邀约详情获取失败");
         }
 
-        // 附加候选人列表 - 查询同一个商品的所有邀约的候选人
-        java.util.List<com.sutran.sd.common.core.domain.vo.InvitationCandidateVO> candidates = candidateMapper.selectCandidateVOsByWorkId(detail.getWorkId());
-        System.out.println("DEBUG: 商品 " + detail.getWorkId() + " 查询候选人列表，找到 " + (candidates != null ? candidates.size() : "null") + " 个候选人");
-        log.info("商品 {} 查询候选人列表，找到 {} 个候选人", detail.getWorkId(), candidates != null ? candidates.size() : "null");
-        if (candidates != null && !candidates.isEmpty()) {
-            for (int i = 0; i < candidates.size(); i++) {
-                com.sutran.sd.common.core.domain.vo.InvitationCandidateVO candidate = candidates.get(i);
-                System.out.println("DEBUG: 候选人 " + i + ": inviteeUserId=" + candidate.getInviteeUserId() + ", quotedPrice=" + candidate.getQuotedPrice() + ", status=" + candidate.getStatus());
-                log.info("候选人 {}: inviteeUserId={}, quotedPrice={}, status={}", i, candidate.getInviteeUserId(), candidate.getQuotedPrice(), candidate.getStatus());
-            }
-        }
+        // 附加候选人列表 - 查询同一个商品当前进行中邀约的候选人
+        java.util.List<InvitationCandidateVO> candidates = candidateMapper.selectCandidateVOsByWorkId(detail.getWorkId());
         detail.setCandidates(candidates);
 
         log.info("邀约 {} 详情查询成功，找到 {} 个候选人", invitationId, candidates != null ? candidates.size() : "null");

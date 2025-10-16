@@ -18,6 +18,15 @@ public interface SdProofingInvitationCandidateMapper extends BaseMapper<SdProofi
     List<com.sutran.sd.common.core.domain.vo.InvitationCandidateVO> selectCandidateVOs(@Param("invitationId") Long invitationId);
 
     /**
+     * 根据商品ID查询所有候选人
+     * 查询同一个商品的所有邀约的候选人
+     * 
+     * @param workId 商品ID
+     * @return 候选人列表
+     */
+    List<com.sutran.sd.common.core.domain.vo.InvitationCandidateVO> selectCandidateVOsByWorkId(@Param("workId") String workId);
+
+    /**
      * 删除其他候选人的记录
      * 当有厂家接受邀约后，删除除当前接受者外的其他候选人
      * 

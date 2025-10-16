@@ -18,6 +18,8 @@ public class ProofingInvitationConstants {
     public static final Integer STATUS_REJECTED = 2;    // 已拒绝
     public static final Integer STATUS_CANCELLED = 3;    // 已取消
     public static final Integer STATUS_REPLYING  = 4;    //待回应
+    public static final Integer STATUS_PROCESSED = 5;    // 已处理
+    public static final Integer STATUS_PENDING_CONFIRMATION = 6;    // 待确认
 
     /**
      * 自动取消时限常量
@@ -85,6 +87,9 @@ public class ProofingInvitationConstants {
             case 1: return "已接受";
             case 2: return "已拒绝";
             case 3: return "已取消";
+            case 4: return "待回应";
+            case 5: return "已处理";
+            case 6: return "待确认";
             default: return "未知状态";
         }
     }

@@ -66,6 +66,25 @@
         ORDER BY c.status DESC, c.quote_submit_at DESC, c.id DESC
     </select>
 
+    <select id="selectCandidateVOsByWorkId" resultMap="CandidateVOResult">
+        SELECT
+            c.invitee_user_id,
+            c.quoted_price,
+            c.quoted_period_days,
+            c.is_quote_batch_plan,
+            c.tiered_pricing,
+            c.profit_share_ratio,
+            c.quote_submit_at,
+            c.status,
+            u.nick_name AS invitee_nick_name,
+            u.avatar    AS invitee_avatar
+        FROM sd_proofing_invitation_candidates c
+        LEFT JOIN sys_user u ON c.invitee_user_id = u.user_id
+        LEFT JOIN sd_proofing_invitations inv ON c.invitation_id = inv.id
+        WHERE inv.work_id = #{workId}
+        ORDER BY c.status DESC, c.quote_submit_at DESC, c.id DESC
+    </select>
+
     <!-- 删除其他候选人的记录 -->
     <delete id="deleteOtherCandidates">
         DELETE FROM sd_proofing_invitation_candidates

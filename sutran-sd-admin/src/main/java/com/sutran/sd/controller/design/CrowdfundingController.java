@@ -26,11 +26,20 @@ public class CrowdfundingController extends BaseController {
     private final ISdCrowdfundingProjectService crowdfundingProjectService;
 
     /**
-     * 查询众筹项目列表
+     * 查询众筹项目列表（通用）
      */
     @GetMapping("/list")
     public TableDataInfo<SdCrowdfundingProject> list(SdCrowdfundingProject sdCrowdfundingProject, PageQuery pageQuery) {
         return crowdfundingProjectService.selectPageCrowdfundingProjectList(sdCrowdfundingProject, pageQuery);
+    }
+
+    /**
+     * 根据类型查询众筹项目列表
+     * @param type 类型：published(我发布的)、supported(我购买的)、manufactured(我承接的)
+     */
+    @GetMapping("/list/{type}")
+    public TableDataInfo<SdCrowdfundingProject> listByType(@PathVariable String type, PageQuery pageQuery) {
+        return crowdfundingProjectService.selectPageCrowdfundingProjectListByType(type, pageQuery);
     }
 
     /**
@@ -84,6 +93,6 @@ public class CrowdfundingController extends BaseController {
         return R.ok(crowdfundingProjectService.getManufacturerSuccessfulProjects());
     }
 
-    
-    
+
+
 }

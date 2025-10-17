@@ -1,6 +1,8 @@
 package com.sutran.sd.design.mq;
 
 import com.rabbitmq.client.Channel;
+import com.sutran.sd.common.utils.StringUtils;
+import com.sutran.sd.common.utils.redis.RedisUtils;
 import com.sutran.sd.design.service.CrowdfundingMqService;
 import com.sutran.sd.pay.service.AliPayService;
 import com.sutran.sd.pay.config.AliPayConfig;
@@ -39,25 +41,25 @@ public class CrowdfundingPaymentOrderConsumer {
     public void handlePaymentOrderCreate(Message mqMessage, Channel channel) {
         String orderNo = null;
         long deliveryTag = mqMessage.getMessageProperties().getDeliveryTag();
-        
+
         try {
             // 手动反序列化消息
             String messageBody = new String(mqMessage.getBody(), "UTF-8");
             log.info("接收到众筹支付订单消息: {}", messageBody);
-            
+
             // 使用Jackson反序列化
             com.fasterxml.jackson.databind.ObjectMapper objectMapper = new com.fasterxml.jackson.databind.ObjectMapper();
             CrowdfundingPaymentOrderMessage message = objectMapper.readValue(messageBody, CrowdfundingPaymentOrderMessage.class);
-            
+
             orderNo = message.getOrderNo();
-            log.info("开始处理众筹支付订单创建消息: 订单号={}, 项目ID={}, 用户ID={}", 
+            log.info("开始处理众筹支付订单创建消息: 订单号={}, 项目ID={}, 用户ID={}",
                     orderNo, message.getProjectId(), message.getUserId());
 
             // 1. 调用支付模块创建支付订单
             String subject = "众筹支持-" + message.getProjectId();
             String body = "用户" + message.getUserName() + "支持众筹项目";
             String notifyUrl = aliPayConfig.getDomain() + "/design/crowdfunding/payment/alipay/notify"; // 众筹模块回调地址
-            
+
             // 创建支付订单并获取二维码
             aliPayService.createPayOrder(
                     message.getUserId(),
@@ -68,7 +70,8 @@ public class CrowdfundingPaymentOrderConsumer {
                     message.getSupportAmount(),
                     notifyUrl
             );
-            
+
+
             log.info("支付订单创建成功: 订单号={}", orderNo);
 
             // 2. 手动确认消息

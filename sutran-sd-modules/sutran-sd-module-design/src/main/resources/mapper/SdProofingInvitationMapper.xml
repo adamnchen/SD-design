@@ -32,13 +32,20 @@
         <result property="inviterAvatar"      column="inviter_avatar"/>
         <result property="inviteeNickName"    column="invitee_nick_name"/>
         <result property="inviteeAvatar"      column="invitee_avatar"/>
-        
+
         <result property="imageUrl"           column="image_url"/>
         <result property="imageType"          column="image_type"/>
-        
+
         <result property="tieredPricing"      column="tiered_pricing"/>
         <result property="profitShareRatio"   column="profit_share_ratio"/>
     </resultMap>
+    <update id="updateStatusById">
+        UPDATE sd_proofing_invitations
+        SET
+            status = #{status}
+        WHERE
+            id = #{invitationId}
+    </update>
 
     <select id="selectReceivedInvitationList" resultMap="ProofingInvitationDetailResult">
         SELECT
@@ -74,13 +81,13 @@
             -- 关联查询【被邀约人】的用户信息
             invitee.nick_name AS invitee_nick_name,
             invitee.avatar    AS invitee_avatar,
-            
+
             -- 关联查询【图片】信息 - 获取发起人的最新图片
-            (SELECT file_url FROM sd_user_model_file 
-             WHERE belong_user_id = inv.inviter_user_id 
+            (SELECT file_url FROM sd_user_model_file
+             WHERE belong_user_id = inv.inviter_user_id
              ORDER BY crt_time DESC LIMIT 1) AS image_url,
-            (SELECT category FROM sd_user_model_file 
-             WHERE belong_user_id = inv.inviter_user_id 
+            (SELECT category FROM sd_user_model_file
+             WHERE belong_user_id = inv.inviter_user_id
              ORDER BY crt_time DESC LIMIT 1) AS image_type
         FROM
             sd_proofing_invitations inv
@@ -131,13 +138,13 @@
             -- 关联查询【被邀约人】的用户信息
             invitee.nick_name AS invitee_nick_name,
             invitee.avatar    AS invitee_avatar,
-            
+
             -- 关联查询【图片】信息 - 获取发起人的最新图片
-            (SELECT file_url FROM sd_user_model_file 
-             WHERE belong_user_id = inv.inviter_user_id 
+            (SELECT file_url FROM sd_user_model_file
+             WHERE belong_user_id = inv.inviter_user_id
              ORDER BY crt_time DESC LIMIT 1) AS image_url,
-            (SELECT category FROM sd_user_model_file 
-             WHERE belong_user_id = inv.inviter_user_id 
+            (SELECT category FROM sd_user_model_file
+             WHERE belong_user_id = inv.inviter_user_id
              ORDER BY crt_time DESC LIMIT 1) AS image_type
         FROM
             sd_proofing_invitations inv
@@ -185,13 +192,13 @@
             -- 关联查询【被邀约人】的用户信息
             invitee.nick_name AS invitee_nick_name,
             invitee.avatar    AS invitee_avatar,
-            
+
             -- 关联查询【图片】信息 - 获取发起人的最新图片
-            (SELECT file_url FROM sd_user_model_file 
-             WHERE belong_user_id = inv.inviter_user_id 
+            (SELECT file_url FROM sd_user_model_file
+             WHERE belong_user_id = inv.inviter_user_id
              ORDER BY crt_time DESC LIMIT 1) AS image_url,
-            (SELECT category FROM sd_user_model_file 
-             WHERE belong_user_id = inv.inviter_user_id 
+            (SELECT category FROM sd_user_model_file
+             WHERE belong_user_id = inv.inviter_user_id
              ORDER BY crt_time DESC LIMIT 1) AS image_type
         FROM
             sd_proofing_invitations inv
@@ -245,11 +252,11 @@
             invitee.avatar as invitee_avatar,
 
             -- 关联查询【图片】信息 - 获取发起人的最新图片
-            (SELECT file_url FROM sd_user_model_file 
-             WHERE belong_user_id = inv.inviter_user_id 
+            (SELECT file_url FROM sd_user_model_file
+             WHERE belong_user_id = inv.inviter_user_id
              ORDER BY crt_time DESC LIMIT 1) AS image_url,
-            (SELECT category FROM sd_user_model_file 
-             WHERE belong_user_id = inv.inviter_user_id 
+            (SELECT category FROM sd_user_model_file
+             WHERE belong_user_id = inv.inviter_user_id
              ORDER BY crt_time DESC LIMIT 1) AS image_type
 
         FROM sd_proofing_invitations inv
@@ -299,11 +306,11 @@
             invitee.avatar as invitee_avatar,
 
             -- 关联查询【图片】信息 - 获取发起人的最新图片
-            (SELECT file_url FROM sd_user_model_file 
-             WHERE belong_user_id = inv.inviter_user_id 
+            (SELECT file_url FROM sd_user_model_file
+             WHERE belong_user_id = inv.inviter_user_id
              ORDER BY crt_time DESC LIMIT 1) AS image_url,
-            (SELECT category FROM sd_user_model_file 
-             WHERE belong_user_id = inv.inviter_user_id 
+            (SELECT category FROM sd_user_model_file
+             WHERE belong_user_id = inv.inviter_user_id
              ORDER BY crt_time DESC LIMIT 1) AS image_type
 
         FROM sd_proofing_invitations inv

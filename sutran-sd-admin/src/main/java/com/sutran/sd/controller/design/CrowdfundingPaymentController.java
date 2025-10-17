@@ -73,7 +73,8 @@ public class CrowdfundingPaymentController extends BaseController {
     public R<String> getPaymentQr(@PathVariable String orderNo) {
         try {
             String qrCode = payOrderService.getPayQr(orderNo, getUserId());
-            return R.ok(qrCode);
+            System.out.println(qrCode);
+            return R.ok("二维码获取成功",qrCode);
         } catch (Exception e) {
             log.error("获取支付二维码失败: 订单号={}", orderNo, e);
             return R.fail("获取支付二维码失败: " + e.getMessage());
@@ -84,20 +85,20 @@ public class CrowdfundingPaymentController extends BaseController {
      * 支付宝支付成功回调
      */
     @PostMapping("/payment/alipay/notify")
-    public R<String> alipayNotify(@RequestParam(required = false) String orderNo, 
+    public R<String> alipayNotify(@RequestParam(required = false) String orderNo,
                                   @RequestParam(required = false) String out_trade_no) {
         try {
             // 支付宝回调主要传递out_trade_no，优先使用out_trade_no
             String actualOrderNo = out_trade_no != null ? out_trade_no : orderNo;
             log.info("收到支付宝支付成功回调: orderNo={}, out_trade_no={}, 实际使用={}", orderNo, out_trade_no, actualOrderNo);
-            
+
             if (actualOrderNo == null) {
                 log.warn("支付宝回调缺少订单号参数");
                 return R.fail("缺少订单号参数");
             }
-            
+
             boolean success = crowdfundingProjectService.handlePaymentSuccess(actualOrderNo);
-            
+
             if (success) {
                 return R.ok("支付回调处理成功");
             } else {

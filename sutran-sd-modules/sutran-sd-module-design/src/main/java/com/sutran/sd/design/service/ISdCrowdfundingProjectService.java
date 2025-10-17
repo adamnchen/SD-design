@@ -53,6 +53,15 @@ public interface ISdCrowdfundingProjectService {
      */
     TableDataInfo<SdCrowdfundingProject> selectPageCrowdfundingProjectList(SdCrowdfundingProject sdCrowdfundingProject, PageQuery pageQuery);
 
+    /**
+     * 根据类型分页查询众筹项目列表
+     *
+     * @param type 类型：published(我发布的)、supported(我购买的)、manufactured(我承接的)
+     * @param pageQuery 分页查询
+     * @return 众筹项目分页数据
+     */
+    TableDataInfo<SdCrowdfundingProject> selectPageCrowdfundingProjectListByType(String type, PageQuery pageQuery);
+
 
 
     /**

@@ -1,6 +1,7 @@
 package com.sutran.sd.design.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.sutran.sd.design.domain.SdCrowdfundingProject;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -68,4 +69,14 @@ public interface SdCrowdfundingProjectMapper extends BaseMapper<SdCrowdfundingPr
      */
     @Update("UPDATE sd_crowdfunding_project SET status = #{newStatus} WHERE id = #{projectId} AND status = 1")
     int updateStatusIfCrowdfunding(@Param("projectId") Long projectId, @Param("newStatus") Integer newStatus);
+
+    /**
+     * 根据类型分页查询众筹项目列表
+     *
+     * @param page 分页对象
+     * @param type 类型：published(我发布的)、supported(我购买的)、manufactured(我承接的)
+     * @param userId 当前用户ID
+     * @return 众筹项目分页数据
+     */
+    Page<SdCrowdfundingProject> selectPageCrowdfundingProjectListByType(Page<SdCrowdfundingProject> page, @Param("type") String type, @Param("userId") Long userId);
 }

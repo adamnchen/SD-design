@@ -527,13 +527,13 @@ ali:
     publicKey:
     # 应用公钥证书 (证书模式必须)
 #    appCertPath: D:\project\java_project\sutran-sd\cert1\appPublicCert.crt
-    appCertPath: D:\project\java_project\sutran-sd\cert\appCertPublicKey.crt
+    appCertPath: C:\Users\26433\Desktop\sutran-sd\cert\appCertPublicKey.crt
     # 支付宝公钥证书 (证书模式必须)
 #    aliPayCertPath: D:\project\java_project\sutran-sd\cert1\alipayPublicCert.crt
-    aliPayCertPath: D:\project\java_project\sutran-sd\cert\alipayCertPublicKey.crt
+    aliPayCertPath: C:\Users\26433\Desktop\sutran-sd\cert\alipayCertPublicKey.crt
     # 支付宝根证书 (证书模式必须)
 #    aliPayRootCertPath: D:\project\java_project\sutran-sd\cert1\alipayRootCert.crt
-    aliPayRootCertPath: D:\project\java_project\sutran-sd\cert\alipayRootCert.crt
+    aliPayRootCertPath: C:\Users\26433\Desktop\sutran-sd\cert\alipayRootCert.crt
     # 支付宝支付网关
 #    serverUrl: https://openapi-sandbox.dl.alipaydev.com/gateway.do
     serverUrl: https://openapi.alipay.com/gateway.do

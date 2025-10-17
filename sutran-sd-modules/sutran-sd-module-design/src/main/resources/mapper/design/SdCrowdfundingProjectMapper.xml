@@ -61,6 +61,34 @@
         FROM sd_crowdfunding_project
     </sql>
 
-   
+    <!-- 根据类型分页查询众筹项目列表 -->
+    <select id="selectPageCrowdfundingProjectListByType" resultMap="SdCrowdfundingProjectResult">
+        <include refid="selectSdCrowdfundingProjectVo"/>
+        <where>
+            <choose>
+                <!-- 我发布的：creator_user_id = 当前用户ID -->
+                <when test="type == 'published'">
+                    AND creator_user_id = #{userId}
+                </when>
+                <!-- 我购买的：通过子查询关联支持记录表 -->
+                <when test="type == 'supported'">
+                    AND id IN (
+                        SELECT DISTINCT project_id 
+                        FROM sd_crowdfunding_support 
+                        WHERE user_id = #{userId}
+                    )
+                </when>
+                <!-- 我承接的：manufacturer_user_id = 当前用户ID -->
+                <when test="type == 'manufactured'">
+                    AND manufacturer_user_id = #{userId}
+                </when>
+                <!-- 不支持的类型 -->
+                <otherwise>
+                    AND 1 = 0
+                </otherwise>
+            </choose>
+        </where>
+        ORDER BY create_time DESC
+    </select>
 
 </mapper>

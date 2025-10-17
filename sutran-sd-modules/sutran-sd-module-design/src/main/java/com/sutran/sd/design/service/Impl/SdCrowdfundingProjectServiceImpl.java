@@ -93,6 +93,21 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
         return TableDataInfo.build(result);
     }
 
+    @Override
+    public TableDataInfo<SdCrowdfundingProject> selectPageCrowdfundingProjectListByType(String type, PageQuery pageQuery) {
+        Page<SdCrowdfundingProject> page = pageQuery.build();
+        Long currentUserId = LoginHelper.getUserId();
+        
+        // 验证类型参数
+        if (!"published".equals(type) && !"supported".equals(type) && !"manufactured".equals(type)) {
+            throw new ServiceException("不支持的类型: " + type);
+        }
+        
+        // 使用XML中的查询方法
+        Page<SdCrowdfundingProject> result = crowdfundingProjectMapper.selectPageCrowdfundingProjectListByType(page, type, currentUserId);
+        return TableDataInfo.build(result);
+    }
+
 
 
 

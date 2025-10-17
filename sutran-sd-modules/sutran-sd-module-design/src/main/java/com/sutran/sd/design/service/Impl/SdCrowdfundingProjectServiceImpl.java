@@ -24,7 +24,6 @@ import com.sutran.sd.common.utils.OrderNumUtils;
 import com.sutran.sd.common.exception.ServiceException;
 import com.sutran.sd.design.mapper.SdProofingInvitationMapper;
 import com.sutran.sd.pay.domain.PayOrder;
-import com.sutran.sd.pay.mapper.PayOrderMapper;
 import com.sutran.sd.system.service.ISysUserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -53,7 +52,6 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
     private final CrowdfundingMqService crowdfundingMqService;
     private final CrowdfundingConfig crowdfundingConfig;
     private final SdProofingInvitationMapper invitationMapper;
-    private final PayOrderMapper payOrderMapper;
     private final ISysUserService userService;
 
     @Override
@@ -377,7 +375,7 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
             support.setSupportAmount(supportDTO.getSupportAmount());
             support.setDrawStatus(0); // 未参与抽奖
             support.setIsWinner(0); // 未中奖
-
+            // createBy, createTime, updateBy, updateTime 字段由 BaseEntity 自动填充
 
             supportMapper.insert(support);
             log.info("参与者数据落库成功: 订单号={}", orderNo);
@@ -421,22 +419,15 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
 
             // 1. 查询支持记录
             SdCrowdfundingSupport support = supportMapper.selectByOrderNo(orderNo);
-            PayOrder payOrder = payOrderMapper.selectById(orderNo);
-            if ( payOrder == null ) {
+            
+            if (support == null) {
                 log.warn("未找到支持记录: 订单号={}", orderNo);
                 return false;
             }
 
-
-            int paystatus = payOrder.getStatus();
-
-
             // 2. 更新支持记录状态（设置订单号，标记为已支付）
-            if ( paystatus == 1 ) {
-                support.setOrderNo(orderNo);
-                supportMapper.updateById(support);
-            }
-
+            support.setOrderNo(orderNo);
+            supportMapper.updateById(support);
 
             // 3. 更新众筹项目金额
             SdCrowdfundingProject project = crowdfundingProjectMapper.selectSdCrowdfundingProjectById(support.getProjectId());

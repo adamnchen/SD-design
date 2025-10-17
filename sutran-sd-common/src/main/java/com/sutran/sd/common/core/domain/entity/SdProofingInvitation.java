@@ -166,7 +166,7 @@ public class SdProofingInvitation extends BaseEntity {
     // --- 状态和时间 ---
 
     /**
-     * 邀约状态 (0: 待处理, 1: 已接受, 2: 已拒绝, 3: 已取消)
+     * 邀约状态 (0: 待处理, 1: 已接受, 2: 已拒绝, 3: 已取消，4.待回应，5已处理，6待确认，7已发布)
      */
     @NotNull(message = "邀约状态不能为空")
     private Integer status; // 使用Integer对应TINYINT

@@ -97,12 +97,12 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
     public TableDataInfo<SdCrowdfundingProject> selectPageCrowdfundingProjectListByType(String type, PageQuery pageQuery) {
         Page<SdCrowdfundingProject> page = pageQuery.build();
         Long currentUserId = LoginHelper.getUserId();
-        
+
         // 验证类型参数
         if (!"published".equals(type) && !"supported".equals(type) && !"manufactured".equals(type)) {
             throw new ServiceException("不支持的类型: " + type);
         }
-        
+
         // 使用XML中的查询方法
         Page<SdCrowdfundingProject> result = crowdfundingProjectMapper.selectPageCrowdfundingProjectListByType(page, type, currentUserId);
         return TableDataInfo.build(result);
@@ -166,7 +166,7 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
         int crowdfundingDays = 60;
         calendar.add(java.util.Calendar.DAY_OF_MONTH, crowdfundingDays);
         project.setEndTime(calendar.getTime());
-
+        invitationDetail.setStatus(7);
         project.setStatus(1); // 众筹中
         project.setDrawNumber(invitationDetail.getDrawNumber()); // 使用邀约中的抽奖数量
         project.setTotalSamples(invitationDetail.getProofingQuantity());
@@ -714,12 +714,12 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
                     // 检查是否存在对应的支付订单
                     // 这里可以调用支付服务检查订单是否存在
                     // 如果不存在，则删除这条记录并回退Redis金额
-                    
+
                     // 暂时先记录日志，后续可以根据实际需求处理
-                    log.info("检查支持记录: 订单号={}, 项目ID={}, 金额={}, 创建时间={}", 
-                            support.getOrderNo(), support.getProjectId(), 
+                    log.info("检查支持记录: 订单号={}, 项目ID={}, 金额={}, 创建时间={}",
+                            support.getOrderNo(), support.getProjectId(),
                             support.getSupportAmount(), support.getCreateTime());
-                            
+
                 } catch (Exception e) {
                     log.error("检查支持记录失败: 订单号={}", support.getOrderNo(), e);
                 }

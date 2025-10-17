@@ -11,7 +11,7 @@
  Target Server Version : 80040 (8.0.40)
  File Encoding         : 65001
 
- Date: 16/10/2025 17:59:08
+ Date: 17/10/2025 09:46:08
 */
 
 SET NAMES utf8mb4;
@@ -43,7 +43,7 @@ CREATE TABLE `sd_proofing_invitations`  (
   `profit_share_ratio` decimal(5, 2) NULL DEFAULT NULL COMMENT '利润分成比例(%)，例如 15.50 表示 15.5%',
   `selected_invitee_user_id` bigint UNSIGNED NULL DEFAULT NULL COMMENT '最终选中的厂家用户ID',
   `selected_at` timestamp NULL DEFAULT NULL COMMENT '最终选择时间',
-  `status` tinyint NOT NULL DEFAULT 0 COMMENT '邀约状态 (0: 待处理, 1: 已接受, 2: 已拒绝, 3: 已取消，4.待回应，5已处理，6待确认)',
+  `status` tinyint NOT NULL DEFAULT 0 COMMENT '邀约状态 (0: 待处理, 1: 已接受, 2: 已拒绝, 3: 已取消，4.待回应，5已处理，6待确认，7已发布)',
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间 (邀约时间)',
   `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '记录更新时间',
   `draw_number` int NOT NULL COMMENT '打样样品参与抽奖的数量分配给众筹用户,最少一个',

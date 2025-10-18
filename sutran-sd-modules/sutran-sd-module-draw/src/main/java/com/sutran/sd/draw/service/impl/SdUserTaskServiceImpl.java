@@ -25,6 +25,9 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
+import static com.sutran.sd.common.constant.CacheConstants.COMFY_TASK;
+import static com.sutran.sd.common.constant.CacheConstants.SD_USER_TASK;
+
 /**
  * @author zj
  * @date 2024-03-03
@@ -290,13 +293,13 @@ public class SdUserTaskServiceImpl implements SdUserTaskService {
      */
     @Override
     public String getPromptIdByTaskId(String taskId) {
-        String promptId = RedisUtils.getCacheObject("comfy_task:"+taskId);
+        String promptId = RedisUtils.getCacheObject(COMFY_TASK+taskId);
         if (StringUtils.isNotBlank(promptId)) {
             return promptId;
         }
         promptId = baseMapper.getPromptIdByTaskId(taskId);
         if (StringUtils.isNotBlank(promptId)) {
-            RedisUtils.setCacheObject("comfy_task:"+taskId,promptId, Duration.ofMinutes(1));
+            RedisUtils.setCacheObject(COMFY_TASK+taskId,promptId, Duration.ofMinutes(1));
         }
         return promptId;
     }
@@ -308,13 +311,13 @@ public class SdUserTaskServiceImpl implements SdUserTaskService {
      */
     @Override
     public SdUserTaskVo getDrawTaskInfoByTaskId(String taskId) {
-        String taskVoStr = RedisUtils.getCacheObject("SD_USER_TASK:" + taskId);
+        String taskVoStr = RedisUtils.getCacheObject(SD_USER_TASK + taskId);
         if (StringUtils.isNotBlank(taskVoStr)) {
             return JSONObject.parseObject(taskVoStr,SdUserTaskVo.class);
         }
         SdUserTaskVo taskVo = baseMapper.getDrawTaskInfoByTaskId(taskId);
         if (taskVo != null) {
-            RedisUtils.setCacheObject("SD_USER_TASK:" + taskId, JSONObject.toJSONString(taskVo), Duration.ofMinutes(1));
+            RedisUtils.setCacheObject(SD_USER_TASK + taskId, JSONObject.toJSONString(taskVo), Duration.ofMinutes(1));
         }
         return taskVo;
     }
@@ -326,13 +329,13 @@ public class SdUserTaskServiceImpl implements SdUserTaskService {
      */
     @Override
     public String getTaskIdByPromptId(String promptId) {
-        String taskId = RedisUtils.getCacheObject("comfy_task:"+promptId);
+        String taskId = RedisUtils.getCacheObject(COMFY_TASK+promptId);
         if (StringUtils.isNotBlank(taskId)) {
             return taskId;
         }
         taskId = baseMapper.getTaskIdByPromptId(promptId);
         if (StringUtils.isNotBlank(taskId)) {
-            RedisUtils.setCacheObject("comfy_task:"+promptId,taskId, Duration.ofMinutes(1));
+            RedisUtils.setCacheObject(COMFY_TASK+promptId,taskId, Duration.ofMinutes(1));
         }
         return taskId;
     }
@@ -344,13 +347,13 @@ public class SdUserTaskServiceImpl implements SdUserTaskService {
      */
     @Override
     public SdUserTask getTaskInfoByPromptId(String promptId) {
-        String taskVoStr = RedisUtils.getCacheObject("SD_USER_TASK:" + promptId);
+        String taskVoStr = RedisUtils.getCacheObject(SD_USER_TASK + promptId);
         if (StringUtils.isNotBlank(taskVoStr)) {
             return JSONObject.parseObject(taskVoStr,SdUserTask.class);
         }
         SdUserTask taskVo = baseMapper.selectOne(new LambdaQueryWrapper<SdUserTask>().eq(SdUserTask::getPromptId,promptId));
         if (taskVo != null) {
-            RedisUtils.setCacheObject("SD_USER_TASK:" + promptId, JSONObject.toJSONString(taskVo), Duration.ofMinutes(1));
+            RedisUtils.setCacheObject(SD_USER_TASK + promptId, JSONObject.toJSONString(taskVo), Duration.ofMinutes(1));
         }
         return taskVo;
     }

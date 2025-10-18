@@ -228,7 +228,7 @@ public class FileUtils extends FileUtil {
         }
     }
 
-    public static File multipartFileToTempFile(MultipartFile multipartFile, String fileName) {
+    public static File multipartFileToTempFile(MultipartFile multipartFile, String fileName, boolean isModifyFileName) {
         // 参数校验
         if (multipartFile == null) {
             log.error("文件不能不能为null");
@@ -239,8 +239,17 @@ public class FileUtils extends FileUtil {
             return null;
         }
         try {
+            // 提取文件扩展名
             String prefixName = fileName.substring(fileName.lastIndexOf("."));
-            File file = File.createTempFile("tempFile",prefixName);
+            // 获取文件名称(不包含扩展名)
+            String fileNameNoExtension = fileName.substring(0, fileName.lastIndexOf("."));
+            File file;
+            if (isModifyFileName) {
+                file = File.createTempFile("temp_",prefixName);
+            }
+            else {
+                file = File.createTempFile(fileNameNoExtension+"_",prefixName);
+            }
             FileOutputStream fileOutputStream = new FileOutputStream(file);
             IOUtils.copy(multipartFile.getInputStream(),fileOutputStream);
             return file;
@@ -250,7 +259,7 @@ public class FileUtils extends FileUtil {
         }
     }
 
-    public static File bytesToTempFile(byte[] bytes, String fileName) {
+    public static File bytesToTempFile(byte[] bytes, String fileName, boolean isModifyFileName) {
         // 参数校验
         if (bytes == null) {
             log.error("字节数组不能为null");
@@ -263,14 +272,15 @@ public class FileUtils extends FileUtil {
         File file = null;
         try {
             // 提取文件扩展名
-            String fileExtension = "";
-            int lastDotIndex = fileName.lastIndexOf(".");
-            if (lastDotIndex > 0 && lastDotIndex < fileName.length() - 1) {
-                fileExtension = fileName.substring(lastDotIndex);
+            String prefixName = fileName.substring(fileName.lastIndexOf("."));
+            // 获取文件名称(不包含扩展名)
+            String fileNameNoExtension = fileName.substring(0, fileName.lastIndexOf("."));
+            if (isModifyFileName) {
+                file = File.createTempFile("temp_",prefixName);
             }
-
-            // 创建临时文件
-            file = File.createTempFile("tempFile", fileExtension);
+            else {
+                file = File.createTempFile(fileNameNoExtension+"_",prefixName);
+            }
 
             // 写入文件内容
             try (FileOutputStream fos = new FileOutputStream(file)) {

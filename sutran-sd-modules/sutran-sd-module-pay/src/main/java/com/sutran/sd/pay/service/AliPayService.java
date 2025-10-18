@@ -2,7 +2,6 @@ package com.sutran.sd.pay.service;
 
 import com.ijpay.alipay.AliPayApiConfig;
 
-import javax.servlet.http.HttpServletRequest;
 import java.math.BigDecimal;
 
 /**
@@ -22,13 +21,6 @@ public interface AliPayService {
      * @return 支付二维码
      */
     String preCreateMemberOrder(String memberId);
-
-    /**
-     * 支付回调通知
-     * @param request 支付回调请求
-     * @return 通知地址
-     */
-    String notifyUrl(HttpServletRequest request);
 
     /**
      * 查询支付宝指定交易信息

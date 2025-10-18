@@ -153,4 +153,24 @@ public interface CacheConstants {
      * 支付订单二维码
      */
     String PAY_ORDER_QR =  "PAY_ORDER_QR:";
+
+     /**
+     * 训练任务图片列表
+     */
+    String COMFY_TASK = "COMFY_TASK:";
+
+    /**
+     * 处理模型锁
+     */
+    String DEAL_MODEL_LOCK = "DEAL_MODEL_LOCK_";
+
+    /**
+     * 用户训练任务
+     */
+    String SD_USER_TASK = "SD_USER_TASK:";
+
+    /**
+     * 训练任务图片列表
+     */
+    String FLUXGYM_IMG_TASK = "FLUXGYM_IMG_TASK:";
 }

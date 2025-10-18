@@ -27,7 +27,7 @@ public class DrawingTaskInfo implements Serializable {
     /**
      * 参考图片集合
      */
-    private final List<DrawingImageInfoBo> images;
+    private final List<ImageInfoBo> images;
 
     /**
      * 任务超时时间(分钟)
@@ -52,8 +52,8 @@ public class DrawingTaskInfo implements Serializable {
      * @param drawNum   绘图次数
      * @param images 参考图片集合
      */
-    @ConstructorProperties({"taskId", "flow", "timeout"})
-    public DrawingTaskInfo(String taskId, String flow, long timeout, Long userId, Integer drawNum, List<DrawingImageInfoBo> images) {
+    @ConstructorProperties({"taskId", "flow", "timeout", "userId", "drawNum", "images"})
+    public DrawingTaskInfo(String taskId, String flow, long timeout, Long userId, Integer drawNum, List<ImageInfoBo> images) {
         this.taskId = taskId;
         this.flow = flow;
         this.timeout = timeout;

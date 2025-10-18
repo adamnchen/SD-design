@@ -176,4 +176,41 @@ public interface SdTrainTaskService {
      * @return 训练任务数量
      */
     Integer countRunningTaskByUserId(Long userId);
+
+    /**
+     * 插入训练任务
+     * @param sdTrainTask 训练任务
+     */
+    void insert(SdTrainTask sdTrainTask);
+
+     /**
+      * 开始执行Fluxgym训练任务
+      * @param taskId 训练任务ID
+      * @param nodeId 节点ID
+      * @param startTime 开始时间
+      * @param trainParams 训练参数
+      */
+    void startFluxgymTrainTask(String taskId, Long nodeId, Date startTime, Map<String, Object> trainParams);
+
+    /**
+     * 查询训练任务节点URL
+     * @param taskId 训练任务ID
+     * @return 节点URL
+     */
+     JSONObject selectNodeBaseUrlByTaskId(String taskId);
+
+     /**
+      * 完成Fluxgym训练任务
+      * @param taskId 训练任务ID
+      * @param endTime 完成时间
+      */
+    void completeFluxgymTrainTask(String taskId, Date endTime);
+
+     /**
+      * 失败Fluxgym训练任务
+      * @param taskId 训练任务ID
+      * @param message 失败信息
+      * @param endTime 完成时间
+      */
+    void failFluxgymTrainTask(String taskId, String message, Date endTime);
 }

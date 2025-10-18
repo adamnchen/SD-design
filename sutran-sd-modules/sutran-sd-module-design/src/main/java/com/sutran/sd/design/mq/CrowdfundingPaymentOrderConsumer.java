@@ -1,8 +1,6 @@
 package com.sutran.sd.design.mq;
 
 import com.rabbitmq.client.Channel;
-import com.sutran.sd.common.utils.StringUtils;
-import com.sutran.sd.common.utils.redis.RedisUtils;
 import com.sutran.sd.design.service.CrowdfundingMqService;
 import com.sutran.sd.pay.service.AliPayService;
 import com.sutran.sd.pay.config.AliPayConfig;
@@ -70,7 +68,6 @@ public class CrowdfundingPaymentOrderConsumer {
                     message.getSupportAmount(),
                     notifyUrl
             );
-
 
             log.info("支付订单创建成功: 订单号={}", orderNo);
 

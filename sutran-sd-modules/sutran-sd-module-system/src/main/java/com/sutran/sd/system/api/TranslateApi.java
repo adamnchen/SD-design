@@ -3,6 +3,7 @@ package com.sutran.sd.system.api;
 import com.alibaba.fastjson.JSONObject;
 import com.dtflys.forest.annotation.Get;
 import com.dtflys.forest.annotation.Query;
+import com.sutran.sd.system.domain.vo.BaiduTranslationResultVo;
 
 import java.util.Map;
 
@@ -16,6 +17,6 @@ public interface TranslateApi {
     JSONObject youdaoTranslate(@Query Map<String,String> params);
 
     @Get(value = "https://fanyi-api.baidu.com/api/trans/vip/translate")
-    JSONObject baiduTranslate(@Query Map<String,String> params);
+    BaiduTranslationResultVo baiduTranslate(@Query Map<String,String> params);
 
 }

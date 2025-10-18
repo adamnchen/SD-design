@@ -126,6 +126,21 @@ public class RabbitConfig {
     }
 
 
+    /** ---------------------------------------------------------------------------- SD模型训练-FluxGym训练任务 Direct exchange --------------------------------------------------------------------------- */
+    @Bean
+    public Exchange sdFluxGymTrainExchange() {
+        return ExchangeBuilder.directExchange(SD_FLUXGYM_TRAIN_EXCHANGE).durable(true).build();
+    }
+    @Bean
+    public Queue sdFluxGymTrainQueue() {
+        return QueueBuilder.durable(SD_FLUXGYM_TRAIN_QUEUE).build();
+    }
+    @Bean
+    public Binding sdFluxGymTrainBinding() {
+        return BindingBuilder.bind(sdFluxGymTrainQueue()).to(sdFluxGymTrainExchange()).with(SD_FLUXGYM_TRAIN_ROUTING_KEY).noargs();
+    }
+
+
     /** ---------------------------------------------------------------------------- 微信消息通知 Direct exchange --------------------------------------------------------------------------- */
     @Bean
     public Exchange wxMsgExchange() {

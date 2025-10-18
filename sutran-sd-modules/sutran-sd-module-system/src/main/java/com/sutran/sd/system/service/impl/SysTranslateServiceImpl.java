@@ -2,12 +2,12 @@ package com.sutran.sd.system.service.impl;
 
 import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.util.StrUtil;
-import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.sutran.sd.common.enums.TranslateType;
 import com.sutran.sd.common.utils.translate.AuthV3Util;
 import com.sutran.sd.common.utils.translate.BaiduAuthUtil;
 import com.sutran.sd.system.api.TranslateApi;
+import com.sutran.sd.system.domain.vo.BaiduTranslationResultVo;
 import com.sutran.sd.system.service.SysTranslateService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -62,9 +62,12 @@ public class SysTranslateServiceImpl implements SysTranslateService {
                 }};
                 // 添加鉴权相关参数
                 BaiduAuthUtil.buildParams(baiduAppKey, baiduAppSecret, bdParams);
-                JSONObject bdResult = translateApi.baiduTranslate(bdParams);
+                BaiduTranslationResultVo bdResult = translateApi.baiduTranslate(bdParams);
                 log.info("[百度翻译][汉译英]>>>>>>>>>返回结果：{}",bdResult);
-                return CollectionUtil.isNotEmpty(bdResult) && ("0".equals(bdResult.getString("error_code")) || "52000".equals(bdResult.getString("error_code"))) ? JSON.parseArray(bdResult.getString("trans_result"), JSONObject.class).get(0).getString("dst") :null;
+                if (CollectionUtil.isEmpty(bdResult.getTransResult())) {
+                    return null;
+                }
+                return bdResult.getTransResult().get(0).getDst();
             default:
                 return null;
         }
@@ -96,9 +99,12 @@ public class SysTranslateServiceImpl implements SysTranslateService {
                 }};
                 // 添加鉴权相关参数
                 BaiduAuthUtil.buildParams(baiduAppKey, baiduAppSecret, bdParams);
-                JSONObject bdResult = translateApi.baiduTranslate(bdParams);
+                BaiduTranslationResultVo bdResult = translateApi.baiduTranslate(bdParams);
                 log.info("[百度翻译][英译汉]>>>>>>>>>返回结果：{}",bdResult);
-                return CollectionUtil.isNotEmpty(bdResult) && ("0".equals(bdResult.getString("error_code")) || "52000".equals(bdResult.getString("error_code"))) ? JSON.parseArray(bdResult.getString("trans_result"), JSONObject.class).get(0).getString("dst") :null;
+                if (CollectionUtil.isEmpty(bdResult.getTransResult())) {
+                    return null;
+                }
+                return bdResult.getTransResult().get(0).getDst();
             default:
                 return null;
         }

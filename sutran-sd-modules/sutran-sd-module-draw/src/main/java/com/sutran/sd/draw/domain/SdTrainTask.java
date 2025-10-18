@@ -107,8 +107,11 @@ public class SdTrainTask implements Serializable {
      */
     @Schema(name = "reason", description = "训练任务失败原因")
     private String reason;
-
-
+     /**
+     * 训练任务节点ID
+     */
+    @Schema(name = "nodeId", description = "训练任务节点ID")
+    private Long nodeId;
     /**
      * 创建人ID
      */

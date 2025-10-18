@@ -128,20 +128,8 @@ public interface ISdCrowdfundingProjectService {
      */
     String createSupportOrder(CrowdfundingSupportDTO supportDTO);
 
-    /**
-     * 处理支付成功回调
-     *
-     * @param orderNo 订单号
-     * @return 是否处理成功
-     */
-    boolean handlePaymentSuccess(String orderNo);
 
-    /**
-     * 自动执行抽奖（供支付回调调用）
-     *
-     * @param project 众筹项目
-     */
-    void autoExecuteDraw(SdCrowdfundingProject project);
+
 
     /**
      * 获取厂家参与的众筹项目列表

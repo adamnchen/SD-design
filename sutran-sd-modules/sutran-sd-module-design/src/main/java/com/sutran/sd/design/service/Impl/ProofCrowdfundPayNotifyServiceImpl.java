@@ -69,6 +69,7 @@ public class ProofCrowdfundPayNotifyServiceImpl extends BasePayNotifyService {
     @Override
     public void dealPayTimeoutData(PayTimeoutStatusVo vo) {
         try {
+            // 支付成功 或 完成
             if (AliPayTradeStatus.TRADE_SUCCESS.name().equals(vo.getTradeStatus()) || AliPayTradeStatus.TRADE_FINISHED.name().equals(vo.getTradeStatus())) {
                 return;
             }

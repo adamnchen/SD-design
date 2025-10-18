@@ -193,12 +193,39 @@ public class CommonJobEvent {
      * 每10秒执行一次
      */
     @Scheduled(cron="0/10 * * * * ?")
-    public void executeComfyTask(){
+    public void executeComfyDrawTask(){
         Map<String, String> cacheMap = RedisUtils.getCacheMap(DRAW_NODE_TASK_MAP);
         if (CollectionUtil.isEmpty(cacheMap)) {
             return;
         }
-        cacheMap.forEach(sdComfyuiApiService::autoDealComfyTask);
+        cacheMap.forEach((nodeId, taskId) -> {
+            try{
+                sdComfyuiApiService.autoDealComfyTask(nodeId, taskId);
+            }
+            catch (Exception e){
+                log.error("[定时任务]>>>>>>>>>定时处理绘图节点任务异常：",e);
+            }
+        });
+    }
+
+    /**
+     * 定时处理节点任务
+     * 每10秒执行一次
+     */
+    @Scheduled(cron="0/10 * * * * ?")
+    public void executeFluxgymTrainTask(){
+        Map<String, String> cacheMap = RedisUtils.getCacheMap(TRAIN_NODE_TASK_MAP);
+        if (CollectionUtil.isEmpty(cacheMap)) {
+            return;
+        }
+        cacheMap.forEach((nodeId,taskId) -> {
+            try{
+                sdTrainService.getFluxgymProgress(taskId,nodeId,true);
+            }
+            catch (Exception e){
+                log.error("[定时任务]>>>>>>>>>定时处理训练节点任务异常：",e);
+            }
+        });
     }
 
 }

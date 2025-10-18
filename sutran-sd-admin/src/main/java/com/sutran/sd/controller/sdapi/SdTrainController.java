@@ -14,6 +14,7 @@ import com.sutran.sd.draw.domain.dto.train.SdTrainTagDelDto;
 import com.sutran.sd.draw.domain.vo.*;
 import com.sutran.sd.draw.service.SdTrainService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import me.chanjar.weixin.common.error.WxErrorException;
 import me.chanjar.weixin.mp.api.WxMpService;
 import me.chanjar.weixin.mp.bean.template.WxMpTemplateData;
@@ -22,13 +23,13 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.util.List;
 
 /**
  * SD-lora模型训练API
  * @author zj
  * @date 2024-02-27
  */
+@Slf4j
 @RestController
 @RequestMapping("/sd/train")
 @RequiredArgsConstructor
@@ -206,22 +207,49 @@ public class SdTrainController {
 
 
     /**
-     * [FluxGym]SD训练-图片识别
+     * [FluxGym]SD训练-提交预处理(图片识别)
+     * @param images        图片集合
+     * @param loraName      训练模型名称(用于触发词)
+     * @return 识别结果
      */
     @ApiOperationSupport(order = 14)
-    @PostMapping("/img-identify")
-    public R<Void> imgIdentify(@RequestParam("images") MultipartFile[] images,
-                               @RequestParam("conceptSentence") String conceptSentence) {
-        sdTrainService.imgIdentify(images,conceptSentence);
-        return R.ok();
+    @PostMapping("/fluxgym/img-identify")
+    public R<FluxgymImgDealResultVo> imgIdentify(@RequestParam("images") MultipartFile[] images, @RequestParam("loraName") String loraName) {
+        return R.ok("操作成功",sdTrainService.imgIdentifyTask(images,loraName));
     }
 
+    /**
+     * [FluxGym]SD训练-提交训练
+     * @param taskId  任务id
+     * @param modelTag 模型标签(多个用逗号隔开)
+     * @param isOpen   是否公开[0-否,1-是]
+     * @param modelDesc 模型描述
+     * @throws IOException 图片IO异常
+     * @return 任务id
+     */
+    @ApiOperationSupport(order = 15)
+    @PostMapping("/fluxgym/start-train")
+    public R<String> starTrain(@RequestParam("taskId") String taskId,
+                               @RequestParam(value = "modelTag",required = false) String modelTag,
+                               @RequestParam(value = "isOpen",required = false) Integer isOpen,
+                               @RequestParam(value = "modelDesc",required = false) String modelDesc) throws IOException {
+        return R.ok("操作成功",sdTrainService.startTrainTask(taskId,modelTag,isOpen,modelDesc));
+    }
+
+    /**
+     * [FluxGym]SD训练-查询训练进度
+     */
+    @ApiOperationSupport(order = 16)
+    @PostMapping("/fluxgym/progress")
+    public R<FluxgymTrainProgressVo> getFluxgymProgress(@RequestParam String taskId){
+        return R.ok("操作成功",sdTrainService.getFluxgymProgress(taskId, null, false));
+    }
 
     /**
      * 测试消息推送
      */
     @PostMapping("/test-msg")
-    @ApiOperationSupport(order = 14)
+    @ApiOperationSupport(order = 17)
     @SaIgnore
     public void testMsg(@RequestBody WxMsgDto data) throws WxErrorException {
         WxMpTemplateMessage message = WxMpTemplateMessage.builder().toUser(data.getOpenId()).templateId(data.getTemplateId()).url(data.getUrl()).build();

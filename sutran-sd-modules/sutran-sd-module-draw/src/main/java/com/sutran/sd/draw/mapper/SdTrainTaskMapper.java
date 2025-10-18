@@ -2,10 +2,9 @@ package com.sutran.sd.draw.mapper;
 
 import com.alibaba.fastjson.JSONObject;
 import com.sutran.sd.common.core.mapper.BaseMapperPlus;
-import com.sutran.sd.draw.domain.vo.TrainTaskStatusVo;
 import com.sutran.sd.draw.domain.SdTrainTask;
+import com.sutran.sd.draw.domain.vo.TrainTaskStatusVo;
 import org.apache.ibatis.annotations.*;
-import org.apache.ibatis.annotations.Param;
 
 import java.util.Date;
 
@@ -128,4 +127,39 @@ public interface SdTrainTaskMapper extends BaseMapperPlus<SdTrainTaskMapper, SdT
      */
     @Select("SELECT COUNT(*) FROM sd_train_task WHERE crt_user_id=#{userId} AND new_status IN (3,4)")
     Integer countRunningTaskByUserId(@Param("userId") Long userId);
+
+     /**
+      * 开始执行Fluxgym训练任务
+      * @param taskId 训练任务ID
+      * @param nodeId 节点ID
+      * @param startTime 开始时间
+      * @param trainParams 训练参数
+      */
+    @Update("UPDATE sd_train_task SET new_status=4,start_time=#{startTime},node_id=#{nodeId},train_params=#{trainParams} WHERE id=#{taskId}")
+    void startFluxgymTrainTask(@Param("taskId") String taskId, @Param("nodeId") Long nodeId, @Param("startTime") Date startTime, @Param("trainParams") String trainParams);
+
+     /**
+      * 查询训练任务节点URL
+      * @param taskId 训练任务ID
+      * @return 节点URL
+      */
+    @Select("SELECT B.base_url AS baseUrl,A.node_id AS nodeId,A.pre_params AS preParams FROM sd_train_task AS A INNER JOIN sd_draw_node AS B ON A.node_id=B.id WHERE A.id=#{taskId}")
+    JSONObject selectNodeBaseUrlByTaskId(@Param("taskId") String taskId);
+
+     /**
+      * 完成Fluxgym训练任务
+      * @param taskId 训练任务ID
+      * @param endTime 完成时间
+      */
+    @Update("UPDATE sd_train_task SET new_status=5,end_time=#{endTime} WHERE id=#{taskId}")
+    void completeFluxgymTrainTask(@Param("taskId") String taskId, @Param("endTime") Date endTime);
+
+     /**
+      * 失败Fluxgym训练任务
+      * @param taskId 训练任务ID
+      * @param message 失败信息
+      * @param endTime 完成时间
+      */
+    @Update("UPDATE sd_train_task SET new_status=6,reason=#{message},end_time=#{endTime} WHERE id=#{taskId}")
+    void failFluxgymTrainTask(@Param("taskId") String taskId, @Param("message") String message, @Param("endTime") Date endTime);
 }

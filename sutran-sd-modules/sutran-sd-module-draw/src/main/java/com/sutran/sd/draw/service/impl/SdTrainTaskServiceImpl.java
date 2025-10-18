@@ -214,5 +214,30 @@ public class SdTrainTaskServiceImpl implements SdTrainTaskService {
         return baseMapper.countRunningTaskByUserId(userId);
     }
 
+    @Override
+    public void insert(SdTrainTask sdTrainTask) {
+        baseMapper.insert(sdTrainTask);
+    }
+
+    @Override
+    public void startFluxgymTrainTask(String taskId, Long nodeId, Date startTime, Map<String, Object> trainParams) {
+        baseMapper.startFluxgymTrainTask(taskId,nodeId,startTime,JSONObject.toJSONString(trainParams));
+    }
+
+    @Override
+    public JSONObject selectNodeBaseUrlByTaskId(String taskId) {
+        return baseMapper.selectNodeBaseUrlByTaskId(taskId);
+    }
+
+    @Override
+    public void completeFluxgymTrainTask(String taskId, Date endTime) {
+        baseMapper.completeFluxgymTrainTask(taskId,endTime);
+    }
+
+    @Override
+    public void failFluxgymTrainTask(String taskId, String message, Date endTime) {
+        baseMapper.failFluxgymTrainTask(taskId,message,endTime);
+    }
+
 
 }

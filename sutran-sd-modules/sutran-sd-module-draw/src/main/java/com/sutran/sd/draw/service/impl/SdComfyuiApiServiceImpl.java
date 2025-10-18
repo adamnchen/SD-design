@@ -22,7 +22,7 @@ import com.sutran.sd.draw.domain.SdDrawNode;
 import com.sutran.sd.draw.domain.SdFlow;
 import com.sutran.sd.draw.domain.SdUserTask;
 import com.sutran.sd.draw.domain.bo.ComfyModelTaskSubmitBo;
-import com.sutran.sd.draw.domain.bo.DrawingImageInfoBo;
+import com.sutran.sd.draw.domain.bo.ImageInfoBo;
 import com.sutran.sd.draw.domain.bo.DrawingTaskInfo;
 import com.sutran.sd.draw.domain.pojo.*;
 import com.sutran.sd.draw.domain.vo.ComfyuiImageToolVo;
@@ -57,8 +57,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
-import static com.sutran.sd.common.constant.CacheConstants.DRAW_NODE_TASK_MAP;
-import static com.sutran.sd.common.constant.CacheConstants.DRAW_TASK_PROGRESS;
+import static com.sutran.sd.common.constant.CacheConstants.*;
 import static com.sutran.sd.draw.constants.CommonKey.JPG;
 import static com.sutran.sd.draw.constants.CommonKey.SD;
 import static com.sutran.sd.draw.mq.MqConstant.*;
@@ -163,11 +162,11 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
 
         // 处理参考图片
         List<String> imageUrls = new ArrayList<>();
-        List<DrawingImageInfoBo> images = new ArrayList<>();
+        List<ImageInfoBo> images = new ArrayList<>();
         for (MultipartFile file : imageList) {
             SysOssVo ossVo = sysOssService.upload(file);
             imageUrls.add(ossVo.getUrl());
-            images.add(new DrawingImageInfoBo().setImageName(file.getOriginalFilename()).setContentType(file.getContentType()).setFileData(file.getBytes()));
+            images.add(new ImageInfoBo().setImageName(file.getOriginalFilename()).setContentType(file.getContentType()).setFileData(file.getBytes()));
         }
         // 生图任务落库
         final String taskId = IdUtil.getSnowflakeNextIdStr();
@@ -204,9 +203,6 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
         if (status==0) {
             throw new TaskErrorException("任务处于队列中");
         }
-//        if (status==1) {
-//            throw new TaskErrorException("任务处于执行中");
-//        }
         String promptId = sdUserTaskService.getPromptIdByTaskId(taskId);
         if (StringUtils.isBlank(promptId)) {
             throw new TaskErrorException("任内务处于队列中");
@@ -273,9 +269,11 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
             final String taskId = taskInfo.getTaskId();
             SdUserTaskVo task = sdUserTaskService.getDrawTaskInfoByTaskId(taskId);
             if (task == null) {
-                log.error("[MQ消息消费]>>>>>>>>>任务不存在,任务ID: {}", taskId);
+                log.error("[ComfyUI绘图MQ]>>>>>>>>>任务不存在,任务ID: {}", taskId);
                 // 归还绘图次数
                 userService.returnedDrawNum(taskInfo.getUserId(), taskInfo.getDrawNum());
+                // 消费该消息
+                channel.basicAck(deliveryTag, false);
                 return;
             }
             else {
@@ -283,12 +281,12 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
                 SdDrawNode node = sdDrawNodeService.selectDrawNodeAndLockNodeTask(LoadBalanceStrategy.WEIGHTED_LEAST_LOAD, taskId);
                 if (node == null) {
                     // 没有可用节点,重新放回队列
-                    log.warn("[MQ消息消费]>>>>>>>>>没有可用节点,任务ID: {}", taskId);
+                    log.warn("[ComfyUI绘图MQ]>>>>>>>>>没有可用节点,任务ID: {}", taskId);
                     try {
                         channel.basicNack(deliveryTag, false, true);
                     }
                     catch (IOException ex) {
-                        log.error("[MQ消息消费]>>>>>>>>>MQ消息消费异常重新入队列异常,异常信息: ", ex);
+                        log.error("[ComfyUI绘图MQ]>>>>>>>>>MQ消息消费异常重新入队列异常,异常信息: ", ex);
                     }
                     return;
                 }
@@ -313,8 +311,8 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
                 // 提交任务，返回ComfyUI内部任务ID
                 String promptId = submitDrawTask(taskId, JSONObject.parseObject(flowStr), node);
                 if (StringUtils.isNotBlank(promptId)) {
-                    RedisUtils.setCacheObject("comfy_task:"+taskId,promptId, Duration.ofMinutes(1));
-                    RedisUtils.setCacheObject("comfy_task:"+promptId,taskId, Duration.ofMinutes(1));
+                    RedisUtils.setCacheObject(COMFY_TASK+taskId,promptId, Duration.ofMinutes(1));
+                    RedisUtils.setCacheObject(COMFY_TASK+promptId,taskId, Duration.ofMinutes(1));
                 }
                 // 检查任务是否有缓存
                 checkCacheTask(promptId,taskId,node,taskInfo,task);
@@ -323,12 +321,12 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
             channel.basicAck(deliveryTag, false);
         }
         catch (Exception e) {
-            log.error("[MQ消息消费]>>>>>>>>>MQ消息消费异常,异常信息: ", e);
+            log.error("[ComfyUI绘图MQ]>>>>>>>>>MQ消息消费异常,异常信息: ", e);
             try {
                 channel.basicNack(deliveryTag, false, true);
             }
             catch (IOException ex) {
-                log.error("[MQ消息消费]>>>>>>>>>MQ消息消费异常重新入队列异常,异常信息: ", ex);
+                log.error("[ComfyUI绘图MQ]>>>>>>>>>MQ消息消费异常重新入队列异常,异常信息: ", ex);
             }
         }
     }
@@ -410,7 +408,7 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
             return flowStr;
         }
         for (int i = 0; i < taskInfo.getImages().size(); i++) {
-            DrawingImageInfoBo file = taskInfo.getImages().get(i);
+            ImageInfoBo file = taskInfo.getImages().get(i);
             ComfyUploadImage image = uploadImage(file.getFileData(), node, file.getImageName(), ImageType.input);
             if (image!=null) {
                 flowStr = flowStr.replace("{{inputImage"+(i+1)+"}}",image.getName());
@@ -608,7 +606,7 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
         if (bytes == null) {
             return null;
         }
-        File file = FileUtils.bytesToTempFile(bytes, fileName);
+        File file = FileUtils.bytesToTempFile(bytes, fileName, false);
         ComfyUploadImage taskImage = uploadImage(file, node, type);
         // 上传到comfyui后删除临时文件
         FileUtils.deleteFile(file);

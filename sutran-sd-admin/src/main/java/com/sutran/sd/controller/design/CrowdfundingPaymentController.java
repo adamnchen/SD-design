@@ -5,13 +5,18 @@ import com.sutran.sd.common.core.domain.R;
 import com.sutran.sd.design.domain.SdCrowdfundingSupport;
 import com.sutran.sd.design.dto.CrowdfundingSupportDTO;
 import com.sutran.sd.design.service.ISdCrowdfundingProjectService;
+import com.sutran.sd.pay.constants.PayNotifyServer;
+import com.sutran.sd.pay.service.AliPayService;
+import com.sutran.sd.pay.service.BasePayNotifyService;
 import com.sutran.sd.pay.service.PayOrderService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 众筹支付和支持记录Controller
@@ -27,6 +32,8 @@ public class CrowdfundingPaymentController extends BaseController {
 
     private final ISdCrowdfundingProjectService crowdfundingProjectService;
     private final PayOrderService payOrderService;
+    private final AliPayService aliPayService;
+    private final Map<String, BasePayNotifyService> payNotifyServiceMap;
 
     /**
      * 参与众筹支持
@@ -84,29 +91,8 @@ public class CrowdfundingPaymentController extends BaseController {
      * 支付宝支付成功回调
      */
     @PostMapping("/payment/alipay/notify")
-    public R<String> alipayNotify(@RequestParam(required = false) String orderNo, 
-                                  @RequestParam(required = false) String out_trade_no) {
-        try {
-            // 支付宝回调主要传递out_trade_no，优先使用out_trade_no
-            String actualOrderNo = out_trade_no != null ? out_trade_no : orderNo;
-            log.info("收到支付宝支付成功回调: orderNo={}, out_trade_no={}, 实际使用={}", orderNo, out_trade_no, actualOrderNo);
-            
-            if (actualOrderNo == null) {
-                log.warn("支付宝回调缺少订单号参数");
-                return R.fail("缺少订单号参数");
-            }
-            
-            boolean success = crowdfundingProjectService.handlePaymentSuccess(actualOrderNo);
-            
-            if (success) {
-                return R.ok("支付回调处理成功");
-            } else {
-                return R.fail("支付回调处理失败");
-            }
-        } catch (Exception e) {
-            log.error("处理支付宝支付回调异常: orderNo={}, out_trade_no={}", orderNo, out_trade_no, e);
-            return R.fail("支付回调处理异常: " + e.getMessage());
-        }
+    public String alipayNotify(HttpServletRequest request) {
+        return payNotifyServiceMap.get(PayNotifyServer.PROOF_CROWDFUND_NOTIFY).handleNotify(request,aliPayService.getConfig());
     }
 
 }

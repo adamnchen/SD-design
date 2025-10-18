@@ -264,9 +264,9 @@ public class SdDrawNodeServiceImpl implements SdDrawNodeService {
     }
     /** 检查fluxgym节点健康状态 **/
     public FluxGymHealthInfo getHealthStatus(String url) {
-        HttpRequest request = HttpRequest.get(url + "/api/health").timeout(3000);
-        String queueStatusInfo = execHttpRequest(request);
-        return JsonUtils.toObject(queueStatusInfo, FluxGymHealthInfo.class);
+        HttpRequest request = HttpRequest.get(url + "/api/health").timeout(30000);
+        String resp = execHttpRequest(request);
+        return JsonUtils.toObject(resp, FluxGymHealthInfo.class);
     }
 
     /** 执行request 并自动关闭response **/
@@ -392,7 +392,7 @@ public class SdDrawNodeServiceImpl implements SdDrawNodeService {
             }
             int index = ROUND_ROBIN_INDEX.getAndUpdate(i -> (i + 1) % availableNodes.size());
             SdDrawNode sdDrawNode = availableNodes.get(index);
-            RedisUtils.setCacheMapValue(DRAW_NODE_TASK_MAP, sdDrawNode.getId().toString(),taskId);
+            RedisUtils.setCacheMapValue(TRAIN_NODE_TASK_MAP, sdDrawNode.getId().toString(),taskId);
             return sdDrawNode;
         }
         finally{

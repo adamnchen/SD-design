@@ -193,6 +193,12 @@
             <artifactId>thumbnailator</artifactId>
         </dependency>
 
+        <!-- 拼音转换库 -->
+        <dependency>
+            <groupId>com.belerweb</groupId>
+            <artifactId>pinyin4j</artifactId>
+        </dependency>
+
     </dependencies>
 
 </project>

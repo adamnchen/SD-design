@@ -11,7 +11,7 @@ import java.io.Serializable;
  */
 @Data
 @Accessors(chain=true)
-public class DrawingImageInfoBo implements Serializable {
+public class ImageInfoBo implements Serializable {
     private String imageName;
     private String contentType;
     private byte[] fileData;

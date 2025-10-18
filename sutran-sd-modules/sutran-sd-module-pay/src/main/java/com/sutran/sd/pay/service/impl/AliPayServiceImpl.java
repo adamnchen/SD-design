@@ -4,7 +4,6 @@ import cn.hutool.core.date.DateUtil;
 import com.alipay.api.AlipayApiException;
 import com.alipay.api.domain.AlipayTradePrecreateModel;
 import com.alipay.api.domain.AlipayTradeQueryModel;
-import com.alipay.api.internal.util.AlipaySignature;
 import com.alipay.api.response.AlipayTradePrecreateResponse;
 import com.alipay.api.response.AlipayTradeQueryResponse;
 import com.ijpay.alipay.AliPayApi;
@@ -28,14 +27,9 @@ import com.sutran.sd.pay.service.PayOrderService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.interceptor.TransactionAspectSupport;
 
-import javax.servlet.http.HttpServletRequest;
 import java.math.BigDecimal;
-import java.util.HashMap;
-import java.util.Map;
 import java.math.RoundingMode;
 import java.time.Duration;
 import java.util.Date;
@@ -57,7 +51,6 @@ public class AliPayServiceImpl implements AliPayService {
     private final PayOrderService payOrderService;
     private final UserService  userService;
     private final PayMemberService payMemberService;
-    private final RestTemplate restTemplate;
 
     @Override
     public AliPayApiConfig getConfig() {
@@ -120,7 +113,7 @@ public class AliPayServiceImpl implements AliPayService {
 
         // 订单过期时间，默认35分钟后过期(稍微大于支付宝默认超时时间30分钟)
         Date expireTime = DateUtil.offsetMinute(now, 35);
-        String outTradeNo = OrderNumUtils.getOrderNum(now);;
+        String outTradeNo = OrderNumUtils.getOrderNum(now);
 
         // 存入redis,扫描redis进行过期订单处理
         RedisUtils.setCacheZSet(PAY_ORDER_TASK,expireTime.getTime(),outTradeNo);
@@ -166,89 +159,6 @@ public class AliPayServiceImpl implements AliPayService {
         catch (Exception e) {
             log.error("[支付宝][扫码支付]>>>>>>>>>创建订单失败,订单号:{}，异常：", outTradeNo, e);
             throw new ServiceException("创建订单失败："+e.getMessage());
-        }
-    }
-
-    @Override
-    @Transactional(rollbackFor = Exception.class)
-    public String notifyUrl(HttpServletRequest request) {
-        try {
-            // 获取支付宝POST过来反馈信息
-            Map<String, String> params = AliPayApi.toMap(request);
-            // 商户订单号
-            String outTradeNo = params.get("out_trade_no");
-            // 支付宝交易流水号
-            String tradeNo = params.get("trade_no");
-            boolean verifyResult = AlipaySignature.rsaCertCheckV1(params, aliPayConfig.getAliPayCertPath(), "UTF-8", "RSA2");
-            if (verifyResult) {
-                // 交易状态
-                String tradeStatus = params.get("trade_status");
-                // 实际支付金额
-                String totalAmount = params.get("total_amount");
-                // 支付时间
-                String gmtPayment = params.get("gmt_payment");
-
-                // 业务逻辑：更新订单状态（需保证幂等性，避免重复处理）
-                if (AliPayTradeStatus.TRADE_SUCCESS.name().equals(tradeStatus) || AliPayTradeStatus.TRADE_FINISHED.name().equals(tradeStatus)) {
-                    // 查询订单
-                    PayOrder order = payOrderService.detailByOutTradeNo(outTradeNo);
-                    if (order == null) {
-                        log.error("[支付宝][支付回调验证]>>>>>>>>>支付回调验证失败,订单号：{}，未查询到订单记录",outTradeNo);
-                        return "failure";
-                    }
-                    // 检查订单状态,已处理过，直接返回成功
-                    if (order.getStatus() != 0) {
-                        return "success";
-                    }
-                    // 修改订单状态
-                    boolean updateSuccess = payOrderService.successPay(outTradeNo, tradeNo, totalAmount, gmtPayment);
-                    if (updateSuccess) {
-                        // 通知支付宝处理成功，不再重复通知，并处理业务逻辑
-                        if (Objects.equals(order.getBusinessType(), BusinessType.SD_MEMBER.name())) {
-                            PayMember payMember = payMemberService.detailById(order.getBusinessId().toString());
-                            // 处理用户会员逻辑
-                            userService.insertMember(order.getUserId(),order.getBusinessId(),new Date(),payMember,outTradeNo);
-                        } else if (Objects.equals(order.getBusinessType(), BusinessType.PROOF_CROWDFUND.name())) {
-                            // 处理众筹业务逻辑 - 调用众筹模块
-                            try {
-                                // 通过HTTP调用众筹模块的支付成功回调
-                                String crowdfundingNotifyUrl = aliPayConfig.getDomain() + "/design/crowdfunding/payment/alipay/notify";
-
-                                // 构建请求参数
-                                Map<String, String> crowdfundingParams = new HashMap<>();
-                                crowdfundingParams.put("out_trade_no", outTradeNo);
-                                crowdfundingParams.put("orderNo", outTradeNo);
-
-                                // 发送HTTP POST请求
-                                String response = restTemplate.postForObject(crowdfundingNotifyUrl, crowdfundingParams, String.class);
-                                log.info("众筹支付成功回调调用完成: 订单号={}, 响应={}", outTradeNo, response);
-                            } catch (Exception e) {
-                                log.error("调用众筹模块支付成功回调失败: 订单号={}", outTradeNo, e);
-                            }
-                        }
-                        return "success";
-                    }
-                    else {
-                        // 业务处理失败，支付宝会重试（最多8次）
-                        return "failure";
-                    }
-                }
-                else {
-                    payOrderService.failPay(outTradeNo, tradeNo, totalAmount);
-                    log.error("[支付宝][支付回调验证]>>>>>>>>>支付回调验证失败,订单号：{},流水号：{},交易状态：{}",outTradeNo,tradeNo,tradeStatus);
-                    return "failure";
-                }
-            }
-            else {
-                log.error("[支付宝][支付回调验证]>>>>>>>>>支付回调验证失败,订单号：{},流水号：{}",outTradeNo,tradeNo);
-                return "failure";
-            }
-        }
-        catch (Exception e) {
-            log.error("[支付宝][支付回调验证]>>>>>>>>>支付结果回调异常:",e);
-            // 回滚事务
-            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
-            return "failure";
         }
     }
 
@@ -317,7 +227,7 @@ public class AliPayServiceImpl implements AliPayService {
         // 支付宝应用ID
         final String appId = aliPayConfig.getAppId();
 
-        // 订单过期时间，10分钟后过期(稍微大于支付认超时时间)
+        // 订单过期时间，5分钟后过期(稍微大于支付认超时时间)
         Date now = new Date();
         Date expireTime = DateUtil.offsetMinute(now, 6);
 

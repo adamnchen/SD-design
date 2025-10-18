@@ -3,12 +3,12 @@ package com.sutran.sd.draw.service;
 import com.alibaba.fastjson.JSONObject;
 import com.sutran.sd.common.core.domain.PageQuery;
 import com.sutran.sd.common.core.page.TableDataInfo;
+import com.sutran.sd.draw.domain.SdGpuPool;
 import com.sutran.sd.draw.domain.dto.train.SdTrainAdditionTagDto;
 import com.sutran.sd.draw.domain.dto.train.SdTrainLoraDto;
 import com.sutran.sd.draw.domain.dto.train.SdTrainPreImgDto;
 import com.sutran.sd.draw.domain.dto.train.SdTrainTagDelDto;
 import com.sutran.sd.draw.domain.vo.*;
-import com.sutran.sd.draw.domain.SdGpuPool;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -152,7 +152,37 @@ public interface SdTrainService {
      /**
       * [FluxGym]SD训练-图片识别
       * @param images 图片集合
-      * @param conceptSentence 概念描述
+      * @param loraName      训练模型名称(用于触发词)
+      * @return 识别结果
       */
-    void imgIdentify(MultipartFile[] images, String conceptSentence);
+     FluxgymImgDealResultVo imgIdentifyTask(MultipartFile[] images, String loraName);
+
+     /**
+      * [FluxGym]SD训练-提交训练
+      *
+      * @param taskId      训练任务id
+      * @param modelTag      模型标签
+      * @param isOpen        是否公开[0-否,1-是]
+      * @param modelDesc     模型描述
+      * @return 任务id
+      * @throws IOException 图片IO异常
+      */
+    String startTrainTask(String taskId, String modelTag, Integer isOpen, String modelDesc) throws IOException;
+
+     /**
+      * [FluxGym]SD训练-查询训练进度
+      *
+      * @param taskId 任务id
+      * @param nodeId 节点id
+      * @param isSchedule 是否定时任务查询
+      * @return 进度
+      */
+     FluxgymTrainProgressVo getFluxgymProgress(String taskId, String nodeId,boolean isSchedule);
+
+     /**
+      * [FluxGym]SD训练-处理训练完成后的模型文件
+      *
+      * @param taskId     任务id
+      */
+     void dealFluxgymTrainModelFile(String taskId);
 }

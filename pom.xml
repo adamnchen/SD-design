@@ -58,6 +58,10 @@
         <langChain4j.version>0.35.0</langChain4j.version>
         <!-- 第三方支付工具库 -->
         <ijapy.version>2.9.12</ijapy.version>
+        <!-- 拼音转换库 -->
+        <pinyin4j.version>2.5.0</pinyin4j.version>
+        <!-- Java WebSocket-->
+        <java-websocket.version>1.5.6</java-websocket.version>
     </properties>
 
     <!-- 依赖声明 -->
@@ -103,6 +107,18 @@
                 <groupId>org.projectlombok</groupId>
                 <artifactId>lombok</artifactId>
                 <version>${lombok.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.belerweb</groupId>
+                <artifactId>pinyin4j</artifactId>
+                <version>${pinyin4j.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.java-websocket</groupId>
+                <artifactId>Java-WebSocket</artifactId>
+                <version>${java-websocket.version}</version>
             </dependency>
 
             <dependency>

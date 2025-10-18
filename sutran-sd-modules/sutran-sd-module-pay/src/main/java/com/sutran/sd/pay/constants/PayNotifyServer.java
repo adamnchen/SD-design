@@ -9,6 +9,8 @@ public interface PayNotifyServer {
     String SD_MEMBER_NOTIFY = "sdMemberNotify";
     /** 众筹订单支付回调 **/
     String PROOF_CROWDFUND_NOTIFY = "proofCrowdfundNotify";
+    /** 众筹预售支付回调 **/
+    String PROOF_PRESEAL_NOTIFY = "proofPresealNotify";
     // 后续有其他回调业务逻辑，再继续加
 
 }

@@ -45,6 +45,7 @@ public class ProofCrowdfundPayNotifyServiceImpl extends BasePayNotifyService {
                 payOrderService.successPay(outTradeNo, tradeNo, totalAmount, gmtPayment);
                 return "success";
             }
+            // 支付失败
             else {
                 payOrderService.failPay(outTradeNo, tradeNo, totalAmount);
                 //TODO 回滚redis总金额、按照订单删除对应的参与者

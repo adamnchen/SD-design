@@ -82,12 +82,12 @@
             invitee.nick_name AS invitee_nick_name,
             invitee.avatar    AS invitee_avatar,
 
-            -- 关联查询【图片】信息 - 获取发起人的最新图片
+            -- 关联查询【图片】信息 - 获取该作品对应的图片
             (SELECT file_url FROM sd_user_model_file
-             WHERE belong_user_id = inv.inviter_user_id
+             WHERE id = CAST(inv.work_id AS UNSIGNED)
              ORDER BY crt_time DESC LIMIT 1) AS image_url,
             (SELECT category FROM sd_user_model_file
-             WHERE belong_user_id = inv.inviter_user_id
+             WHERE id = CAST(inv.work_id AS UNSIGNED)
              ORDER BY crt_time DESC LIMIT 1) AS image_type
         FROM
             sd_proofing_invitations inv
@@ -139,12 +139,12 @@
             invitee.nick_name AS invitee_nick_name,
             invitee.avatar    AS invitee_avatar,
 
-            -- 关联查询【图片】信息 - 获取发起人的最新图片
+            -- 关联查询【图片】信息 - 获取该作品对应的图片
             (SELECT file_url FROM sd_user_model_file
-             WHERE belong_user_id = inv.inviter_user_id
+             WHERE id = CAST(inv.work_id AS UNSIGNED)
              ORDER BY crt_time DESC LIMIT 1) AS image_url,
             (SELECT category FROM sd_user_model_file
-             WHERE belong_user_id = inv.inviter_user_id
+             WHERE id = CAST(inv.work_id AS UNSIGNED)
              ORDER BY crt_time DESC LIMIT 1) AS image_type
         FROM
             sd_proofing_invitations inv
@@ -193,13 +193,11 @@
             invitee.nick_name AS invitee_nick_name,
             invitee.avatar    AS invitee_avatar,
 
-            -- 关联查询【图片】信息 - 获取发起人的最新图片
+            -- 关联查询【图片】信息 - 获取该邀约对应的商品图片
             (SELECT file_url FROM sd_user_model_file
-             WHERE belong_user_id = inv.inviter_user_id
-             ORDER BY crt_time DESC LIMIT 1) AS image_url,
-            (SELECT category FROM sd_user_model_file
-             WHERE belong_user_id = inv.inviter_user_id
-             ORDER BY crt_time DESC LIMIT 1) AS image_type
+             WHERE belong_user_id = inv.work_id
+             ORDER BY crt_time DESC LIMIT 1) AS image_url
+
         FROM
             sd_proofing_invitations inv
                 LEFT JOIN
@@ -251,12 +249,12 @@
             invitee.nick_name as invitee_nick_name,
             invitee.avatar as invitee_avatar,
 
-            -- 关联查询【图片】信息 - 获取发起人的最新图片
+            -- 关联查询【图片】信息 - 获取该作品对应的图片
             (SELECT file_url FROM sd_user_model_file
-             WHERE belong_user_id = inv.inviter_user_id
+             WHERE id = CAST(inv.work_id AS UNSIGNED)
              ORDER BY crt_time DESC LIMIT 1) AS image_url,
             (SELECT category FROM sd_user_model_file
-             WHERE belong_user_id = inv.inviter_user_id
+             WHERE id = CAST(inv.work_id AS UNSIGNED)
              ORDER BY crt_time DESC LIMIT 1) AS image_type
 
         FROM sd_proofing_invitations inv
@@ -305,12 +303,12 @@
             invitee.nick_name as invitee_nick_name,
             invitee.avatar as invitee_avatar,
 
-            -- 关联查询【图片】信息 - 获取发起人的最新图片
+            -- 关联查询【图片】信息 - 获取该作品对应的图片
             (SELECT file_url FROM sd_user_model_file
-             WHERE belong_user_id = inv.inviter_user_id
+             WHERE id = CAST(inv.work_id AS UNSIGNED)
              ORDER BY crt_time DESC LIMIT 1) AS image_url,
             (SELECT category FROM sd_user_model_file
-             WHERE belong_user_id = inv.inviter_user_id
+             WHERE id = CAST(inv.work_id AS UNSIGNED)
              ORDER BY crt_time DESC LIMIT 1) AS image_type
 
         FROM sd_proofing_invitations inv

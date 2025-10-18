@@ -35,7 +35,7 @@ public class ProofCrowdfundPayNotifyServiceImpl extends BasePayNotifyService {
     @Override
     public String handleBusiness(String tradeStatus, String outTradeNo, String tradeNo, String totalAmount, String gmtPayment, AliPayApiConfig aliPayConfig) {
         try {
-            // 业务逻辑：更新订单状态（需保证幂等性，避免重复处理）
+            // 支付状态为完成或者成功
             if (AliPayTradeStatus.TRADE_SUCCESS.name().equals(tradeStatus) || AliPayTradeStatus.TRADE_FINISHED.name().equals(tradeStatus)) {
                 // 查询订单
                 PayOrder order = payOrderService.detailByOutTradeNo(outTradeNo);

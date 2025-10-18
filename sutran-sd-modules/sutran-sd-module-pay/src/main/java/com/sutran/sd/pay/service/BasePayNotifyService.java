@@ -3,6 +3,7 @@ package com.sutran.sd.pay.service;
 import com.alipay.api.internal.util.AlipaySignature;
 import com.ijpay.alipay.AliPayApi;
 import com.ijpay.alipay.AliPayApiConfig;
+import com.sutran.sd.pay.domain.vo.PayTimeoutStatusVo;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.servlet.http.HttpServletRequest;
@@ -63,4 +64,10 @@ public abstract class BasePayNotifyService {
      * @return 处理结果
      */
     abstract public String handleBusiness(String tradeStatus, String outTradeNo, String tradeNo, String totalAmount, String gmtPayment, AliPayApiConfig aliPayConfig);
+
+    /**
+     * 消费支付模块超时回调数据
+     * @param vo 支付订单超时参数
+     */
+    abstract public void dealPayTimeoutData(PayTimeoutStatusVo vo);
 }

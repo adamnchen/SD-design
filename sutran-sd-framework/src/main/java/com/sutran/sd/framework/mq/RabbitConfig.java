@@ -1,4 +1,4 @@
-package com.sutran.sd.draw.mq;
+package com.sutran.sd.framework.mq;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.core.*;
@@ -9,7 +9,7 @@ import org.springframework.context.annotation.Configuration;
 
 import javax.annotation.Resource;
 
-import static com.sutran.sd.draw.mq.MqConstant.*;
+import static com.sutran.sd.framework.mq.MqConstant.*;
 
 /**
  * @author zj
@@ -169,6 +169,22 @@ public class RabbitConfig {
     public Binding imgSendThirdBinding() {
         return BindingBuilder.bind(wxMsgQueue()).to(wxMsgExchange()).with(IMG_SEND_THIRD_ROUTING_KEY).noargs();
     }
+
+
+    /** ---------------------------------------------------------------------------- 支付订单超时 Direct exchange --------------------------------------------------------------------------- */
+    @Bean
+    public Exchange payOrderTimeoutExchange() {
+        return ExchangeBuilder.directExchange(PAY_ORDER_TIMEOUT_EXCHANGE).durable(true).build();
+    }
+    @Bean
+    public Queue payOrderTimeoutQueue() {
+        return QueueBuilder.durable(PAY_ORDER_TIMEOUT_QUEUE).build();
+    }
+    @Bean
+    public Binding payOrderTimeoutBinding() {
+        return BindingBuilder.bind(wxMsgQueue()).to(wxMsgExchange()).with(PAY_ORDER_TIMEOUT_ROUTING_KEY).noargs();
+    }
+
 
     /** ---------------------------------------------------------------------------- 众筹支付订单 Direct exchange --------------------------------------------------------------------------- */
     @Bean

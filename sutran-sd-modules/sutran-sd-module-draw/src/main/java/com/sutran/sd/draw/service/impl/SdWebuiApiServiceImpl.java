@@ -74,7 +74,7 @@ import static com.sutran.sd.common.constant.CacheConstants.*;
 import static com.sutran.sd.draw.constants.CommonKey.CHECK_POINT;
 import static com.sutran.sd.draw.constants.CommonKey.PNG;
 import static com.sutran.sd.draw.constants.DrawApi.*;
-import static com.sutran.sd.draw.mq.MqConstant.*;
+import static com.sutran.sd.framework.mq.MqConstant.*;
 
 /**
  * StableDiffusionAPI接口实现

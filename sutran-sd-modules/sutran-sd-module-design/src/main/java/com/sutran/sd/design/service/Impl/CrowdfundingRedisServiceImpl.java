@@ -1,4 +1,4 @@
-package com.sutran.sd.design.service.Impl;
+package com.sutran.sd.design.service.impl;
 
 import com.sutran.sd.design.service.CrowdfundingRedisService;
 import com.sutran.sd.design.config.CrowdfundingConfig;
@@ -10,6 +10,7 @@ import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -36,7 +37,7 @@ public class CrowdfundingRedisServiceImpl implements CrowdfundingRedisService {
             String key = CROWDFUNDING_AMOUNT_PREFIX + projectId;
             RAtomicDouble atomicDouble = redissonClient.getAtomicDouble(key);
             atomicDouble.set(targetAmount.doubleValue());
-            atomicDouble.expire(7, TimeUnit.DAYS);
+            atomicDouble.expire(Duration.ofDays(7));
             log.info("初始化众筹项目金额缓存: 项目={}, 目标金额={}", projectId, targetAmount);
             return true;
         } catch (Exception e) {
@@ -50,7 +51,7 @@ public class CrowdfundingRedisServiceImpl implements CrowdfundingRedisService {
         try {
             String key = CROWDFUNDING_AMOUNT_PREFIX + projectId;
             String lockKey = CROWDFUNDING_LOCK_PREFIX + projectId;
-            
+
             // 使用分布式锁确保原子性
             RLock lock = redissonClient.getLock(lockKey);
             if (lock.tryLock(crowdfundingConfig.getLockWaitTime(), crowdfundingConfig.getLockLeaseTime(), TimeUnit.SECONDS)) {
@@ -58,14 +59,14 @@ public class CrowdfundingRedisServiceImpl implements CrowdfundingRedisService {
                     RAtomicDouble atomicDouble = redissonClient.getAtomicDouble(key);
                     double currentAmount = atomicDouble.get();
                     double deductAmount = requestAmount.doubleValue();
-                    
+
                     if (currentAmount >= deductAmount) {
                         atomicDouble.addAndGet(-deductAmount);
-                        log.info("扣减众筹金额成功: 项目={}, 扣减金额={}, 剩余金额={}", 
+                        log.info("扣减众筹金额成功: 项目={}, 扣减金额={}, 剩余金额={}",
                                 projectId, requestAmount, atomicDouble.get());
                         return true;
                     } else {
-                        log.warn("众筹金额不足: 项目={}, 当前金额={}, 请求金额={}", 
+                        log.warn("众筹金额不足: 项目={}, 当前金额={}, 请求金额={}",
                                 projectId, currentAmount, deductAmount);
                         return false;
                     }
@@ -101,7 +102,7 @@ public class CrowdfundingRedisServiceImpl implements CrowdfundingRedisService {
             String key = CROWDFUNDING_AMOUNT_PREFIX + projectId;
             RAtomicDouble atomicDouble = redissonClient.getAtomicDouble(key);
             atomicDouble.addAndGet(refundAmount.doubleValue());
-            
+
             log.info("成功退还众筹金额: 项目={}, 退还金额={}, 剩余金额={}",
                 projectId, refundAmount, atomicDouble.get());
             return true;

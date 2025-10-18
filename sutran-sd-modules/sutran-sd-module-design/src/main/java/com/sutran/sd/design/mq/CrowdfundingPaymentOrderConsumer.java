@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 
-import static com.sutran.sd.draw.mq.MqConstant.CROWDFUNDING_PAYMENT_ORDER_QUEUE;
+import static com.sutran.sd.framework.mq.MqConstant.CROWDFUNDING_PAYMENT_ORDER_QUEUE;
 
 /**
  * 众筹支付订单MQ消费者

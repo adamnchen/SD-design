@@ -3,7 +3,6 @@ package com.sutran.sd.pay.service.impl;
 import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.util.ObjectUtil;
-import cn.hutool.core.util.StrUtil;
 import cn.hutool.extra.qrcode.QrCodeUtil;
 import cn.hutool.extra.qrcode.QrConfig;
 import com.alipay.api.AlipayApiException;
@@ -13,28 +12,28 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ijpay.alipay.AliPayApi;
 import com.sutran.sd.common.core.domain.PageQuery;
-import com.sutran.sd.common.core.domain.entity.PayMember;
 import com.sutran.sd.common.core.page.TableDataInfo;
-import com.sutran.sd.common.core.service.UserService;
 import com.sutran.sd.common.exception.ServiceException;
 import com.sutran.sd.common.utils.StringUtils;
 import com.sutran.sd.common.utils.redis.RedisUtils;
+import com.sutran.sd.pay.constants.PayNotifyServer;
 import com.sutran.sd.pay.domain.PayOrder;
+import com.sutran.sd.pay.domain.vo.PayTimeoutStatusVo;
 import com.sutran.sd.pay.enums.AliPayTradeStatus;
 import com.sutran.sd.pay.enums.BusinessType;
 import com.sutran.sd.pay.enums.ChannelType;
 import com.sutran.sd.pay.mapper.PayOrderMapper;
-import com.sutran.sd.pay.service.PayMemberService;
+import com.sutran.sd.pay.service.BasePayNotifyService;
 import com.sutran.sd.pay.service.PayOrderService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import javax.servlet.http.HttpServletResponse;
 import java.util.Date;
-import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 import static com.sutran.sd.common.constant.CacheConstants.PAY_ORDER_QR;
 import static com.sutran.sd.common.constant.CacheConstants.PAY_ORDER_TASK;
@@ -44,14 +43,13 @@ import static com.sutran.sd.common.constant.CacheConstants.PAY_ORDER_TASK;
  * @date 2025年08月23日 23:00
  */
 @SuppressWarnings({"AlibabaAvoidComplexCondition", "LoggingSimilarMessage"})
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Lazy)
 @Slf4j
 @Service
 public class PayOrderServiceImpl implements PayOrderService {
 
     private final PayOrderMapper payOrderMapper;
-    private final PayMemberService payMemberService;
-    private final UserService userService;
+    private final Map<String,BasePayNotifyService> basePayNotifyServiceMap;
 
     @Override
     public TableDataInfo<PayOrder> selectPageOrderList(PayOrder order, PageQuery pageQuery) {
@@ -173,10 +171,13 @@ public class PayOrderServiceImpl implements PayOrderService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void handleNoPayOfDataByOutTradeNo(String outTradeNo) {
         PayOrder order = payOrderMapper.selectOne(new LambdaQueryWrapper<PayOrder>().eq(PayOrder::getOutTradeNo, outTradeNo));
         // 已完成支付的不处理
         if (order == null || (order.getStatus()!=null && order.getStatus()!=0)) {
+            // 移除缓存中的订单
+            RedisUtils.delCacheZSet(PAY_ORDER_TASK, outTradeNo);
             return;
         }
         AlipayTradeQueryModel model = new AlipayTradeQueryModel();
@@ -186,23 +187,22 @@ public class PayOrderServiceImpl implements PayOrderService {
             if (response.isSuccess()) {
                 final String tradeNo = response.getTradeNo();
                 final String tradeStatus = response.getTradeStatus();
-
                 // 业务逻辑：更新订单状态（需保证幂等性，避免重复处理）
                 if (AliPayTradeStatus.TRADE_SUCCESS.name().equals(tradeStatus) || AliPayTradeStatus.TRADE_FINISHED.name().equals(tradeStatus)) {
                     // 修改订单状态
-                    boolean updateSuccess = successPay(outTradeNo, tradeNo, response.getTotalAmount(), DateUtil.formatDateTime(response.getSendPayDate()));
-                    if (updateSuccess) {
-                        // 通知支付宝处理成功，不再重复通知，并处理用户会员逻辑
-                        if (Objects.equals(order.getBusinessType(), BusinessType.SD_MEMBER.name())) {
-                            PayMember payMember = payMemberService.detailById(order.getBusinessId().toString());
-                            // 处理用户会员逻辑
-                            userService.insertMember(order.getUserId(),order.getBusinessId(),new Date(),payMember, outTradeNo);
-                        }
-                    }
+                    successPay(outTradeNo, tradeNo, response.getTotalAmount(), DateUtil.formatDateTime(response.getSendPayDate()));
                 }
                 else {
                     failPay(outTradeNo, tradeNo, response.getTotalAmount());
                     log.error("[支付宝][定时处理未失效且未支付订单]>>>>>>>>>支付宝查询指定交易信息并修改订单数据失败,订单号：{},流水号：{},交易状态：{}",outTradeNo,tradeNo, tradeStatus);
+                }
+                // 发送支付状态到业务实现
+                PayTimeoutStatusVo vo = new PayTimeoutStatusVo().setUserId(order.getUserId()).setBusinessId(order.getBusinessId()).setTradeStatus(tradeStatus).setOutTradeNo(outTradeNo);
+                if (BusinessType.SD_MEMBER.name().equals(order.getBusinessType())) {
+                    basePayNotifyServiceMap.get(PayNotifyServer.SD_MEMBER_NOTIFY).dealPayTimeoutData(vo);
+                }
+                if (BusinessType.PROOF_CROWDFUND.name().equals(order.getBusinessType())) {
+                    basePayNotifyServiceMap.get(PayNotifyServer.PROOF_CROWDFUND_NOTIFY).dealPayTimeoutData(vo);
                 }
                 RedisUtils.delCacheZSet(PAY_ORDER_TASK,outTradeNo);
             }

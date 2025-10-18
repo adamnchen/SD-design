@@ -1,4 +1,4 @@
-package com.sutran.sd.draw.mq;
+package com.sutran.sd.framework.mq;
 
 /**
  * @author zj
@@ -44,6 +44,13 @@ public interface MqConstant {
     String SD_FLUXGYM_TRAIN_EXCHANGE = "SD_FLUXGYM_TRAIN_EXCHANGE";
     String SD_FLUXGYM_TRAIN_QUEUE = "SD_FLUXGYM_TRAIN_QUEUE";
     String SD_FLUXGYM_TRAIN_ROUTING_KEY = "SD_FLUXGYM_TRAIN_ROUTING_KEY";
+
+
+    /** 支付超时队列 **/
+    String PAY_ORDER_TIMEOUT_EXCHANGE = "PAY_ORDER_TIMEOUT_EXCHANGE";
+    String PAY_ORDER_TIMEOUT_QUEUE = "MEMBER_PAY_ORDER_TIMEOUT_QUEUE";
+    String PAY_ORDER_TIMEOUT_ROUTING_KEY = "MEMBER_PAY_ORDER_TIMEOUT_ROUTING_KEY";
+
 
     /** ---------------------------------------------------------------------------- 众筹支付订单 Direct exchange --------------------------------------------------------------------------- */
     String CROWDFUNDING_PAYMENT_ORDER_EXCHANGE = "CROWDFUNDING_PAYMENT_ORDER_EXCHANGE";

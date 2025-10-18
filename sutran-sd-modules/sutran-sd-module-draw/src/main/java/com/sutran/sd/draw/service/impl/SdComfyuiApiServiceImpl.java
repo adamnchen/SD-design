@@ -60,7 +60,7 @@ import java.util.Map;
 import static com.sutran.sd.common.constant.CacheConstants.*;
 import static com.sutran.sd.draw.constants.CommonKey.JPG;
 import static com.sutran.sd.draw.constants.CommonKey.SD;
-import static com.sutran.sd.draw.mq.MqConstant.*;
+import static com.sutran.sd.framework.mq.MqConstant.*;
 
 /**
  * ComfyUI客户端

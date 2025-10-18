@@ -9,7 +9,8 @@ import org.springframework.stereotype.Service;
 
 import java.util.Date;
 
-import static com.sutran.sd.draw.mq.MqConstant.*;
+import static com.sutran.sd.framework.mq.MqConstant.CROWDFUNDING_PAYMENT_ORDER_EXCHANGE;
+import static com.sutran.sd.framework.mq.MqConstant.CROWDFUNDING_PAYMENT_ORDER_ROUTING_KEY;
 
 /**
  * 众筹MQ服务
@@ -52,11 +53,11 @@ public class CrowdfundingMqService {
                     message
             );
 
-            log.info("众筹支付订单MQ消息投递成功: 订单号={}, 项目ID={}, 用户ID={}", 
+            log.info("众筹支付订单MQ消息投递成功: 订单号={}, 项目ID={}, 用户ID={}",
                     orderNo, support.getProjectId(), support.getUserId());
 
         } catch (Exception e) {
-            log.error("众筹支付订单MQ消息投递失败: 订单号={}, 项目ID={}, 用户ID={}", 
+            log.error("众筹支付订单MQ消息投递失败: 订单号={}, 项目ID={}, 用户ID={}",
                     orderNo, support.getProjectId(), support.getUserId(), e);
             throw new RuntimeException("MQ消息投递失败: " + e.getMessage(), e);
         }
@@ -80,11 +81,11 @@ public class CrowdfundingMqService {
                     message
             );
 
-            log.info("众筹支付订单MQ重试消息投递成功: 订单号={}, 重试次数={}", 
+            log.info("众筹支付订单MQ重试消息投递成功: 订单号={}, 重试次数={}",
                     message.getOrderNo(), message.getRetryCount());
 
         } catch (Exception e) {
-            log.error("众筹支付订单MQ重试消息投递失败: 订单号={}, 重试次数={}", 
+            log.error("众筹支付订单MQ重试消息投递失败: 订单号={}, 重试次数={}",
                     message.getOrderNo(), message.getRetryCount(), e);
             throw new RuntimeException("MQ重试消息投递失败: " + e.getMessage(), e);
         }

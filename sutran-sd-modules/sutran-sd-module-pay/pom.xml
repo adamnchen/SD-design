@@ -41,6 +41,11 @@
             <artifactId>sutran-sd-module-oss</artifactId>
         </dependency>
 
+        <!-- 通用工具-->
+        <dependency>
+            <groupId>com.sutran.sd</groupId>
+            <artifactId>sutran-sd-framework</artifactId>
+        </dependency>
     </dependencies>
 
 </project>

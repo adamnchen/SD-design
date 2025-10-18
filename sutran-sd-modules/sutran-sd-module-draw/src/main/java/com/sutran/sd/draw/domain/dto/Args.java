@@ -39,7 +39,7 @@ public class Args implements Serializable {
     private String input_image;
     private String mask;
 
-    private int resize_mode = 0;
+    private Integer resize_mode = 0;
 
     /**
      * enable pixel-perfect preprocessor. defaults to false

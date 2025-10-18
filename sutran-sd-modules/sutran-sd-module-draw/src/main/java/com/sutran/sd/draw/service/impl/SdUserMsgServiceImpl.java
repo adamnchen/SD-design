@@ -19,7 +19,7 @@ import com.sutran.sd.draw.domain.SdUserMsg;
 import com.sutran.sd.draw.domain.vo.MsgVo;
 import com.sutran.sd.draw.mapper.SdUserModelMapper;
 import com.sutran.sd.draw.mapper.SdUserMsgMapper;
-import com.sutran.sd.draw.mq.MqConstant;
+import com.sutran.sd.framework.mq.MqConstant;
 import com.sutran.sd.draw.service.SdUserMsgService;
 import com.sutran.sd.system.mapper.SysUserMapper;
 import com.sutran.sd.system.mapper.SysUserRoleMapper;

@@ -41,16 +41,15 @@
             <artifactId>sutran-sd-module-system</artifactId>
         </dependency>
 
-        <!-- MQ依赖 -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-amqp</artifactId>
-        </dependency>
-
 <!--        <dependency>-->
 <!--            <groupId>com.alibaba.fastjson2</groupId>-->
 <!--            <artifactId>fastjson2</artifactId>-->
 <!--        </dependency>-->
+
+        <dependency>
+            <groupId>com.sutran.sd</groupId>
+            <artifactId>sutran-sd-framework</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>com.alibaba</groupId>

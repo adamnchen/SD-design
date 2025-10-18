@@ -36,7 +36,7 @@ import com.sutran.sd.draw.domain.bo.TrainTaskInfo;
 import com.sutran.sd.draw.domain.dto.train.*;
 import com.sutran.sd.draw.domain.vo.*;
 import com.sutran.sd.draw.events.RefreshLoraEvent;
-import com.sutran.sd.draw.mq.MqConstant;
+import com.sutran.sd.framework.mq.MqConstant;
 import com.sutran.sd.draw.service.*;
 import com.sutran.sd.draw.utils.CommonUtil;
 import com.sutran.sd.draw.utils.JsonUtils;
@@ -73,7 +73,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static com.sutran.sd.common.constant.CacheConstants.*;
-import static com.sutran.sd.draw.mq.MqConstant.*;
+import static com.sutran.sd.framework.mq.MqConstant.*;
 
 /**
  * @author zj

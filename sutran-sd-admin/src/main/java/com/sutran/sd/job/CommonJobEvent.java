@@ -149,7 +149,7 @@ public class CommonJobEvent {
     }
 
     /**
-     * 定时处理会员支付超时的数据
+     * 定时处理支付订单超时的数据
      * 每2分钟执行一次
      */
     @Scheduled(cron="0 0/2 * * * ?")

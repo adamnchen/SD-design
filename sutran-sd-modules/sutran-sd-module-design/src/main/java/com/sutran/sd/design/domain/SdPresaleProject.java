@@ -116,74 +116,89 @@ public class SdPresaleProject extends BaseEntity {
     private String manufacturerAvatar;
 
     /**
-     * 关联的众筹项目ID
+     * 关联的打样邀约ID
      */
-    @TableField("crowdfunding_project_id")
-    @NotNull(message = "关联的众筹项目ID不能为空")
-    private Long crowdfundingProjectId;
+    @TableField("proofing_invitation_id")
+    private Long proofingInvitationId;
 
     /**
-     * 阶梯价格配置(JSON格式)
-     * 例如: [{"quantity":30,"price":30.00},{"quantity":100,"price":25.00},{"quantity":200,"price":20.00}]
+     * 基础单价（最低阶梯价格）
      */
-    @TableField("tier_pricing")
-    @NotBlank(message = "阶梯价格配置不能为空")
-    private String tierPricing;
+    @TableField("base_price")
+    @NotNull(message = "基础单价不能为空")
+    private BigDecimal basePrice;
 
     /**
-     * 当前预售数量
+     * 阶梯价格配置(JSON数组: [{"unitPrice":100,"node":20}])
      */
-    @TableField("current_quantity")
-    private Integer currentQuantity;
+    @TableField("tiered_pricing")
+    private String tieredPricing;
 
     /**
-     * 预售开始时间
+     * 销售开始时间
      */
-    @TableField("start_time")
-    @NotNull(message = "预售开始时间不能为空")
-    private Date startTime;
+    @TableField("sale_start_time")
+    @NotNull(message = "销售开始时间不能为空")
+    private Date saleStartTime;
 
     /**
-     * 预售结束时间
+     * 销售结束时间（null表示长期有效）
      */
-    @TableField("end_time")
-    @NotNull(message = "预售结束时间不能为空")
-    private Date endTime;
+    @TableField("sale_end_time")
+    private Date saleEndTime;
 
     /**
-     * 预计发货时间
-     */
-    @TableField("delivery_time")
-    private Date deliveryTime;
-
-    /**
-     * 项目状态：1=预售中，2=预售成功，3=预售失败，4=已结束
+     * 项目状态：1=销售中，2=暂停销售，3=已下架，4=已取消
      */
     @TableField("status")
     @NotNull(message = "项目状态不能为空")
     private Integer status;
 
     /**
-     * 是否精选：0=否，1=是
+     * 生产状态：0=未开始，1=进行中，2=已完成
      */
-    @TableField("is_featured")
-    private Integer isFeatured;
+    @TableField("production_status")
+    private Integer productionStatus;
 
     /**
-     * 是否热门：0=否，1=是
+     * 发货状态：0=未开始，1=进行中，2=已完成
      */
-    @TableField("is_hot")
-    private Integer isHot;
+    @TableField("delivery_status")
+    private Integer deliveryStatus;
 
     /**
-     * 排序权重
+     * 浏览次数
      */
-    @TableField("sort_order")
-    private Integer sortOrder;
+    @TableField("view_count")
+    private Integer viewCount;
 
     /**
-     * 风险提示
+     * 收藏次数
      */
-    @TableField("risk_tips")
-    private String riskTips;
+    @TableField("favorite_count")
+    private Integer favoriteCount;
+
+    /**
+     * 分享次数
+     */
+    @TableField("share_count")
+    private Integer shareCount;
+
+    /**
+     * 厂家上传的实物照片（JSON格式，多张图片）
+     */
+    @TableField("manufacturer_photos")
+    private String manufacturerPhotos;
+
+    /**
+     * 厂家上传照片时间
+     */
+    @TableField("manufacturer_upload_time")
+    private Date manufacturerUploadTime;
+
+    /**
+     * 累计销售金额
+     */
+    @TableField("total_sales_amount")
+    private BigDecimal totalSalesAmount;
 }

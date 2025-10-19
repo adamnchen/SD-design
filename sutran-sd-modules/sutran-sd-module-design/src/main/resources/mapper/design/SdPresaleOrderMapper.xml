@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sutran.sd.design.mapper.SdPresaleOrderMapper">
+
+    <resultMap type="com.sutran.sd.design.domain.SdPresaleOrder" id="SdPresaleOrderResult">
+        <result property="id" column="id"/>
+        <result property="orderNo" column="order_no"/>
+        <result property="projectId" column="project_id"/>
+        <result property="userId" column="user_id"/>
+        <result property="userName" column="user_name"/>
+        <result property="productTitle" column="product_title"/>
+        <result property="productImage" column="product_image"/>
+        <result property="quantity" column="quantity"/>
+        <result property="originalUnitPrice" column="original_unit_price"/>
+        <result property="finalUnitPrice" column="final_unit_price"/>
+        <result property="originalTotalAmount" column="original_total_amount"/>
+        <result property="finalTotalAmount" column="final_total_amount"/>
+        <result property="refundAmount" column="refund_amount"/>
+        <result property="receiverName" column="receiver_name"/>
+        <result property="receiverPhone" column="receiver_phone"/>
+        <result property="receiverAddress" column="receiver_address"/>
+        <result property="payOrderId" column="pay_order_id"/>
+        <result property="orderStatus" column="order_status"/>
+        <result property="deliveryStatus" column="delivery_status"/>
+        <result property="expressNo" column="express_no"/>
+        <result property="deliveryTime" column="delivery_time"/>
+        <result property="receiveTime" column="receive_time"/>
+        <result property="refundTime" column="refund_time"/>
+        <result property="refundReason" column="refund_reason"/>
+        <result property="createBy" column="create_by"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateBy" column="update_by"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <sql id="selectSdPresaleOrderVo">
+        select id, order_no, project_id, user_id, user_name, product_title, product_image, quantity,
+               original_unit_price, final_unit_price, original_total_amount, final_total_amount, refund_amount,
+               receiver_name, receiver_phone, receiver_address, pay_order_id, order_status, delivery_status,
+               express_no, delivery_time, receive_time, refund_time, refund_reason,
+               create_by, create_time, update_by, update_time
+        from sd_presale_order
+    </sql>
+
+    <select id="selectByOrderNo" parameterType="String" resultMap="SdPresaleOrderResult">
+        <include refid="selectSdPresaleOrderVo"/>
+        where order_no = #{orderNo}
+    </select>
+
+    <select id="selectByProjectId" parameterType="Long" resultMap="SdPresaleOrderResult">
+        <include refid="selectSdPresaleOrderVo"/>
+        where project_id = #{projectId}
+        order by create_time desc
+    </select>
+
+    <select id="selectByUserId" parameterType="Long" resultMap="SdPresaleOrderResult">
+        <include refid="selectSdPresaleOrderVo"/>
+        where user_id = #{userId}
+        order by create_time desc
+    </select>
+
+</mapper>

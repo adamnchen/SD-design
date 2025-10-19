@@ -4,6 +4,9 @@ import com.sutran.sd.common.core.domain.PageQuery;
 import com.sutran.sd.common.core.domain.R;
 import com.sutran.sd.common.core.page.TableDataInfo;
 import com.sutran.sd.design.domain.SdPresaleProject;
+import com.sutran.sd.design.dto.PresaleOrderCreateDTO;
+import com.sutran.sd.design.vo.PresaleOrderDetailVO;
+import com.sutran.sd.design.vo.PresaleOrderListVO;
 import com.sutran.sd.design.vo.PresaleProjectDetailVO;
 import com.sutran.sd.design.vo.PresaleProjectListVO;
 import java.util.List;
@@ -69,4 +72,39 @@ public interface ISdPresaleProjectService {
      * @return 发起人的预售项目列表
      */
     R<List<PresaleProjectListVO>> getCreatorPresaleProjects();
+
+
+
+    R<List<PresaleProjectListVO>> getBuyerPresaleProjects();
+
+    /**
+     * 创建预售订单
+     *
+     * @param createDTO 创建订单DTO
+     * @return 订单号
+     */
+    String createPresaleOrder(PresaleOrderCreateDTO createDTO);
+
+    /**
+     * 获取我的预售订单列表
+     *
+     * @return 订单列表
+     */
+    List<PresaleOrderListVO> getMyPresaleOrders();
+
+    /**
+     * 获取预售订单详情
+     *
+     * @param orderNo 订单号
+     * @return 订单详情
+     */
+    PresaleOrderDetailVO getPresaleOrderDetail(String orderNo);
+
+    /**
+     * 获取支付二维码
+     *
+     * @param orderNo 订单号
+     * @return 支付二维码
+     */
+    String getPaymentQr(String orderNo);
 }

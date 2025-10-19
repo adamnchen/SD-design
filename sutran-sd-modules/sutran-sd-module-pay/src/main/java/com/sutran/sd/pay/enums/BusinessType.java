@@ -9,4 +9,6 @@ public enum BusinessType {
     SD_MEMBER,
     /** 打样众筹 **/
     PROOF_CROWDFUND,
+    /** 预售订单 **/
+    PRESALE
 }

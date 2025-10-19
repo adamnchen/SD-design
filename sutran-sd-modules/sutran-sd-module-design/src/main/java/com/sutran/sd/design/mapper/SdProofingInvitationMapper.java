@@ -14,7 +14,7 @@ import java.util.List;
  *
  * @author YourName
  */
-@Mapper 
+@Mapper
 public interface SdProofingInvitationMapper extends BaseMapper<SdProofingInvitation> {
 
     /**
@@ -80,4 +80,5 @@ public interface SdProofingInvitationMapper extends BaseMapper<SdProofingInvitat
      */
     Long countSentInvitations(@Param("userId") Long userId);
 
+    int updateStatusById(@Param("invitationId") Long id, @Param("status") Integer status);
 }

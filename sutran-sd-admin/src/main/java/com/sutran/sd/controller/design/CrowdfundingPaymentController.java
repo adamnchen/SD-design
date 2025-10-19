@@ -80,7 +80,7 @@ public class CrowdfundingPaymentController extends BaseController {
     public R<String> getPaymentQr(@PathVariable String orderNo) {
         try {
             String qrCode = payOrderService.getPayQr(orderNo, getUserId());
-            return R.ok(qrCode);
+            return R.ok("获取支付二维码成功",qrCode);
         } catch (Exception e) {
             log.error("获取支付二维码失败: 订单号={}", orderNo, e);
             return R.fail("获取支付二维码失败: " + e.getMessage());

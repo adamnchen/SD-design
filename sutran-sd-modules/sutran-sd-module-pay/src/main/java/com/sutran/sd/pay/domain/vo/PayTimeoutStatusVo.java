@@ -3,6 +3,8 @@ package com.sutran.sd.pay.domain.vo;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
+import java.math.BigDecimal;
+
 /**
  * 支付超时状态实体类
  * @author zj
@@ -27,4 +29,13 @@ public class PayTimeoutStatusVo {
      * 当前订单用户ID
      */
     private Long userId;
+    /**
+     * 项目编号
+     */
+    private Long projectid;
+    /**
+     * 打样众筹捐助金额
+     */
+    private BigDecimal amount;
+
 }

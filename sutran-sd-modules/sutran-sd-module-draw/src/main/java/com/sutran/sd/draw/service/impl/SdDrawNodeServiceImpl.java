@@ -218,7 +218,7 @@ public class SdDrawNodeServiceImpl implements SdDrawNodeService {
             }
         }
         catch (Exception e) {
-            log.warn("Draw Node {} health check failed: {}", drawNode.getId(), e.getMessage());
+            log.warn("绘图节点 {} 健康检查失败: {}", drawNode.getId(), e.getMessage());
             Optional.ofNullable(DRAW_NODE_CACHE.get(drawNode.getId().toString())).ifPresent(node -> {
                 node.setStatus(NodeStatus.OFFLINE.name());
                 node.setLastHealthCheck(new Date());
@@ -254,7 +254,7 @@ public class SdDrawNodeServiceImpl implements SdDrawNodeService {
             }
         }
         catch (Exception e) {
-            log.warn("Train Node {} health check failed: {}", drawNode.getId(), e.getMessage());
+            log.warn("训练节点 {} 健康检查失败: {}", drawNode.getId(), e.getMessage());
             Optional.ofNullable(TRAIN_NODE_CACHE.get(drawNode.getId().toString())).ifPresent(node -> {
                 node.setStatus(NodeStatus.OFFLINE.name());
                 node.setLastHealthCheck(new Date());

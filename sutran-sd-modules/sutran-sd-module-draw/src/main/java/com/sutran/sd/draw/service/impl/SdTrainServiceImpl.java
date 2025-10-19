@@ -99,7 +99,6 @@ public class SdTrainServiceImpl implements SdTrainService {
     private Executor executor;
     private final static Map<String,WatchMonitor> MONITOR_MAP = new ConcurrentHashMap<>();
     private final static Lock TRAIN_LOCK = new ReentrantLock();
-    private final static Lock DEAL_MODEL_LOCK = new ReentrantLock();
 
     /**
      * 预处理图片任务状态列表
@@ -1499,20 +1498,22 @@ public class SdTrainServiceImpl implements SdTrainService {
             List<byte[]> imageBytes = new ArrayList<>(vo.getResults().size());
             List<String> imageNames = new ArrayList<>(vo.getResults().size());
             for (FluxgymImgDealResultVo.ImageInfoVo result : vo.getResults()) {
-                String en = instancePrompt + "," + result.getCaption();
+                final String caption = result.getCaption();
+                final String en = instancePrompt + "," + caption;
                 // 翻译图片描述词
                 String zh = RedisUtils.getCacheMapValue(TRANSLATE_EN_TO_ZH_MAP, en);
                 if (StringUtils.isEmpty(zh)) {
-                    zh = sysTranslateService.enToZh(result.getCaption(), TranslateType.BAIDU);
-                    if (StringUtils.isNotBlank(zh) && !zh.equals(result.getCaption())) {
-                        RedisUtils.setCacheMapValue(TRANSLATE_EN_TO_ZH_MAP, en,loraName+"，"+zh);
+                    zh = sysTranslateService.enToZh(caption, TranslateType.BAIDU);
+                    if (StringUtils.isNotBlank(zh) && !zh.equals(caption)) {
+                        zh = loraName+"，"+zh;
+                        RedisUtils.setCacheMapValue(TRANSLATE_EN_TO_ZH_MAP,en,zh);
                     }
                 }
-                result.setCaptionZh(loraName+"，"+zh);
+                result.setCaptionZh(zh);
                 result.setCaption(en);
                 byte[] imgBytes = imageMap.get(result.getImageName());
                 imageBytes.add(imgBytes);
-                captions.add(result.getCaption());
+                captions.add(en);
                 // 获取图片的后缀包含点
                 String suffix = result.getImageName().substring(result.getImageName().lastIndexOf("."));
                 // 图片名称最后一个_后的字符串去掉，作为图片名称 8A5F4B93-F7FB-4B2E-A70C-3232A76D68D6_20 - 副本_4840895057701420330.jpeg -> 8A5F4B93-F7FB-4B2E-A70C-3232A76D68D6_20 - 副本.jpeg
@@ -1613,7 +1614,7 @@ public class SdTrainServiceImpl implements SdTrainService {
      */
     @Override
     public FluxgymTrainProgressVo getFluxgymProgress(String taskId, String nodeId, boolean isSchedule) {
-        JSONObject taskNode = sdTrainTaskService.selectNodeBaseUrlByTaskId(taskId);
+        JSONObject taskNode = sdTrainTaskService.selectNodeBaseUrlAndStatusByTaskId(taskId);
         if (taskNode==null || StringUtils.isBlank(taskNode.getString("baseUrl"))) {
             if (!isSchedule) {
                 throw new ServiceException("训练任务使用的节点URL不存在或已被删除!");
@@ -1621,6 +1622,14 @@ public class SdTrainServiceImpl implements SdTrainService {
             else {
                 return null;
             }
+        }
+        // 队列中
+        if (taskNode.getIntValue("status")==3) {
+            return new FluxgymTrainProgressVo().setProgress(0).setStatus("queue");
+        }
+        // 成功或失败都算完成
+        if (taskNode.getIntValue("status")>4) {
+            return new FluxgymTrainProgressVo().setProgress(100).setStatus("completed");
         }
         try{
             JSONObject preParams = JSONObject.parseObject(taskNode.getString("preParams"));
@@ -1641,8 +1650,8 @@ public class SdTrainServiceImpl implements SdTrainService {
                 RedisUtils.delCacheMapValue(TRAIN_NODE_TASK_MAP,nodeId);
                 vo.setStatus("failed");
             }
-            // 训练失败
-            else if (vo!=null && vo.getSuccess() && "failed".equals(vo.getStatus())){
+            // 训练失败 且 不处于进行中
+            else if (vo!=null && vo.getSuccess() && "failed".equals(vo.getStatus()) && taskNode.getIntValue("status")!=4) {
                 if (StringUtils.isBlank(nodeId)) {
                     SdTrainTask task = sdTrainTaskService.selectDetailById(taskId);
                     if (task==null) {
@@ -1654,8 +1663,8 @@ public class SdTrainServiceImpl implements SdTrainService {
                 // 归还节点
                 RedisUtils.delCacheMapValue(TRAIN_NODE_TASK_MAP,nodeId);
             }
-            // 训练完成
-            else if (vo!=null && vo.getSuccess() && "completed".equals(vo.getStatus()) && vo.getProgress()==100) {
+            // 训练完成 且 不处于进行中
+            else if (vo!=null && vo.getSuccess() && "completed".equals(vo.getStatus()) && vo.getProgress()==100 && taskNode.getIntValue("status")!=4) {
                 if (StringUtils.isBlank(nodeId)) {
                     SdTrainTask task = sdTrainTaskService.selectDetailById(taskId);
                     if (task==null) {
@@ -1688,7 +1697,7 @@ public class SdTrainServiceImpl implements SdTrainService {
      */
     @Override
     public void dealFluxgymTrainModelFile(String taskId) {
-        JSONObject taskNode = sdTrainTaskService.selectNodeBaseUrlByTaskId(taskId);
+        JSONObject taskNode = sdTrainTaskService.selectNodeBaseUrlAndStatusByTaskId(taskId);
         if (taskNode==null || StringUtils.isBlank(taskNode.getString("baseUrl"))) {
             throw new ServiceException("训练任务使用的节点URL不存在或已被删除!");
         }
@@ -1920,43 +1929,43 @@ public class SdTrainServiceImpl implements SdTrainService {
             taskId,modelDir,modelImgDir,modelDataDir,destDir,destDataDir);
 
         // 获取modelDir下的所有.safetensors文件并按照名称升序排序
-//        File[] models = new File(modelDir).listFiles((dir, name) -> name.endsWith(".safetensors"));
-//        if (models!=null) {
-//            Arrays.sort(models, Comparator.comparing(File::getName));
-//        }
-//        // 获取modelImgDir下的所有图片文件并按照名称升序排序
-//        File[] modelImgs = new File(modelImgDir).listFiles((dir, name) -> name.matches(".*\\.(jpg|jpeg|png|gif|bmp)"));
-//        if (modelImgs!=null) {
-//            Arrays.sort(modelImgs, Comparator.comparing(File::getName));
-//        }
-//        // 移动模型到目标目录
-//        if (models!=null && models.length>0) {
-//            for (int i = 0; i < models.length; i++) {
-//                File destFile = new File(destDir, models[i].getName());
-//                models[i].renameTo(destFile);
-//                // 移动图片到目标目录并将图片名称修改和模型名称相同
-//                if (modelImgs!=null && modelImgs.length>0) {
-//                    File destImgFile = new File(destDir, models[i].getName().replace(".safetensors",modelImgs[i].getName().substring(modelImgs[i].getName().lastIndexOf("."))));
-//                    modelImgs[i].renameTo(destImgFile);
-//                }
-//            }
-//        }
-//        // 移动数据集目录下的所有文件到数据集存储目标目录
-//        File modelDataDirFile = new File(modelDataDir);
-//        if (modelDataDirFile.exists()) {
-//            File destDataDirFile = new File(destDataDir);
-//            if (!destDataDirFile.exists()) {
-//                destDataDirFile.mkdirs();
-//            }
-//            File[] modelDataFiles = modelDataDirFile.listFiles();
-//            if (modelDataFiles!=null && modelDataFiles.length>0) {
-//                for (int i = 0; i < modelDataFiles.length; i++) {
-//                    File destDataFile = new File(destDataDir, modelDataFiles[i].getName());
-//                    modelDataFiles[i].renameTo(destDataFile);
-//                }
-//            }
-//        }
-//        RedisUtils.deleteKey(DEAL_MODEL_LOCK+taskId);
+        File[] models = new File(modelDir).listFiles((dir, name) -> name.endsWith(".safetensors"));
+        if (models!=null) {
+            Arrays.sort(models, Comparator.comparing(File::getName));
+        }
+        // 获取modelImgDir下的所有图片文件并按照名称升序排序
+        File[] modelImgs = new File(modelImgDir).listFiles((dir, name) -> name.matches(".*\\.(jpg|jpeg|png|gif|bmp)"));
+        if (modelImgs!=null) {
+            Arrays.sort(modelImgs, Comparator.comparing(File::getName));
+        }
+        // 移动模型到目标目录
+        if (models!=null && models.length>0) {
+            for (int i = 0; i < models.length; i++) {
+                File destFile = new File(destDir, models[i].getName());
+                models[i].renameTo(destFile);
+                // 移动图片到目标目录并将图片名称修改和模型名称相同
+                if (modelImgs!=null && modelImgs.length>0) {
+                    File destImgFile = new File(destDir, models[i].getName().replace(".safetensors",modelImgs[i].getName().substring(modelImgs[i].getName().lastIndexOf("."))));
+                    modelImgs[i].renameTo(destImgFile);
+                }
+            }
+        }
+        // 移动数据集目录下的所有文件到数据集存储目标目录
+        File modelDataDirFile = new File(modelDataDir);
+        if (modelDataDirFile.exists()) {
+            File destDataDirFile = new File(destDataDir);
+            if (!destDataDirFile.exists()) {
+                destDataDirFile.mkdirs();
+            }
+            File[] modelDataFiles = modelDataDirFile.listFiles();
+            if (modelDataFiles!=null && modelDataFiles.length>0) {
+                for (int i = 0; i < modelDataFiles.length; i++) {
+                    File destDataFile = new File(destDataDir, modelDataFiles[i].getName());
+                    modelDataFiles[i].renameTo(destDataFile);
+                }
+            }
+        }
+        RedisUtils.deleteKey(DEAL_MODEL_LOCK+taskId);
     }
 
     /**
@@ -2052,7 +2061,8 @@ public class SdTrainServiceImpl implements SdTrainService {
         File modelDataDirFile = new File(modelDataDir);
         if (!modelDataDirFile.exists() || !modelDataDirFile.isDirectory()) {
             log.warn("数据集目录不存在: {}", modelDataDir);
-            return true; // 数据集目录不存在不算失败
+            // 数据集目录不存在不算失败
+            return true;
         }
 
         // 创建目标目录

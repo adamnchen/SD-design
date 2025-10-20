@@ -176,16 +176,41 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
             return new ArrayList<>();
         }
 
-        // 按work_id和inviter_user_id分组去重，避免同一邀约显示多条记录
+        // 按work_id和inviter_user_id分组去重，优先选择已接受的邀约
         Map<String, ProofingInvitationDetailVO> uniqueInvitations = new LinkedHashMap<>();
         for (ProofingInvitationDetailVO invitation : invitationList) {
             String key = invitation.getWorkId() + "_" + invitation.getInviterUserId();
+
+            log.info("处理邀约去重: 作品ID={}, 邀约ID={}, 状态={}, 产品标题={}",
+                invitation.getWorkId(), invitation.getId(), invitation.getStatus(), invitation.getProductTitle());
+
+            // 如果还没有该作品的邀约，直接添加
             if (!uniqueInvitations.containsKey(key)) {
                 // 状态转换：发起人查看时，如果状态是4（待回应），显示为6（待确认）
                 if (ProofingInvitationConstants.STATUS_REPLYING.equals(invitation.getStatus())) {
                     invitation.setStatus(ProofingInvitationConstants.STATUS_PENDING_CONFIRMATION);
                 }
                 uniqueInvitations.put(key, invitation);
+                log.info("添加新邀约: 作品ID={}, 状态={}", invitation.getWorkId(), invitation.getStatus());
+            } else {
+                // 如果已存在该作品的邀约，优先选择已接受的邀约
+                ProofingInvitationDetailVO existing = uniqueInvitations.get(key);
+
+                log.info("发现重复作品邀约: 作品ID={}, 现有状态={}, 当前状态={}",
+                    invitation.getWorkId(), existing.getStatus(), invitation.getStatus());
+
+                // 优先选择已接受的邀约
+                if (ProofingInvitationConstants.STATUS_ACCEPTED.equals(invitation.getStatus())) {
+                    // 当前邀约是已接受状态，替换现有的
+                    uniqueInvitations.put(key, invitation);
+                    log.info("替换为已接受邀约: 作品ID={}", invitation.getWorkId());
+                } else if (ProofingInvitationConstants.STATUS_ACCEPTED.equals(existing.getStatus())) {
+                    // 现有的邀约是已接受状态，保持现有的
+                    log.info("保持已接受邀约: 作品ID={}, 状态={}", invitation.getWorkId(), existing.getStatus());
+                } else {
+                    // 两个都不是已接受状态，保持现有的（按创建时间排序）
+                    log.info("保持现有邀约: 作品ID={}, 状态={}", invitation.getWorkId(), existing.getStatus());
+                }
             }
         }
 
@@ -238,34 +263,86 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
         Long currentUserId = LoginHelper.getUserId();
         IPage<ProofingInvitationDetailVO> page = invitationMapper.selectSentInvitationPage(pageQuery.build(), currentUserId);
 
-        // 对结果进行去重处理
+        // 对结果进行去重处理，只显示已接受的邀约
         if (page.getRecords() != null && !page.getRecords().isEmpty()) {
             Map<String, ProofingInvitationDetailVO> uniqueInvitations = new LinkedHashMap<>();
             for (ProofingInvitationDetailVO invitation : page.getRecords()) {
                 String key = invitation.getWorkId() + "_" + invitation.getInviterUserId();
+
+                // 如果还没有该作品的邀约，直接添加
                 if (!uniqueInvitations.containsKey(key)) {
                     // 状态转换：发起人查看时，如果状态是4（待回应），显示为6（待确认）
                     if (ProofingInvitationConstants.STATUS_REPLYING.equals(invitation.getStatus())) {
                         invitation.setStatus(ProofingInvitationConstants.STATUS_PENDING_CONFIRMATION);
                     }
                     uniqueInvitations.put(key, invitation);
+                } else {
+                    // 如果已存在该作品的邀约，优先选择已接受的邀约
+                    ProofingInvitationDetailVO existing = uniqueInvitations.get(key);
+
+                    // 优先选择已接受的邀约
+                    if (ProofingInvitationConstants.STATUS_ACCEPTED.equals(invitation.getStatus())) {
+                        // 当前邀约是已接受状态，替换现有的
+                        uniqueInvitations.put(key, invitation);
+                    } else if (ProofingInvitationConstants.STATUS_ACCEPTED.equals(existing.getStatus())) {
+                        // 现有的邀约是已接受状态，保持现有的
+                        // 不需要做任何操作
+                    } else {
+                        // 两个都不是已接受状态，保持现有的（按创建时间排序）
+                        // 不需要做任何操作
+                    }
                 }
             }
-            page.setRecords(new ArrayList<>(uniqueInvitations.values()));
+
+            // 过滤掉已拒绝和已取消的邀约，保留其他状态的邀约
+            List<ProofingInvitationDetailVO> validInvitations = new ArrayList<>();
+            for (ProofingInvitationDetailVO invitation : uniqueInvitations.values()) {
+                // 只过滤掉已拒绝(2)和已取消(3)的邀约
+                if (!ProofingInvitationConstants.STATUS_REJECTED.equals(invitation.getStatus()) &&
+                    !ProofingInvitationConstants.STATUS_CANCELLED.equals(invitation.getStatus())) {
+                    validInvitations.add(invitation);
+                }
+            }
+
+            page.setRecords(validInvitations);
         }
 
-        // 计算去重后的总数
+        // 计算去重后的总数，只计算已接受的邀约
         List<ProofingInvitationDetailVO> allInvitations = invitationMapper.selectSentInvitationList(currentUserId);
         Map<String, ProofingInvitationDetailVO> uniqueAllInvitations = new LinkedHashMap<>();
         if (allInvitations != null && !allInvitations.isEmpty()) {
             for (ProofingInvitationDetailVO invitation : allInvitations) {
                 String key = invitation.getWorkId() + "_" + invitation.getInviterUserId();
+
+                // 如果还没有该作品的邀约，直接添加
                 if (!uniqueAllInvitations.containsKey(key)) {
                     uniqueAllInvitations.put(key, invitation);
+                } else {
+                    // 如果已存在该作品的邀约，优先选择已接受的邀约
+                    ProofingInvitationDetailVO existing = uniqueAllInvitations.get(key);
+
+                    // 优先选择已接受的邀约
+                    if (ProofingInvitationConstants.STATUS_ACCEPTED.equals(invitation.getStatus())) {
+                        // 当前邀约是已接受状态，替换现有的
+                        uniqueAllInvitations.put(key, invitation);
+                    } else if (ProofingInvitationConstants.STATUS_ACCEPTED.equals(existing.getStatus())) {
+                        // 现有的邀约是已接受状态，保持现有的
+                        // 不需要做任何操作
+                    } else {
+                        // 两个都不是已接受状态，保持现有的（按创建时间排序）
+                        // 不需要做任何操作
+                    }
                 }
             }
         }
-        page.setTotal((long) uniqueAllInvitations.size());
+
+        // 只计算有效邀约数量（排除已拒绝和已取消的邀约）
+        long validCount = uniqueAllInvitations.values().stream()
+            .filter(invitation -> !ProofingInvitationConstants.STATUS_REJECTED.equals(invitation.getStatus()) &&
+                                 !ProofingInvitationConstants.STATUS_CANCELLED.equals(invitation.getStatus()))
+            .count();
+
+        page.setTotal(validCount);
 
         return TableDataInfo.build(page);
     }
@@ -585,21 +662,46 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
             throw new ServiceException("权限不足，您不是该邀约的发起人");
         }
 
+        // 优先在当前邀约下查找所选候选人
+        SdProofingInvitationCandidate selected = candidateMapper.selectOneByInvitationAndInvitee(chooseDto.getInvitationId(), chooseDto.getInviteeUserId());
+
+        // 汇总同一个作品和发起人的所有邀约（可能列表显示为一个，但实际上是多条）
+        List<SdProofingInvitation> allInvitations = invitationMapper.selectList(
+            new LambdaQueryWrapper<SdProofingInvitation>()
+                .eq(SdProofingInvitation::getWorkId, invitation.getWorkId())
+                .eq(SdProofingInvitation::getInviterUserId, invitation.getInviterUserId())
+        );
+
+        // 如果在当前邀约下未找到，尝试在同一作品下的其它邀约中查找该候选人
+        if (selected == null) {
+            for (SdProofingInvitation inv : allInvitations) {
+                SdProofingInvitationCandidate trySelected = candidateMapper
+                    .selectOneByInvitationAndInvitee(inv.getId(), chooseDto.getInviteeUserId());
+                if (trySelected != null) {
+                    selected = trySelected;
+                    // 将选择绑定到实际存在该候选人的邀约ID
+                    chooseDto.setInvitationId(inv.getId());
+                    invitation = inv;
+                    break;
+                }
+            }
+        }
+
+        if (selected == null) {
+            throw new ServiceException("所选厂家不存在或未提交报价");
+        }
+
+        // 以真实承载该候选人的邀约记录作为最终处理对象，再校验状态
         if (!ProofingInvitationConstants.STATUS_REPLYING.equals(invitation.getStatus())) {
             throw new ServiceException("该邀约当前状态不可进行最终选择");
         }
 
-        SdProofingInvitationCandidate selected = candidateMapper.selectOneByInvitationAndInvitee(chooseDto.getInvitationId(), chooseDto.getInviteeUserId());
-        if (selected == null) {
-            throw new ServiceException("所选厂家不存在或未提交报价");
-        }
-        
         // 检查候选人是否已提交报价
         if (selected.getQuoteSubmitAt() == null) {
             throw new ServiceException("所选厂家尚未提交报价");
         }
 
-        // 更新主表最终选择信息
+        // 更新当前选择对应的邀约记录为已接受并写入最终报价信息
         invitation.setSelectedInviteeUserId(chooseDto.getInviteeUserId());
         invitation.setSelectedAt(new java.util.Date());
         invitation.setQuotedPrice(selected.getQuotedPrice());
@@ -610,13 +712,6 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
         invitation.setProfitShareRatio(selected.getProfitShareRatio());
         invitation.setStatus(ProofingInvitationConstants.STATUS_ACCEPTED);
         invitationMapper.updateById(invitation);
-
-        // 更新同一个work_id下的所有邀约记录状态
-        List<SdProofingInvitation> allInvitations = invitationMapper.selectList(
-            new LambdaQueryWrapper<SdProofingInvitation>()
-                .eq(SdProofingInvitation::getWorkId, invitation.getWorkId())
-                .eq(SdProofingInvitation::getInviterUserId, invitation.getInviterUserId())
-        );
 
         for (SdProofingInvitation inv : allInvitations) {
             if (inv.getInviteeUserId().equals(chooseDto.getInviteeUserId())) {
@@ -637,17 +732,17 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
             invitationMapper.updateById(inv);
         }
 
-        // 更新所有候选人的状态
-        List<SdProofingInvitationCandidate> candidates = candidateMapper.selectByInvitationId(chooseDto.getInvitationId());
-        for (SdProofingInvitationCandidate c : candidates) {
-            if (c.getInviteeUserId().equals(chooseDto.getInviteeUserId())) {
-                // 被选中的候选人：状态设为已接受
-                c.setStatus(ProofingInvitationConstants.STATUS_ACCEPTED);
-            } else {
-                // 其他候选人：状态设为已拒绝
-                c.setStatus(ProofingInvitationConstants.STATUS_REJECTED);
+        // 更新所有关联邀约下的候选人状态（不仅限于一个邀约ID）
+        for (SdProofingInvitation inv : allInvitations) {
+            List<SdProofingInvitationCandidate> candidates = candidateMapper.selectByInvitationId(inv.getId());
+            for (SdProofingInvitationCandidate c : candidates) {
+                if (c.getInviteeUserId().equals(chooseDto.getInviteeUserId())) {
+                    c.setStatus(ProofingInvitationConstants.STATUS_ACCEPTED);
+                } else {
+                    c.setStatus(ProofingInvitationConstants.STATUS_REJECTED);
+                }
+                candidateMapper.updateById(c);
             }
-            candidateMapper.updateById(c);
         }
     }
 
@@ -714,8 +809,8 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
             throw new ServiceException("邀约详情获取失败");
         }
 
-        // 附加候选人列表 - 查询同一个商品当前进行中邀约的候选人
-        java.util.List<InvitationCandidateVO> candidates = candidateMapper.selectCandidateVOsByWorkId(detail.getWorkId());
+        // 附加候选人列表 - 查询同一个商品、同一个发起人的邀约候选人
+        java.util.List<InvitationCandidateVO> candidates = candidateMapper.selectCandidateVOsByWorkId(detail.getWorkId(), detail.getInviterUserId());
         detail.setCandidates(candidates);
 
         log.info("邀约 {} 详情查询成功，找到 {} 个候选人", invitationId, candidates != null ? candidates.size() : "null");

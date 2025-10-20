@@ -85,54 +85,74 @@ public class PresaleProjectDetailVO {
     private String manufacturerAvatar;
 
     /**
-     * 关联的众筹项目ID
+     * 关联的打样邀约ID
      */
-    private Long crowdfundingProjectId;
+    private Long proofingInvitationId;
 
     /**
-     * 阶梯价格配置(JSON格式)
+     * 基础单价（最低阶梯价格）
      */
-    private String tierPricing;
+    private BigDecimal basePrice;
 
     /**
-     * 当前预售数量
+     * 阶梯价格配置(JSON数组: [{"unitPrice":100,"node":20}])
      */
-    private Integer currentQuantity;
+    private String tieredPricing;
 
     /**
-     * 预售开始时间
+     * 有效期天数（从创建时间开始计算）
      */
-    private Date startTime;
+    private Integer validityDays;
 
     /**
-     * 预售结束时间
-     */
-    private Date endTime;
-
-    /**
-     * 预计发货时间
-     */
-    private Date deliveryTime;
-
-    /**
-     * 项目状态：1=预售中，2=预售成功，3=预售失败，4=已结束
+     * 项目状态：1=销售中，2=暂停销售，3=已下架，4=已取消
      */
     private Integer status;
 
     /**
-     * 是否精选：0=否，1=是
+     * 项目状态描述
      */
-    private Integer isFeatured;
+    private String statusDesc;
 
     /**
-     * 是否热门：0=否，1=是
+     * 生产状态：0=未开始，1=进行中，2=已完成
      */
-    private Integer isHot;
+    private Integer productionStatus;
 
     /**
-     * 风险提示
+     * 发货状态：0=未开始，1=进行中，2=已完成
      */
-    private String riskTips;
+    private Integer deliveryStatus;
+
+    /**
+     * 浏览次数
+     */
+    private Integer viewCount;
+
+    /**
+     * 收藏次数
+     */
+    private Integer favoriteCount;
+
+    /**
+     * 分享次数
+     */
+    private Integer shareCount;
+
+    /**
+     * 厂家上传的实物照片（JSON格式，多张图片）
+     */
+    private String manufacturerPhotos;
+
+    /**
+     * 厂家上传照片时间
+     */
+    private Date manufacturerUploadTime;
+
+    /**
+     * 累计销售金额
+     */
+    private BigDecimal totalSalesAmount;
 
     /**
      * 当前价格（根据阶梯价格计算）
@@ -150,12 +170,25 @@ public class PresaleProjectDetailVO {
     private BigDecimal nextPrice;
 
     /**
-     * 剩余天数
+     * 剩余天数（如果设置了结束时间）
      */
     private Long remainingDays;
 
     /**
      * 阶梯价格列表（解析后的对象）
      */
-    private Object tierPricingList;
+    private Object tieredPricingList;
+
+    public String getStatusDesc() {
+        if (status == null) {
+            return "未知";
+        }
+        switch (status) {
+            case 1: return "销售中";
+            case 2: return "暂停销售";
+            case 3: return "已下架";
+            case 4: return "已取消";
+            default: return "未知";
+        }
+    }
 }

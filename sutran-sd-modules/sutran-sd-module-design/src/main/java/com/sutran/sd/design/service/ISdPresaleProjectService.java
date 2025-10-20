@@ -4,8 +4,13 @@ import com.sutran.sd.common.core.domain.PageQuery;
 import com.sutran.sd.common.core.domain.R;
 import com.sutran.sd.common.core.page.TableDataInfo;
 import com.sutran.sd.design.domain.SdPresaleProject;
+import com.sutran.sd.design.dto.PresaleOrderCreateDTO;
+import com.sutran.sd.design.dto.PresaleProjectPublishDTO;
+import com.sutran.sd.design.vo.PresaleOrderDetailVO;
+import com.sutran.sd.design.vo.PresaleOrderListVO;
 import com.sutran.sd.design.vo.PresaleProjectDetailVO;
 import com.sutran.sd.design.vo.PresaleProjectListVO;
+import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 
 /**
@@ -69,4 +74,55 @@ public interface ISdPresaleProjectService {
      * @return 发起人的预售项目列表
      */
     R<List<PresaleProjectListVO>> getCreatorPresaleProjects();
+
+
+
+    R<List<PresaleProjectListVO>> getBuyerPresaleProjects();
+
+    /**
+     * 创建预售订单
+     *
+     * @param createDTO 创建订单DTO
+     * @return 订单号
+     */
+    R<String> createPresaleOrder(PresaleOrderCreateDTO createDTO);
+
+    /**
+     * 获取我的预售订单列表
+     *
+     * @return 订单列表
+     */
+    R<List<PresaleOrderListVO>> getMyPresaleOrders();
+
+    /**
+     * 获取预售订单详情
+     *
+     * @param orderNo 订单号
+     * @return 订单详情
+     */
+    R<PresaleOrderDetailVO> getPresaleOrderDetail(String orderNo);
+
+    /**
+     * 获取支付二维码
+     *
+     * @param orderNo 订单号
+     * @return 支付二维码
+     */
+    R<String> getPaymentQr(String orderNo);
+
+    /**
+     * 发布预售项目
+     *
+     * @param publishDTO 发布项目DTO
+     * @return 项目ID
+     */
+    R<String> publishPresaleProject(PresaleProjectPublishDTO publishDTO);
+
+    /**
+     * 上传实物照片
+     *
+     * @param file 照片文件
+     * @return 照片URL
+     */
+    R<String> uploadManufacturerPhotos(MultipartFile file);
 }

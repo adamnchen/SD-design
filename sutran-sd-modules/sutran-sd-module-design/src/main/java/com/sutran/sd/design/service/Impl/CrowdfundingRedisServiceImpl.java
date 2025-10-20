@@ -1,4 +1,4 @@
-package com.sutran.sd.design.service.impl;
+package com.sutran.sd.design.service.Impl;
 
 import com.sutran.sd.design.service.CrowdfundingRedisService;
 import com.sutran.sd.design.config.CrowdfundingConfig;

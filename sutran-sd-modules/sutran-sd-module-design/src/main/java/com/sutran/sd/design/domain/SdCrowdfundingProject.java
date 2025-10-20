@@ -244,4 +244,14 @@ public class SdCrowdfundingProject extends BaseEntity {
      */
     @TableField("fund_release_time")
     private Date fundReleaseTime;
+
+    /**
+     * 阶梯价格配置(JSON数组: [{"unitPrice":100,"node":20}])
+     * 从打样邀约中继承
+     */
+    @TableField(exist = false)
+    private String tieredPricing;
+
+    @TableField(exist = false)
+    private String profitShareRatio;
 }

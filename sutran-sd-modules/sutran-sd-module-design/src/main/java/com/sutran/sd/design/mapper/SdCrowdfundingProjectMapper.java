@@ -79,4 +79,26 @@ public interface SdCrowdfundingProjectMapper extends BaseMapper<SdCrowdfundingPr
      * @return 众筹项目分页数据
      */
     Page<SdCrowdfundingProject> selectPageCrowdfundingProjectListByType(Page<SdCrowdfundingProject> page, @Param("type") String type, @Param("userId") Long userId);
+
+    /**
+     * 查询所有众筹项目列表（带图片联查）
+     *
+     * @return 众筹项目列表
+     */
+    List<SdCrowdfundingProject> selectCrowdfundingProjectListWithImage();
+
+    /**
+     * 查询进行中的众筹项目列表（带图片联查）
+     *
+     * @return 进行中的众筹项目列表
+     */
+    List<SdCrowdfundingProject> selectActiveCrowdfundingProjectsWithImage();
+
+    /**
+     * 根据ID查询众筹项目详情（带阶梯价格联查）
+     *
+     * @param id 众筹项目ID
+     * @return 众筹项目详情
+     */
+    SdCrowdfundingProject selectSdCrowdfundingProjectByIdWithTieredPricing(@Param("id") Long id);
 }

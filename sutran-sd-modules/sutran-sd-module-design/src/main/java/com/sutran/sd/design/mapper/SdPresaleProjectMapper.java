@@ -49,4 +49,23 @@ public interface SdPresaleProjectMapper extends BaseMapper<SdPresaleProject> {
      * @return 预售项目
      */
     SdPresaleProject selectByCrowdfundingProjectId(Long crowdfundingProjectId);
+
+    /**
+     * 多表联查预售项目列表（带用户信息）
+     *
+     * @param page 分页对象
+     * @param status 项目状态
+     * @return 预售项目分页数据
+     */
+    IPage<SdPresaleProject> selectPresaleProjectListWithUserInfo(IPage<SdPresaleProject> page, @Param("status") Integer status);
+
+    /**
+     * 多表联查用户参与的预售项目列表
+     *
+     * @param page 分页对象
+     * @param userId 用户ID
+     * @param userType 用户类型：creator=发起人，manufacturer=厂家，buyer=买家
+     * @return 预售项目分页数据
+     */
+    IPage<SdPresaleProject> selectUserPresaleProjects(IPage<SdPresaleProject> page, @Param("userId") Long userId, @Param("userType") String userType);
 }

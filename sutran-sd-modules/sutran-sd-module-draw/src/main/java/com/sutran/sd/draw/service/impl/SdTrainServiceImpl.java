@@ -27,19 +27,16 @@ import com.sutran.sd.common.utils.PinyinConverterUtils;
 import com.sutran.sd.common.utils.StringUtils;
 import com.sutran.sd.common.utils.file.FileUtils;
 import com.sutran.sd.common.utils.redis.RedisUtils;
-import com.sutran.sd.draw.domain.SdCommonConfig;
-import com.sutran.sd.draw.domain.SdDrawNode;
-import com.sutran.sd.draw.domain.SdGpuPool;
-import com.sutran.sd.draw.domain.SdTrainTask;
+import com.sutran.sd.draw.domain.*;
 import com.sutran.sd.draw.domain.bo.ImageInfoBo;
 import com.sutran.sd.draw.domain.bo.TrainTaskInfo;
 import com.sutran.sd.draw.domain.dto.train.*;
 import com.sutran.sd.draw.domain.vo.*;
 import com.sutran.sd.draw.events.RefreshLoraEvent;
-import com.sutran.sd.framework.mq.MqConstant;
 import com.sutran.sd.draw.service.*;
 import com.sutran.sd.draw.utils.CommonUtil;
 import com.sutran.sd.draw.utils.JsonUtils;
+import com.sutran.sd.framework.mq.MqConstant;
 import com.sutran.sd.system.service.ISysDictDataService;
 import com.sutran.sd.system.service.SysTranslateService;
 import lombok.RequiredArgsConstructor;
@@ -50,6 +47,7 @@ import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.rabbit.connection.CorrelationData;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -100,6 +98,8 @@ public class SdTrainServiceImpl implements SdTrainService {
     private final static Map<String,WatchMonitor> MONITOR_MAP = new ConcurrentHashMap<>();
     private final static Lock TRAIN_LOCK = new ReentrantLock();
     private final static Lock MODEL_LOCK = new ReentrantLock();
+    @Autowired
+    private SdUserModelService sdUserModelService;
 
     /**
      * 预处理图片任务状态列表
@@ -1728,6 +1728,7 @@ public class SdTrainServiceImpl implements SdTrainService {
         preParams.put("modelTag",modelTag);
         preParams.put("isOpen",isOpen);
         preParams.put("modelDesc",modelDesc);
+        preParams.put("userId",taskInfo.getUserId());
         sdTrainTask.setPreParams(JSON.toJSONString(preParams, SerializerFeature.WriteMapNullValue));
 
         sdTrainTask.setImgNum(taskInfo.getImages().size());
@@ -1928,7 +1929,7 @@ public class SdTrainServiceImpl implements SdTrainService {
         // 数据集目录
         String modelDataDir = "/root/cloud/lora-models/"+taskId+"/dataset";
         // 模型存储目标目录
-        String destDir = "/home/stable-diffusion-webui/models/Lora";
+        String destDir = "/home/comfyui/models/Lora";
         // 数据集存储目标目录大概是 /home/lora-scripts/train-data/{yyyy-MM-dd}/{userId}/{taskId}/20_zkz
         String destDataDir = preParams.getString("path")+"/20_zkz";
         log.warn("处理训练完成后的模型文件:\n任务ID：{}\n模型目录：{}\n模型图片目录：{}\n数据集目录：{}\n模型存储目标目录：{}\n数据集存储目标目录：{}",
@@ -1944,16 +1945,28 @@ public class SdTrainServiceImpl implements SdTrainService {
         if (modelImgs!=null) {
             Arrays.sort(modelImgs, Comparator.comparing(File::getName));
         }
+        final String loraNameZh = preParams.getString("loraName");
+        final Long userId = preParams.getLong("userId");
+
+        List<SdUserModel> modelList = new ArrayList<>();
         // 移动模型到目标目录
         if (models!=null && models.length>0) {
             for (int i = 0; i < models.length; i++) {
-                File destFile = new File(destDir, models[i].getName());
-                models[i].renameTo(destFile);
+                String modelName = models[i].getName();
+                String title = modelName.split("-")[0];
+                File destModelFile = new File(destDir, modelName);
+                models[i].renameTo(destModelFile);
+                // 存储模型信息到数据库
+                //fileName获取模型的路径+名称
+                SdUserModel model = new SdUserModel().setId(IdUtil.getSnowflakeNextId()).setTitle(title).setModelName(modelName).setModelNameZh(loraNameZh)
+                    .setFileName(destModelFile.getAbsolutePath()).setCrtTime(new Date()).setIsOpen(1).setType(0).setPublishStatus(1).setBelongUserId(userId);
                 // 移动图片到目标目录并将图片名称修改和模型名称相同
                 if (modelImgs!=null && modelImgs.length>0) {
-                    File destImgFile = new File(destDir, models[i].getName().replace(".safetensors",modelImgs[i].getName().substring(modelImgs[i].getName().lastIndexOf("."))));
+                    File destImgFile = new File(destDir, modelName.replace(".safetensors",modelImgs[i].getName().substring(modelImgs[i].getName().lastIndexOf("."))));
                     modelImgs[i].renameTo(destImgFile);
+                    model.setUrl(destImgFile.getAbsolutePath());
                 }
+                modelList.add(model);
             }
         }
         // 移动数据集目录下的所有文件到数据集存储目标目录
@@ -1970,6 +1983,10 @@ public class SdTrainServiceImpl implements SdTrainService {
                     modelDataFiles[i].renameTo(destDataFile);
                 }
             }
+        }
+        // 批量插入模型信息到数据库
+        if (CollectionUtil.isNotEmpty(modelList)) {
+            sdUserModelService.batchAdd(modelList);
         }
         RedisUtils.deleteKey(DEAL_MODEL_LOCK+taskId);
     }

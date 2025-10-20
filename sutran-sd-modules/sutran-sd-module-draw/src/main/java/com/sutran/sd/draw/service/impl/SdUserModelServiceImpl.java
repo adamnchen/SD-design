@@ -71,6 +71,18 @@ public class SdUserModelServiceImpl implements SdUserModelService {
     }
 
     /**
+     * 批量添加模型
+     * @param models    模型列表
+     */
+    @Override
+    public void batchAdd(List<SdUserModel> models) {
+        if (CollectionUtil.isEmpty(models)) {
+            return;
+        }
+        baseMapper.insertBatch(models);
+    }
+
+    /**
      * 查询所有模型列表
      * @param dto       查询参数实体
      * @param userId    用户ID

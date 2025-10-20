@@ -21,6 +21,7 @@
         <result property="receiverName" column="receiver_name"/>
         <result property="receiverPhone" column="receiver_phone"/>
         <result property="receiverAddress" column="receiver_address"/>
+        <result property="receiverArea" column="receiver_area"/>
         <result property="payOrderId" column="pay_order_id"/>
         <result property="orderStatus" column="order_status"/>
         <result property="deliveryStatus" column="delivery_status"/>
@@ -38,7 +39,7 @@
     <sql id="selectSdPresaleOrderVo">
         select id, order_no, project_id, user_id, user_name, product_title, product_image, quantity,
                original_unit_price, final_unit_price, original_total_amount, final_total_amount, refund_amount,
-               receiver_name, receiver_phone, receiver_address, pay_order_id, order_status, delivery_status,
+               receiver_name, receiver_phone, receiver_address, receiver_area, pay_order_id, order_status, delivery_status,
                express_no, delivery_time, receive_time, refund_time, refund_reason,
                create_by, create_time, update_by, update_time
         from sd_presale_order

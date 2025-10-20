@@ -85,6 +85,11 @@ public class PresaleOrderDetailVO {
     private String receiverAddress;
 
     /**
+     * 收货地区
+     */
+    private String receiverArea;
+
+    /**
      * 支付订单ID
      */
     private Long payOrderId;

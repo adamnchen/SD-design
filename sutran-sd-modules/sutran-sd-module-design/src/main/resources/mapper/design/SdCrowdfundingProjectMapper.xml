@@ -63,24 +63,41 @@
 
     <!-- 根据类型分页查询众筹项目列表 -->
     <select id="selectPageCrowdfundingProjectListByType" resultMap="SdCrowdfundingProjectResult">
-        <include refid="selectSdCrowdfundingProjectVo"/>
+        SELECT 
+            cf.id, cf.project_no, cf.title, cf.description, 
+            -- 关联查询图片：通过打样邀约的work_id获取图片
+            (SELECT file_url FROM sd_user_model_file 
+             WHERE id = CAST(inv.work_id AS UNSIGNED) 
+             ORDER BY crt_time DESC LIMIT 1) AS cover_image,
+            cf.images, cf.video_url, cf.tags,
+            cf.creator_user_id, cf.creator_name, cf.creator_avatar, cf.proofing_invitation_id,
+            cf.manufacturer_user_id, cf.manufacturer_name, cf.manufacturer_avatar,
+            cf.target_amount, cf.current_amount, cf.support_count, cf.view_count,
+            cf.start_time, cf.end_time, cf.delivery_time, cf.status,
+            cf.is_featured, cf.is_hot, cf.sort_order, cf.risk_tips,
+            cf.draw_number, cf.total_samples, cf.draw_status, cf.draw_time,
+            cf.manufacturer_photos, cf.manufacturer_upload_time,
+            cf.escrow_status, cf.fund_release_time,
+            cf.create_by, cf.create_time, cf.update_by, cf.update_time
+        FROM sd_crowdfunding_project cf
+        LEFT JOIN sd_proofing_invitations inv ON cf.proofing_invitation_id = inv.id
         <where>
             <choose>
                 <!-- 我发布的：creator_user_id = 当前用户ID -->
                 <when test="type == 'published'">
-                    AND creator_user_id = #{userId}
+                    AND cf.creator_user_id = #{userId}
                 </when>
                 <!-- 我购买的：通过子查询关联支持记录表 -->
                 <when test="type == 'supported'">
-                    AND id IN (
-                        SELECT DISTINCT project_id 
-                        FROM sd_crowdfunding_support 
+                    AND cf.id IN (
+                        SELECT DISTINCT project_id
+                        FROM sd_crowdfunding_support
                         WHERE user_id = #{userId}
                     )
                 </when>
                 <!-- 我承接的：manufacturer_user_id = 当前用户ID -->
                 <when test="type == 'manufactured'">
-                    AND manufacturer_user_id = #{userId}
+                    AND cf.manufacturer_user_id = #{userId}
                 </when>
                 <!-- 不支持的类型 -->
                 <otherwise>
@@ -88,7 +105,54 @@
                 </otherwise>
             </choose>
         </where>
-        ORDER BY create_time DESC
+        ORDER BY cf.create_time DESC
+    </select>
+
+    <!-- 查询所有众筹项目列表（带图片联查） -->
+    <select id="selectCrowdfundingProjectListWithImage" resultMap="SdCrowdfundingProjectResult">
+        SELECT 
+            cf.id, cf.project_no, cf.title, cf.description, 
+            -- 关联查询图片：通过打样邀约的work_id获取图片
+            (SELECT file_url FROM sd_user_model_file 
+             WHERE id = CAST(inv.work_id AS UNSIGNED) 
+             ORDER BY crt_time DESC LIMIT 1) AS cover_image,
+            cf.images, cf.video_url, cf.tags,
+            cf.creator_user_id, cf.creator_name, cf.creator_avatar, cf.proofing_invitation_id,
+            cf.manufacturer_user_id, cf.manufacturer_name, cf.manufacturer_avatar,
+            cf.target_amount, cf.current_amount, cf.support_count, cf.view_count,
+            cf.start_time, cf.end_time, cf.delivery_time, cf.status,
+            cf.is_featured, cf.is_hot, cf.sort_order, cf.risk_tips,
+            cf.draw_number, cf.total_samples, cf.draw_status, cf.draw_time,
+            cf.manufacturer_photos, cf.manufacturer_upload_time,
+            cf.escrow_status, cf.fund_release_time,
+            cf.create_by, cf.create_time, cf.update_by, cf.update_time
+        FROM sd_crowdfunding_project cf
+        LEFT JOIN sd_proofing_invitations inv ON cf.proofing_invitation_id = inv.id
+        ORDER BY cf.create_time DESC
+    </select>
+
+    <!-- 查询进行中的众筹项目列表（带图片联查） -->
+    <select id="selectActiveCrowdfundingProjectsWithImage" resultMap="SdCrowdfundingProjectResult">
+        SELECT 
+            cf.id, cf.project_no, cf.title, cf.description, 
+            -- 关联查询图片：通过打样邀约的work_id获取图片
+            (SELECT file_url FROM sd_user_model_file 
+             WHERE id = CAST(inv.work_id AS UNSIGNED) 
+             ORDER BY crt_time DESC LIMIT 1) AS cover_image,
+            cf.images, cf.video_url, cf.tags,
+            cf.creator_user_id, cf.creator_name, cf.creator_avatar, cf.proofing_invitation_id,
+            cf.manufacturer_user_id, cf.manufacturer_name, cf.manufacturer_avatar,
+            cf.target_amount, cf.current_amount, cf.support_count, cf.view_count,
+            cf.start_time, cf.end_time, cf.delivery_time, cf.status,
+            cf.is_featured, cf.is_hot, cf.sort_order, cf.risk_tips,
+            cf.draw_number, cf.total_samples, cf.draw_status, cf.draw_time,
+            cf.manufacturer_photos, cf.manufacturer_upload_time,
+            cf.escrow_status, cf.fund_release_time,
+            cf.create_by, cf.create_time, cf.update_by, cf.update_time
+        FROM sd_crowdfunding_project cf
+        LEFT JOIN sd_proofing_invitations inv ON cf.proofing_invitation_id = inv.id
+        WHERE cf.status = 1 AND cf.end_time > NOW()
+        ORDER BY cf.create_time DESC
     </select>
 
 </mapper>

@@ -200,8 +200,8 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
 
     @Override
     public List<CrowdfundingProjectListVO> getCrowdfundingProjectList() {
-        // 查询所有众筹项目
-        List<SdCrowdfundingProject> projects = crowdfundingProjectMapper.selectSdCrowdfundingProjectList(new SdCrowdfundingProject());
+        // 使用多表联查获取众筹项目列表（带正确图片）
+        List<SdCrowdfundingProject> projects = crowdfundingProjectMapper.selectCrowdfundingProjectListWithImage();
 
         // 转换为VO
         return projects.stream().map(project -> {
@@ -225,13 +225,8 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
 
     @Override
     public List<CrowdfundingProjectListVO> getActiveCrowdfundingProjects() {
-        // 查询进行中的众筹项目（状态为1-进行中，且未结束）
-        LambdaQueryWrapper<SdCrowdfundingProject> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(SdCrowdfundingProject::getStatus, 1) // 进行中
-                   .gt(SdCrowdfundingProject::getEndTime, new Date()) // 未结束
-                   .orderByDesc(SdCrowdfundingProject::getCreateTime);
-
-        List<SdCrowdfundingProject> projects = crowdfundingProjectMapper.selectList(queryWrapper);
+        // 使用多表联查获取进行中的众筹项目列表（带正确图片）
+        List<SdCrowdfundingProject> projects = crowdfundingProjectMapper.selectActiveCrowdfundingProjectsWithImage();
 
         // 转换为VO
         return projects.stream().map(project -> {

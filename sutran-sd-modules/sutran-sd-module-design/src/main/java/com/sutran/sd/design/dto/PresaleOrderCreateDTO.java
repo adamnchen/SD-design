@@ -4,7 +4,6 @@ import lombok.Data;
 
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
-import java.math.BigDecimal;
 
 /**
  * 创建预售订单DTO
@@ -44,6 +43,11 @@ public class PresaleOrderCreateDTO {
      */
     @NotBlank(message = "收货地址不能为空")
     private String receiverAddress;
+
+    /**
+     * 收货地区
+     */
+    private String receiverArea;
 
     /**
      * 买家备注

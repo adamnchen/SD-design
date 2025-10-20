@@ -83,14 +83,14 @@ public interface ISdPresaleProjectService {
      * @param createDTO 创建订单DTO
      * @return 订单号
      */
-    String createPresaleOrder(PresaleOrderCreateDTO createDTO);
+    R<String> createPresaleOrder(PresaleOrderCreateDTO createDTO);
 
     /**
      * 获取我的预售订单列表
      *
      * @return 订单列表
      */
-    List<PresaleOrderListVO> getMyPresaleOrders();
+    R<List<PresaleOrderListVO>> getMyPresaleOrders();
 
     /**
      * 获取预售订单详情
@@ -98,7 +98,7 @@ public interface ISdPresaleProjectService {
      * @param orderNo 订单号
      * @return 订单详情
      */
-    PresaleOrderDetailVO getPresaleOrderDetail(String orderNo);
+    R<PresaleOrderDetailVO> getPresaleOrderDetail(String orderNo);
 
     /**
      * 获取支付二维码
@@ -106,5 +106,5 @@ public interface ISdPresaleProjectService {
      * @param orderNo 订单号
      * @return 支付二维码
      */
-    String getPaymentQr(String orderNo);
+    R<String> getPaymentQr(String orderNo);
 }

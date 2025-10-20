@@ -130,6 +130,12 @@ public class SdPresaleOrder extends BaseEntity {
     private String receiverAddress;
 
     /**
+     * 收货地区
+     */
+    @TableField("receiver_area")
+    private String receiverArea;
+
+    /**
      * 支付订单ID（关联pay_order表）
      */
     @TableField("pay_order_id")

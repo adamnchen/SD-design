@@ -81,9 +81,7 @@ CREATE TABLE `sd_presale_order`  (
   INDEX `idx_user_id`(`user_id` ASC) USING BTREE,
   INDEX `idx_pay_order_id`(`pay_order_id` ASC) USING BTREE,
   INDEX `idx_order_status`(`order_status` ASC) USING BTREE,
-  INDEX `idx_production_status`(`production_status` ASC) USING BTREE,
   INDEX `idx_delivery_status`(`delivery_status` ASC) USING BTREE,
-  INDEX `idx_price_adjustment_status`(`price_adjustment_status` ASC) USING BTREE,
   INDEX `idx_create_time`(`create_time` ASC) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '批量订单表' ROW_FORMAT = Dynamic;
 

@@ -22,6 +22,7 @@ public abstract class BasePayNotifyService {
      * 处理支付回调
      *
      * @param request 支付回调请求
+     * @param aliPayCertPath 支付宝公钥证书路径
      * @return 处理结果
      */
     public String handleNotify(HttpServletRequest request,String aliPayCertPath) {

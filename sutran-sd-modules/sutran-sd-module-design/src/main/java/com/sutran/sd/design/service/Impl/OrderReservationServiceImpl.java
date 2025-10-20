@@ -1,4 +1,4 @@
-package com.sutran.sd.design.service.Impl;
+package com.sutran.sd.design.service.impl;
 
 import com.sutran.sd.design.domain.SdCrowdfundingProject;
 import com.sutran.sd.design.mapper.SdCrowdfundingProjectMapper;
@@ -43,7 +43,7 @@ public class OrderReservationServiceImpl implements OrderReservationService {
     public boolean reserveAmount(Long projectId, BigDecimal amount, String orderNo, int expireMinutes) {
         String lockKey = "reservation:" + projectId;
         String reservationKey = RESERVATION_PREFIX + orderNo;
-        
+
         return redisLockUtil.executeWithLock(lockKey, () -> {
             try {
                 // 检查项目是否存在
@@ -70,7 +70,7 @@ public class OrderReservationServiceImpl implements OrderReservationService {
                 String amountKey = PROJECT_AMOUNT_PREFIX + projectId;
                 RMap<String, BigDecimal> amountMap = redissonClient.getMap(amountKey);
                 BigDecimal remainingAmount = amountMap.get("remaining");
-                
+
                 if (remainingAmount == null || remainingAmount.compareTo(amount) < 0) {
                     log.warn("项目剩余金额不足: 项目={}, 剩余={}, 请求={}", projectId, remainingAmount, amount);
                     return false;
@@ -106,11 +106,11 @@ public class OrderReservationServiceImpl implements OrderReservationService {
     @Override
     public boolean confirmReservation(Long projectId, String orderNo) {
         String reservationKey = RESERVATION_PREFIX + orderNo;
-        
+
         try {
             RMap<String, ReservationInfo> reservationMap = redissonClient.getMap(reservationKey);
             ReservationInfo reservationInfo = reservationMap.get("info");
-            
+
             if (reservationInfo == null) {
                 log.warn("预占记录不存在: {}", orderNo);
                 return false;
@@ -118,7 +118,7 @@ public class OrderReservationServiceImpl implements OrderReservationService {
 
             // 删除预占记录
             reservationMap.delete();
-            
+
             log.info("确认预占成功: 订单={}", orderNo);
             return true;
 
@@ -131,11 +131,11 @@ public class OrderReservationServiceImpl implements OrderReservationService {
     @Override
     public boolean releaseReservation(Long projectId, String orderNo) {
         String reservationKey = RESERVATION_PREFIX + orderNo;
-        
+
         try {
             RMap<String, ReservationInfo> reservationMap = redissonClient.getMap(reservationKey);
             ReservationInfo reservationInfo = reservationMap.get("info");
-            
+
             if (reservationInfo == null) {
                 log.warn("预占记录不存在: {}", orderNo);
                 return false;
@@ -153,7 +153,7 @@ public class OrderReservationServiceImpl implements OrderReservationService {
 
             // 删除预占记录
             reservationMap.delete();
-            
+
             log.info("取消预占成功: 订单={}, 退还金额={}", orderNo, reservationInfo.getAmount());
             return true;
 
@@ -169,13 +169,13 @@ public class OrderReservationServiceImpl implements OrderReservationService {
             // 获取所有预占记录
             RSet<String> reservationKeys = redissonClient.getSet(RESERVATION_PREFIX + "keys");
             Set<String> keys = reservationKeys.readAll();
-            
+
             int cleanedCount = 0;
             for (String key : keys) {
                 try {
                     RMap<String, ReservationInfo> reservationMap = redissonClient.getMap(key);
                     ReservationInfo reservationInfo = reservationMap.get("info");
-                    
+
                     if (reservationInfo != null && reservationInfo.getExpireTime().before(new Date())) {
                         // 退还金额
                         String amountKey = PROJECT_AMOUNT_PREFIX + reservationInfo.getProjectId();
@@ -191,15 +191,15 @@ public class OrderReservationServiceImpl implements OrderReservationService {
                         reservationMap.delete();
                         reservationKeys.remove(key);
                         cleanedCount++;
-                        
-                        log.info("清理过期预占: 订单={}, 退还金额={}", 
+
+                        log.info("清理过期预占: 订单={}, 退还金额={}",
                                 reservationInfo.getOrderNo(), reservationInfo.getAmount());
                     }
                 } catch (Exception e) {
                     log.error("清理预占记录失败: {}", key, e);
                 }
             }
-            
+
             log.info("清理过期预占完成: 清理数量={}", cleanedCount);
 
         } catch (Exception e) {
@@ -234,16 +234,16 @@ public class OrderReservationServiceImpl implements OrderReservationService {
         // Getters and Setters
         public Long getProjectId() { return projectId; }
         public void setProjectId(Long projectId) { this.projectId = projectId; }
-        
+
         public String getOrderNo() { return orderNo; }
         public void setOrderNo(String orderNo) { this.orderNo = orderNo; }
-        
+
         public BigDecimal getAmount() { return amount; }
         public void setAmount(BigDecimal amount) { this.amount = amount; }
-        
+
         public Date getReserveTime() { return reserveTime; }
         public void setReserveTime(Date reserveTime) { this.reserveTime = reserveTime; }
-        
+
         public Date getExpireTime() { return expireTime; }
         public void setExpireTime(Date expireTime) { this.expireTime = expireTime; }
     }

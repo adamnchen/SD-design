@@ -1,4 +1,4 @@
-package com.sutran.sd.design.service.Impl;
+package com.sutran.sd.design.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -444,7 +444,7 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
         if (project == null || project.getValidityDays() == null || project.getCreateTime() == null) {
             return false;
         }
-        
+
         // 计算过期时间：创建时间 + 有效期天数
         long expireTime = project.getCreateTime().getTime() + (project.getValidityDays() * 24L * 60L * 60L * 1000L);
         return System.currentTimeMillis() > expireTime;

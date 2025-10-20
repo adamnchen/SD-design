@@ -40,6 +40,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 
 /**
@@ -61,6 +63,8 @@ public class SysUserServiceImpl implements ISysUserService, UserService {
     private final SysUserMemberMapper userMemberMapper;
     private final SysUserAddressMapper addressMapper;
     private final ISysUserTagService sysUserTagService;
+    /** 会员新增锁 **/
+    private final static Lock MEMBER_INSERY_LOCK = new ReentrantLock();
 
     @Override
     public TableDataInfo<SysUser> selectPageUserList(SysUser user, PageQuery pageQuery) {
@@ -765,50 +769,56 @@ public class SysUserServiceImpl implements ISysUserService, UserService {
     @Transactional(rollbackFor = Exception.class)
     public void insertMember(Long userId, Long businessId, Date startTime, PayMember payMember, String outTradeNo) {
         // 先查询用户是否已购买且未失效的会员
-        SysUserMember sysUserMember = userMemberMapper.selectOne(new LambdaQueryWrapper<SysUserMember>().eq(SysUserMember::getUserId, userId).eq(SysUserMember::getStatus, 1).ge(SysUserMember::getEndTime,startTime).orderByDesc(SysUserMember::getId).last("limit 1"));
-        // 存在该会员，设置失效，新增叠加
-        if (sysUserMember!=null) {
-            if (outTradeNo.equals(sysUserMember.getOutTradeNo())) {
-                return;
-            }
-            final int limitTrainTimes = sysUserMember.getLimitTrainTimes();
-            final int limitDrawNum = sysUserMember.getLimitDrawNum();
+        MEMBER_INSERY_LOCK.lock();
+        try {
+            SysUserMember sysUserMember = userMemberMapper.selectOne(new LambdaQueryWrapper<SysUserMember>().eq(SysUserMember::getUserId, userId).eq(SysUserMember::getStatus, 1).ge(SysUserMember::getEndTime, startTime).orderByDesc(SysUserMember::getId).last("limit 1"));
+            // 存在该会员，设置失效，新增叠加
+            if (sysUserMember != null) {
+                if (outTradeNo.equals(sysUserMember.getOutTradeNo())) {
+                    return;
+                }
+                final int limitTrainTimes = sysUserMember.getLimitTrainTimes();
+                final int limitDrawNum = sysUserMember.getLimitDrawNum();
 
-            // 新的会员和之前的会员相同，则备注为“购买相同会员叠加次数,当前会员失效”
-            if (Objects.equals(payMember.getId(), sysUserMember.getMemberId())){
-                sysUserMember.setRemark("购买相同会员叠加次数");
+                // 新的会员和之前的会员相同，则备注为“购买相同会员叠加次数,当前会员失效”
+                if (Objects.equals(payMember.getId(), sysUserMember.getMemberId())) {
+                    sysUserMember.setRemark("购买相同会员叠加次数");
+                }
+                // 新的会员和之前的会员不同(因为设置问题，只能是升级会员)，则备注为“升级会员叠加次数,当前会员失效”
+                else {
+                    sysUserMember.setRemark("升级会员叠加次数");
+                }
+                sysUserMember.setStatus(0);
+                userMemberMapper.updateStatusById(sysUserMember);
+
+                // 新增叠加新会员
+                SysUserMember insert = new SysUserMember()
+                    .setUserId(userId).setMemberId(businessId).setLevelName(payMember.getLevelName())
+                    .setStartTime(startTime).setEndTime(DateUtil.offsetDay(startTime, payMember.getDuration()))
+                    .setDuration(payMember.getDuration()).setStatus(1).setOutTradeNo(outTradeNo)
+                    .setOldLimitTrainTimes(limitTrainTimes)
+                    .setOldLimitDrawNum(limitDrawNum)
+                    .setLimitTrainTimes(payMember.getLimitTrainTimes() + limitTrainTimes)
+                    .setLimitDrawNum(payMember.getLimitDrawNum() + limitDrawNum)
+                    .setUseTrainTimes(sysUserMember.getUseTrainTimes())
+                    .setUseDrawNum(sysUserMember.getUseDrawNum())
+                    .setCreateTime(startTime);
+                userMemberMapper.insert(insert);
             }
-            // 新的会员和之前的会员不同(因为设置问题，只能是升级会员)，则备注为“升级会员叠加次数,当前会员失效”
+            // 不存在，新增
             else {
-                sysUserMember.setRemark("升级会员叠加次数");
+                sysUserMember = new SysUserMember()
+                    .setUserId(userId).setMemberId(businessId).setLevelName(payMember.getLevelName())
+                    .setStartTime(startTime).setEndTime(DateUtil.offsetDay(startTime, payMember.getDuration()))
+                    .setDuration(payMember.getDuration()).setStatus(1).setOutTradeNo(outTradeNo)
+                    .setLimitTrainTimes(payMember.getLimitTrainTimes())
+                    .setLimitDrawNum(payMember.getLimitDrawNum())
+                    .setCreateTime(startTime);
+                userMemberMapper.insert(sysUserMember);
             }
-            sysUserMember.setStatus(0);
-            userMemberMapper.updateStatusById(sysUserMember);
-
-            // 新增叠加新会员
-            SysUserMember insert = new SysUserMember()
-                .setUserId(userId).setMemberId(businessId).setLevelName(payMember.getLevelName())
-                .setStartTime(startTime).setEndTime(DateUtil.offsetDay(startTime,payMember.getDuration()))
-                .setDuration(payMember.getDuration()).setStatus(1).setOutTradeNo(outTradeNo)
-                .setOldLimitTrainTimes(limitTrainTimes)
-                .setOldLimitDrawNum(limitDrawNum)
-                .setLimitTrainTimes(payMember.getLimitTrainTimes() + limitTrainTimes)
-                .setLimitDrawNum(payMember.getLimitDrawNum()+ limitDrawNum)
-                .setUseTrainTimes(sysUserMember.getUseTrainTimes())
-                .setUseDrawNum(sysUserMember.getUseDrawNum())
-                .setCreateTime(startTime);
-            userMemberMapper.insert(insert);
         }
-        // 不存在，新增
-        else {
-            sysUserMember = new SysUserMember()
-                .setUserId(userId).setMemberId(businessId).setLevelName(payMember.getLevelName())
-                .setStartTime(startTime).setEndTime(DateUtil.offsetDay(startTime,payMember.getDuration()))
-                .setDuration(payMember.getDuration()).setStatus(1).setOutTradeNo(outTradeNo)
-                .setLimitTrainTimes(payMember.getLimitTrainTimes())
-                .setLimitDrawNum(payMember.getLimitDrawNum())
-                .setCreateTime(startTime);
-            userMemberMapper.insert(sysUserMember);
+        finally {
+            MEMBER_INSERY_LOCK.unlock();
         }
     }
 

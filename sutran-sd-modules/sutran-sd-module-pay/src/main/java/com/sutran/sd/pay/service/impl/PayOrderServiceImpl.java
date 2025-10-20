@@ -27,7 +27,6 @@ import com.sutran.sd.pay.service.BasePayNotifyService;
 import com.sutran.sd.pay.service.PayOrderService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -146,7 +145,7 @@ public class PayOrderServiceImpl implements PayOrderService {
             .eq(PayOrder::getBusinessType, BusinessType.SD_MEMBER.name())
             .eq(PayOrder::getChannelType, ChannelType.ALI_PAY.name())
             .eq(PayOrder::getStatus, 0)
-            .lt(PayOrder::getExpireTime, new Date())
+            .gt(PayOrder::getExpireTime, new Date())
             .orderByDesc(PayOrder::getId).last("LIMIT 1"));
     }
 
@@ -170,6 +169,10 @@ public class PayOrderServiceImpl implements PayOrderService {
         payOrderMapper.saveQrCode(outTradeNo, qrCode);
     }
 
+    /**
+     * 处理未失效且未支付订单
+     * @param outTradeNo 订单号
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void handleNoPayOfDataByOutTradeNo(String outTradeNo) {
@@ -198,6 +201,19 @@ public class PayOrderServiceImpl implements PayOrderService {
                 }
                 // 发送支付状态到业务实现
                 PayTimeoutStatusVo vo = new PayTimeoutStatusVo().setUserId(order.getUserId()).setBusinessId(order.getBusinessId()).setTradeStatus(tradeStatus).setOutTradeNo(outTradeNo);
+                if (BusinessType.SD_MEMBER.name().equals(order.getBusinessType())) {
+                    basePayNotifyServiceMap.get(PayNotifyServer.SD_MEMBER_NOTIFY).dealPayTimeoutData(vo);
+                }
+                if (BusinessType.PROOF_CROWDFUND.name().equals(order.getBusinessType())) {
+                    basePayNotifyServiceMap.get(PayNotifyServer.PROOF_CROWDFUND_NOTIFY).dealPayTimeoutData(vo);
+                }
+                RedisUtils.delCacheZSet(PAY_ORDER_TASK,outTradeNo);
+            }
+            else {
+                failPay(outTradeNo, null, response.getTotalAmount());
+                log.error("[支付宝][定时处理未失效且未支付订单]>>>>>>>>>支付宝查询指定交易信息并修改订单数据失败,订单号：{}",outTradeNo);
+                // 发送支付状态到业务实现
+                PayTimeoutStatusVo vo = new PayTimeoutStatusVo().setUserId(order.getUserId()).setBusinessId(order.getBusinessId()).setTradeStatus(AliPayTradeStatus.TRADE_CLOSED.name()).setOutTradeNo(outTradeNo);
                 if (BusinessType.SD_MEMBER.name().equals(order.getBusinessType())) {
                     basePayNotifyServiceMap.get(PayNotifyServer.SD_MEMBER_NOTIFY).dealPayTimeoutData(vo);
                 }

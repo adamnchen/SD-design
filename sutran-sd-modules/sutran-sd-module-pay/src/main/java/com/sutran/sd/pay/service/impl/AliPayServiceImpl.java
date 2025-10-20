@@ -12,8 +12,6 @@ import com.ijpay.alipay.AliPayApiConfigKit;
 import com.sutran.sd.common.core.domain.entity.PayMember;
 import com.sutran.sd.common.core.service.UserService;
 import com.sutran.sd.common.exception.ServiceException;
-import com.sutran.sd.common.helper.LoginHelper;
-import com.sutran.sd.common.utils.OrderNumUtils;
 import com.sutran.sd.common.utils.StringUtils;
 import com.sutran.sd.common.utils.redis.RedisUtils;
 import com.sutran.sd.pay.config.AliPayConfig;
@@ -26,6 +24,7 @@ import com.sutran.sd.pay.service.PayMemberService;
 import com.sutran.sd.pay.service.PayOrderService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -44,7 +43,7 @@ import static com.sutran.sd.common.constant.CacheConstants.PAY_ORDER_TASK;
  */
 @Slf4j
 @Service
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = {@Lazy})
 public class AliPayServiceImpl implements AliPayService {
 
     private final AliPayConfig aliPayConfig;
@@ -78,88 +77,6 @@ public class AliPayServiceImpl implements AliPayService {
             AliPayApiConfigKit.setThreadLocalAliPayApiConfig(aliPayApiConfig);
         }
         return aliPayApiConfig;
-    }
-
-    @Override
-    @Transactional(rollbackFor = Exception.class)
-    public String preCreateMemberOrder(String  memberId) {
-        PayMember payMember = payMemberService.detailById(memberId);
-        if (payMember == null) {
-            throw new ServiceException("会员不存在或已被刪除!");
-        }
-        final String subject = payMember.getLevelName();
-        final BigDecimal totalAmount = payMember.getPrice();
-        final String body = payMember.getDescription();
-        final Date now = new Date();
-
-        final Long userId = LoginHelper.getUserId();
-        final String username = LoginHelper.getUsername();
-        final String appId = aliPayConfig.getAppId();
-
-        // 获取当前用户在当前支付应用下是否存在未超时且未完成的支付
-        PayOrder payOrder = payOrderService.isExistNoDealOrder(userId,appId);
-        if (payOrder != null) {
-            throw new ServiceException("当前用户在当前支付应用下存在未完成的订单",500,payOrder.getId().toString());
-        }
-
-        // 获取当前用户已购买且处于生效中的会员ID
-        String currentMemberId = userService.selectMemberIdByUserId(userId,now);
-        if (StringUtils.isNotBlank(currentMemberId)) {
-            PayMember currentPayMember = payMemberService.detailById(currentMemberId);
-            if (currentPayMember != null && currentPayMember.getLevel() > payMember.getLevel()) {
-                throw new ServiceException(String.format("会员[%s]未到期，不可降级购买会员!",currentPayMember.getLevelName()));
-            }
-        }
-
-        // 订单过期时间，默认35分钟后过期(稍微大于支付宝默认超时时间30分钟)
-        Date expireTime = DateUtil.offsetMinute(now, 35);
-        String outTradeNo = OrderNumUtils.getOrderNum(now);
-
-        // 存入redis,扫描redis进行过期订单处理
-        RedisUtils.setCacheZSet(PAY_ORDER_TASK,expireTime.getTime(),outTradeNo);
-
-        AlipayTradePrecreateModel model = new AlipayTradePrecreateModel();
-        model.setSubject(subject);
-        model.setBody(body);
-        // 订单总金额，单位为元，精确到小数点后两位
-        model.setTotalAmount(totalAmount.setScale(2, RoundingMode.HALF_UP).toString());
-        // 商户网站 唯一 订单号0
-        model.setOutTradeNo(outTradeNo);
-        // 该笔订单允许的最晚付款时间，逾期将关闭交易。取值范围：5m～15d。m-分钟，h-小时，d-天，1c-当天（1c-当天的情况下，无论交易何时创建，都在0点关闭）。 该参数数值不接受小数点， 如 1.5h，可转换为 90m
-        model.setTimeoutExpress("30m");
-        try {
-            // 新增订单记录
-            PayOrder order = new PayOrder()
-                .setOutTradeNo(outTradeNo)
-                .setUserId(userId)
-                .setUserName(username)
-                .setAppId(appId)
-                .setSubject(subject)
-                .setBody(body)
-                .setTotalAmount(totalAmount)
-                .setStatus(0)
-                .setChannelType(ChannelType.ALI_PAY.name())
-                .setBusinessType(BusinessType.SD_MEMBER.name())
-                .setBusinessId(payMember.getId())
-                .setCreateTime(now)
-                .setExpireTime(expireTime);
-            payOrderService.insert(order);
-
-            // 支付宝调用回调接口(系统上的接口，用于接收支付宝支付结果通知，要设置不需要登录认证)
-            String notifyUrl = aliPayConfig.getDomain() + "/pay/ali/notify_url";
-            AlipayTradePrecreateResponse response = AliPayApi.tradePrecreatePayToResponse(model, notifyUrl);
-            if (!response.isSuccess()) {
-                throw new ServiceException(response.getSubMsg());
-            }
-            String qrCode = response.getQrCode();
-            // 保存二维码到订单记录
-            payOrderService.saveQrCode(outTradeNo,qrCode);
-            return qrCode;
-        }
-        catch (Exception e) {
-            log.error("[支付宝][扫码支付]>>>>>>>>>创建订单失败,订单号:{}，异常：", outTradeNo, e);
-            throw new ServiceException("创建订单失败："+e.getMessage());
-        }
     }
 
     @Override
@@ -207,6 +124,77 @@ public class AliPayServiceImpl implements AliPayService {
             log.error("[支付宝][查询指定交易信息]>>>>>>>>>查询支付宝指定交易信息失败,订单号：{},流水号：{},异常：",outTradeNo,tradeNo,e);
             throw new ServiceException("查询支付宝指定交易信息失败:"+e.getMessage());
         }
+    }
+
+    /**
+     * 创建会员支付订单
+     * @param userId 下单人用户ID
+     * @param userName 下单人姓名
+     * @param outTradeNo 订单号
+     * @param subject 商品名称
+     * @param body 商品参数或者描述信息(可以用json字符串表示)
+     * @param totalAmount 订单总金额
+     * @param notifyUrl 支付结果回调接口
+     * @param businessId 业务ID(会员ID)
+     * @return 支付二维码
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public String createMemberPayOrder(Long userId, String userName, String outTradeNo, String subject, String body, BigDecimal totalAmount, String notifyUrl, Long businessId) {
+        // 当前上下文添加支付宝参数
+        getConfig();
+        // 支付宝应用ID
+        final String appId = aliPayConfig.getAppId();
+
+        // 获取当前用户在当前支付应用下是否存在未超时且未完成的支付
+        PayOrder payOrder = payOrderService.isExistNoDealOrder(userId,appId);
+        if (payOrder != null) {
+            throw new ServiceException("当前用户在当前支付应用下存在未完成的订单",500,payOrder.getId().toString());
+        }
+
+        // 订单过期时间，11分钟后过期(稍微大于支付认超时时间)
+        Date now = new Date();
+        Date expireTime = DateUtil.offsetMinute(now, 11);
+
+        // 存入redis,扫描redis进行过期订单处理
+        RedisUtils.setCacheZSet(PAY_ORDER_TASK,expireTime.getTime(),outTradeNo);
+
+        AlipayTradePrecreateModel model = new AlipayTradePrecreateModel();
+        model.setSubject(subject);
+        model.setBody(body);
+        // 订单总金额，单位为元，精确到小数点后两位
+        model.setTotalAmount(totalAmount.setScale(2, RoundingMode.HALF_UP).toString());
+        // 商户网站 唯一 订单号0
+        model.setOutTradeNo(outTradeNo);
+        // 该笔订单允许的最晚付款时间，逾期将关闭交易。取值范围：5m～15d。m-分钟，h-小时，d-天，1c-当天（1c-当天的情况下，无论交易何时创建，都在0点关闭）。 该参数数值不接受小数点， 如 1.5h，可转换为 90m
+        model.setTimeoutExpress("10m");
+        // 新增订单记录
+        PayOrder order = new PayOrder()
+            .setOutTradeNo(outTradeNo).setUserId(userId).setUserName(userName)
+            .setAppId(appId).setSubject(subject).setBody(body)
+            .setTotalAmount(totalAmount).setStatus(0)
+            .setChannelType(ChannelType.ALI_PAY.name())
+            .setBusinessType(BusinessType.SD_MEMBER.name())
+            .setBusinessId(businessId).setCreateTime(now).setExpireTime(expireTime);
+        payOrderService.insert(order);
+        try {
+            // 支付宝调用回调接口(系统上的接口，用于接收支付宝支付结果通知，要设置不需要登录认证)
+            AlipayTradePrecreateResponse response = AliPayApi.tradePrecreatePayToResponse(model, aliPayConfig.getDomain()+notifyUrl);
+            if (!response.isSuccess()) {
+                throw new ServiceException(response.getSubMsg());
+            }
+            String qrCode = response.getQrCode();
+            // 保存二维码到订单记录
+            payOrderService.saveQrCode(outTradeNo,qrCode);
+            // redis中存储二维码地址，并设置有效时间6分钟
+            RedisUtils.setCacheObject(PAY_ORDER_QR+outTradeNo,qrCode, Duration.ofMinutes(6));
+            return qrCode;
+        }
+        catch (Exception e) {
+            log.error("[支付宝][扫码支付]>>>>>>>>>创建订单失败,订单号:{}，异常：", outTradeNo, e);
+            payOrderService.failPay(outTradeNo,null, model.getTotalAmount());
+        }
+        return null;
     }
 
     /**

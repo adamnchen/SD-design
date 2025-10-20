@@ -1,5 +1,6 @@
 package com.sutran.sd.controller.pay;
 
+import cn.hutool.extra.qrcode.QrCodeUtil;
 import com.sutran.sd.common.core.controller.BaseController;
 import com.sutran.sd.common.core.domain.PageQuery;
 import com.sutran.sd.common.core.domain.R;
@@ -13,6 +14,9 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
 
 /**
  * 订单记录
@@ -52,7 +56,8 @@ public class PayOrderController extends BaseController {
      * @param outTradeNo 订单号
      */
     @GetMapping(value = "/qr")
-    public R<String> getQr(@RequestParam String outTradeNo) {
-        return R.ok(payOrderService.getPayQr(outTradeNo,LoginHelper.getUserId()));
+    public void getQr(@RequestParam String outTradeNo, HttpServletResponse response) throws IOException {
+        String qrCode = payOrderService.getPayQr(outTradeNo, LoginHelper.getUserId());
+        QrCodeUtil.generate(qrCode, 300, 300, "png", response.getOutputStream());
     }
 }

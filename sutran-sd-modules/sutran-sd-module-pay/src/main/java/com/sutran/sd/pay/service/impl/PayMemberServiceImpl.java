@@ -2,26 +2,64 @@ package com.sutran.sd.pay.service.impl;
 
 import cn.hutool.core.util.ObjectUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.sutran.sd.common.utils.StringUtils;
 import com.sutran.sd.common.core.domain.entity.PayMember;
+import com.sutran.sd.common.core.service.UserService;
+import com.sutran.sd.common.exception.ServiceException;
+import com.sutran.sd.common.helper.LoginHelper;
+import com.sutran.sd.common.utils.OrderNumUtils;
+import com.sutran.sd.common.utils.StringUtils;
 import com.sutran.sd.pay.mapper.PayMemberMapper;
+import com.sutran.sd.pay.service.AliPayService;
 import com.sutran.sd.pay.service.PayMemberService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.util.Date;
 import java.util.List;
 
 /**
  * @author zj
  * @date 2025年08月21日 11:00
  */
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = {@Lazy})
 @Slf4j
 @Service
 public class PayMemberServiceImpl implements PayMemberService {
 
     private final PayMemberMapper baseMapper;
+    private final UserService userService;
+    private final AliPayService aliPayService;
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public String purchaseMember(String  memberId) {
+        PayMember payMember = baseMapper.selectById(memberId);
+        if (payMember == null) {
+            throw new ServiceException("会员不存在或已被刪除!");
+        }
+        final String subject = payMember.getLevelName();
+        final BigDecimal totalAmount = payMember.getPrice();
+        final String body = payMember.getDescription();
+        final Date now = new Date();
+
+        final Long userId = LoginHelper.getUserId();
+        final String username = LoginHelper.getUsername();
+
+        // 获取当前用户已购买且处于生效中的会员ID
+        String currentMemberId = userService.selectMemberIdByUserId(userId,now);
+        if (StringUtils.isNotBlank(currentMemberId)) {
+            PayMember currentPayMember = baseMapper.selectById(currentMemberId);
+            if (currentPayMember != null && currentPayMember.getLevel() > payMember.getLevel()) {
+                throw new ServiceException(String.format("会员[%s]未到期，不可降级购买会员!",currentPayMember.getLevelName()));
+            }
+        }
+        String outTradeNo = OrderNumUtils.getOrderNum(now);
+        return aliPayService.createMemberPayOrder(userId, username, outTradeNo, subject, body, totalAmount, "/pay/ali/notify_url", payMember.getId());
+    }
 
     @Override
     public List<PayMember> selectMemberList(PayMember member) {

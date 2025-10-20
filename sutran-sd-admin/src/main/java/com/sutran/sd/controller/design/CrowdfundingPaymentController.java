@@ -1,5 +1,6 @@
 package com.sutran.sd.controller.design;
 
+import cn.dev33.satoken.annotation.SaIgnore;
 import com.ijpay.alipay.AliPayApiConfig;
 import com.sutran.sd.common.core.domain.R;
 import com.sutran.sd.common.helper.LoginHelper;
@@ -104,6 +105,7 @@ public class CrowdfundingPaymentController extends BaseAliPayApiController {
      * 支付宝支付成功回调
      */
     @PostMapping("/payment/alipay/notify")
+    @SaIgnore
     public String alipayNotify(HttpServletRequest request) {
         return payNotifyServiceMap.get(PayNotifyServer.PROOF_CROWDFUND_NOTIFY).handleNotify(request,aliPayConfig.getAliPayCertPath());
     }

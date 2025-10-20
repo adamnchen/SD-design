@@ -1,4 +1,4 @@
-package com.sutran.sd.design.service.Impl;
+package com.sutran.sd.design.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.sutran.sd.design.config.CrowdfundingConfig;
@@ -103,11 +103,10 @@ public class ProofCrowdfundPayNotifyServiceImpl extends BasePayNotifyService {
             if (AliPayTradeStatus.TRADE_SUCCESS.name().equals(vo.getTradeStatus()) || AliPayTradeStatus.TRADE_FINISHED.name().equals(vo.getTradeStatus())) {
                 return;
             }
+            handleRollback(vo.getOutTradeNo(),vo.getProjectid(),vo.getAmount());
         }
         catch (Exception e) {
             log.error("[众筹打样支付超时]>>>>>>>>>超时业务逻辑处理异常,异常信息: ", e);
-            //TODO ???为什么会在异常中写回滚逻辑？你try方法中能出现异常吗？
-            handleRollback(vo.getOutTradeNo(),vo.getProjectid(),vo.getAmount());
         }
     }
 

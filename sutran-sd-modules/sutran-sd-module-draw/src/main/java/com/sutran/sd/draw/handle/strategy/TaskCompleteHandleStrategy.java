@@ -3,7 +3,7 @@ package com.sutran.sd.draw.handle.strategy;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.sutran.sd.common.utils.StringUtils;
 import com.sutran.sd.common.utils.redis.RedisUtils;
-import com.sutran.sd.draw.domain.SdUserTask;
+import com.sutran.sd.draw.domain.vo.SdUserTaskVo;
 import com.sutran.sd.draw.service.SdUserTaskService;
 import com.sutran.sd.draw.websocket.ComfyWebsocketClient;
 import lombok.RequiredArgsConstructor;
@@ -38,19 +38,19 @@ public class TaskCompleteHandleStrategy implements IComfyWebSocketTextHandleStra
         // 任务完成
         log.warn("[任务完成]>>>>>>>>>节点信息: {}", dataNode);
         String promptId = dataNode.get("prompt_id").asText();
-        SdUserTask task = sdUserTaskService.getTaskInfoByPromptId(promptId);
+        SdUserTaskVo task = sdUserTaskService.getTaskInfoByPromptId(promptId);
         if (task == null) {
             return;
         }
         // 任务完成后，更新任务状态
-        sdUserTaskService.completeComfyTask(task.getTaskId().toString(), new Date());
+        sdUserTaskService.completeComfyTask(task.getTaskId(), new Date());
         // 清除缓存中的节点任务
         if (StringUtils.isNotBlank(task.getNodeId().toString())) {
             RedisUtils.delCacheMapValue(DRAW_NODE_TASK_MAP, task.getNodeId().toString());
         }
         // 清除缓存中的任务进度
-        RedisUtils.delCacheMapValue(DRAW_TASK_PROGRESS, task.getTaskId().toString());
+        RedisUtils.delCacheMapValue(DRAW_TASK_PROGRESS, task.getTaskId());
         // 关闭节点的websocket连接
-        comfyWebsocketClient.closeComfyUiWebSocket(task.getTaskId().toString());
+        comfyWebsocketClient.closeComfyUiWebSocket(task.getTaskId());
     }
 }

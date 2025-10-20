@@ -26,7 +26,6 @@ import java.util.Date;
 import java.util.List;
 
 import static com.sutran.sd.common.constant.CacheConstants.COMFY_TASK;
-import static com.sutran.sd.common.constant.CacheConstants.SD_USER_TASK;
 
 /**
  * @author zj
@@ -311,15 +310,7 @@ public class SdUserTaskServiceImpl implements SdUserTaskService {
      */
     @Override
     public SdUserTaskVo getDrawTaskInfoByTaskId(String taskId) {
-        String taskVoStr = RedisUtils.getCacheObject(SD_USER_TASK + taskId);
-        if (StringUtils.isNotBlank(taskVoStr)) {
-            return JSONObject.parseObject(taskVoStr,SdUserTaskVo.class);
-        }
-        SdUserTaskVo taskVo = baseMapper.getDrawTaskInfoByTaskId(taskId);
-        if (taskVo != null) {
-            RedisUtils.setCacheObject(SD_USER_TASK + taskId, JSONObject.toJSONString(taskVo), Duration.ofMinutes(1));
-        }
-        return taskVo;
+        return baseMapper.getDrawTaskInfoByTaskId(taskId);
     }
 
     /**
@@ -346,16 +337,8 @@ public class SdUserTaskServiceImpl implements SdUserTaskService {
      * @return          任务信息
      */
     @Override
-    public SdUserTask getTaskInfoByPromptId(String promptId) {
-        String taskVoStr = RedisUtils.getCacheObject(SD_USER_TASK + promptId);
-        if (StringUtils.isNotBlank(taskVoStr)) {
-            return JSONObject.parseObject(taskVoStr,SdUserTask.class);
-        }
-        SdUserTask taskVo = baseMapper.selectOne(new LambdaQueryWrapper<SdUserTask>().eq(SdUserTask::getPromptId,promptId));
-        if (taskVo != null) {
-            RedisUtils.setCacheObject(SD_USER_TASK + promptId, JSONObject.toJSONString(taskVo), Duration.ofMinutes(1));
-        }
-        return taskVo;
+    public SdUserTaskVo getTaskInfoByPromptId(String promptId) {
+        return baseMapper.getDrawTaskInfoByPromptId(promptId);
     }
 
     /**

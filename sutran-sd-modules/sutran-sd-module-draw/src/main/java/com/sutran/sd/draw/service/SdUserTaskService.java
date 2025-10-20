@@ -2,7 +2,6 @@ package com.sutran.sd.draw.service;
 
 import com.sutran.sd.common.core.domain.PageQuery;
 import com.sutran.sd.common.core.page.TableDataInfo;
-import com.sutran.sd.draw.domain.SdUserTask;
 import com.sutran.sd.draw.domain.vo.SdUserTaskVo;
 
 import java.util.Date;
@@ -162,7 +161,7 @@ public interface SdUserTaskService {
      * @param promptId  promptID
      * @return          任务信息
      */
-    SdUserTask getTaskInfoByPromptId(String promptId);
+    SdUserTaskVo getTaskInfoByPromptId(String promptId);
 
     /**
      * 更新ComfyUI任务的工作流

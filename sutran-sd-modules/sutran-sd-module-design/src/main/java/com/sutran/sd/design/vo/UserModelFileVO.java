@@ -44,11 +44,6 @@ public class UserModelFileVO {
     private String isRedrawName;
 
     /**
-     * 召唤词
-     */
-    private String summonWord;
-
-    /**
      * 描述词(译文)
      */
     private String prompt;

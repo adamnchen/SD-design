@@ -38,5 +38,9 @@
         SELECT A.*, B.base_url AS node_url FROM sd_user_task AS A LEFT JOIN sd_draw_node AS B ON A.node_id = B.id WHERE A.task_id = #{taskId}
     </select>
 
+    <select id="getDrawTaskInfoByPromptId" resultMap="SdUserTaskVoMap">
+        SELECT A.*, B.base_url AS node_url FROM sd_user_task AS A LEFT JOIN sd_draw_node AS B ON A.node_id = B.id WHERE A.prompt_id = #{promptId}
+    </select>
+
 </mapper>
 

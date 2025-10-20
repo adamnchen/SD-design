@@ -47,12 +47,6 @@ public class DesignSdUserModelFile extends BaseEntity {
     private Integer isRedraw;
 
     /**
-     * 召唤词
-     */
-    @TableField("summon_word")
-    private String summonWord;
-
-    /**
      * 描述词(译文)
      */
     @TableField("prompt")

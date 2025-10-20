@@ -20,10 +20,9 @@ import com.sutran.sd.common.utils.file.FileUtils;
 import com.sutran.sd.common.utils.redis.RedisUtils;
 import com.sutran.sd.draw.domain.SdDrawNode;
 import com.sutran.sd.draw.domain.SdFlow;
-import com.sutran.sd.draw.domain.SdUserTask;
 import com.sutran.sd.draw.domain.bo.ComfyModelTaskSubmitBo;
-import com.sutran.sd.draw.domain.bo.ImageInfoBo;
 import com.sutran.sd.draw.domain.bo.DrawingTaskInfo;
+import com.sutran.sd.draw.domain.bo.ImageInfoBo;
 import com.sutran.sd.draw.domain.pojo.*;
 import com.sutran.sd.draw.domain.vo.ComfyuiImageToolVo;
 import com.sutran.sd.draw.domain.vo.SdUserTaskVo;
@@ -164,6 +163,9 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
         List<String> imageUrls = new ArrayList<>();
         List<ImageInfoBo> images = new ArrayList<>();
         for (MultipartFile file : imageList) {
+            if (file==null || file.isEmpty()) {
+                continue;
+            }
             SysOssVo ossVo = sysOssService.upload(file);
             imageUrls.add(ossVo.getUrl());
             images.add(new ImageInfoBo().setImageName(file.getOriginalFilename()).setContentType(file.getContentType()).setFileData(file.getBytes()));
@@ -460,7 +462,7 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
      * @return 历史任务信息
      */
     private ComfyTaskHistoryInfo getTaskInfoById(String promptId) {
-        SdUserTask task = sdUserTaskService.getTaskInfoByPromptId(promptId);
+        SdUserTaskVo task = sdUserTaskService.getTaskInfoByPromptId(promptId);
         if (task == null) {
             throw new TaskErrorException("任务不存在!");
         }

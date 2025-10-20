@@ -222,11 +222,8 @@ public class ProofingInvitationController {
      */
     @PostMapping("/{id}/choose")
     public R<Void> chooseCandidate(@PathVariable("id") Long id, @Validated @RequestBody ProofingInvitationChooseDto dto) {
-        if (dto.getInvitationId() == null) {
-            dto.setInvitationId(id);
-        } else if (!id.equals(dto.getInvitationId())) {
-            return R.fail("路径ID与请求体的邀约ID不一致");
-        }
+
+        dto.setInvitationId(id);
         invitationService.chooseCandidate(dto);
         return R.ok("已选择最终合作厂家");
     }
@@ -239,13 +236,13 @@ public class ProofingInvitationController {
         List<com.sutran.sd.common.core.domain.vo.InvitationCandidateVO> list = invitationService.getInvitationCandidates(id);
         return R.ok(list);
     }
-    
+
     // === 商家查看已处理邀约相关接口 ===
-    
+
     /**
      * 分页查询商家已处理的邀约列表
      * 商家只能查看自己作为被邀约人的邀约
-     * 
+     *
      * @param pageQuery 分页参数
      * @param status 邀约状态（可选）：0-待处理, 1-已接受, 2-已拒绝, 3-已取消
      * @return 分页结果
@@ -261,10 +258,10 @@ public class ProofingInvitationController {
             return R.fail("查询失败：" + e.getMessage());
         }
     }
-    
+
     /**
      * 查询商家已处理的邀约列表（不分页）
-     * 
+     *
      * @param status 邀约状态（可选）
      * @return 邀约列表
      */
@@ -278,10 +275,10 @@ public class ProofingInvitationController {
             return R.fail("查询失败：" + e.getMessage());
         }
     }
-    
+
     /**
      * 根据ID查询商家已处理的邀约详情
-     * 
+     *
      * @param id 邀约ID
      * @return 邀约详情
      */
@@ -295,10 +292,10 @@ public class ProofingInvitationController {
             return R.fail("查询失败：" + e.getMessage());
         }
     }
-    
+
     /**
      * 统计商家已处理的邀约总数
-     * 
+     *
      * @param status 邀约状态（可选）
      * @return 邀约总数
      */

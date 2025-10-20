@@ -2,70 +2,42 @@ package com.sutran.sd.design.dto;
 
 import lombok.Data;
 
-import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import java.math.BigDecimal;
 import java.util.List;
 
 /**
- * 创建预售项目DTO
+ * 发布预售项目DTO
  *
  * @author sutran
- * @date 2025-10-19
+ * @date 2025-10-20
  */
 @Data
-public class PresaleProjectCreateDTO {
+public class PresaleProjectPublishDTO {
 
     /**
-     * 项目标题
+     * 项目标题（可选，不填写则继承打样邀约的产品标题）
      */
-    @NotBlank(message = "项目标题不能为空")
     private String title;
 
     /**
-     * 项目详细描述
+     * 项目详细描述（可选，不填写则继承打样邀约的产品描述）
      */
     private String description;
 
     /**
-     * 封面图片URL
+     * 关联的打样邀约ID（用于获取AI设计图）
      */
-    private String coverImage;
-
-    /**
-     * 项目图片列表(JSON格式)
-     */
-    private String images;
-
-    /**
-     * 项目视频URL
-     */
-    private String videoUrl;
-
-    /**
-     * 项目标签，逗号分隔
-     */
-    private String tags;
-
-    /**
-     * 厂家用户ID
-     */
-    @NotNull(message = "厂家用户ID不能为空")
-    private Long manufacturerUserId;
-
-    /**
-     * 关联的打样邀约ID
-     */
+    @NotNull(message = "打样邀约ID不能为空")
     private Long proofingInvitationId;
 
     /**
-     * 基础单价（最低阶梯价格）
+     * 基础单价（可选，不填写则继承打样邀约的报价）
      */
-    @NotNull(message = "基础单价不能为空")
     private BigDecimal basePrice;
 
     /**
-     * 阶梯价格配置
+     * 阶梯价格配置（可选，不填写则继承打样邀约的阶梯价格）
      */
     private List<TieredPricingItem> tieredPricing;
 
@@ -76,7 +48,7 @@ public class PresaleProjectCreateDTO {
     private Integer validityDays;
 
     /**
-     * 厂家上传的实物照片（JSON格式，多张图片）
+     * 厂家上传的实物照片（JSON格式，多张图片URL）
      */
     private String manufacturerPhotos;
 

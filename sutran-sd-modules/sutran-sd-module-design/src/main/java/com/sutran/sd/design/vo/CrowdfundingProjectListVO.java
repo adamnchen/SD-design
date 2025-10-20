@@ -133,4 +133,10 @@ public class CrowdfundingProjectListVO {
      * 创建时间
      */
     private Date createTime;
+
+    /**
+     * 阶梯价格配置(JSON数组: [{"unitPrice":100,"node":20}])
+     * 从打样邀约中继承
+     */
+    private String tieredPricing;
 }

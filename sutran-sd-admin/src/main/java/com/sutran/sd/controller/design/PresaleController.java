@@ -6,6 +6,7 @@ import com.sutran.sd.common.core.domain.R;
 import com.sutran.sd.common.core.page.TableDataInfo;
 import com.sutran.sd.design.domain.SdPresaleProject;
 import com.sutran.sd.design.dto.PresaleOrderCreateDTO;
+import com.sutran.sd.design.dto.PresaleProjectPublishDTO;
 import com.sutran.sd.design.service.ISdPresaleProjectService;
 import com.sutran.sd.design.vo.PresaleOrderDetailVO;
 import com.sutran.sd.design.vo.PresaleOrderListVO;
@@ -21,6 +22,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
 import java.util.List;
 import java.util.Map;
+import org.springframework.web.multipart.MultipartFile;
 
 /**
  * 预售项目管理Controller
@@ -126,6 +128,24 @@ public class PresaleController extends BaseController {
     @GetMapping("/payment/qr/{orderNo}")
     public R<String> getPaymentQr(@PathVariable String orderNo) {
         return presaleProjectService.getPaymentQr(orderNo);
+    }
+
+    /**
+     * 发布预售项目
+     */
+    @Operation(summary = "发布预售项目", description = "厂家发布预售项目，包含AI设计图和实物照片")
+    @PostMapping("/publish")
+    public R<String> publishPresaleProject(@Valid @RequestBody PresaleProjectPublishDTO publishDTO) {
+        return presaleProjectService.publishPresaleProject(publishDTO);
+    }
+
+    /**
+     * 上传实物照片
+     */
+    @Operation(summary = "上传实物照片", description = "为预售项目上传实物照片")
+    @PostMapping(value = "/upload/photos", consumes = "multipart/form-data")
+    public R<String> uploadManufacturerPhotos(@RequestPart("file") MultipartFile file) {
+        return presaleProjectService.uploadManufacturerPhotos(file);
     }
 
     /**

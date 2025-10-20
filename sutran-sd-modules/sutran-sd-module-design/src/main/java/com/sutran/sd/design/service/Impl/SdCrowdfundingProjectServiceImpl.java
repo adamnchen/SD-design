@@ -56,7 +56,7 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
 
     @Override
     public SdCrowdfundingProject selectSdCrowdfundingProjectById(Long id) {
-        return crowdfundingProjectMapper.selectById(id);
+        return crowdfundingProjectMapper.selectSdCrowdfundingProjectByIdWithTieredPricing(id);
     }
 
     @Override
@@ -124,9 +124,32 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
             throw new ServiceException("打样邀约不存在");
         }
 
-        // 2. 验证厂家ID是否匹配
+        // 2. 厂家匹配：如果当前邀约的被邀约人不等于传入厂家，则在同一作品+发起人的邀约组中尝试定位该厂家
         if (!invitationDetail.getInviteeUserId().equals(createDTO.getManufacturerUserId())) {
-            throw new ServiceException("厂家ID与打样邀约中选中的厂家不匹配");
+            // 在同一 workId + inviterUserId 下查找包含该厂家的邀约记录
+            java.util.List<com.sutran.sd.common.core.domain.entity.SdProofingInvitation> groupInvitations =
+                invitationMapper.selectList(new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<com.sutran.sd.common.core.domain.entity.SdProofingInvitation>()
+                    .eq(com.sutran.sd.common.core.domain.entity.SdProofingInvitation::getWorkId, invitationDetail.getWorkId())
+                    .eq(com.sutran.sd.common.core.domain.entity.SdProofingInvitation::getInviterUserId, invitationDetail.getInviterUserId()));
+
+            com.sutran.sd.common.core.domain.entity.SdProofingInvitation matched = null;
+            for (com.sutran.sd.common.core.domain.entity.SdProofingInvitation inv : groupInvitations) {
+                if (createDTO.getManufacturerUserId().equals(inv.getInviteeUserId())) {
+                    matched = inv;
+                    break;
+                }
+            }
+
+            if (matched != null) {
+                // 以匹配到的邀约详情作为后续的数据来源，确保厂家信息一致
+                com.sutran.sd.common.core.domain.vo.ProofingInvitationDetailVO matchedDetail =
+                    invitationMapper.selectInvitationDetailById(matched.getId());
+                if (matchedDetail != null) {
+                    invitationDetail = matchedDetail;
+                }
+            } else {
+                throw new ServiceException("厂家ID与该作品的邀约不匹配");
+            }
         }
 
         // 3. 生成项目编号
@@ -145,10 +168,11 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
         project.setCreatorUserId(invitationDetail.getInviterUserId());
         project.setCreatorName(invitationDetail.getInviterNickName());
         project.setCreatorAvatar(invitationDetail.getInviterAvatar());
-        project.setProofingInvitationId(createDTO.getProofingInvitationId());
+        // 绑定实际使用的邀约ID（可能是组内被匹配到的那一条）
+        project.setProofingInvitationId(invitationDetail.getId());
 
         // 厂家信息（从联查结果获取）
-        project.setManufacturerUserId(createDTO.getManufacturerUserId());
+        project.setManufacturerUserId(invitationDetail.getInviteeUserId());
         project.setManufacturerName(invitationDetail.getInviteeNickName());
         project.setManufacturerAvatar(invitationDetail.getInviteeAvatar());
 

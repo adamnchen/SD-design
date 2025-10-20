@@ -1,7 +1,6 @@
 package com.sutran.sd.design.service.Impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.ijpay.alipay.AliPayApiConfig;
 import com.sutran.sd.design.domain.SdPresaleOrder;
 import com.sutran.sd.design.domain.SdPresaleProject;
 import com.sutran.sd.design.mapper.SdPresaleOrderMapper;
@@ -10,7 +9,6 @@ import com.sutran.sd.pay.constants.PayNotifyServer;
 import com.sutran.sd.pay.domain.PayOrder;
 import com.sutran.sd.pay.domain.vo.PayTimeoutStatusVo;
 import com.sutran.sd.pay.enums.AliPayTradeStatus;
-import com.sutran.sd.pay.enums.BusinessType;
 import com.sutran.sd.pay.service.BasePayNotifyService;
 import com.sutran.sd.pay.service.PayOrderService;
 import lombok.RequiredArgsConstructor;
@@ -22,7 +20,6 @@ import org.springframework.transaction.interceptor.TransactionAspectSupport;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 /**
@@ -41,7 +38,7 @@ public class PresaleOrderPayNotifyServiceImpl extends BasePayNotifyService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public String handleBusiness(String tradeStatus, String outTradeNo, String tradeNo, String totalAmount, String gmtPayment) {
+    public void handleSuccessBusiness(String tradeStatus, String outTradeNo, String tradeNo, String totalAmount, String gmtPayment, Long businessId, Long userId) {
         try {
             log.info("[预售订单][支付回调] 开始处理: 订单号={}, 交易状态={}, 金额={}", outTradeNo, tradeStatus, totalAmount);
 
@@ -49,20 +46,20 @@ public class PresaleOrderPayNotifyServiceImpl extends BasePayNotifyService {
             SdPresaleOrder presaleOrder = presaleOrderMapper.selectByOrderNo(outTradeNo);
             if (presaleOrder == null) {
                 log.error("[预售订单][支付回调] 订单不存在: 订单号={}", outTradeNo);
-                return "failure";
+
             }
 
             // 查询支付订单
             PayOrder payOrder = payOrderService.detailByOutTradeNo(outTradeNo);
             if (payOrder == null) {
                 log.error("[预售订单][支付回调] 支付订单不存在: 订单号={}", outTradeNo);
-                return "failure";
+
             }
 
             // 检查订单状态，已处理过直接返回成功
             if (payOrder.getStatus() != 0) {
                 log.info("[预售订单][支付回调] 订单已处理: 订单号={}, 状态={}", outTradeNo, payOrder.getStatus());
-                return "success";
+
             }
 
             BigDecimal amount = new BigDecimal(totalAmount);
@@ -85,25 +82,29 @@ public class PresaleOrderPayNotifyServiceImpl extends BasePayNotifyService {
 
                 log.info("[预售订单][支付回调] 支付成功处理完成: 订单号={}, 项目ID={}", outTradeNo, presaleOrder.getProjectId());
             }
-            // 支付失败
-            else {
-                // 更新支付订单状态
-                payOrderService.failPay(outTradeNo, tradeNo, totalAmount);
 
-                // 更新预售订单状态
-                presaleOrder.setOrderStatus(6); // 已取消
-                presaleOrderMapper.updateById(presaleOrder);
 
-                log.error("[预售订单][支付回调] 支付失败: 订单号={}, 交易状态={}", outTradeNo, tradeStatus);
-            }
-
-            return "success";
         } catch (Exception e) {
             log.error("[预售订单][支付回调] 处理异常: 订单号={}", outTradeNo, e);
             // 回滚事务
             TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
-            return "failure";
+
         }
+    }
+
+    public void handleFailedBusiness(String tradeStatus, String outTradeNo, String tradeNo, String totalAmount, String gmtPayment) {
+        SdPresaleOrder presaleOrder = presaleOrderMapper.selectByOrderNo(outTradeNo);
+        if (presaleOrder == null) {
+            log.error("[预售订单][支付回调] 订单不存在: 订单号={}", outTradeNo);
+        }
+
+        payOrderService.failPay(outTradeNo, tradeNo, totalAmount);
+        // 更新预售订单状态
+        presaleOrder.setOrderStatus(6); // 已取消
+        presaleOrderMapper.updateById(presaleOrder);
+
+        log.error("[预售订单][支付回调] 支付失败: 订单号={}, 交易状态={}", outTradeNo, tradeStatus);
+
     }
 
     @Override

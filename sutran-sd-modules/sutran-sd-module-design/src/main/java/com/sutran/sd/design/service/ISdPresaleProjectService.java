@@ -5,10 +5,12 @@ import com.sutran.sd.common.core.domain.R;
 import com.sutran.sd.common.core.page.TableDataInfo;
 import com.sutran.sd.design.domain.SdPresaleProject;
 import com.sutran.sd.design.dto.PresaleOrderCreateDTO;
+import com.sutran.sd.design.dto.PresaleProjectPublishDTO;
 import com.sutran.sd.design.vo.PresaleOrderDetailVO;
 import com.sutran.sd.design.vo.PresaleOrderListVO;
 import com.sutran.sd.design.vo.PresaleProjectDetailVO;
 import com.sutran.sd.design.vo.PresaleProjectListVO;
+import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 
 /**
@@ -107,4 +109,20 @@ public interface ISdPresaleProjectService {
      * @return 支付二维码
      */
     R<String> getPaymentQr(String orderNo);
+
+    /**
+     * 发布预售项目
+     *
+     * @param publishDTO 发布项目DTO
+     * @return 项目ID
+     */
+    R<String> publishPresaleProject(PresaleProjectPublishDTO publishDTO);
+
+    /**
+     * 上传实物照片
+     *
+     * @param file 照片文件
+     * @return 照片URL
+     */
+    R<String> uploadManufacturerPhotos(MultipartFile file);
 }

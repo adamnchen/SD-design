@@ -3,7 +3,6 @@ package com.sutran.sd.design.vo;
 import lombok.Data;
 
 import java.math.BigDecimal;
-import java.util.Date;
 
 /**
  * 预售项目列表VO
@@ -60,14 +59,9 @@ public class PresaleProjectListVO {
     private String tieredPricing;
 
     /**
-     * 销售开始时间
+     * 有效期天数（从创建时间开始计算）
      */
-    private Date saleStartTime;
-
-    /**
-     * 销售结束时间（null表示长期有效）
-     */
-    private Date saleEndTime;
+    private Integer validityDays;
 
     /**
      * 项目状态：1=销售中，2=暂停销售，3=已下架，4=已取消

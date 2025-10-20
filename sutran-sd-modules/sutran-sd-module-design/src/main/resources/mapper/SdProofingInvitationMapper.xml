@@ -84,10 +84,12 @@
 
             -- 关联查询【图片】信息 - 获取该作品对应的图片
             (SELECT file_url FROM sd_user_model_file
-             WHERE id = CAST(inv.work_id AS UNSIGNED)
+             WHERE belong_user_id = inv.inviter_user_id
+               AND id = CAST(inv.work_id AS UNSIGNED)
              ORDER BY crt_time DESC LIMIT 1) AS image_url,
             (SELECT category FROM sd_user_model_file
-             WHERE id = CAST(inv.work_id AS UNSIGNED)
+             WHERE belong_user_id = inv.inviter_user_id
+               AND id = CAST(inv.work_id AS UNSIGNED)
              ORDER BY crt_time DESC LIMIT 1) AS image_type
         FROM
             sd_proofing_invitations inv
@@ -141,10 +143,12 @@
 
             -- 关联查询【图片】信息 - 获取该作品对应的图片
             (SELECT file_url FROM sd_user_model_file
-             WHERE id = CAST(inv.work_id AS UNSIGNED)
+             WHERE belong_user_id = inv.inviter_user_id
+               AND id = CAST(inv.work_id AS UNSIGNED)
              ORDER BY crt_time DESC LIMIT 1) AS image_url,
             (SELECT category FROM sd_user_model_file
-             WHERE id = CAST(inv.work_id AS UNSIGNED)
+             WHERE belong_user_id = inv.inviter_user_id
+               AND id = CAST(inv.work_id AS UNSIGNED)
              ORDER BY crt_time DESC LIMIT 1) AS image_type
         FROM
             sd_proofing_invitations inv
@@ -195,7 +199,8 @@
 
             -- 关联查询【图片】信息 - 获取该邀约对应的商品图片
             (SELECT file_url FROM sd_user_model_file
-             WHERE belong_user_id = inv.work_id
+             WHERE belong_user_id = inv.inviter_user_id
+               AND id = CAST(inv.work_id AS UNSIGNED)
              ORDER BY crt_time DESC LIMIT 1) AS image_url
 
         FROM
@@ -251,10 +256,12 @@
 
             -- 关联查询【图片】信息 - 获取该作品对应的图片
             (SELECT file_url FROM sd_user_model_file
-             WHERE id = CAST(inv.work_id AS UNSIGNED)
+             WHERE belong_user_id = inv.inviter_user_id
+               AND id = CAST(inv.work_id AS UNSIGNED)
              ORDER BY crt_time DESC LIMIT 1) AS image_url,
             (SELECT category FROM sd_user_model_file
-             WHERE id = CAST(inv.work_id AS UNSIGNED)
+             WHERE belong_user_id = inv.inviter_user_id
+               AND id = CAST(inv.work_id AS UNSIGNED)
              ORDER BY crt_time DESC LIMIT 1) AS image_type
 
         FROM sd_proofing_invitations inv
@@ -305,10 +312,12 @@
 
             -- 关联查询【图片】信息 - 获取该作品对应的图片
             (SELECT file_url FROM sd_user_model_file
-             WHERE id = CAST(inv.work_id AS UNSIGNED)
+             WHERE belong_user_id = inv.inviter_user_id
+               AND id = CAST(inv.work_id AS UNSIGNED)
              ORDER BY crt_time DESC LIMIT 1) AS image_url,
             (SELECT category FROM sd_user_model_file
-             WHERE id = CAST(inv.work_id AS UNSIGNED)
+             WHERE belong_user_id = inv.inviter_user_id
+               AND id = CAST(inv.work_id AS UNSIGNED)
              ORDER BY crt_time DESC LIMIT 1) AS image_type
 
         FROM sd_proofing_invitations inv

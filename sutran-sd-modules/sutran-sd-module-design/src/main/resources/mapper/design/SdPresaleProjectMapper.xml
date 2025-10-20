@@ -22,8 +22,7 @@
         <result property="proofingInvitationId" column="proofing_invitation_id"/>
         <result property="basePrice" column="base_price"/>
         <result property="tieredPricing" column="tiered_pricing"/>
-        <result property="saleStartTime" column="sale_start_time"/>
-        <result property="saleEndTime" column="sale_end_time"/>
+        <result property="validityDays" column="validity_days"/>
         <result property="status" column="status"/>
         <result property="productionStatus" column="production_status"/>
         <result property="deliveryStatus" column="delivery_status"/>
@@ -42,7 +41,7 @@
     <sql id="selectSdPresaleProjectVo">
         select id, project_no, title, description, cover_image, images, video_url, tags,
                creator_user_id, creator_name, creator_avatar, manufacturer_user_id, manufacturer_name, manufacturer_avatar,
-               proofing_invitation_id, base_price, tiered_pricing, sale_start_time, sale_end_time,
+               proofing_invitation_id, base_price, tiered_pricing, validity_days,
                status, production_status, delivery_status, view_count, favorite_count, share_count,
                manufacturer_photos, manufacturer_upload_time, total_sales_amount,
                create_by, create_time, update_by, update_time
@@ -90,7 +89,7 @@
             p.id, p.project_no, p.title, p.description, p.cover_image, p.images, p.video_url, p.tags,
             p.creator_user_id, p.creator_name, p.creator_avatar,
             p.manufacturer_user_id, p.manufacturer_name, p.manufacturer_avatar,
-            p.proofing_invitation_id, p.base_price, p.tiered_pricing, p.sale_start_time, p.sale_end_time,
+            p.proofing_invitation_id, p.base_price, p.tiered_pricing, p.validity_days,
             p.status, p.production_status, p.delivery_status, p.view_count, p.favorite_count, p.share_count,
             p.manufacturer_photos, p.manufacturer_upload_time, p.total_sales_amount,
             p.create_by, p.create_time, p.update_by, p.update_time,
@@ -117,7 +116,7 @@
             p.id, p.project_no, p.title, p.description, p.cover_image, p.images, p.video_url, p.tags,
             p.creator_user_id, p.creator_name, p.creator_avatar,
             p.manufacturer_user_id, p.manufacturer_name, p.manufacturer_avatar,
-            p.proofing_invitation_id, p.base_price, p.tiered_pricing, p.sale_start_time, p.sale_end_time,
+            p.proofing_invitation_id, p.base_price, p.tiered_pricing, p.validity_days,
             p.status, p.production_status, p.delivery_status, p.view_count, p.favorite_count, p.share_count,
             p.manufacturer_photos, p.manufacturer_upload_time, p.total_sales_amount,
             p.create_by, p.create_time, p.update_by, p.update_time,

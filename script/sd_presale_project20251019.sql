@@ -46,8 +46,7 @@ CREATE TABLE `sd_presale_project`  (
   `tiered_pricing` json NULL COMMENT '阶梯价格配置(JSON数组: [{"unitPrice":100,"node":20}])',
   
   -- 时间相关
-  `sale_start_time` datetime NOT NULL COMMENT '销售开始时间',
-  `sale_end_time` datetime NULL DEFAULT NULL COMMENT '销售结束时间（null表示长期有效）',
+  `validity_days` int NOT NULL DEFAULT 30 COMMENT '有效期天数（从创建时间开始计算）',
 
   -- 状态相关
   `status` tinyint NOT NULL DEFAULT 1 COMMENT '项目状态：1=销售中，2=暂停销售，3=已下架，4=已取消',
@@ -80,8 +79,7 @@ CREATE TABLE `sd_presale_project`  (
   INDEX `idx_manufacturer_user_id`(`manufacturer_user_id` ASC) USING BTREE,
   INDEX `idx_proofing_invitation_id`(`proofing_invitation_id` ASC) USING BTREE,
   INDEX `idx_status`(`status` ASC) USING BTREE,
-  INDEX `idx_sale_start_time`(`sale_start_time` ASC) USING BTREE,
-  INDEX `idx_sale_end_time`(`sale_end_time` ASC) USING BTREE,
+  INDEX `idx_validity_days`(`validity_days` ASC) USING BTREE,
   INDEX `idx_production_status`(`production_status` ASC) USING BTREE,
   INDEX `idx_delivery_status`(`delivery_status` ASC) USING BTREE,
   INDEX `idx_create_time`(`create_time` ASC) USING BTREE

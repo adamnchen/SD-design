@@ -135,17 +135,11 @@ public class SdPresaleProject extends BaseEntity {
     private String tieredPricing;
 
     /**
-     * 销售开始时间
+     * 有效期天数（从创建时间开始计算）
      */
-    @TableField("sale_start_time")
-    @NotNull(message = "销售开始时间不能为空")
-    private Date saleStartTime;
-
-    /**
-     * 销售结束时间（null表示长期有效）
-     */
-    @TableField("sale_end_time")
-    private Date saleEndTime;
+    @TableField("validity_days")
+    @NotNull(message = "有效期天数不能为空")
+    private Integer validityDays;
 
     /**
      * 项目状态：1=销售中，2=暂停销售，3=已下架，4=已取消

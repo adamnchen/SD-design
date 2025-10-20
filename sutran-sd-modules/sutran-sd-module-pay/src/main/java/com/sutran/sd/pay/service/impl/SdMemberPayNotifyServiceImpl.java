@@ -1,6 +1,5 @@
 package com.sutran.sd.pay.service.impl;
 
-import com.ijpay.alipay.AliPayApiConfig;
 import com.sutran.sd.common.core.domain.entity.PayMember;
 import com.sutran.sd.common.core.service.UserService;
 import com.sutran.sd.pay.constants.PayNotifyServer;
@@ -34,7 +33,7 @@ public class SdMemberPayNotifyServiceImpl extends BasePayNotifyService {
     private final PayMemberService payMemberService;
 
     @Override
-    public String handleBusiness(String tradeStatus, String outTradeNo, String tradeNo, String totalAmount, String gmtPayment, AliPayApiConfig aliPayConfig) {
+    public String handleBusiness(String tradeStatus, String outTradeNo, String tradeNo, String totalAmount, String gmtPayment) {
         try {
             // 业务逻辑：更新订单状态（需保证幂等性，避免重复处理）
             if (AliPayTradeStatus.TRADE_SUCCESS.name().equals(tradeStatus) || AliPayTradeStatus.TRADE_FINISHED.name().equals(tradeStatus)) {

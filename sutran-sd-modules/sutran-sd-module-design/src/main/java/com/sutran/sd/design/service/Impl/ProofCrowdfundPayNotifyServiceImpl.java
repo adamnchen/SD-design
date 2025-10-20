@@ -1,7 +1,6 @@
-package com.sutran.sd.design.service.Impl;
+package com.sutran.sd.design.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.ijpay.alipay.AliPayApiConfig;
 import com.sutran.sd.design.config.CrowdfundingConfig;
 import com.sutran.sd.design.domain.SdCrowdfundingProject;
 import com.sutran.sd.design.domain.SdCrowdfundingSupport;
@@ -22,7 +21,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.interceptor.TransactionAspectSupport;
 
 import java.math.BigDecimal;
-import java.util.*;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * 众筹订单支付回调
@@ -42,7 +42,7 @@ public class ProofCrowdfundPayNotifyServiceImpl extends BasePayNotifyService {
 
 
     @Override
-    public String handleBusiness(String tradeStatus, String outTradeNo, String tradeNo, String totalAmount, String gmtPayment, AliPayApiConfig aliPayConfig) {
+    public String handleBusiness(String tradeStatus, String outTradeNo, String tradeNo, String totalAmount, String gmtPayment) {
         try {
             SdCrowdfundingSupport support= supportMapper.selectByOrderNo(outTradeNo);
             Long Projectid = support.getProjectId();
@@ -115,6 +115,7 @@ public class ProofCrowdfundPayNotifyServiceImpl extends BasePayNotifyService {
         }
         catch (Exception e) {
             log.error("[众筹打样支付超时]>>>>>>>>>超时业务逻辑处理异常,异常信息: ", e);
+            //TODO ???为什么会在异常中写回滚逻辑？你try方法中能出现异常吗？
             handleRollback(vo.getOutTradeNo(),vo.getProjectid(),vo.getAmount());
         }
     }

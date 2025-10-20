@@ -99,6 +99,7 @@ public class SdTrainServiceImpl implements SdTrainService {
     private Executor executor;
     private final static Map<String,WatchMonitor> MONITOR_MAP = new ConcurrentHashMap<>();
     private final static Lock TRAIN_LOCK = new ReentrantLock();
+    private final static Lock MODEL_LOCK = new ReentrantLock();
 
     /**
      * 预处理图片任务状态列表
@@ -1151,7 +1152,6 @@ public class SdTrainServiceImpl implements SdTrainService {
         wxMsg.put("oldModelName",oldModelName);
         wxMsg.put("startTime",DateUtil.formatDateTime(sdTrainTask.getStartTime()));
         wxMsg.put("endTime",DateUtil.formatDateTime(sdTrainTask.getEndTime()));
-        //TODO windows
         rabbitTemplate.convertAndSend(MqConstant.WX_MSG_EXCHANGE, MqConstant.WX_MSG_ROUTING_KEY,wxMsg);
     }
     /**
@@ -1673,9 +1673,9 @@ public class SdTrainServiceImpl implements SdTrainService {
                     nodeId = task.getNodeId().toString();
                 }
                 sdTrainTaskService.completeFluxgymTrainTask(taskId,new Date());
-                // 处理指定目录下的模型文件
                 try{
-                    dealFluxgymTrainModelFile(taskId,preParams);
+                    // 异步处理指定目录下的模型文件
+                    CompletableFuture.runAsync(()->dealFluxgymTrainModelFile(taskId,preParams), executor);
                 }
                 catch (Exception e){
                     log.error("[FLuxGym]>>>>>>>>>处理训练完成后的模型文件失败!原因：", e);
@@ -1908,11 +1908,17 @@ public class SdTrainServiceImpl implements SdTrainService {
      * @param preParams  预处理参数
      */
     public void dealFluxgymTrainModelFile(String taskId, JSONObject preParams) {
-        // 加锁限制其他请求操作
-        if (RedisUtils.hasKey(DEAL_MODEL_LOCK+taskId))  {
-            return;
+        // 双重加锁，限制其他请求操作(主要是定时请求、前端轮询请求进度、手动处理请求)
+        MODEL_LOCK.lock();
+        try{
+            if (RedisUtils.hasKey(DEAL_MODEL_LOCK+taskId))  {
+                return;
+            }
+            RedisUtils.setCacheObject(DEAL_MODEL_LOCK+taskId,"1", Duration.ofMinutes(2));
         }
-        RedisUtils.setCacheObject(DEAL_MODEL_LOCK+taskId,"1", Duration.ofMinutes(2));
+        finally {
+            MODEL_LOCK.unlock();
+        }
         // 仙宫云上，模型存储在云存储中 /root/cloud/lora-models 目录下
         // 将模型移动到/home/stable-diffusion-webui/models/Lora目录下
         // 模型目录

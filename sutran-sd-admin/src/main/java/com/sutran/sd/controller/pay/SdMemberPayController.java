@@ -9,6 +9,7 @@ import com.sutran.sd.pay.constants.PayNotifyServer;
 import com.sutran.sd.pay.controller.BaseAliPayApiController;
 import com.sutran.sd.pay.service.AliPayService;
 import com.sutran.sd.pay.service.BasePayNotifyService;
+import com.sutran.sd.pay.service.PayMemberService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -28,6 +29,7 @@ import java.util.Map;
 public class SdMemberPayController extends BaseAliPayApiController {
 
     private final AliPayService aliPayService;
+    private final PayMemberService payMemberService;
     private final Map<String, BasePayNotifyService> payNotifyServiceMap;
     private final AliPayConfig aliPayConfig;
 
@@ -46,7 +48,7 @@ public class SdMemberPayController extends BaseAliPayApiController {
     @GetMapping(value ="/preCreateOrder")
     @RepeatSubmit()
     public void preCreateOrder(@RequestParam String memberId, HttpServletResponse response) throws IOException {
-        String qrCode = aliPayService.preCreateMemberOrder(memberId);
+        String qrCode = payMemberService.purchaseMember(memberId);
         // 使用hutool生成二维码图片返回
         QrCodeUtil.generate(qrCode, 300, 300, "png", response.getOutputStream());
     }

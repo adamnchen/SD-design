@@ -38,9 +38,6 @@ public interface PayOrderMapper extends BaseMapperPlus<PayOrderMapper, PayOrder,
      * @param totalAmount 总金额
      * @return 是否更新成功
      */
-    @Update("update pay_order " +
-        "set trade_no = #{tradeNo}, total_amount = #{totalAmount}, status = 2 " +
-        "where out_trade_no = #{outTradeNo}")
     boolean failPay(@Param("outTradeNo") String outTradeNo,
                     @Param("tradeNo") String tradeNo,
                     @Param("totalAmount") String totalAmount);

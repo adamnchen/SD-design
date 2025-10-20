@@ -8,17 +8,14 @@ import com.sutran.sd.design.mapper.SdCrowdfundingProjectMapper;
 import com.sutran.sd.design.mapper.SdCrowdfundingSupportMapper;
 import com.sutran.sd.design.service.CrowdfundingRedisService;
 import com.sutran.sd.pay.constants.PayNotifyServer;
-import com.sutran.sd.pay.domain.PayOrder;
 import com.sutran.sd.pay.domain.vo.PayTimeoutStatusVo;
 import com.sutran.sd.pay.enums.AliPayTradeStatus;
 import com.sutran.sd.pay.service.BasePayNotifyService;
-import com.sutran.sd.pay.service.PayOrderService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.interceptor.TransactionAspectSupport;
 
 import java.math.BigDecimal;
 import java.util.Collections;
@@ -34,75 +31,69 @@ import java.util.List;
 @RequiredArgsConstructor(onConstructor_ = @Lazy)
 public class ProofCrowdfundPayNotifyServiceImpl extends BasePayNotifyService {
 
-    private final PayOrderService payOrderService;
     private final SdCrowdfundingSupportMapper supportMapper;
     private final CrowdfundingRedisService crowdfundingRedisService;
     private final SdCrowdfundingProjectMapper crowdfundingProjectMapper;
     private final CrowdfundingConfig crowdfundingConfig;
 
-
+    /**
+     * 处理支付成功业务
+     * @param tradeStatus 交易状态
+     * @param outTradeNo  商户订单号
+     * @param tradeNo     支付宝交易流水号
+     * @param totalAmount 实际支付金额
+     * @param gmtPayment  支付时间
+     * @param businessId  业务id
+     * @param userId      用户id
+     */
     @Override
-    public String handleBusiness(String tradeStatus, String outTradeNo, String tradeNo, String totalAmount, String gmtPayment) {
-        try {
-            SdCrowdfundingSupport support= supportMapper.selectByOrderNo(outTradeNo);
-            Long Projectid = support.getProjectId();
-            BigDecimal Amount = new BigDecimal(totalAmount);
-            // 支付状态为完成或者成功
-            if (AliPayTradeStatus.TRADE_SUCCESS.name().equals(tradeStatus) || AliPayTradeStatus.TRADE_FINISHED.name().equals(tradeStatus)) {
-                // 查询订单
-                PayOrder order = payOrderService.detailByOutTradeNo(outTradeNo);
-                if (order == null) {
-                    log.error("[支付宝][支付回调验证]>>>>>>>>>支付回调验证失败,订单号：{}，未查询到订单记录", outTradeNo);
-                    return "failure";
-                }
-                // 检查订单状态,已处理过，直接返回成功
-                if (order.getStatus() != 0) {
-                    return "success";
-                }
-                // 修改订单状态
-                payOrderService.successPay(outTradeNo, tradeNo, totalAmount, gmtPayment);
+    public void handleSuccessBusiness(String tradeStatus, String outTradeNo, String tradeNo, String totalAmount, String gmtPayment, Long businessId, Long userId) {
+        SdCrowdfundingSupport support= supportMapper.selectByOrderNo(outTradeNo);
+        Long projectId = support.getProjectId();
+        BigDecimal amount = new BigDecimal(totalAmount);
 
-                // 查询项目信息
-                SdCrowdfundingProject project = crowdfundingProjectMapper.selectSdCrowdfundingProjectById(Projectid);
-                if (project != null) {
-                    // 更新项目金额和支持人数
-                    project.setCurrentAmount(project.getCurrentAmount().add(Amount));
-                    project.setSupportCount(project.getSupportCount() + 1);
+        // 查询项目信息
+        SdCrowdfundingProject project = crowdfundingProjectMapper.selectSdCrowdfundingProjectById(projectId);
+        if (project != null) {
+            // 更新项目金额和支持人数
+            project.setCurrentAmount(project.getCurrentAmount().add(amount));
+            project.setSupportCount(project.getSupportCount() + 1);
 
-                    // 检查是否达到目标金额
-                    if (project.getCurrentAmount().compareTo(project.getTargetAmount()) >= 0) {
-                        // 众筹成功，自动开始抽奖
-                        project.setStatus(2); // 众筹成功
-                        project.setDrawStatus(1); // 开始抽奖
-                        log.info("众筹成功，自动开始抽奖: 项目ID={}, 项目名称={}", project.getId(), project.getTitle());
+            // 检查是否达到目标金额
+            if (project.getCurrentAmount().compareTo(project.getTargetAmount()) >= 0) {
+                // 众筹成功，自动开始抽奖
+                project.setStatus(2);
+                project.setDrawStatus(1);
+                log.info("众筹成功，自动开始抽奖: 项目ID={}, 项目名称={}", project.getId(), project.getTitle());
 
-                        // 更新项目状态
-                        crowdfundingProjectMapper.updateSdCrowdfundingProject(project);
+                // 更新项目状态
+                crowdfundingProjectMapper.updateSdCrowdfundingProject(project);
 
-                        // 延迟执行抽奖
-                        scheduleDrawExecution(project);
-                    } else {
-                        // 更新项目金额
-                        crowdfundingProjectMapper.updateSdCrowdfundingProject(project);
-                    }
-                }
-
+                // 延迟执行抽奖
+                scheduleDrawExecution(project);
             }
-            // 支付失败
             else {
-                payOrderService.failPay(outTradeNo, tradeNo, totalAmount);
-
-                handleRollback(outTradeNo,Projectid,Amount);
-                log.error("[支付宝][支付回调验证]>>>>>>>>>支付回调验证失败,订单号：{},流水号：{},交易状态：{}",outTradeNo,tradeNo,tradeStatus);
+                // 更新项目金额
+                crowdfundingProjectMapper.updateSdCrowdfundingProject(project);
             }
-            return "success";
         }
-        catch (Exception e) {
-            log.error("[支付宝][支付回调验证]>>>>>>>>>支付结果回调异常:",e);
-            // 回滚事务
-            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
-            return "failure";
-        }
+    }
+
+    /**
+     * 处理支付失败业务
+     * @param tradeStatus 交易状态
+     * @param outTradeNo  商户订单号
+     * @param tradeNo     支付宝交易流水号
+     * @param totalAmount 实际支付金额
+     * @param gmtPayment  支付时间
+     */
+    @Override
+    public void handleFailedBusiness(String tradeStatus, String outTradeNo, String tradeNo, String totalAmount, String gmtPayment) {
+        SdCrowdfundingSupport support= supportMapper.selectByOrderNo(outTradeNo);
+        Long projectId = support.getProjectId();
+        BigDecimal amount = new BigDecimal(totalAmount);
+        // 支付失败回滚金额
+        handleRollback(outTradeNo,projectId,amount);
     }
 
     @Override

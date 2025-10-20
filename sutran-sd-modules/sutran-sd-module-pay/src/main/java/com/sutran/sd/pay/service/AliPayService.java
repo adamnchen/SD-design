@@ -16,18 +16,25 @@ public interface AliPayService {
     AliPayApiConfig getConfig();
 
     /**
-     * 预创建会员购买订单
-     * @param memberId 会员ID
-     * @return 支付二维码
-     */
-    String preCreateMemberOrder(String memberId);
-
-    /**
      * 查询支付宝指定交易信息
      * @param outTradeNo 订单号
      * @param tradeNo 交易号
      */
     void syncStatus(String outTradeNo, String tradeNo);
+
+    /**
+     * 创建会员支付订单
+     * @param userId 下单人用户ID
+     * @param userName 下单人姓名
+     * @param outTradeNo 订单号
+     * @param subject 商品名称
+     * @param body 商品参数或者描述信息(可以用json字符串表示)
+     * @param totalAmount 订单总金额
+     * @param notifyUrl 支付结果回调接口
+     * @param businessId 业务ID(会员ID)
+     * @return 支付二维码
+     */
+    String createMemberPayOrder(Long userId, String userName, String outTradeNo, String subject, String body, BigDecimal totalAmount, String notifyUrl, Long businessId);
 
     /**
      * 创建支付订单

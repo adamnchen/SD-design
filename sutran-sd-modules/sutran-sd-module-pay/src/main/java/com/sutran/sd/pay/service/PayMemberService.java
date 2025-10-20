@@ -9,6 +9,14 @@ import java.util.List;
  * @date 2025年08月21日 10:59
  */
 public interface PayMemberService {
+
+    /**
+     * 购买会员
+     * @param memberId 会员ID
+     * @return 支付二维码
+     */
+    String purchaseMember(String memberId);
+
     /**
      * 获取会员配置列表
      * @param config    会员配置

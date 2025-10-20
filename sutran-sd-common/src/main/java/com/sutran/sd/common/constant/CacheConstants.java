@@ -121,7 +121,6 @@ public interface CacheConstants {
      * 训练卡池
      */
     String TRAIN_GPU_POOL = "TRAIN_GPU_POOL";
-    String TRAIN_GPU_USAGE_FREQUENCY = "TRAIN_GPU_USAGE_FREQUENCY";
     String TRAIN_GPU_TASK = "TRAIN_GPU_TASK:";
     /**
      * 绘图卡池
@@ -173,4 +172,9 @@ public interface CacheConstants {
      * 训练任务图片列表
      */
     String FLUXGYM_IMG_TASK = "FLUXGYM_IMG_TASK:";
+
+     /**
+     * 训练任务节点信息
+     */
+    String TRAIN_TASK_NODE_AND_STATUS_INFO = "TRAIN_TASK_NODE_AND_STATUS_INFO:";
 }

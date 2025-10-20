@@ -193,11 +193,11 @@ public interface SdTrainTaskService {
     void startFluxgymTrainTask(String taskId, Long nodeId, Date startTime, Map<String, Object> trainParams);
 
     /**
-     * 查询训练任务节点URL
+     * 、任务状态、任务预处理参数
      * @param taskId 训练任务ID
      * @return 节点URL
      */
-     JSONObject selectNodeBaseUrlByTaskId(String taskId);
+     JSONObject selectNodeBaseUrlAndStatusByTaskId(String taskId);
 
      /**
       * 完成Fluxgym训练任务

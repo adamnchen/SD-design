@@ -1,11 +1,14 @@
 package com.sutran.sd.controller.design;
 
-import com.sutran.sd.common.core.controller.BaseController;
+import com.ijpay.alipay.AliPayApiConfig;
 import com.sutran.sd.common.core.domain.R;
+import com.sutran.sd.common.helper.LoginHelper;
 import com.sutran.sd.design.domain.SdCrowdfundingSupport;
 import com.sutran.sd.design.dto.CrowdfundingSupportDTO;
 import com.sutran.sd.design.service.ISdCrowdfundingProjectService;
+import com.sutran.sd.pay.config.AliPayConfig;
 import com.sutran.sd.pay.constants.PayNotifyServer;
+import com.sutran.sd.pay.controller.BaseAliPayApiController;
 import com.sutran.sd.pay.service.AliPayService;
 import com.sutran.sd.pay.service.BasePayNotifyService;
 import com.sutran.sd.pay.service.PayOrderService;
@@ -28,12 +31,21 @@ import java.util.Map;
 @RestController
 @RequestMapping("/design/crowdfunding")
 @RequiredArgsConstructor
-public class CrowdfundingPaymentController extends BaseController {
+public class CrowdfundingPaymentController extends BaseAliPayApiController {
 
     private final ISdCrowdfundingProjectService crowdfundingProjectService;
     private final PayOrderService payOrderService;
     private final AliPayService aliPayService;
+    private final AliPayConfig aliPayConfig;
     private final Map<String, BasePayNotifyService> payNotifyServiceMap;
+
+    /**
+     * 获取支付宝配置：主要是为了让当前线程上下文都能加入支付宝配置
+     */
+    @Override
+    public AliPayApiConfig getApiConfig() {
+        return aliPayService.getConfig();
+    }
 
     /**
      * 参与众筹支持
@@ -79,7 +91,8 @@ public class CrowdfundingPaymentController extends BaseController {
     @GetMapping("/payment/qr/{orderNo}")
     public R<String> getPaymentQr(@PathVariable String orderNo) {
         try {
-            String qrCode = payOrderService.getPayQr(orderNo, getUserId());
+            Long userId = LoginHelper.getUserId();
+            String qrCode = payOrderService.getPayQr(orderNo, userId);
             return R.ok("获取支付二维码成功",qrCode);
         } catch (Exception e) {
             log.error("获取支付二维码失败: 订单号={}", orderNo, e);
@@ -92,7 +105,6 @@ public class CrowdfundingPaymentController extends BaseController {
      */
     @PostMapping("/payment/alipay/notify")
     public String alipayNotify(HttpServletRequest request) {
-        return payNotifyServiceMap.get(PayNotifyServer.PROOF_CROWDFUND_NOTIFY).handleNotify(request,aliPayService.getConfig());
+        return payNotifyServiceMap.get(PayNotifyServer.PROOF_CROWDFUND_NOTIFY).handleNotify(request,aliPayConfig.getAliPayCertPath());
     }
-
 }

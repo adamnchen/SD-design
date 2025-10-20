@@ -240,7 +240,7 @@ public class SdTrainController {
      * [FluxGym]SD训练-查询训练进度
      */
     @ApiOperationSupport(order = 16)
-    @PostMapping("/fluxgym/progress")
+    @GetMapping("/fluxgym/progress")
     public R<FluxgymTrainProgressVo> getFluxgymProgress(@RequestParam String taskId){
         return R.ok("操作成功",sdTrainService.getFluxgymProgress(taskId, null, false));
     }

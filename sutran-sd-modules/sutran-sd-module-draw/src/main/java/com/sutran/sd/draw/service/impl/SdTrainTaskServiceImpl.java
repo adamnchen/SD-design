@@ -6,11 +6,11 @@ import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.sutran.sd.common.core.domain.PageQuery;
+import com.sutran.sd.draw.domain.SdGpuPool;
+import com.sutran.sd.draw.domain.SdTrainTask;
 import com.sutran.sd.draw.domain.vo.TrainTaskStatusVo;
 import com.sutran.sd.draw.mapper.SdTrainTaskMapper;
 import com.sutran.sd.draw.service.SdTrainTaskService;
-import com.sutran.sd.draw.domain.SdGpuPool;
-import com.sutran.sd.draw.domain.SdTrainTask;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
@@ -225,8 +225,21 @@ public class SdTrainTaskServiceImpl implements SdTrainTaskService {
     }
 
     @Override
-    public JSONObject selectNodeBaseUrlByTaskId(String taskId) {
-        return baseMapper.selectNodeBaseUrlByTaskId(taskId);
+    public JSONObject selectNodeBaseUrlAndStatusByTaskId(String taskId) {
+//        String infoStr = RedisUtils.getCacheObject(TRAIN_TASK_NODE_AND_STATUS_INFO+taskId);
+//        JSONObject info;
+//        if (StringUtils.isBlank(infoStr)) {
+//            info = baseMapper.selectNodeBaseUrlAndStatusByTaskId(taskId);
+//            if (info==null || CollectionUtil.isEmpty(info)) {
+//                return null;
+//            }
+//            RedisUtils.setCacheObject(TRAIN_TASK_NODE_AND_STATUS_INFO+taskId,info.toJSONString(), Duration.ofMinutes(30));
+//        }
+//        else {
+//            info = JSONObject.parseObject(infoStr,JSONObject.class);
+//        }
+//        return info;
+        return baseMapper.selectNodeBaseUrlAndStatusByTaskId(taskId);
     }
 
     @Override

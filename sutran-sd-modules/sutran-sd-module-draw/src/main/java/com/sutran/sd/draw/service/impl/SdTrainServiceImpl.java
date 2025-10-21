@@ -1947,19 +1947,22 @@ public class SdTrainServiceImpl implements SdTrainService {
         }
         final String loraNameZh = preParams.getString("loraName");
         final Long userId = preParams.getLong("userId");
+        final Integer isOpen = preParams.getInteger("isOpen");
+        final String modelTag = preParams.getString("modelTag");
+        final String modelDesc = preParams.getString("modelDesc");
 
         List<SdUserModel> modelList = new ArrayList<>();
         // 移动模型到目标目录
         if (models!=null && models.length>0) {
             for (int i = 0; i < models.length; i++) {
                 String modelName = models[i].getName();
-                String title = modelName.split("-")[0];
+                String title = modelName.split("-")[0].replace(".safetensors","");
                 File destModelFile = new File(destDir, modelName);
                 models[i].renameTo(destModelFile);
                 // 存储模型信息到数据库
                 //fileName获取模型的路径+名称
-                SdUserModel model = new SdUserModel().setId(IdUtil.getSnowflakeNextId()).setTitle(title).setModelName(modelName).setModelNameZh(loraNameZh)
-                    .setFileName(destModelFile.getAbsolutePath()).setCrtTime(new Date()).setIsOpen(1).setType(0).setPublishStatus(1).setBelongUserId(userId);
+                SdUserModel model = new SdUserModel().setId(IdUtil.getSnowflakeNextId()).setTitle(title).setTaskId(Long.parseLong(taskId)).setModelName(modelName).setModelNameZh(loraNameZh)
+                    .setFileName(destModelFile.getAbsolutePath()).setCrtTime(new Date()).setIsOpen(isOpen).setType(1).setPublishStatus(0).setBelongUserId(userId).setModelTag(modelTag).setRemark(modelDesc);
                 // 移动图片到目标目录并将图片名称修改和模型名称相同
                 if (modelImgs!=null && modelImgs.length>0) {
                     File destImgFile = new File(destDir, modelName.replace(".safetensors",modelImgs[i].getName().substring(modelImgs[i].getName().lastIndexOf("."))));

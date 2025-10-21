@@ -1,21 +1,27 @@
 package com.sutran.sd.controller.design;
 
+import com.ijpay.alipay.AliPayApiConfig;
 import com.sutran.sd.common.core.controller.BaseController;
 import com.sutran.sd.common.core.domain.PageQuery;
 import com.sutran.sd.common.core.domain.R;
 import com.sutran.sd.common.core.page.TableDataInfo;
+import com.sutran.sd.common.helper.LoginHelper;
 import com.sutran.sd.design.domain.SdPresaleProject;
 import com.sutran.sd.design.dto.PresaleOrderCreateDTO;
 import com.sutran.sd.design.dto.PresaleProjectPublishDTO;
 import com.sutran.sd.design.service.ISdPresaleProjectService;
 import com.sutran.sd.design.vo.PresaleOrderDetailVO;
 import com.sutran.sd.design.vo.PresaleOrderListVO;
+import com.sutran.sd.pay.config.AliPayConfig;
 import com.sutran.sd.pay.constants.PayNotifyServer;
+import com.sutran.sd.pay.controller.BaseAliPayApiController;
 import com.sutran.sd.pay.service.BasePayNotifyService;
 import com.sutran.sd.pay.service.AliPayService;
+import com.sutran.sd.pay.service.impl.PayOrderServiceImpl;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
@@ -34,12 +40,22 @@ import org.springframework.web.multipart.MultipartFile;
 @RestController
 @RequestMapping("/design/presale")
 @RequiredArgsConstructor
-public class PresaleController extends BaseController {
+public class PresaleController extends BaseAliPayApiController {
 
     private final ISdPresaleProjectService presaleProjectService;
     private final Map<String, BasePayNotifyService> payNotifyServiceMap;
     private final AliPayService aliPayService;
+    private final AliPayConfig aliPayConfig;
+    private final PayOrderServiceImpl payOrderService;
 
+
+    /**
+     * 获取支付宝配置：主要是为了让当前线程上下文都能加入支付宝配置
+     */
+    @Override
+    public AliPayApiConfig getApiConfig() {
+        return aliPayService.getConfig();
+    }
     /**
      * 查询预售项目列表
      */
@@ -172,7 +188,13 @@ public class PresaleController extends BaseController {
     @Operation(summary = "获取支付二维码", description = "根据订单号获取支付二维码")
     @GetMapping("/payment/qr/{orderNo}")
     public R<String> getPaymentQr(@PathVariable String orderNo) {
-        return presaleProjectService.getPaymentQr(orderNo);
+        try {
+            Long userId = LoginHelper.getUserId();
+            String qrCode = payOrderService.getPayQr(orderNo, userId);
+            return R.ok("获取支付二维码成功",qrCode);
+        } catch (Exception e) {
+            return R.fail("获取支付二维码失败: " + e.getMessage());
+        }
     }
 
     /**

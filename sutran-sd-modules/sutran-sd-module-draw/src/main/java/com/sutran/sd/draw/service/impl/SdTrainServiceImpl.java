@@ -1631,9 +1631,12 @@ public class SdTrainServiceImpl implements SdTrainService {
         if (taskNode.getIntValue("status")>4) {
             return new FluxgymTrainProgressVo().setProgress(100).setStatus("completed");
         }
+        if (StringUtils.isBlank(nodeId)) {
+            nodeId = taskNode.getString("nodeId");
+        }
         // 检查节点是否还存在
         String cacheTaskId = RedisUtils.getCacheMapValue(TRAIN_NODE_TASK_MAP, nodeId);
-        if (StringUtils.isBlank(cacheTaskId) || !cacheTaskId.equals(nodeId)) {
+        if (StringUtils.isBlank(cacheTaskId) || !cacheTaskId.equals(taskId)) {
             return new FluxgymTrainProgressVo().setProgress(100).setStatus("completed");
         }
         try{

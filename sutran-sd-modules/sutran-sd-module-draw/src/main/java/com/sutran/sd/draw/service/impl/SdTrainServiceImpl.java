@@ -2066,7 +2066,7 @@ public class SdTrainServiceImpl implements SdTrainService {
                         .setId(IdUtil.getSnowflakeNextId()).setTitle(title).setTaskId(Long.parseLong(taskId))
                         .setModelName(modelName).setModelNameZh(loraNameZh).setFileName(destModelFile.getAbsolutePath())
                         .setCrtTime(new Date()).setIsOpen(isOpen).setType(1).setPublishStatus(0).setBelongUserId(userId)
-                        .setModelTag(modelTag).setRemark(modelDesc);
+                        .setModelTag(modelTag).setRemark(modelDesc).setModelType("FLUX");
                     // 移动对应的图片文件
                     if (modelImgs != null && i < modelImgs.length) {
                         File imgFile = modelImgs[i];

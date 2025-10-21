@@ -64,7 +64,7 @@
     <select id="selectAllListByTaskId" resultMap="SdUserModelFileVoMap">
         SELECT A.*,B.url AS lora_model_url
         FROM sd_user_model_file AS A LEFT JOIN sd_user_model AS B ON B.id=A.lora_model_id
-        WHERE A.belong_user_id=#{userId} AND task_id=#{taskId}
+        WHERE A.belong_user_id=#{userId} AND A.task_id=#{taskId}
     </select>
 
     <select id="listImgUrlByTaskId" resultType="java.lang.String">

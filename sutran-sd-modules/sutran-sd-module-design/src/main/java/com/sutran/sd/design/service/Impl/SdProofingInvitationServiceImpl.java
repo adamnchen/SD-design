@@ -199,16 +199,18 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
                 log.info("发现重复作品邀约: 作品ID={}, 现有状态={}, 当前状态={}",
                     invitation.getWorkId(), existing.getStatus(), invitation.getStatus());
 
-                // 优先选择已接受的邀约
-                if (ProofingInvitationConstants.STATUS_ACCEPTED.equals(invitation.getStatus())) {
-                    // 当前邀约是已接受状态，替换现有的
+                // 优先选择已接受或已发布的邀约
+                if (ProofingInvitationConstants.STATUS_ACCEPTED.equals(invitation.getStatus()) ||
+                    ProofingInvitationConstants.STATUS_PUBLISHED.equals(invitation.getStatus())) {
+                    // 当前邀约是已接受或已发布状态，替换现有的
                     uniqueInvitations.put(key, invitation);
-                    log.info("替换为已接受邀约: 作品ID={}", invitation.getWorkId());
-                } else if (ProofingInvitationConstants.STATUS_ACCEPTED.equals(existing.getStatus())) {
-                    // 现有的邀约是已接受状态，保持现有的
-                    log.info("保持已接受邀约: 作品ID={}, 状态={}", invitation.getWorkId(), existing.getStatus());
+                    log.info("替换为已接受/已发布邀约: 作品ID={}, 状态={}", invitation.getWorkId(), invitation.getStatus());
+                } else if (ProofingInvitationConstants.STATUS_ACCEPTED.equals(existing.getStatus()) ||
+                           ProofingInvitationConstants.STATUS_PUBLISHED.equals(existing.getStatus())) {
+                    // 现有的邀约是已接受或已发布状态，保持现有的
+                    log.info("保持已接受/已发布邀约: 作品ID={}, 状态={}", invitation.getWorkId(), existing.getStatus());
                 } else {
-                    // 两个都不是已接受状态，保持现有的（按创建时间排序）
+                    // 两个都不是已接受或已发布状态，保持现有的（按创建时间排序）
                     log.info("保持现有邀约: 作品ID={}, 状态={}", invitation.getWorkId(), existing.getStatus());
                 }
             }
@@ -280,15 +282,17 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
                     // 如果已存在该作品的邀约，优先选择已接受的邀约
                     ProofingInvitationDetailVO existing = uniqueInvitations.get(key);
 
-                    // 优先选择已接受的邀约
-                    if (ProofingInvitationConstants.STATUS_ACCEPTED.equals(invitation.getStatus())) {
-                        // 当前邀约是已接受状态，替换现有的
+                    // 优先选择已接受或已发布的邀约
+                    if (ProofingInvitationConstants.STATUS_ACCEPTED.equals(invitation.getStatus()) ||
+                        ProofingInvitationConstants.STATUS_PUBLISHED.equals(invitation.getStatus())) {
+                        // 当前邀约是已接受或已发布状态，替换现有的
                         uniqueInvitations.put(key, invitation);
-                    } else if (ProofingInvitationConstants.STATUS_ACCEPTED.equals(existing.getStatus())) {
-                        // 现有的邀约是已接受状态，保持现有的
+                    } else if (ProofingInvitationConstants.STATUS_ACCEPTED.equals(existing.getStatus()) ||
+                               ProofingInvitationConstants.STATUS_PUBLISHED.equals(existing.getStatus())) {
+                        // 现有的邀约是已接受或已发布状态，保持现有的
                         // 不需要做任何操作
                     } else {
-                        // 两个都不是已接受状态，保持现有的（按创建时间排序）
+                        // 两个都不是已接受或已发布状态，保持现有的（按创建时间排序）
                         // 不需要做任何操作
                     }
                 }
@@ -321,15 +325,17 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
                     // 如果已存在该作品的邀约，优先选择已接受的邀约
                     ProofingInvitationDetailVO existing = uniqueAllInvitations.get(key);
 
-                    // 优先选择已接受的邀约
-                    if (ProofingInvitationConstants.STATUS_ACCEPTED.equals(invitation.getStatus())) {
-                        // 当前邀约是已接受状态，替换现有的
+                    // 优先选择已接受或已发布的邀约
+                    if (ProofingInvitationConstants.STATUS_ACCEPTED.equals(invitation.getStatus()) ||
+                        ProofingInvitationConstants.STATUS_PUBLISHED.equals(invitation.getStatus())) {
+                        // 当前邀约是已接受或已发布状态，替换现有的
                         uniqueAllInvitations.put(key, invitation);
-                    } else if (ProofingInvitationConstants.STATUS_ACCEPTED.equals(existing.getStatus())) {
-                        // 现有的邀约是已接受状态，保持现有的
+                    } else if (ProofingInvitationConstants.STATUS_ACCEPTED.equals(existing.getStatus()) ||
+                               ProofingInvitationConstants.STATUS_PUBLISHED.equals(existing.getStatus())) {
+                        // 现有的邀约是已接受或已发布状态，保持现有的
                         // 不需要做任何操作
                     } else {
-                        // 两个都不是已接受状态，保持现有的（按创建时间排序）
+                        // 两个都不是已接受或已发布状态，保持现有的（按创建时间排序）
                         // 不需要做任何操作
                     }
                 }
@@ -412,34 +418,45 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
             List<Integer> quantities = acceptDTO.getTieredQuantities();
             List<java.math.BigDecimal> prices = acceptDTO.getTieredPrices();
 
+            // 添加调试日志
+            log.info("阶梯价格验证 - quantities: {}, prices: {}", quantities, prices);
+
             // 验证数组长度：数量点数组长度应该等于价格数组长度
             // 每个阶梯都有对应的数量点和价格
             if (quantities.size() != prices.size()) {
                 throw new ServiceException("阶梯价格设置错误：数量点数量必须等于价格数量");
             }
 
-            // 验证数量点不能为null、0或负数
-            if (quantities.stream().anyMatch(qty -> qty == null || qty <= 0)) {
-                throw new ServiceException("阶梯数量点必须大于0");
+            // 验证数量点不能为null、0或负数（tieredQuantities是数量点数组）
+            for (int i = 0; i < quantities.size(); i++) {
+                Integer qty = quantities.get(i);
+                log.info("验证数量点[{}]: {}", i, qty);
+                if (qty == null || qty <= 0) {
+                    throw new ServiceException("阶梯数量点必须大于0，当前数量点: " + qty);
+                }
             }
 
-            // 验证价格点不能为null、0或负数
-            if (prices.stream().anyMatch(price -> price == null || price.signum() <= 0)) {
-                throw new ServiceException("阶梯价格必须大于0");
+            // 验证价格点不能为null、0或负数（tieredPrices是单价数组）
+            for (int i = 0; i < prices.size(); i++) {
+                java.math.BigDecimal price = prices.get(i);
+                log.info("验证价格[{}]: {}, signum: {}", i, price, price != null ? price.signum() : "null");
+                if (price == null || price.signum() <= 0) {
+                    throw new ServiceException("阶梯价格必须大于0，当前价格: " + price);
+                }
             }
 
             // 验证数量点必须递增（阶梯起始点递增）
-            // 注意：tieredQuantities实际上是价格数组，tieredPrices实际上是数量点数组
-            for (int i = 1; i < prices.size(); i++) {
-                if (prices.get(i).compareTo(prices.get(i - 1)) <= 0) {
+            // tieredQuantities是数量点数组，应该递增
+            for (int i = 1; i < quantities.size(); i++) {
+                if (quantities.get(i) <= quantities.get(i - 1)) {
                     throw new ServiceException("阶梯数量点必须从小到大递增");
                 }
             }
 
             // 验证价格必须递减（数量越多价格越低）
-            // 注意：tieredQuantities实际上是价格数组，tieredPrices实际上是数量点数组
-            for (int i = 1; i < quantities.size(); i++) {
-                if (quantities.get(i).compareTo(quantities.get(i - 1)) >= 0) {
+            // tieredPrices是单价数组，应该递减
+            for (int i = 1; i < prices.size(); i++) {
+                if (prices.get(i).compareTo(prices.get(i - 1)) >= 0) {
                     throw new ServiceException("阶梯价格必须从高到低递减（数量越多价格越低）");
                 }
             }
@@ -450,36 +467,26 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
         if (acceptDTO.getTieredQuantities() != null && !acceptDTO.getTieredQuantities().isEmpty() &&
             acceptDTO.getTieredPrices() != null && !acceptDTO.getTieredPrices().isEmpty()) {
             try {
-                // 正确的阶梯价格格式：注意tieredQuantities实际上是价格数组，tieredPrices实际上是数量点数组
+                // 正确的阶梯价格格式：tieredQuantities是数量点数组，tieredPrices是单价数组
                 List<java.util.Map<String, Object>> tieredPricingList = new ArrayList<>();
-                List<Integer> quantities = acceptDTO.getTieredQuantities(); // 实际上是价格数组
-                List<java.math.BigDecimal> prices = acceptDTO.getTieredPrices(); // 实际上是数量点数组
+                List<Integer> quantities = acceptDTO.getTieredQuantities(); // 数量点数组
+                List<java.math.BigDecimal> prices = acceptDTO.getTieredPrices(); // 单价数组
 
-                // 第一个阶梯：从0开始到第一个数量点-1
-                java.util.Map<String, Object> firstTier = new java.util.HashMap<>();
-                //firstTier.put("minQty", 0);
-                //firstTier.put("maxQty", prices.get(0).intValue() - 1);
-                firstTier.put("unitPrice", quantities.get(0));
-                firstTier.put("node", prices.get(0).intValue());
-                tieredPricingList.add(firstTier);
-
-                // 中间阶梯：从数量点i开始到数量点i+1-1
-                for (int i = 0; i < prices.size() - 2; i++) {
-                    java.util.Map<String, Object> tier = new java.util.HashMap<>();
-                    //tier.put("minQty", prices.get(i).intValue());
-                    //tier.put("maxQty", prices.get(i + 1).intValue() - 1);
-                    tier.put("unitPrice", quantities.get(i + 1));
-                    tier.put("node", prices.get(i+1).intValue());
-                    tieredPricingList.add(tier);
+                // 如果只有一个阶梯价格，直接添加
+                if (quantities.size() == 1) {
+                    java.util.Map<String, Object> singleTier = new java.util.HashMap<>();
+                    singleTier.put("unitPrice", prices.get(0)); // 单价
+                    singleTier.put("node", quantities.get(0)); // 数量点
+                    tieredPricingList.add(singleTier);
+                } else {
+                    // 多个阶梯价格的处理
+                    for (int i = 0; i < quantities.size(); i++) {
+                        java.util.Map<String, Object> tier = new java.util.HashMap<>();
+                        tier.put("unitPrice", prices.get(i)); // 单价
+                        tier.put("node", quantities.get(i)); // 数量点
+                        tieredPricingList.add(tier);
+                    }
                 }
-
-                // 最后一个阶梯：从最后一个数量点开始，无上限
-                java.util.Map<String, Object> lastTier = new java.util.HashMap<>();
-                //lastTier.put("minQty", prices.get(prices.size() - 1).intValue());
-                //lastTier.put("maxQty", null);
-                lastTier.put("unitPrice", quantities.get(quantities.size() - 1));
-                lastTier.put("node", prices.get(prices.size() - 1).intValue());
-                tieredPricingList.add(lastTier);
 
                 com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
                 tieredPricingJson = mapper.writeValueAsString(tieredPricingList);

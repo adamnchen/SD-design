@@ -20,6 +20,7 @@ public class ProofingInvitationConstants {
     public static final Integer STATUS_REPLYING  = 4;    //待回应
     public static final Integer STATUS_PROCESSED = 5;    // 已处理
     public static final Integer STATUS_PENDING_CONFIRMATION = 6;    // 待确认
+    public static final Integer STATUS_PUBLISHED = 7;    // 已发布
 
     /**
      * 自动取消时限常量
@@ -90,6 +91,7 @@ public class ProofingInvitationConstants {
             case 4: return "待回应";
             case 5: return "已处理";
             case 6: return "待确认";
+            case 7: return "已发布";
             default: return "未知状态";
         }
     }

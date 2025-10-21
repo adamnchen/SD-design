@@ -74,8 +74,8 @@ public class PresaleOrderPayNotifyServiceImpl extends BasePayNotifyService {
                 presaleOrder.setPayOrderId(payOrder.getId());
                 presaleOrderMapper.updateById(presaleOrder);
 
-                // 更新项目销售金额
-                updateProjectSalesAmount(presaleOrder.getProjectId(), amount);
+                // 更新项目销售金额和销售数量
+                updateProjectSalesInfo(presaleOrder.getProjectId(), amount, presaleOrder.getQuantity());
 
                 // 检查是否需要阶梯价格调整
                 checkAndAdjustTieredPricing(presaleOrder);
@@ -133,20 +133,21 @@ public class PresaleOrderPayNotifyServiceImpl extends BasePayNotifyService {
     }
 
     /**
-     * 更新项目销售金额
+     * 更新项目销售信息（金额和数量）
      */
-    private void updateProjectSalesAmount(Long projectId, BigDecimal amount) {
+    private void updateProjectSalesInfo(Long projectId, BigDecimal amount, Integer quantity) {
         try {
             SdPresaleProject project = presaleProjectMapper.selectSdPresaleProjectById(projectId);
             if (project != null) {
+                // 更新销售金额
                 BigDecimal currentAmount = project.getTotalSalesAmount() != null ? project.getTotalSalesAmount() : BigDecimal.ZERO;
-                project.setTotalSalesAmount(currentAmount.add(amount));
+                project.setTotalSalesAmount(currentAmount.add(amount));              
                 presaleProjectMapper.updateById(project);
-                log.info("[预售订单] 更新项目销售金额: 项目ID={}, 新增金额={}, 累计金额={}",
-                    projectId, amount, project.getTotalSalesAmount());
+                log.info("[预售订单] 更新项目销售信息: 项目ID={}, 新增金额={}, 新增数量={}, 累计金额={}",
+                    projectId, amount, quantity, project.getTotalSalesAmount());
             }
         } catch (Exception e) {
-            log.error("[预售订单] 更新项目销售金额失败: 项目ID={}, 金额={}", projectId, amount, e);
+            log.error("[预售订单] 更新项目销售信息失败: 项目ID={}, 金额={}, 数量={}", projectId, amount, quantity, e);
         }
     }
 

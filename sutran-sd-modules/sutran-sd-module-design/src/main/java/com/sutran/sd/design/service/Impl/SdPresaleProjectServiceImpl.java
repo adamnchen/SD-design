@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.sutran.sd.common.core.domain.PageQuery;
 import com.sutran.sd.common.core.domain.R;
+import com.sutran.sd.common.core.domain.vo.ProofingInvitationDetailVO;
 import com.sutran.sd.common.core.page.TableDataInfo;
 import com.sutran.sd.common.helper.LoginHelper;
 import com.sutran.sd.common.utils.StringUtils;
@@ -21,6 +22,7 @@ import com.sutran.sd.design.vo.PresaleOrderListVO;
 import com.sutran.sd.design.vo.PresaleProjectDetailVO;
 import com.sutran.sd.design.vo.PresaleProjectListVO;
 import com.sutran.sd.pay.service.impl.PayOrderServiceImpl;
+import com.sutran.sd.pay.service.AliPayService;
 import com.sutran.sd.system.service.ISysOssService;
 import com.sutran.sd.system.domain.vo.SysOssVo;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +32,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -48,6 +51,7 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
     private final SdPresaleProjectMapper presaleProjectMapper;
     private final SdPresaleOrderMapper presaleOrderMapper;
     private final PayOrderServiceImpl payOrderService;
+    private final AliPayService aliPayService;
     private final SdProofingInvitationMapper proofingInvitationMapper;
     private final ISysOssService ossService;
 
@@ -85,6 +89,25 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
     }
 
     @Override
+    public R<TableDataInfo<PresaleProjectListVO>> getPresaleProjectListPage(PageQuery pageQuery) {
+        log.info("获取预售项目列表（分页）");
+
+        // 使用多表联查获取预售项目列表
+        Page<SdPresaleProject> page = pageQuery.build();
+        IPage<SdPresaleProject> result = presaleProjectMapper.selectPresaleProjectListWithUserInfo(page, 1); // 销售中状态
+
+        // 转换为VO
+        List<PresaleProjectListVO> voList = result.getRecords().stream()
+                .map(this::convertToProjectListVO)
+                .collect(Collectors.toList());
+
+        TableDataInfo<PresaleProjectListVO> tableDataInfo = new TableDataInfo<>();
+        tableDataInfo.setRows(voList);
+        tableDataInfo.setTotal(result.getTotal());
+        return R.ok(tableDataInfo);
+    }
+
+    @Override
     public R<PresaleProjectDetailVO> getPresaleProjectDetail(Long id) {
         log.info("获取预售项目详情: {}", id);
 
@@ -118,6 +141,24 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
     }
 
     @Override
+    public R<TableDataInfo<PresaleProjectListVO>> getManufacturerPresaleProjectsPage(PageQuery pageQuery) {
+        log.info("获取厂家参与的预售项目列表（分页）");
+
+        Long currentUserId = LoginHelper.getUserId();
+        Page<SdPresaleProject> page = pageQuery.build();
+        IPage<SdPresaleProject> result = presaleProjectMapper.selectUserPresaleProjects(page, currentUserId, "manufacturer");
+
+        List<PresaleProjectListVO> voList = result.getRecords().stream()
+                .map(this::convertToProjectListVO)
+                .collect(Collectors.toList());
+
+        TableDataInfo<PresaleProjectListVO> tableDataInfo = new TableDataInfo<>();
+        tableDataInfo.setRows(voList);
+        tableDataInfo.setTotal(result.getTotal());
+        return R.ok(tableDataInfo);
+    }
+
+    @Override
     public R<List<PresaleProjectListVO>> getCreatorPresaleProjects() {
         log.info("获取发起人的预售项目列表");
 
@@ -130,6 +171,24 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
                 .collect(Collectors.toList());
 
         return R.ok(voList);
+    }
+
+    @Override
+    public R<TableDataInfo<PresaleProjectListVO>> getCreatorPresaleProjectsPage(PageQuery pageQuery) {
+        log.info("获取发起人的预售项目列表（分页）");
+
+        Long currentUserId = LoginHelper.getUserId();
+        Page<SdPresaleProject> page = pageQuery.build();
+        IPage<SdPresaleProject> result = presaleProjectMapper.selectUserPresaleProjects(page, currentUserId, "creator");
+
+        List<PresaleProjectListVO> voList = result.getRecords().stream()
+                .map(this::convertToProjectListVO)
+                .collect(Collectors.toList());
+
+        TableDataInfo<PresaleProjectListVO> tableDataInfo = new TableDataInfo<>();
+        tableDataInfo.setRows(voList);
+        tableDataInfo.setTotal(result.getTotal());
+        return R.ok(tableDataInfo);
     }
     @Override
     public R<List<PresaleProjectListVO>> getBuyerPresaleProjects() {
@@ -144,6 +203,24 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
                 .collect(Collectors.toList());
 
         return R.ok(voList);
+    }
+
+    @Override
+    public R<TableDataInfo<PresaleProjectListVO>> getBuyerPresaleProjectsPage(PageQuery pageQuery) {
+        log.info("获取买家购买的预售项目列表（分页）");
+
+        Long currentUserId = LoginHelper.getUserId();
+        Page<SdPresaleProject> page = pageQuery.build();
+        IPage<SdPresaleProject> result = presaleProjectMapper.selectUserPresaleProjects(page, currentUserId, "buyer");
+
+        List<PresaleProjectListVO> voList = result.getRecords().stream()
+                .map(this::convertToProjectListVO)
+                .collect(Collectors.toList());
+
+        TableDataInfo<PresaleProjectListVO> tableDataInfo = new TableDataInfo<>();
+        tableDataInfo.setRows(voList);
+        tableDataInfo.setTotal(result.getTotal());
+        return R.ok(tableDataInfo);
     }
 
     @Override
@@ -189,6 +266,31 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
 
             presaleOrderMapper.insert(order);
 
+            // 5. 创建支付订单
+            try {
+                String subject = "预售商品：" + project.getTitle();
+                String body = "购买数量：" + createDTO.getQuantity() + "件";
+                String notifyUrl = "/design/presale/payment/alipay/notify";
+                
+                // 调用支付宝服务创建支付订单
+                aliPayService.createPayOrder(
+                    LoginHelper.getUserId(),
+                    LoginHelper.getUsername(),
+                    orderNo,
+                    subject,
+                    body,
+                    totalAmount,
+                    notifyUrl
+                );
+                
+                log.info("支付订单创建成功: 订单号={}", orderNo);
+            } catch (Exception e) {
+                log.error("创建支付订单失败: 订单号={}", orderNo, e);
+                // 如果支付订单创建失败，删除预售订单
+                presaleOrderMapper.deleteById(order.getId());
+                return R.fail("创建支付订单失败: " + e.getMessage());
+            }
+
             return R.ok("订单创建成功", orderNo);
         } catch (Exception e) {
             log.error("创建预售订单失败: {}", e.getMessage(), e);
@@ -213,6 +315,34 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
                     .collect(Collectors.toList());
 
             return R.ok(voList);
+        } catch (Exception e) {
+            log.error("获取我的预售订单列表失败: {}", e.getMessage(), e);
+            return R.fail("获取订单列表失败: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public R<TableDataInfo<PresaleOrderListVO>> getMyPresaleOrdersPage(PageQuery pageQuery) {
+        log.info("获取我的预售订单列表（分页）");
+
+        try {
+            Long currentUserId = LoginHelper.getUserId();
+            Page<SdPresaleOrder> page = pageQuery.build();
+
+            LambdaQueryWrapper<SdPresaleOrder> queryWrapper = new LambdaQueryWrapper<>();
+            queryWrapper.eq(SdPresaleOrder::getUserId, currentUserId)
+                       .orderByDesc(SdPresaleOrder::getCreateTime);
+
+            IPage<SdPresaleOrder> result = presaleOrderMapper.selectPage(page, queryWrapper);
+
+            List<PresaleOrderListVO> voList = result.getRecords().stream()
+                    .map(this::convertToOrderListVO)
+                    .collect(Collectors.toList());
+
+            TableDataInfo<PresaleOrderListVO> tableDataInfo = new TableDataInfo<>();
+            tableDataInfo.setRows(voList);
+            tableDataInfo.setTotal(result.getTotal());
+            return R.ok(tableDataInfo);
         } catch (Exception e) {
             log.error("获取我的预售订单列表失败: {}", e.getMessage(), e);
             return R.fail("获取订单列表失败: " + e.getMessage());
@@ -297,6 +427,9 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
             vo.setRemainingDays(diffInMillies > 0 ? diffInMillies / (1000 * 60 * 60 * 24) : 0);
         }
 
+        // 计算阶梯价格相关信息
+        calculateTieredPricingInfo(project, vo);
+
         return vo;
     }
 
@@ -330,7 +463,7 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
             }
 
             // 2. 查询打样邀约信息，获取AI设计图
-            com.sutran.sd.common.core.domain.vo.ProofingInvitationDetailVO invitationDetail = proofingInvitationMapper.selectInvitationDetailById(publishDTO.getProofingInvitationId());
+             ProofingInvitationDetailVO invitationDetail = proofingInvitationMapper.selectInvitationDetailById(publishDTO.getProofingInvitationId());
             if (invitationDetail == null) {
                 return R.fail("打样邀约不存在");
             }
@@ -343,6 +476,10 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
             // 4. 创建预售项目，从打样邀约继承默认数据
             SdPresaleProject project = new SdPresaleProject();
 
+            // 生成项目编号
+            String projectNo = "PP" + System.currentTimeMillis();
+            project.setProjectNo(projectNo);
+
             // 标题：优先使用用户填写的，否则继承打样邀约的产品标题
             project.setTitle(StringUtils.isNotBlank(publishDTO.getTitle()) ?
                 publishDTO.getTitle() : invitationDetail.getProductTitle());
@@ -352,7 +489,17 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
                 publishDTO.getDescription() : invitationDetail.getProductDescription());
 
             project.setCoverImage(invitationDetail.getImageUrl()); // 使用AI设计图作为封面
-            project.setManufacturerUserId(invitationDetail.getInviterUserId()); // 厂家是发起人
+
+            // 设置发起人信息（当前用户）
+            project.setCreatorUserId(currentUserId);
+            project.setCreatorName(LoginHelper.getUsername());
+
+
+            // 设置厂家信息（打样邀约的发起人）
+            project.setManufacturerUserId(invitationDetail.getInviterUserId());
+            project.setManufacturerName(invitationDetail.getInviterNickName());
+            project.setManufacturerAvatar(invitationDetail.getInviterAvatar());
+
             project.setProofingInvitationId(publishDTO.getProofingInvitationId());
 
             // 基础价格：优先使用用户填写的，否则继承打样邀约的报价
@@ -435,6 +582,122 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
         return extension.endsWith(".jpg") || extension.endsWith(".jpeg") ||
                extension.endsWith(".png") || extension.endsWith(".gif") ||
                extension.endsWith(".bmp") || extension.endsWith(".webp");
+    }
+
+    /**
+     * 计算阶梯价格相关信息
+     */
+    private void calculateTieredPricingInfo(SdPresaleProject project, PresaleProjectDetailVO vo) {
+        try {
+            // 1. 解析阶梯价格配置
+            if (StringUtils.isBlank(project.getTieredPricing())) {
+                // 没有阶梯价格配置，使用基础价格
+                vo.setCurrentPrice(project.getBasePrice());
+                vo.setTieredPricingList(new ArrayList<>());
+                return;
+            }
+
+            ObjectMapper mapper = new ObjectMapper();
+            List<TieredPricingItem> tieredPricingList = mapper.readValue(project.getTieredPricing(),
+                mapper.getTypeFactory().constructCollectionType(List.class, TieredPricingItem.class));
+            
+            vo.setTieredPricingList(tieredPricingList);
+
+            // 2. 查询当前销售数量（已支付订单）
+            LambdaQueryWrapper<SdPresaleOrder> queryWrapper = new LambdaQueryWrapper<>();
+            queryWrapper.eq(SdPresaleOrder::getProjectId, project.getId())
+                       .eq(SdPresaleOrder::getOrderStatus, 2); // 已支付状态
+
+            List<SdPresaleOrder> paidOrders = presaleOrderMapper.selectList(queryWrapper);
+            int totalQuantity = paidOrders.stream()
+                    .mapToInt(SdPresaleOrder::getQuantity)
+                    .sum();
+
+            // 3. 计算当前价格
+            BigDecimal currentPrice = calculateCurrentPrice(totalQuantity, tieredPricingList);
+            vo.setCurrentPrice(currentPrice);
+
+            // 4. 计算下一个价格阈值和价格
+            calculateNextPriceInfo(totalQuantity, tieredPricingList, vo);
+
+        } catch (Exception e) {
+            log.error("[预售项目] 计算阶梯价格信息失败: 项目ID={}", project.getId(), e);
+            // 出错时使用基础价格
+            vo.setCurrentPrice(project.getBasePrice());
+            vo.setTieredPricingList(new ArrayList<>());
+        }
+    }
+
+    /**
+     * 计算当前价格
+     */
+    private BigDecimal calculateCurrentPrice(int totalQuantity, List<TieredPricingItem> tieredPricingList) {
+        if (tieredPricingList.isEmpty()) {
+            return BigDecimal.ZERO;
+        }
+
+        // 按数量节点排序
+        tieredPricingList.sort((a, b) -> Integer.compare(a.getNode(), b.getNode()));
+
+        // 找到对应的价格区间
+        for (int i = tieredPricingList.size() - 1; i >= 0; i--) {
+            TieredPricingItem tier = tieredPricingList.get(i);
+            if (totalQuantity >= tier.getNode()) {
+                return tier.getUnitPrice();
+            }
+        }
+
+        // 如果数量小于第一个节点，返回第一个价格
+        return tieredPricingList.get(0).getUnitPrice();
+    }
+
+    /**
+     * 计算下一个价格信息
+     */
+    private void calculateNextPriceInfo(int totalQuantity, List<TieredPricingItem> tieredPricingList, PresaleProjectDetailVO vo) {
+        if (tieredPricingList.isEmpty()) {
+            return;
+        }
+
+        // 按数量节点排序
+        tieredPricingList.sort((a, b) -> Integer.compare(a.getNode(), b.getNode()));
+
+        // 找到下一个价格阈值
+        for (TieredPricingItem tier : tieredPricingList) {
+            if (totalQuantity < tier.getNode()) {
+                vo.setNextThreshold(tier.getNode());
+                vo.setNextPrice(tier.getUnitPrice());
+                return;
+            }
+        }
+
+        // 如果已经达到最高阶梯，没有下一个价格
+        vo.setNextThreshold(null);
+        vo.setNextPrice(null);
+    }
+
+    /**
+     * 阶梯价格配置项
+     */
+    public static class TieredPricingItem {
+        private BigDecimal unitPrice;
+        private Integer node;
+
+        public BigDecimal getUnitPrice() {
+            return unitPrice;
+        }
+
+        public void setUnitPrice(BigDecimal unitPrice) {
+            this.unitPrice = unitPrice;
+        }
+
+        public Integer getNode() {
+            return node;
+        }
+
+        public void setNode(Integer node) {
+            this.node = node;
+        }
     }
 
     /**

@@ -2,11 +2,7 @@ package com.sutran.sd.design.schedule;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.sutran.sd.design.domain.SdCrowdfundingProject;
-import com.sutran.sd.design.domain.SdCrowdfundingSupport;
 import com.sutran.sd.design.mapper.SdCrowdfundingProjectMapper;
-import com.sutran.sd.design.mapper.SdCrowdfundingSupportMapper;
-import com.sutran.sd.design.config.CrowdfundingConfig;
-import com.sutran.sd.design.service.CrowdfundingRedisService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -27,9 +23,6 @@ import java.util.List;
 public class CrowdfundingScheduleTask {
 
     private final SdCrowdfundingProjectMapper crowdfundingProjectMapper;
-    private final SdCrowdfundingSupportMapper supportMapper;
-    private final CrowdfundingConfig crowdfundingConfig;
-    private final CrowdfundingRedisService crowdfundingRedisService;
 
     /**
      * 检查众筹项目状态
@@ -42,50 +35,14 @@ public class CrowdfundingScheduleTask {
             // 1. 检查过期的众筹项目
             checkExpiredProjects();
             
-            // 2. 清理超时未支付的订单
-            checkTimeoutOrders();
+            // 2. 检查抽奖状态
+            checkDrawStatus();
             
         } catch (Exception e) {
             log.error("检查众筹项目状态异常", e);
         }
     }
 
-    /**
-     * 检查超时未支付的订单并回退金额
-     */
-    private void checkTimeoutOrders() {
-        try {
-            // 查询创建超过配置时间但未支付的支持记录
-            int timeoutMinutes = crowdfundingConfig.getOrderTimeoutMinutes();
-            Date timeoutTime = new Date(System.currentTimeMillis() - timeoutMinutes * 60 * 1000);
-            
-            LambdaQueryWrapper<SdCrowdfundingSupport> queryWrapper = new LambdaQueryWrapper<>();
-            queryWrapper.isNull(SdCrowdfundingSupport::getOrderNo) // 未支付
-                       .lt(SdCrowdfundingSupport::getCreateTime, timeoutTime); // 创建时间超过配置时间
-            
-            List<SdCrowdfundingSupport> timeoutSupports = supportMapper.selectList(queryWrapper);
-            
-            for (SdCrowdfundingSupport support : timeoutSupports) {
-                try {
-                    // 1. 回退Redis金额
-                    boolean refunded = crowdfundingRedisService.refundAmount(support.getProjectId(), support.getSupportAmount());
-                    if (refunded) {
-                        log.info("回退Redis金额成功: 项目ID={}, 金额={}", support.getProjectId(), support.getSupportAmount());
-                    } else {
-                        log.error("回退Redis金额失败: 项目ID={}, 金额={}", support.getProjectId(), support.getSupportAmount());
-                    }
-                    
-                    // 2. 删除超时的支持记录
-                    supportMapper.deleteById(support.getId());
-                    log.info("清理超时订单: 支持记录ID={}, 项目ID={}", support.getId(), support.getProjectId());
-                } catch (Exception e) {
-                    log.error("清理超时订单失败: 支持记录ID={}", support.getId(), e);
-                }
-            }
-        } catch (Exception e) {
-            log.error("检查超时订单异常", e);
-        }
-    }
 
     /**
      * 检查过期的众筹项目
@@ -119,6 +76,34 @@ public class CrowdfundingScheduleTask {
             }
         } catch (Exception e) {
             log.error("检查过期项目异常", e);
+        }
+    }
+
+    /**
+     * 检查抽奖状态
+     */
+    private void checkDrawStatus() {
+        try {
+            // 查询众筹成功但抽奖未开始的项目
+            LambdaQueryWrapper<SdCrowdfundingProject> queryWrapper = new LambdaQueryWrapper<>();
+            queryWrapper.eq(SdCrowdfundingProject::getStatus, 2) // 众筹成功
+                       .eq(SdCrowdfundingProject::getDrawStatus, 0); // 抽奖未开始
+            
+            List<SdCrowdfundingProject> projects = crowdfundingProjectMapper.selectList(queryWrapper);
+            
+            for (SdCrowdfundingProject project : projects) {
+                try {
+                    // 自动开始抽奖
+                    project.setDrawStatus(1);
+                    project.setDrawTime(new Date());
+                    crowdfundingProjectMapper.updateSdCrowdfundingProject(project);
+                    log.info("自动开始抽奖: 项目ID={}, 项目名称={}", project.getId(), project.getTitle());
+                } catch (Exception e) {
+                    log.error("自动开始抽奖失败: 项目ID={}", project.getId(), e);
+                }
+            }
+        } catch (Exception e) {
+            log.error("检查抽奖状态异常", e);
         }
     }
 

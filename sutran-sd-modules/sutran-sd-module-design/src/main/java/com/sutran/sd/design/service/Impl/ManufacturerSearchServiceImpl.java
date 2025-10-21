@@ -1,4 +1,4 @@
-package com.sutran.sd.design.service.Impl;
+package com.sutran.sd.design.service.impl;
 
 import com.meilisearch.sdk.Client;
 import com.meilisearch.sdk.Index;

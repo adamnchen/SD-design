@@ -283,7 +283,7 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
                 SdDrawNode node = sdDrawNodeService.selectDrawNodeAndLockNodeTask(LoadBalanceStrategy.WEIGHTED_LEAST_LOAD, taskId);
                 if (node == null) {
                     // 没有可用节点,重新放回队列
-                    log.warn("[ComfyUI绘图MQ]>>>>>>>>>没有可用节点,任务ID: {}", taskId);
+                    log.info("[ComfyUI绘图MQ]>>>>>>>>>没有可用节点,任务ID: {}", taskId);
                     try {
                         channel.basicNack(deliveryTag, false, true);
                     }

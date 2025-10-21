@@ -26,6 +26,12 @@ public interface SdUserModelService {
     void batchInsert(List<SdUserModel> models);
 
     /**
+     * 批量添加模型
+     * @param models    模型列表
+     */
+    void batchAdd(List<SdUserModel> models);
+
+    /**
      * 分页查询模型列表
      * @param dto       查询参数实体
      * @param userId    用户ID

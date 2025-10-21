@@ -1,4 +1,4 @@
-package com.sutran.sd.design.service.Impl;
+package com.sutran.sd.design.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.sutran.sd.common.core.domain.entity.SysUser;
@@ -90,13 +90,13 @@ public class FuzzySearchServiceImpl implements IFuzzySearchService {
         List<ManufacturerSearchResultVO> results = new ArrayList<>();
         for (SysUser manufacturer : manufacturers) {
             List<SysUserTag> userTags = userTagsMap.getOrDefault(manufacturer.getUserId(), Collections.emptyList());
-            log.debug("厂商 {} 的标签：{}", manufacturer.getNickName(), 
+            log.debug("厂商 {} 的标签：{}", manufacturer.getNickName(),
                 userTags.stream().map(SysUserTag::getTagName).collect(Collectors.joining(", ")));
-            
+
             ManufacturerSearchResultVO result = calculateTagMatch(manufacturer, userTags, tags);
 
             if (result.getMatchScore() > 0) {
-                log.info("厂商 {} 匹配成功，得分：{}，匹配标签：{}", 
+                log.info("厂商 {} 匹配成功，得分：{}，匹配标签：{}",
                     manufacturer.getNickName(), result.getMatchScore(), result.getMatchedTags());
                 results.add(result);
             }

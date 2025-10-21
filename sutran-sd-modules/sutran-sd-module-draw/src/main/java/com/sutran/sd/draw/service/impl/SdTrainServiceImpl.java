@@ -2054,7 +2054,9 @@ public class SdTrainServiceImpl implements SdTrainService {
             for (int i = 0; i < models.length; i++) {
                 File modelFile = models[i];
                 String modelName = modelFile.getName();
-                String title = modelName.split("-")[0].replace(".safetensors", "");
+                String[] modelNameList = modelName.split("-");
+                String title = modelNameList[0].replace(".safetensors", "");
+                String prefix = modelNameList.length > 1 ? modelNameList[1].replace(".safetensors", "") : "";
                 File destModelFile = new File(destDir, modelName);
                 try {
                     // 使用 Files.move 替代 renameTo
@@ -2064,7 +2066,7 @@ public class SdTrainServiceImpl implements SdTrainService {
                     log.info("[模型训练完成][模型移动]>>>>>>>>>任务ID[{}],成功移动模型文件: {} -> {}", taskId, sourcePath, targetPath);
                     SdUserModel model = new SdUserModel()
                         .setId(IdUtil.getSnowflakeNextId()).setTitle(title).setTaskId(Long.parseLong(taskId))
-                        .setModelName(modelName).setModelNameZh(loraNameZh).setFileName(destModelFile.getAbsolutePath())
+                        .setModelName(modelName).setModelNameZh(loraNameZh+prefix).setFileName(destModelFile.getAbsolutePath())
                         .setCrtTime(new Date()).setIsOpen(isOpen).setType(1).setPublishStatus(0).setBelongUserId(userId)
                         .setModelTag(modelTag).setRemark(modelDesc).setModelType("FLUX");
                     // 移动对应的图片文件

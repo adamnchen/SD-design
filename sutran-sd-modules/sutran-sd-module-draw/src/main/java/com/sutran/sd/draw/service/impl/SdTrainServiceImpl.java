@@ -2089,6 +2089,8 @@ public class SdTrainServiceImpl implements SdTrainService {
             if (CollectionUtil.isNotEmpty(modelList)) {
                 sdUserModelService.batchAdd(modelList);
             }
+            // 删除模型目录
+            FileUtils.deleteFile(modelDirFile);
         }
         catch (Exception e) {
             log.error("[模型训练完成][模型移动]>>>>>>>>>任务ID[{}],处理模型文件时发生异常: ", taskId, e);

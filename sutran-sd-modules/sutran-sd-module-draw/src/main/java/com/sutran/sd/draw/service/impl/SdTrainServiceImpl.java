@@ -1631,6 +1631,11 @@ public class SdTrainServiceImpl implements SdTrainService {
         if (taskNode.getIntValue("status")>4) {
             return new FluxgymTrainProgressVo().setProgress(100).setStatus("completed");
         }
+        // 检查节点是否还存在
+        String cacheTaskId = RedisUtils.getCacheMapValue(TRAIN_NODE_TASK_MAP, nodeId);
+        if (StringUtils.isBlank(cacheTaskId) || !cacheTaskId.equals(nodeId)) {
+            return new FluxgymTrainProgressVo().setProgress(100).setStatus("completed");
+        }
         try{
             JSONObject preParams = JSONObject.parseObject(taskNode.getString("preParams"));
             HttpRequest request = HttpRequest.get(taskNode.getString("baseUrl") + "/api/task/status/"+taskId).timeout(3000);
@@ -1667,7 +1672,7 @@ public class SdTrainServiceImpl implements SdTrainService {
             else if (vo!=null && vo.getSuccess() && "completed".equals(vo.getStatus()) && vo.getProgress()==100 && taskNode.getIntValue("status")!=4) {
                 if (StringUtils.isBlank(nodeId)) {
                     SdTrainTask task = sdTrainTaskService.selectDetailById(taskId);
-                    if (task==null) {
+                    if (task==null || task.getNewStatus()>4) {
                         return vo;
                     }
                     nodeId = task.getNodeId().toString();

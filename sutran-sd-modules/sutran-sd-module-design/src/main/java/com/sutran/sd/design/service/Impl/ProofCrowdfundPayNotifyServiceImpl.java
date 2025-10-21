@@ -1,4 +1,4 @@
-package com.sutran.sd.design.service.impl;
+package com.sutran.sd.design.service.Impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.sutran.sd.design.config.CrowdfundingConfig;
@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.Date;
 import java.util.Collections;
 import java.util.List;
 
@@ -53,7 +54,8 @@ public class ProofCrowdfundPayNotifyServiceImpl extends BasePayNotifyService {
         BigDecimal amount = new BigDecimal(totalAmount);
 
         // 查询项目信息
-        SdCrowdfundingProject project = crowdfundingProjectMapper.selectSdCrowdfundingProjectById(projectId);
+//        SdCrowdfundingProject project = crowdfundingProjectMapper.selectSdCrowdfundingProjectById(projectId);
+        SdCrowdfundingProject project = crowdfundingProjectMapper.selectById(projectId);
         if (project != null) {
             // 更新项目金额和支持人数
             project.setCurrentAmount(project.getCurrentAmount().add(amount));
@@ -64,6 +66,7 @@ public class ProofCrowdfundPayNotifyServiceImpl extends BasePayNotifyService {
                 // 众筹成功，自动开始抽奖
                 project.setStatus(2);
                 project.setDrawStatus(1);
+                project.setDrawTime(new Date()); // 记录抽奖开始时间
                 log.info("众筹成功，自动开始抽奖: 项目ID={}, 项目名称={}", project.getId(), project.getTitle());
 
                 // 更新项目状态
@@ -99,14 +102,19 @@ public class ProofCrowdfundPayNotifyServiceImpl extends BasePayNotifyService {
     @Override
     public void dealPayTimeoutData(PayTimeoutStatusVo vo) {
         try {
+
+
+            handleRollback(vo.getOutTradeNo(),vo.getProjectid(),vo.getAmount());
             // 支付成功 或 完成
             if (AliPayTradeStatus.TRADE_SUCCESS.name().equals(vo.getTradeStatus()) || AliPayTradeStatus.TRADE_FINISHED.name().equals(vo.getTradeStatus())) {
                 return;
+
             }
-            handleRollback(vo.getOutTradeNo(),vo.getProjectid(),vo.getAmount());
+
         }
         catch (Exception e) {
             log.error("[众筹打样支付超时]>>>>>>>>>超时业务逻辑处理异常,异常信息: ", e);
+
         }
     }
 
@@ -179,7 +187,7 @@ public class ProofCrowdfundPayNotifyServiceImpl extends BasePayNotifyService {
 
             // 更新未中奖者状态
             for (SdCrowdfundingSupport loser : supports.subList(winnerCount, supports.size())) {
-                loser.setDrawStatus(2); // 已参与抽奖
+                loser.setDrawStatus(3); // 未中奖
                 loser.setIsWinner(0); // 不是中奖者
                 supportMapper.updateById(loser);
             }

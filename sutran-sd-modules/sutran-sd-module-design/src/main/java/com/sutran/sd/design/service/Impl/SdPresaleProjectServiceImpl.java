@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.sutran.sd.common.core.domain.PageQuery;
 import com.sutran.sd.common.core.domain.R;
+import com.sutran.sd.common.core.domain.vo.ProofingInvitationDetailVO;
 import com.sutran.sd.common.core.page.TableDataInfo;
 import com.sutran.sd.common.helper.LoginHelper;
 import com.sutran.sd.common.utils.StringUtils;
@@ -85,6 +86,25 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
     }
 
     @Override
+    public R<TableDataInfo<PresaleProjectListVO>> getPresaleProjectListPage(PageQuery pageQuery) {
+        log.info("获取预售项目列表（分页）");
+
+        // 使用多表联查获取预售项目列表
+        Page<SdPresaleProject> page = pageQuery.build();
+        IPage<SdPresaleProject> result = presaleProjectMapper.selectPresaleProjectListWithUserInfo(page, 1); // 销售中状态
+
+        // 转换为VO
+        List<PresaleProjectListVO> voList = result.getRecords().stream()
+                .map(this::convertToProjectListVO)
+                .collect(Collectors.toList());
+
+        TableDataInfo<PresaleProjectListVO> tableDataInfo = new TableDataInfo<>();
+        tableDataInfo.setRows(voList);
+        tableDataInfo.setTotal(result.getTotal());
+        return R.ok(tableDataInfo);
+    }
+
+    @Override
     public R<PresaleProjectDetailVO> getPresaleProjectDetail(Long id) {
         log.info("获取预售项目详情: {}", id);
 
@@ -118,6 +138,24 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
     }
 
     @Override
+    public R<TableDataInfo<PresaleProjectListVO>> getManufacturerPresaleProjectsPage(PageQuery pageQuery) {
+        log.info("获取厂家参与的预售项目列表（分页）");
+
+        Long currentUserId = LoginHelper.getUserId();
+        Page<SdPresaleProject> page = pageQuery.build();
+        IPage<SdPresaleProject> result = presaleProjectMapper.selectUserPresaleProjects(page, currentUserId, "manufacturer");
+
+        List<PresaleProjectListVO> voList = result.getRecords().stream()
+                .map(this::convertToProjectListVO)
+                .collect(Collectors.toList());
+
+        TableDataInfo<PresaleProjectListVO> tableDataInfo = new TableDataInfo<>();
+        tableDataInfo.setRows(voList);
+        tableDataInfo.setTotal(result.getTotal());
+        return R.ok(tableDataInfo);
+    }
+
+    @Override
     public R<List<PresaleProjectListVO>> getCreatorPresaleProjects() {
         log.info("获取发起人的预售项目列表");
 
@@ -130,6 +168,24 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
                 .collect(Collectors.toList());
 
         return R.ok(voList);
+    }
+
+    @Override
+    public R<TableDataInfo<PresaleProjectListVO>> getCreatorPresaleProjectsPage(PageQuery pageQuery) {
+        log.info("获取发起人的预售项目列表（分页）");
+
+        Long currentUserId = LoginHelper.getUserId();
+        Page<SdPresaleProject> page = pageQuery.build();
+        IPage<SdPresaleProject> result = presaleProjectMapper.selectUserPresaleProjects(page, currentUserId, "creator");
+
+        List<PresaleProjectListVO> voList = result.getRecords().stream()
+                .map(this::convertToProjectListVO)
+                .collect(Collectors.toList());
+
+        TableDataInfo<PresaleProjectListVO> tableDataInfo = new TableDataInfo<>();
+        tableDataInfo.setRows(voList);
+        tableDataInfo.setTotal(result.getTotal());
+        return R.ok(tableDataInfo);
     }
     @Override
     public R<List<PresaleProjectListVO>> getBuyerPresaleProjects() {
@@ -144,6 +200,24 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
                 .collect(Collectors.toList());
 
         return R.ok(voList);
+    }
+
+    @Override
+    public R<TableDataInfo<PresaleProjectListVO>> getBuyerPresaleProjectsPage(PageQuery pageQuery) {
+        log.info("获取买家购买的预售项目列表（分页）");
+
+        Long currentUserId = LoginHelper.getUserId();
+        Page<SdPresaleProject> page = pageQuery.build();
+        IPage<SdPresaleProject> result = presaleProjectMapper.selectUserPresaleProjects(page, currentUserId, "buyer");
+
+        List<PresaleProjectListVO> voList = result.getRecords().stream()
+                .map(this::convertToProjectListVO)
+                .collect(Collectors.toList());
+
+        TableDataInfo<PresaleProjectListVO> tableDataInfo = new TableDataInfo<>();
+        tableDataInfo.setRows(voList);
+        tableDataInfo.setTotal(result.getTotal());
+        return R.ok(tableDataInfo);
     }
 
     @Override
@@ -213,6 +287,34 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
                     .collect(Collectors.toList());
 
             return R.ok(voList);
+        } catch (Exception e) {
+            log.error("获取我的预售订单列表失败: {}", e.getMessage(), e);
+            return R.fail("获取订单列表失败: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public R<TableDataInfo<PresaleOrderListVO>> getMyPresaleOrdersPage(PageQuery pageQuery) {
+        log.info("获取我的预售订单列表（分页）");
+
+        try {
+            Long currentUserId = LoginHelper.getUserId();
+            Page<SdPresaleOrder> page = pageQuery.build();
+
+            LambdaQueryWrapper<SdPresaleOrder> queryWrapper = new LambdaQueryWrapper<>();
+            queryWrapper.eq(SdPresaleOrder::getUserId, currentUserId)
+                       .orderByDesc(SdPresaleOrder::getCreateTime);
+
+            IPage<SdPresaleOrder> result = presaleOrderMapper.selectPage(page, queryWrapper);
+
+            List<PresaleOrderListVO> voList = result.getRecords().stream()
+                    .map(this::convertToOrderListVO)
+                    .collect(Collectors.toList());
+
+            TableDataInfo<PresaleOrderListVO> tableDataInfo = new TableDataInfo<>();
+            tableDataInfo.setRows(voList);
+            tableDataInfo.setTotal(result.getTotal());
+            return R.ok(tableDataInfo);
         } catch (Exception e) {
             log.error("获取我的预售订单列表失败: {}", e.getMessage(), e);
             return R.fail("获取订单列表失败: " + e.getMessage());
@@ -330,7 +432,7 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
             }
 
             // 2. 查询打样邀约信息，获取AI设计图
-            com.sutran.sd.common.core.domain.vo.ProofingInvitationDetailVO invitationDetail = proofingInvitationMapper.selectInvitationDetailById(publishDTO.getProofingInvitationId());
+             ProofingInvitationDetailVO invitationDetail = proofingInvitationMapper.selectInvitationDetailById(publishDTO.getProofingInvitationId());
             if (invitationDetail == null) {
                 return R.fail("打样邀约不存在");
             }
@@ -343,6 +445,10 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
             // 4. 创建预售项目，从打样邀约继承默认数据
             SdPresaleProject project = new SdPresaleProject();
 
+            // 生成项目编号
+            String projectNo = "PP" + System.currentTimeMillis();
+            project.setProjectNo(projectNo);
+
             // 标题：优先使用用户填写的，否则继承打样邀约的产品标题
             project.setTitle(StringUtils.isNotBlank(publishDTO.getTitle()) ?
                 publishDTO.getTitle() : invitationDetail.getProductTitle());
@@ -352,7 +458,17 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
                 publishDTO.getDescription() : invitationDetail.getProductDescription());
 
             project.setCoverImage(invitationDetail.getImageUrl()); // 使用AI设计图作为封面
-            project.setManufacturerUserId(invitationDetail.getInviterUserId()); // 厂家是发起人
+
+            // 设置发起人信息（当前用户）
+            project.setCreatorUserId(currentUserId);
+            project.setCreatorName(LoginHelper.getUsername());
+
+
+            // 设置厂家信息（打样邀约的发起人）
+            project.setManufacturerUserId(invitationDetail.getInviterUserId());
+            project.setManufacturerName(invitationDetail.getInviterNickName());
+            project.setManufacturerAvatar(invitationDetail.getInviterAvatar());
+
             project.setProofingInvitationId(publishDTO.getProofingInvitationId());
 
             // 基础价格：优先使用用户填写的，否则继承打样邀约的报价
@@ -444,7 +560,7 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
         if (project == null || project.getValidityDays() == null || project.getCreateTime() == null) {
             return false;
         }
-        
+
         // 计算过期时间：创建时间 + 有效期天数
         long expireTime = project.getCreateTime().getTime() + (project.getValidityDays() * 24L * 60L * 60L * 1000L);
         return System.currentTimeMillis() > expireTime;

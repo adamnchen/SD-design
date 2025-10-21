@@ -68,12 +68,30 @@ public class PresaleController extends BaseController {
     }
 
     /**
+     * 获取预售项目列表（分页）
+     */
+    @Operation(summary = "获取预售项目列表（分页）", description = "分页获取所有销售中的预售项目列表")
+    @GetMapping("/projects/page")
+    public R<TableDataInfo<com.sutran.sd.design.vo.PresaleProjectListVO>> getProjectsPage(PageQuery pageQuery) {
+        return presaleProjectService.getPresaleProjectListPage(pageQuery);
+    }
+
+    /**
      * 获取厂家参与的预售项目列表
      */
     @Operation(summary = "获取厂家预售项目", description = "获取当前厂家参与的预售项目列表")
     @GetMapping("/manufacturer/projects")
     public R<List<com.sutran.sd.design.vo.PresaleProjectListVO>> getManufacturerProjects() {
         return presaleProjectService.getManufacturerPresaleProjects();
+    }
+
+    /**
+     * 获取厂家参与的预售项目列表（分页）
+     */
+    @Operation(summary = "获取厂家预售项目（分页）", description = "分页获取当前厂家参与的预售项目列表")
+    @GetMapping("/manufacturer/projects/page")
+    public R<TableDataInfo<com.sutran.sd.design.vo.PresaleProjectListVO>> getManufacturerProjectsPage(PageQuery pageQuery) {
+        return presaleProjectService.getManufacturerPresaleProjectsPage(pageQuery);
     }
 
     /**
@@ -86,12 +104,30 @@ public class PresaleController extends BaseController {
     }
 
     /**
+     * 获取发起人的预售项目列表（分页）
+     */
+    @Operation(summary = "获取发起人预售项目（分页）", description = "分页获取当前发起人的预售项目列表")
+    @GetMapping("/creator/projects/initiate/page")
+    public R<TableDataInfo<com.sutran.sd.design.vo.PresaleProjectListVO>> getCreatorProjectsPage(PageQuery pageQuery) {
+        return presaleProjectService.getCreatorPresaleProjectsPage(pageQuery);
+    }
+
+    /**
      * 获取我购买的预售项目列表
      */
     @Operation(summary = "获取我购买的预售项目", description = "获取我购买的预售项目列表")
     @GetMapping("/creator/projects/purchase")
     public R<List<com.sutran.sd.design.vo.PresaleProjectListVO>> getBuyerProjects() {
         return presaleProjectService.getBuyerPresaleProjects();
+    }
+
+    /**
+     * 获取我购买的预售项目列表（分页）
+     */
+    @Operation(summary = "获取我购买的预售项目（分页）", description = "分页获取我购买的预售项目列表")
+    @GetMapping("/creator/projects/purchase/page")
+    public R<TableDataInfo<com.sutran.sd.design.vo.PresaleProjectListVO>> getBuyerProjectsPage(PageQuery pageQuery) {
+        return presaleProjectService.getBuyerPresaleProjectsPage(pageQuery);
     }
 
     /**
@@ -110,6 +146,15 @@ public class PresaleController extends BaseController {
     @GetMapping("/orders")
     public R<List<PresaleOrderListVO>> getMyOrders() {
         return presaleProjectService.getMyPresaleOrders();
+    }
+
+    /**
+     * 获取我的订单列表（分页）
+     */
+    @Operation(summary = "获取我的订单列表（分页）", description = "分页获取当前用户的预售订单列表")
+    @GetMapping("/orders/page")
+    public R<TableDataInfo<PresaleOrderListVO>> getMyOrdersPage(PageQuery pageQuery) {
+        return presaleProjectService.getMyPresaleOrdersPage(pageQuery);
     }
 
     /**

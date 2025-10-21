@@ -54,6 +54,14 @@ public interface ISdPresaleProjectService {
     R<List<PresaleProjectListVO>> getPresaleProjectList();
 
     /**
+     * 获取预售项目列表（分页）
+     *
+     * @param pageQuery 分页查询
+     * @return 预售项目分页数据
+     */
+    R<TableDataInfo<PresaleProjectListVO>> getPresaleProjectListPage(PageQuery pageQuery);
+
+    /**
      * 获取预售项目详情
      *
      * @param id 项目ID
@@ -69,15 +77,44 @@ public interface ISdPresaleProjectService {
     R<List<PresaleProjectListVO>> getManufacturerPresaleProjects();
 
     /**
+     * 获取厂家参与的预售项目列表（分页）
+     *
+     * @param pageQuery 分页查询
+     * @return 厂家参与的预售项目分页数据
+     */
+    R<TableDataInfo<PresaleProjectListVO>> getManufacturerPresaleProjectsPage(PageQuery pageQuery);
+
+    /**
      * 获取发起人的预售项目列表
      *
      * @return 发起人的预售项目列表
      */
     R<List<PresaleProjectListVO>> getCreatorPresaleProjects();
 
+    /**
+     * 获取发起人的预售项目列表（分页）
+     *
+     * @param pageQuery 分页查询
+     * @return 发起人的预售项目分页数据
+     */
+    R<TableDataInfo<PresaleProjectListVO>> getCreatorPresaleProjectsPage(PageQuery pageQuery);
 
 
+
+    /**
+     * 获取买家购买的预售项目列表
+     *
+     * @return 买家购买的预售项目列表
+     */
     R<List<PresaleProjectListVO>> getBuyerPresaleProjects();
+
+    /**
+     * 获取买家购买的预售项目列表（分页）
+     *
+     * @param pageQuery 分页查询
+     * @return 买家购买的预售项目分页数据
+     */
+    R<TableDataInfo<PresaleProjectListVO>> getBuyerPresaleProjectsPage(PageQuery pageQuery);
 
     /**
      * 创建预售订单
@@ -93,6 +130,14 @@ public interface ISdPresaleProjectService {
      * @return 订单列表
      */
     R<List<PresaleOrderListVO>> getMyPresaleOrders();
+
+    /**
+     * 获取我的预售订单列表（分页）
+     *
+     * @param pageQuery 分页查询
+     * @return 订单分页数据
+     */
+    R<TableDataInfo<PresaleOrderListVO>> getMyPresaleOrdersPage(PageQuery pageQuery);
 
     /**
      * 获取预售订单详情

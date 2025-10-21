@@ -381,11 +381,21 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
     public String createSupportOrder(CrowdfundingSupportDTO supportDTO) {
         String orderNo = null;
         try {
-            // 1. 创建订单号
+            // 1. 检查用户是否已经参与过该众筹项目
+            LambdaQueryWrapper<SdCrowdfundingSupport> queryWrapper = new LambdaQueryWrapper<>();
+            queryWrapper.eq(SdCrowdfundingSupport::getProjectId, supportDTO.getProjectId())
+                       .eq(SdCrowdfundingSupport::getUserId, supportDTO.getUserId());
+            
+            SdCrowdfundingSupport existingSupport = supportMapper.selectOne(queryWrapper);
+            if (existingSupport != null) {
+                throw new RuntimeException("您已经参与过该众筹项目，每个用户只能参与一次打样众筹");
+            }
+            
+            // 2. 创建订单号
             orderNo = OrderNumUtils.getOrderNum(new Date());
             log.info("创建众筹支持订单: 订单号={}, 项目ID={}, 金额={}", orderNo, supportDTO.getProjectId(), supportDTO.getSupportAmount());
 
-            // 2. 落库参与者数据（设置订单号）
+            // 3. 落库参与者数据（设置订单号）
             SdCrowdfundingSupport support = new SdCrowdfundingSupport();
             support.setProjectId(supportDTO.getProjectId());
             support.setUserId(supportDTO.getUserId());
@@ -399,18 +409,18 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
             supportMapper.insert(support);
             log.info("参与者数据落库成功: 订单号={}", orderNo);
 
-            // 3. 扣除订单金额（Redis）
+            // 4. 扣除订单金额（Redis）
             boolean deducted = crowdfundingRedisService.tryDeductAmount(supportDTO.getProjectId(), supportDTO.getSupportAmount());
             if (!deducted) {
                 throw new RuntimeException("众筹金额不足，无法创建订单");
             }
             log.info("Redis金额扣除成功: 订单号={}, 金额={}", orderNo, supportDTO.getSupportAmount());
 
-            // 4. 投递到MQ
+            // 5. 投递到MQ
             crowdfundingMqService.sendPaymentOrderMessage(orderNo, support);
             log.info("MQ消息投递成功: 订单号={}", orderNo);
 
-            // 5. 返回订单号
+            // 6. 返回订单号
             return orderNo;
 
         } catch (Exception e) {

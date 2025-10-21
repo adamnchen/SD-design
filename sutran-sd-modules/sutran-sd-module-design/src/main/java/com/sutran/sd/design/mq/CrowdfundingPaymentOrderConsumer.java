@@ -1,5 +1,6 @@
 package com.sutran.sd.design.mq;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rabbitmq.client.Channel;
 import com.sutran.sd.design.service.CrowdfundingMqService;
 import com.sutran.sd.pay.service.AliPayService;
@@ -46,7 +47,7 @@ public class CrowdfundingPaymentOrderConsumer {
             log.info("接收到众筹支付订单消息: {}", messageBody);
 
             // 使用Jackson反序列化
-            com.fasterxml.jackson.databind.ObjectMapper objectMapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            ObjectMapper objectMapper = new ObjectMapper();
             CrowdfundingPaymentOrderMessage message = objectMapper.readValue(messageBody, CrowdfundingPaymentOrderMessage.class);
 
             orderNo = message.getOrderNo();
@@ -56,7 +57,7 @@ public class CrowdfundingPaymentOrderConsumer {
             // 1. 调用支付模块创建支付订单
             String subject = "众筹支持-" + message.getProjectId();
             String body = "用户" + message.getUserName() + "支持众筹项目";
-            String notifyUrl = aliPayConfig.getDomain() + "/design/crowdfunding/payment/alipay/notify"; // 众筹模块回调地址
+            String notifyUrl = "/design/crowdfunding/payment/alipay/notify"; // 众筹模块回调地址
 
             // 创建支付订单并获取二维码
             aliPayService.createPayOrder(

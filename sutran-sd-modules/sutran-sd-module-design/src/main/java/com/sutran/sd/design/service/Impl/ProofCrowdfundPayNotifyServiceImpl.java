@@ -1,4 +1,4 @@
-package com.sutran.sd.design.service.Impl;
+package com.sutran.sd.design.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.sutran.sd.design.config.CrowdfundingConfig;

@@ -226,19 +226,6 @@ public class SdTrainTaskServiceImpl implements SdTrainTaskService {
 
     @Override
     public JSONObject selectNodeBaseUrlAndStatusByTaskId(String taskId) {
-//        String infoStr = RedisUtils.getCacheObject(TRAIN_TASK_NODE_AND_STATUS_INFO+taskId);
-//        JSONObject info;
-//        if (StringUtils.isBlank(infoStr)) {
-//            info = baseMapper.selectNodeBaseUrlAndStatusByTaskId(taskId);
-//            if (info==null || CollectionUtil.isEmpty(info)) {
-//                return null;
-//            }
-//            RedisUtils.setCacheObject(TRAIN_TASK_NODE_AND_STATUS_INFO+taskId,info.toJSONString(), Duration.ofMinutes(30));
-//        }
-//        else {
-//            info = JSONObject.parseObject(infoStr,JSONObject.class);
-//        }
-//        return info;
         return baseMapper.selectNodeBaseUrlAndStatusByTaskId(taskId);
     }
 

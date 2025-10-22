@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.coobird.thumbnailator.Thumbnails;
 import org.apache.commons.compress.utils.IOUtils;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.imageio.ImageIO;
@@ -16,10 +17,9 @@ import java.io.*;
 import java.math.BigDecimal;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Base64;
-import java.util.List;
+import java.nio.file.*;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.util.*;
 
 /**
  * 文件处理工具类
@@ -309,5 +309,127 @@ public class FileUtils extends FileUtil {
             file.deleteOnExit();
         }
         catch (Exception ignored) {}
+    }
+
+    /**
+     * 移动指定目录中的所有文件到目标目录
+     * @param sourceDir 源目录路径
+     * @param targetDir 目标目录路径
+     * @throws IOException 如果移动过程中发生错误
+     */
+    public static void moveAllFiles(@NotNull String sourceDir, @NotNull String targetDir) throws IOException {
+        Path sourcePath = Paths.get(sourceDir);
+        Path targetPath = Paths.get(targetDir);
+
+        // 检查源目录是否存在
+        if (!Files.exists(sourcePath) || !Files.isDirectory(sourcePath)) {
+            throw new IOException("源目录不存在或不是目录: " + sourceDir);
+        }
+
+        // 创建目标目录（如果不存在）
+        if (!Files.exists(targetPath)) {
+            Files.createDirectories(targetPath);
+        }
+
+        // 遍历源目录中的所有文件
+        Files.walkFileTree(sourcePath, EnumSet.noneOf(FileVisitOption.class), 1,
+            new SimpleFileVisitor<Path>() {
+                @NotNull
+                @Override
+                public FileVisitResult visitFile(@NotNull Path file, @NotNull BasicFileAttributes attrs) {
+                    // 跳过目录，只处理文件
+                    if (!Files.isDirectory(file)) {
+                        Path targetFile = targetPath.resolve(file.getFileName());
+
+                        try {
+                            // 如果目标文件已存在，先删除
+                            if (Files.exists(targetFile)) {
+                                Files.delete(targetFile);
+                            }
+                            // 移动文件
+                            Files.move(file, targetFile, StandardCopyOption.REPLACE_EXISTING);
+
+                        } catch (IOException e) {
+                            log.error("移动文件失败: {} - {}", file, e.getMessage(), e);
+                        }
+                    }
+                    return FileVisitResult.CONTINUE;
+                }
+
+                @NotNull
+                @Override
+                public FileVisitResult visitFileFailed(@NotNull Path file, @NotNull IOException exc) {
+                    return FileVisitResult.CONTINUE;
+                }
+            });
+    }
+
+    /**
+     * 递归移动目录中的所有文件和子目录
+     * @param sourceDir 源目录路径
+     * @param targetDir 目标目录路径
+     * @throws IOException 如果移动过程中发生错误
+     */
+    public static void moveAllFilesRecursive(String sourceDir, String targetDir) throws IOException {
+        Path sourcePath = Paths.get(sourceDir);
+        Path targetPath = Paths.get(targetDir);
+
+        if (!Files.exists(sourcePath) || !Files.isDirectory(sourcePath)) {
+            throw new IOException("源目录不存在或不是目录: " + sourceDir);
+        }
+
+        if (!Files.exists(targetPath)) {
+            Files.createDirectories(targetPath);
+        }
+
+        Files.walkFileTree(sourcePath, new SimpleFileVisitor<Path>() {
+            @Override
+            public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+                Path relativePath = sourcePath.relativize(file);
+                Path targetFile = targetPath.resolve(relativePath);
+
+                // 创建目标文件的父目录
+                Files.createDirectories(targetFile.getParent());
+
+                try {
+                    Files.move(file, targetFile, StandardCopyOption.REPLACE_EXISTING);
+                    System.out.println("移动文件: " + file + " -> " + targetFile);
+                } catch (IOException e) {
+                    System.err.println("移动文件失败: " + file + " - " + e.getMessage());
+                }
+
+                return FileVisitResult.CONTINUE;
+            }
+
+            @Override
+            public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
+                if (!dir.equals(sourcePath)) {
+                    Path relativePath = sourcePath.relativize(dir);
+                    Path targetDirPath = targetPath.resolve(relativePath);
+                    Files.createDirectories(targetDirPath);
+                }
+                return FileVisitResult.CONTINUE;
+            }
+
+            @Override
+            public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
+                // 删除空目录
+                if (!dir.equals(sourcePath)) {
+                    try {
+                        Files.deleteIfExists(dir);
+                        System.out.println("删除空目录: " + dir);
+                    } catch (DirectoryNotEmptyException e) {
+                        // 目录不为空，不删除
+                    }
+                }
+                return FileVisitResult.CONTINUE;
+            }
+
+            @Override
+            public FileVisitResult visitFileFailed(Path file, IOException exc) throws IOException {
+                System.err.println("访问文件失败: " + file + " - " + exc.getMessage());
+                return FileVisitResult.CONTINUE;
+            }
+        });
     }
 }

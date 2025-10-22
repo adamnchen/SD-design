@@ -58,6 +58,7 @@ import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.nio.file.WatchEvent;
 import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
@@ -1631,9 +1632,12 @@ public class SdTrainServiceImpl implements SdTrainService {
         if (taskNode.getIntValue("status")>4) {
             return new FluxgymTrainProgressVo().setProgress(100).setStatus("completed");
         }
+        if (StringUtils.isBlank(nodeId)) {
+            nodeId = taskNode.getString("nodeId");
+        }
         // 检查节点是否还存在
         String cacheTaskId = RedisUtils.getCacheMapValue(TRAIN_NODE_TASK_MAP, nodeId);
-        if (StringUtils.isBlank(cacheTaskId) || !cacheTaskId.equals(nodeId)) {
+        if (StringUtils.isBlank(cacheTaskId) || !cacheTaskId.equals(taskId)) {
             return new FluxgymTrainProgressVo().setProgress(100).setStatus("completed");
         }
         try{
@@ -1641,42 +1645,23 @@ public class SdTrainServiceImpl implements SdTrainService {
             HttpRequest request = HttpRequest.get(taskNode.getString("baseUrl") + "/api/task/status/"+taskId).timeout(3000);
             String resp = execHttpRequest(request);
             FluxgymTrainProgressVo vo = JsonUtils.toObject(resp, FluxgymTrainProgressVo.class);
-            // 训练失败
-            if (StringUtils.isNotBlank(vo.getDetail())) {
-                if (StringUtils.isBlank(nodeId)) {
-                    SdTrainTask task = sdTrainTaskService.selectDetailById(taskId);
-                    if (task==null) {
-                        return vo;
-                    }
-                    nodeId = task.getNodeId().toString();
-                }
-                sdTrainTaskService.failFluxgymTrainTask(taskId,vo.getMessage(),new Date());
+            // 返回训练失败  或者  训练失败且任务处于进行中
+            if (StringUtils.isNotBlank(vo.getDetail())){
+                log.error("[FLuxGym]>>>>>>>>>训练失败!原因：{}", vo.getDetail());
+                sdTrainTaskService.failFluxgymTrainTask(taskId,vo.getDetail(),new Date());
                 // 归还节点
                 RedisUtils.delCacheMapValue(TRAIN_NODE_TASK_MAP,nodeId);
                 vo.setStatus("failed");
+                vo.setProgress(100);
             }
-            // 训练失败 且 不处于进行中
-            else if (vo!=null && vo.getSuccess() && "failed".equals(vo.getStatus()) && taskNode.getIntValue("status")!=4) {
-                if (StringUtils.isBlank(nodeId)) {
-                    SdTrainTask task = sdTrainTaskService.selectDetailById(taskId);
-                    if (task==null) {
-                        return vo;
-                    }
-                    nodeId = task.getNodeId().toString();
-                }
+            else if (vo!=null && "failed".equals(vo.getStatus()) && taskNode.getIntValue("status")==4) {
+                log.error("[FLuxGym]>>>>>>>>>训练失败!原因：{}", vo.getMessage());
                 sdTrainTaskService.failFluxgymTrainTask(taskId,vo.getMessage(),new Date());
                 // 归还节点
                 RedisUtils.delCacheMapValue(TRAIN_NODE_TASK_MAP,nodeId);
             }
-            // 训练完成 且 不处于进行中
-            else if (vo!=null && vo.getSuccess() && "completed".equals(vo.getStatus()) && vo.getProgress()==100 && taskNode.getIntValue("status")!=4) {
-                if (StringUtils.isBlank(nodeId)) {
-                    SdTrainTask task = sdTrainTaskService.selectDetailById(taskId);
-                    if (task==null || task.getNewStatus()>4) {
-                        return vo;
-                    }
-                    nodeId = task.getNodeId().toString();
-                }
+            // 训练完成 且 处于进行中
+            else if (vo!=null && "completed".equals(vo.getStatus()) && vo.getProgress()==100 && taskNode.getIntValue("status")==4) {
                 sdTrainTaskService.completeFluxgymTrainTask(taskId,new Date());
                 try{
                     // 异步处理指定目录下的模型文件
@@ -1691,7 +1676,7 @@ public class SdTrainServiceImpl implements SdTrainService {
             return vo;
         }
         catch (Exception e) {
-            log.error("[FLuxGym]>>>>>>>>>查询训练进度失败!原因：", e);
+            log.error("[FLuxGym]>>>>>>>>>训练失败!原因：", e);
             throw new ServiceException("查询训练进度异常!");
         }
     }
@@ -1913,10 +1898,15 @@ public class SdTrainServiceImpl implements SdTrainService {
      * @param taskId     任务id
      * @param preParams  预处理参数
      */
-    public void dealFluxgymTrainModelFile(String taskId, JSONObject preParams) {
+    public void dealFluxgymTrainModelFile2(String taskId, JSONObject preParams) {
+        // 快速检查，减少锁持有时间
+        if (RedisUtils.hasKey(DEAL_MODEL_LOCK+taskId))  {
+            return;
+        }
         // 双重加锁，限制其他请求操作(主要是定时请求、前端轮询请求进度、手动处理请求)
         MODEL_LOCK.lock();
         try{
+            // 双重检查
             if (RedisUtils.hasKey(DEAL_MODEL_LOCK+taskId))  {
                 return;
             }
@@ -2000,246 +1990,116 @@ public class SdTrainServiceImpl implements SdTrainService {
     }
 
     /**
-     * 仙宫云上，模型存储在云存储中 /root/cloud/lora-models/{taskId} 目录下
-     * 将/root/cloud/lora-models/{taskId}目录下的.safetensors模型移动到/home/stable-diffusion-webui/models/Lora目录下;
-     * 将/root/cloud/lora-models/{taskId}/sample目录下的图片文件按照对应模型名称重命名后移动到/home/stable-diffusion-webui/models/Lora目录下;
-     * 将/root/cloud/lora-models/{taskId}/dataset目录下的全部文件移动到/home/lora-scripts/train-data/{yyyy-MM-dd}/{userId}/{taskId}/20_zkz目录下；
-     * @param taskId
-     * @param preParams
-     * @return
+     * [FluxGym]SD训练-处理训练完成后的模型文件
+     *
+     * @param taskId     任务id
+     * @param preParams  预处理参数
      */
-    public void dealFluxgymTrainModelFile1(String taskId, JSONObject preParams) {
-        // 参数校验
-        if (StringUtils.isBlank(taskId) || CollectionUtil.isEmpty(preParams)) {
-            log.error("任务ID或预参数为空");
-            return;
-        }
-
-        // 加锁限制其他请求操作
+    public void dealFluxgymTrainModelFile(String taskId, JSONObject preParams) {
+        // 快速检查，减少锁持有时间
         if (RedisUtils.hasKey(DEAL_MODEL_LOCK+taskId))  {
             return;
         }
-        RedisUtils.setCacheObject(DEAL_MODEL_LOCK+taskId,"1", Duration.ofMinutes(2));
-
-        // 目录定义
-        String modelDir = "/root/cloud/lora-models/" + taskId;
-        String modelImgDir = modelDir + "/sample";
-        String modelDataDir = modelDir + "/dataset";
-        String destDir = "/home/stable-diffusion-webui/models/Lora";
-        String destDataDir = preParams.getString("path") + "/20_zkz";
-
-        log.info("处理训练完成后的模型文件:\n任务ID：{}\n模型目录：{}\n模型图片目录：{}\n数据集目录：{}\n模型存储目标目录：{}\n数据集存储目标目录：{}", taskId, modelDir, modelImgDir, modelDataDir, destDir, destDataDir);
+        // 双重加锁，限制其他请求操作(主要是定时请求、前端轮询请求进度、手动处理请求)
+        MODEL_LOCK.lock();
         try {
-            // 1. 处理模型文件
-            processModelFiles(modelDir, destDir, modelImgDir);
-            // 2. 处理数据集文件
-            processDatasetFiles(modelDataDir, destDataDir);
+            // 双重检查
+            if (RedisUtils.hasKey(DEAL_MODEL_LOCK + taskId)) {
+                return;
+            }
+            RedisUtils.setCacheObject(DEAL_MODEL_LOCK + taskId, "1", Duration.ofMinutes(2));
+        } finally {
+            MODEL_LOCK.unlock();
+        }
+
+        try {
+            String modelDir = "/root/cloud/lora-models/" + taskId;
+            String modelImgDir = "/root/cloud/lora-models/" + taskId + "/sample";
+            String modelDataDir = "/root/cloud/lora-models/" + taskId + "/dataset";
+            String destDir = "/home/comfyui/models/Lora";
+            String destDataDir = preParams.getString("path") + "/20_zkz";
+            // 检查目标目录是否存在，不存在则创建
+            File destDirFile = new File(destDir);
+            if (!destDirFile.exists()) {
+                boolean created = destDirFile.mkdirs();
+            }
+            // 获取模型文件
+            File modelDirFile = new File(modelDir);
+            if (!modelDirFile.exists()) {
+                log.error("[模型训练完成][模型移动]>>>>>>>>>任务ID[{}],模型目录不存在: {}", taskId, modelDir);
+                return;
+            }
+            File[] models = modelDirFile.listFiles((dir, name) -> name.endsWith(".safetensors"));
+            if (models == null || models.length == 0) {
+                log.warn("[模型训练完成][模型移动]>>>>>>>>>任务ID[{}],未找到模型文件，目录: {}", taskId, modelDir);
+                return;
+            }
+            Arrays.sort(models, Comparator.comparing(File::getName));
+            // 获取图片文件
+            File[] modelImgs = null;
+            File modelImgDirFile = new File(modelImgDir);
+            if (modelImgDirFile.exists()) {
+                modelImgs = modelImgDirFile.listFiles((dir, name) -> name.matches(".*\\.(jpg|jpeg|png|gif|bmp)"));
+                if (modelImgs != null) {
+                    Arrays.sort(modelImgs, Comparator.comparing(File::getName));
+                }
+            }
+            final String loraNameZh = preParams.getString("loraName");
+            final Long userId = preParams.getLong("userId");
+            final Integer isOpen = preParams.getInteger("isOpen");
+            final String modelTag = preParams.getString("modelTag");
+            final String modelDesc = preParams.getString("modelDesc");
+            List<SdUserModel> modelList = new ArrayList<>();
+            // 移动模型文件
+            for (int i = 0; i < models.length; i++) {
+                File modelFile = models[i];
+                String modelName = modelFile.getName();
+                String[] modelNameList = modelName.split("-");
+                String title = modelNameList[0].replace(".safetensors", "");
+                String prefix = modelNameList.length > 1 ? modelNameList[1].replace(".safetensors", "") : "";
+                File destModelFile = new File(destDir, modelName);
+                try {
+                    // 使用 Files.move 替代 renameTo
+                    Path sourcePath = modelFile.toPath();
+                    Path targetPath = destModelFile.toPath();
+                    Files.move(sourcePath, targetPath, StandardCopyOption.REPLACE_EXISTING);
+                    log.info("[模型训练完成][模型移动]>>>>>>>>>任务ID[{}],成功移动模型文件: {} -> {}", taskId, sourcePath, targetPath);
+                    SdUserModel model = new SdUserModel()
+                        .setId(IdUtil.getSnowflakeNextId()).setTitle(title).setTaskId(Long.parseLong(taskId))
+                        .setModelName(modelName).setModelNameZh(loraNameZh+prefix).setFileName(destModelFile.getAbsolutePath())
+                        .setCrtTime(new Date()).setIsOpen(isOpen).setType(1).setPublishStatus(0).setBelongUserId(userId)
+                        .setModelTag(modelTag).setRemark(modelDesc).setModelType("FLUX");
+                    // 移动对应的图片文件
+                    if (modelImgs != null && i < modelImgs.length) {
+                        File imgFile = modelImgs[i];
+                        String imgExtension = imgFile.getName().substring(imgFile.getName().lastIndexOf("."));
+                        File destImgFile = new File(destDir, modelName.replace(".safetensors", imgExtension));
+
+                        Files.move(imgFile.toPath(), destImgFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                        model.setUrl(destImgFile.getAbsolutePath());
+                        log.info("[模型训练完成][模型移动]>>>>>>>>>任务ID[{}],成功移动图片文件: {} -> {}", taskId, imgFile.getAbsolutePath(), destImgFile.getAbsolutePath());
+                    }
+                    modelList.add(model);
+                }
+                catch (IOException e) {
+                    log.error("[模型训练完成][模型移动]>>>>>>>>>任务ID[{}],移动文件失败: ", taskId, e);
+                }
+            }
+            // 移动数据集文件
+            FileUtils.moveAllFiles(modelDataDir, destDataDir);
+            // 批量插入数据库
+            if (CollectionUtil.isNotEmpty(modelList)) {
+                sdUserModelService.batchAdd(modelList);
+            }
+            // 删除模型目录
+            FileUtils.deleteFile(modelDirFile);
         }
         catch (Exception e) {
-            log.error("处理模型文件时发生异常，任务ID: {}，异常：", taskId, e);
+            log.error("[模型训练完成][模型移动]>>>>>>>>>任务ID[{}],处理模型文件时发生异常: ", taskId, e);
         }
-
-        RedisUtils.deleteKey(DEAL_MODEL_LOCK+taskId);
-    }
-
-    /**
-     * 处理模型文件和对应的预览图片
-     */
-    private void processModelFiles(String modelDir, String destDir, String modelImgDir) {
-        // 获取模型文件并排序
-        File[] models = getSortedFiles(modelDir, ".safetensors");
-        if (models == null || models.length == 0) {
-            log.warn("未找到模型文件，目录: {}", modelDir);
-            return;
+        finally {
+            RedisUtils.deleteKey(DEAL_MODEL_LOCK + taskId);
         }
-        // 获取图片文件并建立文件名映射
-        Map<String, File> imageMap = getImageFiles(modelImgDir);
-        // 创建目标目录
-        File destDirFile = new File(destDir);
-        if (!destDirFile.exists() && !destDirFile.mkdirs()) {
-            log.error("创建目标目录失败: {}", destDir);
-            return;
-        }
-
-        // 移动模型文件和对应的图片
-        for (File modelFile : models) {
-            try {
-                String modelName = modelFile.getName();
-                String baseName = modelName.replace(".safetensors", "");
-
-                // 移动模型文件
-                File destModelFile = new File(destDir, modelName);
-                if (!moveFile(modelFile, destModelFile)) {
-                    log.error("移动模型文件失败: {} -> {}", modelFile.getPath(), destModelFile.getPath());
-                    continue;
-                }
-
-                // 移动对应的预览图片
-                if (!imageMap.isEmpty()) {
-                    moveCorrespondingImage(baseName, imageMap, destDir);
-                }
-
-            } catch (Exception e) {
-                log.error("处理模型文件时发生异常: {}", modelFile.getName(), e);
-            }
-        }
-    }
-
-    /**
-     * 处理数据集文件
-     */
-    private boolean processDatasetFiles(String modelDataDir, String destDataDir) {
-        File modelDataDirFile = new File(modelDataDir);
-        if (!modelDataDirFile.exists() || !modelDataDirFile.isDirectory()) {
-            log.warn("数据集目录不存在: {}", modelDataDir);
-            // 数据集目录不存在不算失败
-            return true;
-        }
-
-        // 创建目标目录
-        File destDataDirFile = new File(destDataDir);
-        if (!destDataDirFile.exists() && !destDataDirFile.mkdirs()) {
-            log.error("创建数据集目标目录失败: {}", destDataDir);
-            return false;
-        }
-
-        File[] modelDataFiles = modelDataDirFile.listFiles();
-        if (modelDataFiles == null || modelDataFiles.length == 0) {
-            log.info("数据集目录为空: {}", modelDataDir);
-            return true;
-        }
-
-        boolean success = true;
-        for (File dataFile : modelDataFiles) {
-            try {
-                File destDataFile = new File(destDataDir, dataFile.getName());
-                if (!moveFile(dataFile, destDataFile)) {
-                    log.error("移动数据集文件失败: {} -> {}", dataFile.getPath(), destDataFile.getPath());
-                    success = false;
-                }
-            } catch (Exception e) {
-                log.error("移动数据集文件时发生异常: {}", dataFile.getName(), e);
-                success = false;
-            }
-        }
-
-        return success;
-    }
-
-    /**
-     * 获取排序后的文件列表
-     */
-    private File[] getSortedFiles(String directory, String extension) {
-        File dir = new File(directory);
-        if (!dir.exists() || !dir.isDirectory()) {
-            return null;
-        }
-
-        File[] files = dir.listFiles((dir1, name) -> name.toLowerCase().endsWith(extension.toLowerCase()));
-        if (files != null && files.length > 0) {
-            Arrays.sort(files, Comparator.comparing(File::getName));
-        }
-
-        return files;
-    }
-
-    /**
-     * 获取图片文件并建立映射
-     */
-    private Map<String, File> getImageFiles(String imageDir) {
-        Map<String, File> imageMap = new HashMap<>();
-        File imgDir = new File(imageDir);
-        if (!imgDir.exists() || !imgDir.isDirectory()) {
-            return imageMap;
-        }
-        File[] imageFiles = imgDir.listFiles((dir, name) -> name.matches(".*\\.(?i)(jpg|jpeg|png|gif|bmp)$"));
-        if (imageFiles != null) {
-            for (File imageFile : imageFiles) {
-                String baseName = getFileBaseName(imageFile.getName());
-                imageMap.put(baseName, imageFile);
-            }
-        }
-        return imageMap;
-    }
-
-    /**
-     * 移动对应的预览图片
-     */
-    private void moveCorrespondingImage(String baseName, Map<String, File> imageMap, String destDir) {
-        // 尝试精确匹配
-        File imageFile = imageMap.get(baseName);
-
-        // 如果精确匹配失败，尝试部分匹配
-        if (imageFile == null) {
-            imageFile = imageMap.entrySet().stream()
-                .filter(entry -> entry.getKey().contains(baseName) || baseName.contains(entry.getKey()))
-                .map(Map.Entry::getValue)
-                .findFirst()
-                .orElse(null);
-        }
-
-        if (imageFile != null) {
-            String extension = getFileExtension(imageFile.getName());
-            File destImgFile = new File(destDir, baseName + extension);
-            if (!moveFile(imageFile, destImgFile)) {
-                log.warn("移动预览图片失败: {} -> {}", imageFile.getPath(), destImgFile.getPath());
-            }
-        }
-    }
-
-    /**
-     * 安全的文件移动方法
-     */
-    private boolean moveFile(File source, File destination) {
-        try {
-            // 先尝试重命名（同文件系统效率高）
-            if (source.renameTo(destination)) {
-                return true;
-            }
-
-            // 重命名失败时使用文件复制+删除
-            return copyFile(source, destination) && source.delete();
-
-        } catch (Exception e) {
-            log.error("移动文件失败: {} -> {}", source.getPath(), destination.getPath(), e);
-            return false;
-        }
-    }
-
-    /**
-     * 文件复制方法
-     */
-    private boolean copyFile(File source, File destination) {
-        try (FileInputStream fis = new FileInputStream(source);
-             FileOutputStream fos = new FileOutputStream(destination)) {
-
-            byte[] buffer = new byte[8192];
-            int bytesRead;
-            while ((bytesRead = fis.read(buffer)) != -1) {
-                fos.write(buffer, 0, bytesRead);
-            }
-            return true;
-
-        } catch (IOException e) {
-            log.error("复制文件失败: {} -> {}", source.getPath(), destination.getPath(), e);
-            return false;
-        }
-    }
-
-    /**
-     * 获取文件基名（不含扩展名）
-     */
-    private String getFileBaseName(String fileName) {
-        int dotIndex = fileName.lastIndexOf('.');
-        return (dotIndex == -1) ? fileName : fileName.substring(0, dotIndex);
-    }
-
-    /**
-     * 获取文件扩展名
-     */
-    private String getFileExtension(String fileName) {
-        int dotIndex = fileName.lastIndexOf('.');
-        return (dotIndex == -1) ? "" : fileName.substring(dotIndex);
     }
 
 }

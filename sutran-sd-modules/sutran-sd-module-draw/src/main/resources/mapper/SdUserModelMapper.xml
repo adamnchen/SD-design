@@ -119,7 +119,7 @@
         FROM sd_user_model AS A
              LEFT JOIN sys_user AS B ON A.belong_user_id=B.user_id
              LEFT JOIN sd_user_model_share AS C ON A.id=C.model_id
-        WHERE A.id=#{id} AND (A.type=0 OR A.is_open=1 OR (A.type=1 AND A.belong_user_id=#{userId}) OR C.user_id=#{userId})
+        WHERE A.id=#{id} AND A.publish_status=1 AND (A.type=0 OR A.is_open=1 OR (A.type=1 AND A.belong_user_id=#{userId}) OR C.user_id=#{userId})
     </select>
 
 
@@ -129,7 +129,7 @@
             LEFT JOIN sd_user_model AS B ON A.lora_model_id=B.id
             LEFT JOIN sys_user AS C ON B.belong_user_id=C.user_id
             LEFT JOIN sd_user_model_share AS D ON B.id=D.model_id
-        WHERE A.user_id=#{userId} AND (B.type=0 OR B.is_open=1 OR (B.type=1 AND B.belong_user_id=#{userId}) OR D.user_id=#{userId})
+        WHERE A.user_id=#{userId} AND B.publish_status=1 AND (B.type=0 OR B.is_open=1 OR (B.type=1 AND B.belong_user_id=#{userId}) OR D.user_id=#{userId})
         ORDER BY A.crt_time DESC,A.use_times DESC LIMIT #{limit}
     </select>
 
@@ -167,7 +167,7 @@
              LEFT JOIN sd_user_model AS B ON A.lora_model_id=B.id
              LEFT JOIN sys_user AS C ON B.belong_user_id=C.user_id
              LEFT JOIN sd_user_model_share AS D ON B.id=D.model_id
-        WHERE A.user_id=#{userId} AND (B.type=0 OR B.is_open=1 OR (B.type=1 AND B.belong_user_id=#{userId}) OR D.user_id=#{userId})
+        WHERE A.user_id=#{userId} AND B.publish_status=1 AND (B.type=0 OR B.is_open=1 OR (B.type=1 AND B.belong_user_id=#{userId}) OR D.user_id=#{userId})
         ORDER BY A.crt_time DESC,A.use_times DESC LIMIT #{limit}
     </select>
 

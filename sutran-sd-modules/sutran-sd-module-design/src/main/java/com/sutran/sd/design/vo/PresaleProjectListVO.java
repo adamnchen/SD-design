@@ -124,6 +124,11 @@ public class PresaleProjectListVO {
     private Long remainingDays;
 
     /**
+     * 已售件数
+     */
+    private Integer soldQuantity;
+
+    /**
      * 阶梯价格列表（解析后的对象）
      */
     private Object tieredPricingList;

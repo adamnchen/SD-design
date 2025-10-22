@@ -4,7 +4,7 @@
     "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.sutran.sd.system.mapper.SysUserAddressMapper">
     <select id="selectAddressList" resultType="com.sutran.sd.common.core.domain.entity.SysAddress">
-        SELECT id, user_id, name, province, city, county, address, phonenumber, is_default, create_time
+        SELECT id, user_id, name, province, city, county, address, home, phonenumber, is_default, create_time
         FROM sys_user_address
         WHERE user_id = #{userId}
         ORDER BY is_default DESC, create_time DESC

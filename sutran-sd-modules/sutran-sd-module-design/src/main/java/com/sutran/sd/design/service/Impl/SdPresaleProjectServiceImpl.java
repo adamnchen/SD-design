@@ -213,8 +213,45 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
         log.info("获取买家购买的预售项目列表（分页）");
 
         Long currentUserId = LoginHelper.getUserId();
+        log.info("当前用户ID: {}", currentUserId);
+        
+        // 先查询用户是否有预售订单
+        LambdaQueryWrapper<SdPresaleOrder> orderQuery = new LambdaQueryWrapper<>();
+        orderQuery.eq(SdPresaleOrder::getUserId, currentUserId);
+        List<SdPresaleOrder> userOrders = presaleOrderMapper.selectList(orderQuery);
+        log.info("用户预售订单数量: {}, 订单详情: {}", userOrders.size(), 
+            userOrders.stream().map(order -> String.format("订单ID=%d, 项目ID=%d, 状态=%d", 
+                order.getId(), order.getProjectId(), order.getOrderStatus())).collect(Collectors.toList()));
+
+        // 查询符合条件的订单（已支付及以上状态）
+        LambdaQueryWrapper<SdPresaleOrder> paidOrderQuery = new LambdaQueryWrapper<>();
+        paidOrderQuery.eq(SdPresaleOrder::getUserId, currentUserId)
+                     .in(SdPresaleOrder::getOrderStatus, 2, 3, 4, 5);
+        List<SdPresaleOrder> paidOrders = presaleOrderMapper.selectList(paidOrderQuery);
+        log.info("用户已支付订单数量: {}, 订单详情: {}", paidOrders.size(),
+            paidOrders.stream().map(order -> String.format("订单ID=%d, 项目ID=%d, 状态=%d", 
+                order.getId(), order.getProjectId(), order.getOrderStatus())).collect(Collectors.toList()));
+
         Page<SdPresaleProject> page = pageQuery.build();
         IPage<SdPresaleProject> result = presaleProjectMapper.selectUserPresaleProjects(page, currentUserId, "buyer");
+        log.info("查询到的预售项目数量: {}", result.getRecords().size());
+        
+        // 如果查询结果为空，尝试直接查询项目
+        if (result.getRecords().isEmpty() && !paidOrders.isEmpty()) {
+            log.info("尝试直接查询项目...");
+            List<Long> projectIds = paidOrders.stream()
+                    .map(SdPresaleOrder::getProjectId)
+                    .distinct()
+                    .collect(Collectors.toList());
+            log.info("项目ID列表: {}", projectIds);
+            
+            if (!projectIds.isEmpty()) {
+                LambdaQueryWrapper<SdPresaleProject> projectQuery = new LambdaQueryWrapper<>();
+                projectQuery.in(SdPresaleProject::getId, projectIds);
+                List<SdPresaleProject> projects = presaleProjectMapper.selectList(projectQuery);
+                log.info("直接查询到的项目数量: {}", projects.size());
+            }
+        }
 
         List<PresaleProjectListVO> voList = result.getRecords().stream()
                 .map(this::convertToProjectListVO)
@@ -413,6 +450,9 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
             vo.setRemainingDays(diffInMillies > 0 ? diffInMillies / (1000 * 60 * 60 * 24) : 0);
         }
 
+        // 计算阶梯价格相关信息（包括当前价格、已售件数等）
+        calculateTieredPricingInfoForList(project, vo);
+
         return vo;
     }
 
@@ -588,6 +628,53 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
     }
 
     /**
+     * 计算阶梯价格相关信息（列表VO专用）
+     */
+    private void calculateTieredPricingInfoForList(SdPresaleProject project, PresaleProjectListVO vo) {
+        try {
+            // 1. 查询当前销售数量（已支付订单）
+            LambdaQueryWrapper<SdPresaleOrder> queryWrapper = new LambdaQueryWrapper<>();
+            queryWrapper.eq(SdPresaleOrder::getProjectId, project.getId())
+                       .eq(SdPresaleOrder::getOrderStatus, 2); // 已支付状态
+
+            List<SdPresaleOrder> paidOrders = presaleOrderMapper.selectList(queryWrapper);
+            int totalQuantity = paidOrders.stream()
+                    .mapToInt(SdPresaleOrder::getQuantity)
+                    .sum();
+
+            // 设置已售件数
+            vo.setSoldQuantity(totalQuantity);
+
+            // 2. 解析阶梯价格配置
+            if (StringUtils.isBlank(project.getTieredPricing())) {
+                // 没有阶梯价格配置，使用基础价格
+                vo.setCurrentPrice(project.getBasePrice());
+                vo.setTieredPricingList(new ArrayList<>());
+                return;
+            }
+
+            ObjectMapper mapper = new ObjectMapper();
+            List<TieredPricingItem> tieredPricingList = mapper.readValue(project.getTieredPricing(),
+                mapper.getTypeFactory().constructCollectionType(List.class, TieredPricingItem.class));
+
+            vo.setTieredPricingList(tieredPricingList);
+
+            // 3. 计算当前价格
+            BigDecimal currentPrice = calculateCurrentPrice(totalQuantity, tieredPricingList);
+            vo.setCurrentPrice(currentPrice);
+
+            // 4. 计算下一个价格阈值和价格
+            calculateNextPriceInfoForList(totalQuantity, tieredPricingList, vo);
+
+        } catch (Exception e) {
+            log.error("[预售项目] 计算阶梯价格信息失败: 项目ID={}", project.getId(), e);
+            // 出错时使用基础价格
+            vo.setCurrentPrice(project.getBasePrice());
+            vo.setTieredPricingList(new ArrayList<>());
+        }
+    }
+
+    /**
      * 计算阶梯价格相关信息
      */
     private void calculateTieredPricingInfo(SdPresaleProject project, PresaleProjectDetailVO vo) {
@@ -756,5 +843,32 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
         // 计算过期时间：创建时间 + 有效期天数
         long expireTime = project.getCreateTime().getTime() + (project.getValidityDays() * 24L * 60L * 60L * 1000L);
         return System.currentTimeMillis() > expireTime;
+    }
+
+    /**
+     * 计算下一个价格阈值和价格（列表VO专用）
+     */
+    private void calculateNextPriceInfoForList(int totalQuantity, List<TieredPricingItem> tieredPricingList, PresaleProjectListVO vo) {
+        if (tieredPricingList.isEmpty()) {
+            vo.setNextThreshold(null);
+            vo.setNextPrice(null);
+            return;
+        }
+
+        // 按节点数量排序
+        tieredPricingList.sort((a, b) -> Integer.compare(a.getNode(), b.getNode()));
+
+        // 找到下一个价格阈值
+        for (TieredPricingItem item : tieredPricingList) {
+            if (totalQuantity < item.getNode()) {
+                vo.setNextThreshold(item.getNode());
+                vo.setNextPrice(item.getUnitPrice());
+                return;
+            }
+        }
+
+        // 如果已经达到最高阶梯，没有下一个价格
+        vo.setNextThreshold(null);
+        vo.setNextPrice(null);
     }
 }

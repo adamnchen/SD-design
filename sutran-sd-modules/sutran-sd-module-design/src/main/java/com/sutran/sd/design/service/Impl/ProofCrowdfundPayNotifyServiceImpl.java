@@ -6,6 +6,8 @@ import com.sutran.sd.design.domain.SdCrowdfundingProject;
 import com.sutran.sd.design.domain.SdCrowdfundingSupport;
 import com.sutran.sd.design.mapper.SdCrowdfundingProjectMapper;
 import com.sutran.sd.design.mapper.SdCrowdfundingSupportMapper;
+import com.sutran.sd.design.mapper.SdProofingInvitationMapper;
+import com.sutran.sd.common.core.domain.entity.SdProofingInvitation;
 import com.sutran.sd.design.service.CrowdfundingRedisService;
 import com.sutran.sd.pay.constants.PayNotifyServer;
 import com.sutran.sd.pay.domain.vo.PayTimeoutStatusVo;
@@ -36,6 +38,7 @@ public class ProofCrowdfundPayNotifyServiceImpl extends BasePayNotifyService {
     private final CrowdfundingRedisService crowdfundingRedisService;
     private final SdCrowdfundingProjectMapper crowdfundingProjectMapper;
     private final CrowdfundingConfig crowdfundingConfig;
+    private final SdProofingInvitationMapper proofingInvitationMapper;
 
     /**
      * 处理支付成功业务
@@ -241,6 +244,41 @@ public class ProofCrowdfundPayNotifyServiceImpl extends BasePayNotifyService {
                 initiatorSupport.setDrawStatus(2); // 已参与抽奖
                 initiatorSupport.setIsWinner(1); // 必中奖
                 initiatorSupport.setPrizeInfo("发起人必得样品，获得" + sampleCount + "个样品");
+                // 从打样邀约中获取发起人的收货信息
+                if (project.getProofingInvitationId() != null) {
+                    try {
+                        SdProofingInvitation invitation = proofingInvitationMapper.selectById(project.getProofingInvitationId());
+                        if (invitation != null) {
+                            initiatorSupport.setReceiverName(invitation.getReceiverName());
+                            initiatorSupport.setReceiverPhone(invitation.getReceiverPhone());
+                            initiatorSupport.setReceiverAddress(invitation.getReceiverAddress());
+                            initiatorSupport.setReceiverArea(invitation.getReceiverArea());
+                            log.info("从打样邀约获取发起人收货信息: 邀约ID={}, 收货人={}, 电话={}", 
+                                project.getProofingInvitationId(), invitation.getReceiverName(), invitation.getReceiverPhone());
+                        } else {
+                            log.warn("未找到对应的打样邀约: 邀约ID={}", project.getProofingInvitationId());
+                            // 使用发起人姓名作为备选
+                            initiatorSupport.setReceiverName(project.getCreatorName());
+                            initiatorSupport.setReceiverPhone("");
+                            initiatorSupport.setReceiverAddress("");
+                            initiatorSupport.setReceiverArea("");
+                        }
+                    } catch (Exception e) {
+                        log.error("查询打样邀约失败: 邀约ID={}", project.getProofingInvitationId(), e);
+                        // 使用发起人姓名作为备选
+                        initiatorSupport.setReceiverName(project.getCreatorName());
+                        initiatorSupport.setReceiverPhone("");
+                        initiatorSupport.setReceiverAddress("");
+                        initiatorSupport.setReceiverArea("");
+                    }
+                } else {
+                    log.warn("众筹项目未关联打样邀约: 项目ID={}", project.getId());
+                    // 使用发起人姓名作为备选
+                    initiatorSupport.setReceiverName(project.getCreatorName());
+                    initiatorSupport.setReceiverPhone("");
+                    initiatorSupport.setReceiverAddress("");
+                    initiatorSupport.setReceiverArea("");
+                }
 
                 supportMapper.insert(initiatorSupport);
 

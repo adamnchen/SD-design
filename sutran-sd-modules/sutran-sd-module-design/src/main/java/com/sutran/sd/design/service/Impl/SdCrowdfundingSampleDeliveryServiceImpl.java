@@ -6,7 +6,6 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.sutran.sd.common.core.domain.PageQuery;
 import com.sutran.sd.common.core.domain.R;
 import com.sutran.sd.common.core.page.TableDataInfo;
-import com.sutran.sd.common.core.service.OssService;
 import com.sutran.sd.common.helper.LoginHelper;
 import com.sutran.sd.design.domain.SdCrowdfundingSampleDelivery;
 import com.sutran.sd.design.domain.SdCrowdfundingProject;
@@ -267,6 +266,86 @@ public class SdCrowdfundingSampleDeliveryServiceImpl implements ISdCrowdfundingS
     private Long getCurrentUserId() {
        Long userId = LoginHelper.getUserId();
        return userId;
+    }
+
+    @Override
+    public TableDataInfo<SampleDeliveryListVO> getProjectDeliveryInfo(Long projectId, PageQuery pageQuery) {
+        try {
+            log.info("[查询项目发货信息] 开始查询: 项目ID={}", projectId);
+
+            // 1. 验证项目是否存在
+            SdCrowdfundingProject project = projectMapper.selectSdCrowdfundingProjectById(projectId);
+            if (project == null) {
+                log.warn("[查询项目发货信息] 项目不存在: 项目ID={}", projectId);
+                return TableDataInfo.build(new ArrayList<>());
+            }
+
+            // 2. 构建分页查询
+            Page<SdCrowdfundingSampleDelivery> page = pageQuery.build();
+            
+            // 3. 查询该项目的所有发货记录
+            LambdaQueryWrapper<SdCrowdfundingSampleDelivery> queryWrapper = new LambdaQueryWrapper<>();
+            queryWrapper.eq(SdCrowdfundingSampleDelivery::getCrowdfundingProjectId, projectId)
+                       .orderByDesc(SdCrowdfundingSampleDelivery::getCreateTime);
+
+            IPage<SdCrowdfundingSampleDelivery> result = sampleDeliveryMapper.selectPage(page, queryWrapper);
+
+            // 4. 转换为VO
+            List<SampleDeliveryListVO> voList = result.getRecords().stream()
+                    .map(delivery -> convertToSampleDeliveryListVO(delivery, project))
+                    .collect(Collectors.toList());
+
+            log.info("[查询项目发货信息] 查询完成: 项目ID={}, 记录数={}", projectId, voList.size());
+
+            // 构建返回结果
+            TableDataInfo<SampleDeliveryListVO> tableDataInfo = new TableDataInfo<>();
+            tableDataInfo.setRows(voList);
+            tableDataInfo.setTotal(result.getTotal());
+            return tableDataInfo;
+
+        } catch (Exception e) {
+            log.error("[查询项目发货信息] 查询异常: 项目ID={}", projectId, e);
+            return TableDataInfo.build(new ArrayList<>());
+        }
+    }
+
+    /**
+     * 转换为发货列表VO
+     */
+    private SampleDeliveryListVO convertToSampleDeliveryListVO(SdCrowdfundingSampleDelivery delivery, SdCrowdfundingProject project) {
+        SampleDeliveryListVO vo = new SampleDeliveryListVO();
+        
+        // 基本信息
+        vo.setId(delivery.getId());
+        vo.setCrowdfundingProjectId(delivery.getCrowdfundingProjectId());
+        vo.setProjectTitle(project.getTitle());
+        vo.setProofingInvitationId(delivery.getProofingInvitationId());
+        vo.setSampleImageUrl(delivery.getSampleImageUrl());
+        
+        // 收货人信息
+        vo.setRecipientUserId(delivery.getRecipientUserId());
+        vo.setRecipientName(delivery.getRecipientName());
+        vo.setRecipientPhone(delivery.getRecipientPhone());
+        vo.setDeliveryAddress(delivery.getDeliveryAddress());
+        
+        // 发货信息
+        vo.setTrackingNumber(delivery.getTrackingNumber());
+        vo.setDeliveryCompany(delivery.getDeliveryCompany());
+        vo.setStatus(delivery.getStatus());
+        vo.setStatusText(delivery.getStatus() == 1 ? "待发货" : "已发货");
+        vo.setRemark(delivery.getRemark());
+        
+        // 发货人信息
+        vo.setSenderUserId(delivery.getSenderUserId());
+        vo.setSenderName(delivery.getSenderName());
+        
+        // 时间信息
+        vo.setDeliveryTime(delivery.getDeliveryTime());
+        vo.setConfirmTime(delivery.getConfirmTime());
+        vo.setCreateTime(delivery.getCreateTime());
+        vo.setOrderStatus(delivery.getOrderStatus());
+        
+        return vo;
     }
 
 }

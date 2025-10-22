@@ -8,6 +8,7 @@ import com.sutran.sd.common.core.domain.R;
 import com.sutran.sd.common.core.domain.vo.ProofingInvitationDetailVO;
 import com.sutran.sd.common.core.page.TableDataInfo;
 import com.sutran.sd.common.helper.LoginHelper;
+import com.sutran.sd.common.utils.OrderNumUtils;
 import com.sutran.sd.common.utils.StringUtils;
 import com.sutran.sd.design.domain.SdPresaleOrder;
 import com.sutran.sd.design.domain.SdPresaleProject;
@@ -28,11 +29,13 @@ import com.sutran.sd.system.domain.vo.SysOssVo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
+import org.springframework.core.annotation.OrderUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -239,10 +242,10 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
             }
 
             // 2. 生成订单号
-            String orderNo = "PO" + System.currentTimeMillis();
+            String  orderNo = OrderNumUtils.getOrderNum(new Date());
 
-            // 3. 计算价格（使用基础价格，后续阶梯价格调整）
-            BigDecimal unitPrice = project.getBasePrice();
+            // 3. 计算价格（根据当前销售数量计算阶梯价格）
+            BigDecimal unitPrice = calculateCurrentUnitPrice(project);
             BigDecimal totalAmount = unitPrice.multiply(BigDecimal.valueOf(createDTO.getQuantity()));
 
             // 4. 创建订单
@@ -271,7 +274,7 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
                 String subject = "预售商品：" + project.getTitle();
                 String body = "购买数量：" + createDTO.getQuantity() + "件";
                 String notifyUrl = "/design/presale/payment/alipay/notify";
-                
+
                 // 调用支付宝服务创建支付订单
                 aliPayService.createPayOrder(
                     LoginHelper.getUserId(),
@@ -282,7 +285,7 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
                     totalAmount,
                     notifyUrl
                 );
-                
+
                 log.info("支付订单创建成功: 订单号={}", orderNo);
             } catch (Exception e) {
                 log.error("创建支付订单失败: 订单号={}", orderNo, e);
@@ -600,7 +603,7 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
             ObjectMapper mapper = new ObjectMapper();
             List<TieredPricingItem> tieredPricingList = mapper.readValue(project.getTieredPricing(),
                 mapper.getTypeFactory().constructCollectionType(List.class, TieredPricingItem.class));
-            
+
             vo.setTieredPricingList(tieredPricingList);
 
             // 2. 查询当前销售数量（已支付订单）
@@ -697,6 +700,48 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
 
         public void setNode(Integer node) {
             this.node = node;
+        }
+    }
+
+    /**
+     * 计算当前应该的单价（根据阶梯价格）
+     */
+    private BigDecimal calculateCurrentUnitPrice(SdPresaleProject project) {
+        try {
+            // 1. 检查是否有阶梯价格配置
+            if (StringUtils.isBlank(project.getTieredPricing())) {
+                // 没有阶梯价格配置，使用基础价格
+                return project.getBasePrice();
+            }
+
+            // 2. 解析阶梯价格配置
+            ObjectMapper mapper = new ObjectMapper();
+            List<TieredPricingItem> tieredPricingList = mapper.readValue(project.getTieredPricing(),
+                mapper.getTypeFactory().constructCollectionType(List.class, TieredPricingItem.class));
+
+            if (tieredPricingList.isEmpty()) {
+                return project.getBasePrice();
+            }
+
+            // 3. 查询当前销售数量（已支付订单）
+            LambdaQueryWrapper<SdPresaleOrder> queryWrapper = new LambdaQueryWrapper<>();
+            queryWrapper.eq(SdPresaleOrder::getProjectId, project.getId())
+                       .eq(SdPresaleOrder::getOrderStatus, 2); // 已支付状态
+
+            List<SdPresaleOrder> paidOrders = presaleOrderMapper.selectList(queryWrapper);
+            int totalQuantity = paidOrders.stream()
+                    .mapToInt(SdPresaleOrder::getQuantity)
+                    .sum();
+
+            log.info("[预售项目] 计算阶梯价格: 项目ID={}, 当前销售数量={}", project.getId(), totalQuantity);
+
+            // 4. 计算当前价格
+            return calculateCurrentPrice(totalQuantity, tieredPricingList);
+
+        } catch (Exception e) {
+            log.error("[预售项目] 计算阶梯价格失败: 项目ID={}", project.getId(), e);
+            // 出错时使用基础价格
+            return project.getBasePrice();
         }
     }
 

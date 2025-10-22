@@ -505,22 +505,39 @@ public class SdWebuiApiServiceImpl implements SdWebuiApiService {
             if (StringUtils.isNotBlank(fileName)) {
                 // 将发布的模型放入到云存储目录下/root/cloud/comfyui-lora/
                 Path source = Paths.get(fileName);
-                String modelPath = "/root/cloud/comfyui-lora/" + source.getFileName().toString();
+                String originalFileName = source.getFileName().toString();
+                String tempFileName = originalFileName + ".tmp";
+
+                String modelPath = "/root/cloud/comfyui-lora/" + originalFileName;
+                String tempModelPath = "/root/cloud/comfyui-lora/" + tempFileName;
+
                 Path target = Paths.get(modelPath);
-                log.warn("[模型发布]>>>>>>>>>开始移动模型：{}->{}",fileName,modelPath);
+                Path tempTarget = Paths.get(tempModelPath);
+                log.warn("[模型发布]>>>>>>>>>开始移动模型：{}->{}->{}",fileName,tempModelPath,modelPath);
                 try {
                     // 检查源文件
                     if (!Files.exists(source)) {
                         log.error("[模型发布]>>>>>>>>>源文件不存在: {}", fileName);
                         return;
                     }
-                    Path parentDir = target.getParent();
+                    Path parentDir = tempTarget.getParent();
                     if (parentDir != null && !Files.exists(parentDir)) {
                         Files.createDirectories(parentDir);
                     }
-                    FileUtil.copy(source, target, StandardCopyOption.REPLACE_EXISTING);
+                    // 临时文件
+                    Files.copy(source, tempTarget, StandardCopyOption.REPLACE_EXISTING);
+                    // 复制完成后重命名为正式文件
+                    Files.move(tempTarget, target, StandardCopyOption.REPLACE_EXISTING);
                 }
                 catch (Exception e) {
+                    if (Files.exists(tempTarget)) {
+                        try {
+                            Files.delete(tempTarget);
+                        }
+                        catch (IOException ex) {
+                            log.warn("[模型发布]>>>>>>>>>清理临时文件失败：{}", tempModelPath, ex);
+                        }
+                    }
                     log.error("[模型发布]>>>>>>>>>{}复制到{}异常：", fileName, modelPath, e);
                 }
             }

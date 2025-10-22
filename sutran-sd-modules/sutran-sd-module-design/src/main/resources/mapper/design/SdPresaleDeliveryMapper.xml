@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sutran.sd.design.mapper.SdPresaleDeliveryMapper">
+    
+    <resultMap type="com.sutran.sd.design.domain.SdPresaleDelivery" id="SdPresaleDeliveryResult">
+        <result property="id"    column="id"    />
+        <result property="deliveryNo"    column="delivery_no"    />
+        <result property="projectId"    column="project_id"    />
+        <result property="orderId"    column="order_id"    />
+        <result property="orderNo"    column="order_no"    />
+        <result property="userId"    column="user_id"    />
+        <result property="userName"    column="user_name"    />
+        <result property="productTitle"    column="product_title"    />
+        <result property="quantity"    column="quantity"    />
+        <result property="totalAmount"    column="total_amount"    />
+        <result property="recipientName"    column="recipient_name"    />
+        <result property="recipientPhone"    column="recipient_phone"    />
+        <result property="recipientAddress"    column="recipient_address"    />
+        <result property="trackingNumber"    column="tracking_number"    />
+        <result property="deliveryStatus"    column="delivery_status"    />
+        <result property="deliveryTime"    column="delivery_time"    />
+        <result property="senderUserId"    column="sender_user_id"    />
+        <result property="createBy"    column="create_by"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="updateBy"    column="update_by"    />
+        <result property="updateTime"    column="update_time"    />
+    </resultMap>
+
+    <resultMap type="com.sutran.sd.design.vo.PresaleDeliveryListVO" id="PresaleDeliveryListVOResult">
+        <result property="id"    column="id"    />
+        <result property="deliveryNo"    column="delivery_no"    />
+        <result property="projectId"    column="project_id"    />
+        <result property="projectTitle"    column="project_title"    />
+        <result property="orderId"    column="order_id"    />
+        <result property="orderNo"    column="order_no"    />
+        <result property="userId"    column="user_id"    />
+        <result property="userName"    column="user_name"    />
+        <result property="productTitle"    column="product_title"    />
+        <result property="quantity"    column="quantity"    />
+        <result property="totalAmount"    column="total_amount"    />
+        <result property="recipientName"    column="recipient_name"    />
+        <result property="recipientPhone"    column="recipient_phone"    />
+        <result property="recipientAddress"    column="recipient_address"    />
+        <result property="trackingNumber"    column="tracking_number"    />
+        <result property="deliveryStatus"    column="delivery_status"    />
+        <result property="deliveryStatusText"    column="delivery_status_text"    />
+        <result property="deliveryTime"    column="delivery_time"    />
+        <result property="senderUserId"    column="sender_user_id"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="updateTime"    column="update_time"    />
+    </resultMap>
+
+    <sql id="selectSdPresaleDeliveryVo">
+        select id, delivery_no, project_id, order_id, order_no, user_id, user_name, product_title, 
+               quantity, total_amount, recipient_name, recipient_phone, recipient_address, 
+               tracking_number, delivery_status, delivery_time, sender_user_id, 
+               create_by, create_time, update_by, update_time 
+        from sd_presale_delivery
+    </sql>
+
+    <select id="selectSdPresaleDeliveryList" parameterType="com.sutran.sd.design.domain.SdPresaleDelivery" resultMap="SdPresaleDeliveryResult">
+        <include refid="selectSdPresaleDeliveryVo"/>
+        <where>  
+            <if test="deliveryNo != null  and deliveryNo != ''"> and delivery_no = #{deliveryNo}</if>
+            <if test="projectId != null "> and project_id = #{projectId}</if>
+            <if test="orderId != null "> and order_id = #{orderId}</if>
+            <if test="orderNo != null  and orderNo != ''"> and order_no = #{orderNo}</if>
+            <if test="userId != null "> and user_id = #{userId}</if>
+            <if test="userName != null  and userName != ''"> and user_name like concat('%', #{userName}, '%')</if>
+            <if test="productTitle != null  and productTitle != ''"> and product_title like concat('%', #{productTitle}, '%')</if>
+            <if test="recipientName != null  and recipientName != ''"> and recipient_name like concat('%', #{recipientName}, '%')</if>
+            <if test="recipientPhone != null  and recipientPhone != ''"> and recipient_phone = #{recipientPhone}</if>
+            <if test="trackingNumber != null  and trackingNumber != ''"> and tracking_number = #{trackingNumber}</if>
+            <if test="deliveryStatus != null "> and delivery_status = #{deliveryStatus}</if>
+            <if test="senderUserId != null "> and sender_user_id = #{senderUserId}</if>
+        </where>
+        order by create_time desc
+    </select>
+
+    <select id="selectPageSdPresaleDeliveryList" parameterType="com.sutran.sd.design.domain.SdPresaleDelivery" resultMap="SdPresaleDeliveryResult">
+        <include refid="selectSdPresaleDeliveryVo"/>
+        <where>  
+            <if test="sdPresaleDelivery.deliveryNo != null  and sdPresaleDelivery.deliveryNo != ''"> and delivery_no = #{sdPresaleDelivery.deliveryNo}</if>
+            <if test="sdPresaleDelivery.projectId != null "> and project_id = #{sdPresaleDelivery.projectId}</if>
+            <if test="sdPresaleDelivery.orderId != null "> and order_id = #{sdPresaleDelivery.orderId}</if>
+            <if test="sdPresaleDelivery.orderNo != null  and sdPresaleDelivery.orderNo != ''"> and order_no = #{sdPresaleDelivery.orderNo}</if>
+            <if test="sdPresaleDelivery.userId != null "> and user_id = #{sdPresaleDelivery.userId}</if>
+            <if test="sdPresaleDelivery.userName != null  and sdPresaleDelivery.userName != ''"> and user_name like concat('%', #{sdPresaleDelivery.userName}, '%')</if>
+            <if test="sdPresaleDelivery.productTitle != null  and sdPresaleDelivery.productTitle != ''"> and product_title like concat('%', #{sdPresaleDelivery.productTitle}, '%')</if>
+            <if test="sdPresaleDelivery.recipientName != null  and sdPresaleDelivery.recipientName != ''"> and recipient_name like concat('%', #{sdPresaleDelivery.recipientName}, '%')</if>
+            <if test="sdPresaleDelivery.recipientPhone != null  and sdPresaleDelivery.recipientPhone != ''"> and recipient_phone = #{sdPresaleDelivery.recipientPhone}</if>
+            <if test="sdPresaleDelivery.trackingNumber != null  and sdPresaleDelivery.trackingNumber != ''"> and tracking_number = #{sdPresaleDelivery.trackingNumber}</if>
+            <if test="sdPresaleDelivery.deliveryStatus != null "> and delivery_status = #{sdPresaleDelivery.deliveryStatus}</if>
+            <if test="sdPresaleDelivery.senderUserId != null "> and sender_user_id = #{sdPresaleDelivery.senderUserId}</if>
+        </where>
+        order by create_time desc
+    </select>
+
+    <select id="selectByDeliveryNo" parameterType="String" resultMap="SdPresaleDeliveryResult">
+        <include refid="selectSdPresaleDeliveryVo"/>
+        where delivery_no = #{deliveryNo}
+    </select>
+
+    <select id="selectByOrderNo" parameterType="String" resultMap="SdPresaleDeliveryResult">
+        <include refid="selectSdPresaleDeliveryVo"/>
+        where order_no = #{orderNo}
+        order by create_time desc
+    </select>
+
+    <select id="selectProjectDeliveryList" resultMap="PresaleDeliveryListVOResult">
+        select d.id, d.delivery_no, d.project_id, p.title as project_title, d.order_id, d.order_no, 
+               d.user_id, d.user_name, d.product_title, d.quantity, d.total_amount,
+               d.recipient_name, d.recipient_phone, d.recipient_address, d.tracking_number, d.delivery_status,
+               case d.delivery_status 
+                   when 1 then '待发货'
+                   when 2 then '已发货'
+                   else '未知状态'
+               end as delivery_status_text,
+               d.delivery_time, d.sender_user_id, d.create_time, d.update_time
+        from sd_presale_delivery d
+        left join sd_presale_project p on d.project_id = p.id
+        where d.project_id = #{projectId}
+        order by d.create_time desc
+    </select>
+
+    <select id="selectUserDeliveryList" resultMap="PresaleDeliveryListVOResult">
+        select d.id, d.delivery_no, d.project_id, p.title as project_title, d.order_id, d.order_no, 
+               d.user_id, d.user_name, d.product_title, d.quantity, d.total_amount,
+               d.recipient_name, d.recipient_phone, d.recipient_address, d.tracking_number, d.delivery_status,
+               case d.delivery_status 
+                   when 1 then '待发货'
+                   when 2 then '已发货'
+                   else '未知状态'
+               end as delivery_status_text,
+               d.delivery_time, d.sender_user_id, d.create_time, d.update_time
+        from sd_presale_delivery d
+        left join sd_presale_project p on d.project_id = p.id
+        where d.user_id = #{userId}
+        order by d.create_time desc
+    </select>
+
+    <select id="selectSenderDeliveryList" resultMap="PresaleDeliveryListVOResult">
+        select d.id, d.delivery_no, d.project_id, p.title as project_title, d.order_id, d.order_no, 
+               d.user_id, d.user_name, d.product_title, d.quantity, d.total_amount,
+               d.recipient_name, d.recipient_phone, d.recipient_address, d.tracking_number, d.delivery_status,
+               case d.delivery_status 
+                   when 1 then '待发货'
+                   when 2 then '已发货'
+                   else '未知状态'
+               end as delivery_status_text,
+               d.delivery_time, d.sender_user_id, d.create_time, d.update_time
+        from sd_presale_delivery d
+        left join sd_presale_project p on d.project_id = p.id
+        where d.sender_user_id = #{senderUserId}
+        order by d.create_time desc
+    </select>
+
+    <select id="countProjectDelivery" resultType="int">
+        select count(1) from sd_presale_delivery where project_id = #{projectId}
+    </select>
+
+    <select id="countUserDelivery" resultType="int">
+        select count(1) from sd_presale_delivery where user_id = #{userId}
+    </select>
+
+</mapper>

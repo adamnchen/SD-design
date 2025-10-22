@@ -207,6 +207,9 @@ public class PayOrderServiceImpl implements PayOrderService {
                 if (BusinessType.PROOF_CROWDFUND.name().equals(order.getBusinessType())) {
                     basePayNotifyServiceMap.get(PayNotifyServer.PROOF_CROWDFUND_NOTIFY).dealPayTimeoutData(vo);
                 }
+                if (BusinessType.PRESALE.name().equals(order.getBusinessType())) {
+                    basePayNotifyServiceMap.get(PayNotifyServer.PRESALE_ORDER_NOTIFY).dealPayTimeoutData(vo);
+                }
                 RedisUtils.delCacheZSet(PAY_ORDER_TASK,outTradeNo);
             }
             else {
@@ -219,6 +222,9 @@ public class PayOrderServiceImpl implements PayOrderService {
                 }
                 if (BusinessType.PROOF_CROWDFUND.name().equals(order.getBusinessType())) {
                     basePayNotifyServiceMap.get(PayNotifyServer.PROOF_CROWDFUND_NOTIFY).dealPayTimeoutData(vo);
+                }
+                if (BusinessType.PRESALE.name().equals(order.getBusinessType())) {
+                    basePayNotifyServiceMap.get(PayNotifyServer.PRESALE_ORDER_NOTIFY).dealPayTimeoutData(vo);
                 }
                 RedisUtils.delCacheZSet(PAY_ORDER_TASK,outTradeNo);
             }

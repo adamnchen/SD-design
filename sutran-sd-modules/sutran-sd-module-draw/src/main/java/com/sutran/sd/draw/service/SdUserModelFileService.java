@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.sutran.sd.common.core.domain.PageQuery;
 import com.sutran.sd.common.core.page.TableDataInfo;
 import com.sutran.sd.draw.domain.dto.SdUserModelFilePageDto;
+import com.sutran.sd.draw.domain.vo.ComfyUserModelFileVo;
 import com.sutran.sd.draw.domain.vo.SdApiResult;
 import com.sutran.sd.draw.domain.vo.SdUserModelFileVo;
 import com.sutran.sd.draw.domain.vo.SdUserTaskVo;
@@ -94,4 +95,11 @@ public interface SdUserModelFileService {
      * @return            模型测试数据和任务信息
      */
     List<JSONObject> selectModelTestDataAndTaskInfo(String loraModelId);
+
+    /**
+     * 查询指定任务的生图列表
+     * @param taskId 任务id
+     * @return 任务详情
+     */
+    List<ComfyUserModelFileVo> getComfyImageOutputByTaskId(String taskId);
 }

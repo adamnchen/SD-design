@@ -12,11 +12,7 @@ import com.sutran.sd.draw.domain.bo.ComfyModelTaskSubmitBo;
 import com.sutran.sd.draw.domain.dto.img2img.SdImg2ImgDto;
 import com.sutran.sd.draw.domain.dto.task.SdUserTaskPageDto;
 import com.sutran.sd.draw.domain.dto.txt2img.SdText2ImgDto;
-import com.sutran.sd.draw.domain.pojo.ComfyTaskHistoryInfo;
-import com.sutran.sd.draw.domain.vo.ComfyuiImageToolVo;
-import com.sutran.sd.draw.domain.vo.SdUserModelFileVo;
-import com.sutran.sd.draw.domain.vo.SdUserTaskVo;
-import com.sutran.sd.draw.domain.vo.SdWebuiProgressVo;
+import com.sutran.sd.draw.domain.vo.*;
 import com.sutran.sd.draw.service.SdComfyuiApiService;
 import com.sutran.sd.draw.service.SdDrawNodeService;
 import com.sutran.sd.draw.service.SdUserModelService;
@@ -205,13 +201,13 @@ public class SdApiController {
     }
 
     /**
-     * [ComfyUI]获取指定生图任务详情
+     * [ComfyUI]查询指定任务的生图列表
      * @param taskId 任务ID[必填]
      * @return 任务详情
      */
     @GetMapping("/comfy/model/history-task")
-    public R<ComfyTaskHistoryInfo> getComfyModelHistoryTask(@RequestParam String taskId) {
-        return R.ok(sdComfyuiApiService.getComfyModelHistoryTask(taskId));
+    public R<List<ComfyUserModelFileVo>> getComfyModelHistoryTask(@RequestParam String taskId) {
+        return R.ok(sdComfyuiApiService.getComfyImageOutputByTaskId(taskId));
     }
 
     /**

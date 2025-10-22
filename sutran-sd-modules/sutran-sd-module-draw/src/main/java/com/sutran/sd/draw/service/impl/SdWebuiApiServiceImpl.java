@@ -496,17 +496,16 @@ public class SdWebuiApiServiceImpl implements SdWebuiApiService {
     public void publishModel(String id, Integer publishStatus, String modelStrength) {
         // 获取模型对应的用户的openId和手机号
         JSONObject info = sdUserModelService.selectUserOpenIdAndPhoneById(id);
-        if (info == null) {
+        if (info == null || CollectionUtil.isEmpty(info)) {
             return;
         }
-        // isUserDel目前其实并没有使用到
-        sdUserModelService.publishModel(id,publishStatus,Objects.equals(LoginHelper.getUserId(), info.getLong("userId"))?1:0,modelStrength);
-        if (publishStatus==1 && CollectionUtil.isNotEmpty(info)) {
+        // 发布要先移动模型->然后再修改数据库状态->发送微信公众号通知
+        if (publishStatus==1) {
             String fileName = info.getString("fileName");
             if (StringUtils.isNotBlank(fileName)) {
                 // 将发布的模型放入到云存储目录下/root/cloud/comfyui-lora/
-                String modelName = fileName.replace("/home/comfyui/models/Lora/","");
-                String modelPath = "/root/cloud/comfyui-lora/"+modelName;
+                String modelName = fileName.replace("/home/comfyui/models/Lora/", "");
+                String modelPath = "/root/cloud/comfyui-lora/" + modelName;
                 try {
                     Path source = Paths.get(fileName);
                     Path target = Paths.get(modelPath);
@@ -515,11 +514,14 @@ public class SdWebuiApiServiceImpl implements SdWebuiApiService {
                         Files.createDirectories(parentDir);
                     }
                     FileUtils.copy(source, target, StandardCopyOption.REPLACE_EXISTING);
-                }
-                catch (Exception e) {
-                    log.error("[模型发布]>>>>>>>>>{}复制到{}异常：",fileName,modelPath,e);
+                } catch (Exception e) {
+                    log.error("[模型发布]>>>>>>>>>{}复制到{}异常：", fileName, modelPath, e);
                 }
             }
+        }
+        // isUserDel目前其实并没有使用到
+        sdUserModelService.publishModel(id,publishStatus,Objects.equals(LoginHelper.getUserId(), info.getLong("userId"))?1:0,modelStrength);
+        if (publishStatus==1) {
             // 发送完成消息
             JSONObject wxMsg = new JSONObject();
             wxMsg.put("modelId",id);

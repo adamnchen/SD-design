@@ -504,17 +504,23 @@ public class SdWebuiApiServiceImpl implements SdWebuiApiService {
             String fileName = info.getString("fileName");
             if (StringUtils.isNotBlank(fileName)) {
                 // 将发布的模型放入到云存储目录下/root/cloud/comfyui-lora/
-                String modelName = fileName.replace("/home/comfyui/models/Lora/", "");
-                String modelPath = "/root/cloud/comfyui-lora/" + modelName;
+                Path source = Paths.get(fileName);
+                String modelPath = "/root/cloud/comfyui-lora/" + source.getFileName().toString();
+                Path target = Paths.get(modelPath);
+                log.warn("[模型发布]>>>>>>>>>开始移动模型：{}->{}",fileName,modelPath);
                 try {
-                    Path source = Paths.get(fileName);
-                    Path target = Paths.get(modelPath);
+                    // 检查源文件
+                    if (!Files.exists(source)) {
+                        log.error("[模型发布]>>>>>>>>>源文件不存在: {}", fileName);
+                        return;
+                    }
                     Path parentDir = target.getParent();
                     if (parentDir != null && !Files.exists(parentDir)) {
                         Files.createDirectories(parentDir);
                     }
-                    FileUtils.copy(source, target, StandardCopyOption.REPLACE_EXISTING);
-                } catch (Exception e) {
+                    FileUtil.copy(source, target, StandardCopyOption.REPLACE_EXISTING);
+                }
+                catch (Exception e) {
                     log.error("[模型发布]>>>>>>>>>{}复制到{}异常：", fileName, modelPath, e);
                 }
             }

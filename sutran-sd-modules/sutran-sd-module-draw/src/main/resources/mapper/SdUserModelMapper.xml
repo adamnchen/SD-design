@@ -55,21 +55,12 @@
         ON DUPLICATE KEY UPDATE title=VALUES(title),model_name=VALUES(model_name),file_name=VALUES(file_name),config=VALUES(config)
     </insert>
 
-    <insert id="shareModel">
-        INSERT IGNORE INTO sd_user_model_share (model_id, user_id, crt_user_id, crt_time)
-        VALUES (#{dto.modelId},#{dto.toShareUserId},#{userId},#{crtTime})
-    </insert>
-
     <update id="publishModel">
         UPDATE sd_user_model
         SET publish_status=#{publishStatus}
           <if test="isUserDel!=null">,is_user_del=#{isUserDel}</if>
           <if test="modelStrength!='' and modelStrength!=null">,model_strength=#{modelStrength}</if>
         WHERE id=#{id}
-    </update>
-
-    <update id="modifyModelStrength">
-        UPDATE sd_user_model SET model_strength=#{modelStrength} WHERE id=#{id}
     </update>
 
     <select id="selectAllList" resultMap="BaseModelVo">
@@ -138,27 +129,6 @@
         FROM sd_user_model
         WHERE id IN <foreach collection="ids" open="(" item="id" separator="," close=")">#{id}</foreach>
     </select>
-
-    <select id="selectHashList" resultType="java.lang.String">
-        SELECT DISTINCT hash FROM sd_user_model
-    </select>
-
-    <!-- 发布/取消发布 时获取模型拥有者进行消息通知 -->
-    <select id="selectUserOpenIdAndPhoneById" resultType="com.alibaba.fastjson.JSONObject">
-        SELECT DISTINCT B.wx_open_id AS wxOpenId,B.phonenumber,B.user_id AS userId
-        FROM sd_user_model AS A,sys_user AS B
-        WHERE A.belong_user_id=B.user_id AND A.id=#{id}
-    </select>
-
-    <!-- 根据任务获取模型信息 -->
-    <select id="selectLoraModelNameByTaskId" resultType="com.alibaba.fastjson.JSONObject">
-        SELECT DISTINCT B.model_name_zh AS modelNameZh,DATE_FORMAT(C.crt_time,'%Y-%m-%d %H:%i:%s') AS startTime,DATE_FORMAT(C.upd_time,'%Y-%m-%d %H:%i:%s') AS endTime
-        FROM sd_user_model_file AS A
-            LEFT JOIN sd_user_model AS B ON A.lora_model_id=B.id
-            LEFT JOIN sd_user_task AS C ON A.task_id=C.task_id
-        WHERE A.task_id=#{taskId}
-    </select>
-
 
     <!-- 获取ComfyUI最近使用的n个模型列表 -->
     <select id="getLatestModelInfoOfComfyui" resultMap="BaseComfyuiModelVo">

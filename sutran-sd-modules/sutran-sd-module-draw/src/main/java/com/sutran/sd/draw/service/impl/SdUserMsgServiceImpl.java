@@ -305,9 +305,9 @@ public class SdUserMsgServiceImpl implements SdUserMsgService {
         if (model!=null) {
             wxMsg.setTemplateId(publishTemplateId);
             wxMsg.addData(new WxMpTemplateData("thing7", "模型发布成功"));
-            String modelName = model.getModelNameZh().substring(0, model.getModelNameZh().lastIndexOf("-"));
-            modelName = modelName.length()>9?modelName.substring(0,6)+"...":modelName;
-            wxMsg.addData(new WxMpTemplateData("thing12", "您训练的模型"+modelName+"已审核发布"));
+            String modelName = model.getModelNameZh().contains("-")?model.getModelNameZh().substring(0, model.getModelNameZh().lastIndexOf("-")):model.getModelNameZh();
+            modelName = modelName.length()>11?modelName.substring(0,11)+"...":modelName;
+            wxMsg.addData(new WxMpTemplateData("thing12", "模型["+modelName+"]已审核发布"));
             wxMsg.setToUser(wxOpenId);
             try{
                 if (StrUtil.isNotEmpty(wxOpenId)) {
@@ -320,7 +320,7 @@ public class SdUserMsgServiceImpl implements SdUserMsgService {
             SdUserMsg userMsg = new SdUserMsg().setId(IdUtil.getSnowflakeNextIdStr()).setCrtTime(new Date()).setIsRead(0)
                 .setUserId(userId).setWxOpenId(wxOpenId).setTemplateId(publishTemplateId)
                 .setTitle("模型发布成功").setMsgBody(JSONObject.toJSONString(wxMsg))
-                .setMsgContent("您训练的模型"+modelName+"已完成审核并发布!");
+                .setMsgContent("您训练的模型["+modelName+"]已完成审核并发布!");
             try{
                 baseMapper.insert(userMsg);
             }

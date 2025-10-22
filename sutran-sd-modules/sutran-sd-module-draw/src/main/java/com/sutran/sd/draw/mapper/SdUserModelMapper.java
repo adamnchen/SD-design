@@ -10,10 +10,7 @@ import com.sutran.sd.draw.domain.dto.model.SdUserModelShareDto;
 import com.sutran.sd.draw.domain.SdUserModel;
 import com.sutran.sd.draw.domain.vo.ComfyUserModelVo;
 import com.sutran.sd.draw.domain.vo.SdUserModelVo;
-import org.apache.ibatis.annotations.Delete;
-import org.apache.ibatis.annotations.Mapper;
-import org.apache.ibatis.annotations.Param;
-import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.*;
 
 import java.util.Date;
 import java.util.List;
@@ -38,20 +35,40 @@ public interface SdUserModelMapper extends BaseMapperPlus<SdUserModelMapper, SdU
 
     void publishModel(@Param("id") String id, @Param("publishStatus") Integer publishStatus, @Param("isUserDel") Integer isUserDel, @Param("modelStrength") String modelStrength);
 
+    @Update("UPDATE sd_user_model SET model_strength=#{modelStrength} WHERE id=#{id}")
     void modifyModelStrength(@Param("id") String id, @Param("modelStrength") String modelStrength);
 
     List<JSONObject> selectInfosByIds(@Param("ids") Set<String> ids);
 
+    @Select("SELECT DISTINCT hash FROM sd_user_model")
     List<String> selectHashList();
 
+    /**
+     * 获取模型归属人的openId、手机号、用户ID、模型路径
+     * @param id    任务ID
+     * @return 数据
+     */
     @Select("SELECT DISTINCT B.wx_open_id AS wxOpenId,B.phonenumber,B.user_id AS userId,A.file_name AS fileName FROM sd_user_model AS A,sys_user AS B WHERE A.belong_user_id=B.user_id AND A.id=#{id}")
     JSONObject selectUserOpenIdAndPhoneById(@Param("id") String id);
 
+    @Select("SELECT DISTINCT B.model_name_zh AS modelNameZh,DATE_FORMAT(C.crt_time,'%Y-%m-%d %H:%i:%s') AS startTime,DATE_FORMAT(C.upd_time,'%Y-%m-%d %H:%i:%s') AS endTime FROM sd_user_model_file AS A LEFT JOIN sd_user_model AS B ON A.lora_model_id=B.id LEFT JOIN sd_user_task AS C ON A.task_id=C.task_id WHERE A.task_id=#{taskId}")
     JSONObject selectLoraModelNameByTaskId(@Param("taskId") String taskId);
 
+    /**
+     * 删除分享给指定人的指定模型
+     * @param modelId   模型ID
+     * @param userId    用户ID
+     */
     @Delete("DELETE FROM sd_user_model_share WHERE model_id=#{modelId} AND user_id=#{userId}")
     void removeShareModelById(@Param("modelId") String modelId, @Param("userId") Long userId);
 
+    /**
+     * 分享模型
+     * @param dto       分享参数实体
+     * @param userId    模型拥有者userId
+     * @param crtTime   分享时间
+     */
+    @Insert("INSERT IGNORE INTO sd_user_model_share (model_id, user_id, crt_user_id, crt_time) VALUES (#{dto.modelId},#{dto.toShareUserId},#{userId},#{crtTime})")
     void shareModel(@Param("dto") SdUserModelShareDto dto, @Param("userId") Long userId, @Param("crtTime") Date crtTime);
 
     /**

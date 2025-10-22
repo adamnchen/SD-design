@@ -20,6 +20,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.*;
+import java.util.stream.Stream;
 
 /**
  * 文件处理工具类
@@ -309,6 +310,38 @@ public class FileUtils extends FileUtil {
             file.deleteOnExit();
         }
         catch (Exception ignored) {}
+    }
+
+    /**
+     * 使用Stream API删除目录（Java 8+）
+     * @param directoryPath 目录路径
+     * @return 删除成功返回true，否则返回false
+     */
+    public static boolean deleteDirectory(String directoryPath) {
+        Path directory = Paths.get(directoryPath);
+        if (!Files.exists(directory) || !Files.isDirectory(directory)) {
+            log.error("目录不存在或不是目录: {}", directoryPath);
+            return false;
+        }
+
+        try (Stream<Path> pathStream = Files.walk(directory)) {
+            // 按反向顺序删除（先文件后目录）
+            pathStream.sorted(Comparator.reverseOrder())
+                .forEach(path -> {
+                    try {
+                        Files.delete(path);
+                    } catch (IOException e) {
+                        log.error("删除文件失败: {} - {}", path, e.getMessage(), e);
+                    }
+                });
+
+            return true;
+
+        }
+        catch (IOException e) {
+            log.error("删除目录时发生错误: {} - {}", directoryPath, e.getMessage(), e);
+            return false;
+        }
     }
 
     /**

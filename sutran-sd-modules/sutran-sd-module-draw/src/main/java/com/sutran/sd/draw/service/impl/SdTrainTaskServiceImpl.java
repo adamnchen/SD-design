@@ -239,5 +239,10 @@ public class SdTrainTaskServiceImpl implements SdTrainTaskService {
         baseMapper.failFluxgymTrainTask(taskId,message,endTime);
     }
 
+    @Override
+    public int selectTrainImageNumById(String taskId) {
+        return baseMapper.selectTrainImageNumById(taskId);
+    }
+
 
 }

@@ -59,6 +59,10 @@ import org.springframework.transaction.annotation.Transactional;
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletResponse;
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -332,7 +336,26 @@ public class SdWebuiApiServiceImpl implements SdWebuiApiService {
         TableDataInfo<SdUserModelVo> info = sdUserModelService.listLoraModelsInTaskAndTrainData(dto);
         if (CollectionUtil.isNotEmpty(info.getRows())) {
             for (SdUserModelVo vo : info.getRows()) {
-                vo.setConfig(JSONObject.parseObject(String.valueOf(vo.getConfig()), SdLoraModelVo.MetadataVo.class));
+                if (vo.getConfig()==null && StringUtils.isNotBlank(vo.getTaskId())) {
+                    // 获取任务对应的训练图片数量
+                    int imgNum = sdTrainTaskService.selectTrainImageNumById(vo.getTaskId());
+                    JSONObject zkz = new JSONObject();
+                    zkz.put("img_count",imgNum);
+                    zkz.put("n_repeats",imgNum);
+                    JSONObject ssDatasetDirs = new JSONObject();
+                    ssDatasetDirs.put("20_zkz",zkz);
+
+                    JSONObject ssTagFrequency = new JSONObject();
+                    ssTagFrequency.put("20_zkz",new JSONObject());
+
+                    JSONObject config = new JSONObject();
+                    config.put("ss_dataset_dirs",ssDatasetDirs);
+                    config.put("ss_tag_frequency",ssTagFrequency);
+                    vo.setConfig(config);
+                }
+                else {
+                    vo.setConfig(JSONObject.parseObject(String.valueOf(vo.getConfig()), SdLoraModelVo.MetadataVo.class));
+                }
                 // 获取xyz测试数据集
                 List<JSONObject> taskList = sdUserModelFileService.selectModelTestDataAndTaskInfo(vo.getId());
                 vo.setTaskList(taskList);
@@ -479,6 +502,24 @@ public class SdWebuiApiServiceImpl implements SdWebuiApiService {
         // isUserDel目前其实并没有使用到
         sdUserModelService.publishModel(id,publishStatus,Objects.equals(LoginHelper.getUserId(), info.getLong("userId"))?1:0,modelStrength);
         if (publishStatus==1 && CollectionUtil.isNotEmpty(info)) {
+            String fileName = info.getString("fileName");
+            if (StringUtils.isNotBlank(fileName)) {
+                // 将发布的模型放入到云存储目录下/root/cloud/comfyui-lora/
+                String modelName = fileName.replace("/home/comfyui/models/Lora/","");
+                String modelPath = "/root/cloud/comfyui-lora/"+modelName;
+                try {
+                    Path source = Paths.get(fileName);
+                    Path target = Paths.get(modelPath);
+                    Path parentDir = target.getParent();
+                    if (parentDir != null && !Files.exists(parentDir)) {
+                        Files.createDirectories(parentDir);
+                    }
+                    FileUtils.copy(source, target, StandardCopyOption.REPLACE_EXISTING);
+                }
+                catch (Exception e) {
+                    log.error("[模型发布]>>>>>>>>>{}复制到{}异常：",fileName,modelPath,e);
+                }
+            }
             // 发送完成消息
             JSONObject wxMsg = new JSONObject();
             wxMsg.put("modelId",id);

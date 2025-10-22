@@ -13,6 +13,7 @@ import com.sutran.sd.draw.domain.vo.SdUserModelVo;
 import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Select;
 
 import java.util.Date;
 import java.util.List;
@@ -43,6 +44,7 @@ public interface SdUserModelMapper extends BaseMapperPlus<SdUserModelMapper, SdU
 
     List<String> selectHashList();
 
+    @Select("SELECT DISTINCT B.wx_open_id AS wxOpenId,B.phonenumber,B.user_id AS userId,A.file_name AS fileName FROM sd_user_model AS A,sys_user AS B WHERE A.belong_user_id=B.user_id AND A.id=#{id}")
     JSONObject selectUserOpenIdAndPhoneById(@Param("id") String id);
 
     JSONObject selectLoraModelNameByTaskId(@Param("taskId") String taskId);

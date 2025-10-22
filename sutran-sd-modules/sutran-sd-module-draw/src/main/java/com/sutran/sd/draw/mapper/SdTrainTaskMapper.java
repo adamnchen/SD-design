@@ -5,6 +5,7 @@ import com.sutran.sd.common.core.mapper.BaseMapperPlus;
 import com.sutran.sd.draw.domain.SdTrainTask;
 import com.sutran.sd.draw.domain.vo.TrainTaskStatusVo;
 import org.apache.ibatis.annotations.*;
+import org.apache.ibatis.annotations.Param;
 
 import java.util.Date;
 
@@ -197,7 +198,8 @@ public interface SdTrainTaskMapper extends BaseMapperPlus<SdTrainTaskMapper, SdT
       * @param taskId 训练任务ID
       * @return 节点URL
       */
-    @Select("SELECT B.base_url AS baseUrl,A.node_id AS nodeId,A.pre_params AS preParams,A.new_status AS status FROM sd_train_task AS A INNER JOIN sd_draw_node AS B ON A.node_id=B.id WHERE A.id=#{taskId}")
+    @Select("SELECT B.base_url AS baseUrl,A.node_id AS nodeId,A.pre_params AS preParams,A.new_status AS status,A.crt_user_id AS crtUserId,A.crt_user_name AS crtUserName,DATE_FORMAT(A.start_time,'%Y-%m-%d %H:%i:%s') AS startTime,DATE_FORMAT(A.end_time,'%Y-%m-%d %H:%i:%s') AS endTime " +
+        "FROM sd_train_task AS A INNER JOIN sd_draw_node AS B ON A.node_id=B.id WHERE A.id=#{taskId}")
     JSONObject selectNodeBaseUrlAndStatusByTaskId(@Param("taskId") String taskId);
 
      /**
@@ -216,4 +218,12 @@ public interface SdTrainTaskMapper extends BaseMapperPlus<SdTrainTaskMapper, SdT
       */
     @Update("UPDATE sd_train_task SET new_status=6,reason=#{message},end_time=#{endTime} WHERE id=#{taskId}")
     void failFluxgymTrainTask(@Param("taskId") String taskId, @Param("message") String message, @Param("endTime") Date endTime);
+
+     /**
+      * 查询训练任务训练图片数量
+      * @param taskId 训练任务ID
+      * @return 训练图片数量
+      */
+    @Select("SELECT img_num FROM sd_train_task WHERE id=#{taskId}")
+    int selectTrainImageNumById(@Param("taskId") String taskId);
 }

@@ -1,5 +1,6 @@
 package com.sutran.sd.controller.design;
 
+import cn.dev33.satoken.annotation.SaIgnore;
 import com.ijpay.alipay.AliPayApiConfig;
 import com.sutran.sd.common.core.controller.BaseController;
 import com.sutran.sd.common.core.domain.PageQuery;
@@ -89,7 +90,7 @@ public class PresaleController extends BaseAliPayApiController {
     @Operation(summary = "获取预售项目列表（分页）", description = "分页获取所有销售中的预售项目列表")
     @GetMapping("/projects/page")
     public R<TableDataInfo<com.sutran.sd.design.vo.PresaleProjectListVO>> getProjectsPage(PageQuery pageQuery) {
-        return presaleProjectService.getPresaleProjectListPage(pageQuery);
+        return R.ok(presaleProjectService.getPresaleProjectListPage(pageQuery));
     }
 
     /**
@@ -107,7 +108,7 @@ public class PresaleController extends BaseAliPayApiController {
     @Operation(summary = "获取厂家预售项目（分页）", description = "分页获取当前厂家参与的预售项目列表")
     @GetMapping("/manufacturer/projects/page")
     public R<TableDataInfo<com.sutran.sd.design.vo.PresaleProjectListVO>> getManufacturerProjectsPage(PageQuery pageQuery) {
-        return presaleProjectService.getManufacturerPresaleProjectsPage(pageQuery);
+        return R.ok(presaleProjectService.getManufacturerPresaleProjectsPage(pageQuery));
     }
 
     /**
@@ -125,7 +126,7 @@ public class PresaleController extends BaseAliPayApiController {
     @Operation(summary = "获取发起人预售项目（分页）", description = "分页获取当前发起人的预售项目列表")
     @GetMapping("/creator/projects/initiate/page")
     public R<TableDataInfo<com.sutran.sd.design.vo.PresaleProjectListVO>> getCreatorProjectsPage(PageQuery pageQuery) {
-        return presaleProjectService.getCreatorPresaleProjectsPage(pageQuery);
+        return R.ok(presaleProjectService.getCreatorPresaleProjectsPage(pageQuery));
     }
 
     /**
@@ -143,7 +144,7 @@ public class PresaleController extends BaseAliPayApiController {
     @Operation(summary = "获取我购买的预售项目（分页）", description = "分页获取我购买的预售项目列表")
     @GetMapping("/creator/projects/purchase/page")
     public R<TableDataInfo<com.sutran.sd.design.vo.PresaleProjectListVO>> getBuyerProjectsPage(PageQuery pageQuery) {
-        return presaleProjectService.getBuyerPresaleProjectsPage(pageQuery);
+        return R.ok(presaleProjectService.getBuyerPresaleProjectsPage(pageQuery));
     }
 
     /**
@@ -165,12 +166,21 @@ public class PresaleController extends BaseAliPayApiController {
     }
 
     /**
-     * 获取我的订单列表（分页）
+     * 获取我的预售订单列表（分页）
      */
-    @Operation(summary = "获取我的订单列表（分页）", description = "分页获取当前用户的预售订单列表")
+    @Operation(summary = "获取我的预售订单列表（分页）", description = "分页获取当前用户的所有预售订单")
     @GetMapping("/orders/page")
-    public R<TableDataInfo<PresaleOrderListVO>> getMyOrdersPage(PageQuery pageQuery) {
-        return presaleProjectService.getMyPresaleOrdersPage(pageQuery);
+    public R<TableDataInfo<PresaleOrderListVO>> getMyPresaleOrdersPage(PageQuery pageQuery) {
+        return R.ok(presaleProjectService.getMyPresaleOrdersPage(pageQuery));
+    }
+
+    /**
+     * 获取预售项目的订单列表（分页）- 发货用
+     */
+    @Operation(summary = "获取预售项目订单列表（分页）", description = "分页获取指定预售项目的订单列表，用于发货管理")
+    @GetMapping("/orders/page/{id}")
+    public R<TableDataInfo<PresaleOrderListVO>> getProjectOrdersPage(@PathVariable("id") Long projectId, PageQuery pageQuery) {
+        return R.ok(presaleProjectService.getProjectPresaleOrdersPage(projectId, pageQuery));
     }
 
     /**
@@ -219,8 +229,9 @@ public class PresaleController extends BaseAliPayApiController {
      * 支付宝支付成功回调
      */
     @PostMapping("/payment/alipay/notify")
+    @SaIgnore
     public String alipayNotify(HttpServletRequest request) {
-        return payNotifyServiceMap.get(PayNotifyServer.PRESALE_ORDER_NOTIFY).handleNotify(request, aliPayService.getConfig().getAppId());
+        return payNotifyServiceMap.get(PayNotifyServer.PRESALE_ORDER_NOTIFY).handleNotify(request, aliPayConfig.getAliPayCertPath());
     }
 
 }

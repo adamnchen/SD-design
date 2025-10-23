@@ -92,7 +92,7 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
     }
 
     @Override
-    public R<TableDataInfo<PresaleProjectListVO>> getPresaleProjectListPage(PageQuery pageQuery) {
+    public TableDataInfo<PresaleProjectListVO> getPresaleProjectListPage(PageQuery pageQuery) {
         log.info("获取预售项目列表（分页）");
 
         // 使用多表联查获取预售项目列表
@@ -104,10 +104,7 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
                 .map(this::convertToProjectListVO)
                 .collect(Collectors.toList());
 
-        TableDataInfo<PresaleProjectListVO> tableDataInfo = new TableDataInfo<>();
-        tableDataInfo.setRows(voList);
-        tableDataInfo.setTotal(result.getTotal());
-        return R.ok(tableDataInfo);
+        return new TableDataInfo<>(voList, result.getTotal());
     }
 
     @Override
@@ -144,7 +141,7 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
     }
 
     @Override
-    public R<TableDataInfo<PresaleProjectListVO>> getManufacturerPresaleProjectsPage(PageQuery pageQuery) {
+    public TableDataInfo<PresaleProjectListVO> getManufacturerPresaleProjectsPage(PageQuery pageQuery) {
         log.info("获取厂家参与的预售项目列表（分页）");
 
         Long currentUserId = LoginHelper.getUserId();
@@ -155,10 +152,7 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
                 .map(this::convertToProjectListVO)
                 .collect(Collectors.toList());
 
-        TableDataInfo<PresaleProjectListVO> tableDataInfo = new TableDataInfo<>();
-        tableDataInfo.setRows(voList);
-        tableDataInfo.setTotal(result.getTotal());
-        return R.ok(tableDataInfo);
+        return new TableDataInfo<>(voList, result.getTotal());
     }
 
     @Override
@@ -177,7 +171,7 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
     }
 
     @Override
-    public R<TableDataInfo<PresaleProjectListVO>> getCreatorPresaleProjectsPage(PageQuery pageQuery) {
+    public TableDataInfo<PresaleProjectListVO> getCreatorPresaleProjectsPage(PageQuery pageQuery) {
         log.info("获取发起人的预售项目列表（分页）");
 
         Long currentUserId = LoginHelper.getUserId();
@@ -188,10 +182,7 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
                 .map(this::convertToProjectListVO)
                 .collect(Collectors.toList());
 
-        TableDataInfo<PresaleProjectListVO> tableDataInfo = new TableDataInfo<>();
-        tableDataInfo.setRows(voList);
-        tableDataInfo.setTotal(result.getTotal());
-        return R.ok(tableDataInfo);
+        return new TableDataInfo<>(voList, result.getTotal());
     }
     @Override
     public R<List<PresaleProjectListVO>> getBuyerPresaleProjects() {
@@ -209,7 +200,7 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
     }
 
     @Override
-    public R<TableDataInfo<PresaleProjectListVO>> getBuyerPresaleProjectsPage(PageQuery pageQuery) {
+    public TableDataInfo<PresaleProjectListVO> getBuyerPresaleProjectsPage(PageQuery pageQuery) {
         log.info("获取买家购买的预售项目列表（分页）");
 
         Long currentUserId = LoginHelper.getUserId();
@@ -257,10 +248,7 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
                 .map(this::convertToProjectListVO)
                 .collect(Collectors.toList());
 
-        TableDataInfo<PresaleProjectListVO> tableDataInfo = new TableDataInfo<>();
-        tableDataInfo.setRows(voList);
-        tableDataInfo.setTotal(result.getTotal());
-        return R.ok(tableDataInfo);
+        return new TableDataInfo<>(voList, result.getTotal());
     }
 
     @Override
@@ -362,31 +350,54 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
     }
 
     @Override
-    public R<TableDataInfo<PresaleOrderListVO>> getMyPresaleOrdersPage(PageQuery pageQuery) {
+    public TableDataInfo<PresaleOrderListVO> getMyPresaleOrdersPage(PageQuery pageQuery) {
         log.info("获取我的预售订单列表（分页）");
 
-        try {
-            Long currentUserId = LoginHelper.getUserId();
-            Page<SdPresaleOrder> page = pageQuery.build();
+        Long currentUserId = LoginHelper.getUserId();
+        Page<SdPresaleOrder> page = pageQuery.build();
 
-            LambdaQueryWrapper<SdPresaleOrder> queryWrapper = new LambdaQueryWrapper<>();
-            queryWrapper.eq(SdPresaleOrder::getUserId, currentUserId)
-                       .orderByDesc(SdPresaleOrder::getCreateTime);
+        LambdaQueryWrapper<SdPresaleOrder> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(SdPresaleOrder::getUserId, currentUserId)
+                   .orderByDesc(SdPresaleOrder::getCreateTime);
 
-            IPage<SdPresaleOrder> result = presaleOrderMapper.selectPage(page, queryWrapper);
+        IPage<SdPresaleOrder> result = presaleOrderMapper.selectPage(page, queryWrapper);
 
-            List<PresaleOrderListVO> voList = result.getRecords().stream()
-                    .map(this::convertToOrderListVO)
-                    .collect(Collectors.toList());
+        List<PresaleOrderListVO> voList = result.getRecords().stream()
+                .map(this::convertToOrderListVO)
+                .collect(Collectors.toList());
 
-            TableDataInfo<PresaleOrderListVO> tableDataInfo = new TableDataInfo<>();
-            tableDataInfo.setRows(voList);
-            tableDataInfo.setTotal(result.getTotal());
-            return R.ok(tableDataInfo);
-        } catch (Exception e) {
-            log.error("获取我的预售订单列表失败: {}", e.getMessage(), e);
-            return R.fail("获取订单列表失败: " + e.getMessage());
+        return new TableDataInfo<>(voList, result.getTotal());
+    }
+
+    @Override
+    public TableDataInfo<PresaleOrderListVO> getProjectPresaleOrdersPage(Long projectId, PageQuery pageQuery) {
+        log.info("获取预售项目订单列表（分页）: 项目ID={}", projectId);
+
+        // 验证项目是否存在
+        SdPresaleProject project = presaleProjectMapper.selectSdPresaleProjectById(projectId);
+        if (project == null) {
+            throw new RuntimeException("项目不存在");
         }
+
+        // 验证权限：只有项目创建者或厂家可以查看订单
+        Long currentUserId = LoginHelper.getUserId();
+        if (!project.getCreatorUserId().equals(currentUserId) && !project.getManufacturerUserId().equals(currentUserId)) {
+            throw new RuntimeException("无权限查看此项目的订单");
+        }
+
+        Page<SdPresaleOrder> page = pageQuery.build();
+
+        LambdaQueryWrapper<SdPresaleOrder> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(SdPresaleOrder::getProjectId, projectId)
+                   .orderByDesc(SdPresaleOrder::getCreateTime);
+
+        IPage<SdPresaleOrder> result = presaleOrderMapper.selectPage(page, queryWrapper);
+
+        List<PresaleOrderListVO> voList = result.getRecords().stream()
+                .map(this::convertToOrderListVO)
+                .collect(Collectors.toList());
+
+        return new TableDataInfo<>(voList, result.getTotal());
     }
 
     @Override
@@ -469,6 +480,26 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
             long diffInMillies = expireTime - System.currentTimeMillis();
             vo.setRemainingDays(diffInMillies > 0 ? diffInMillies / (1000 * 60 * 60 * 24) : 0);
         }
+
+        // 查询已支付订单（状态 >= 2 表示已支付）
+        LambdaQueryWrapper<SdPresaleOrder> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(SdPresaleOrder::getProjectId, project.getId())
+                   .ge(SdPresaleOrder::getOrderStatus, 2); // 已支付及以上状态
+        
+        List<SdPresaleOrder> paidOrders = presaleOrderMapper.selectList(queryWrapper);
+        
+        // 计算购买人数（去重用户ID）
+        long buyerCount = paidOrders.stream()
+                .map(SdPresaleOrder::getUserId)
+                .distinct()
+                .count();
+        vo.setBuyerCount((int) buyerCount);
+        
+        // 计算购买件数（所有订单的数量总和）
+        int totalQuantity = paidOrders.stream()
+                .mapToInt(SdPresaleOrder::getQuantity)
+                .sum();
+        vo.setTotalQuantity(totalQuantity);
 
         // 计算阶梯价格相关信息
         calculateTieredPricingInfo(project, vo);

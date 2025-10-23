@@ -102,4 +102,11 @@ public interface SdUserModelFileService {
      * @return 任务详情
      */
     List<ComfyUserModelFileVo> getComfyImageOutputByTaskId(String taskId);
+
+     /**
+     * 检查指定任务是否已生成图片
+     * @param taskId 任务id
+     * @return 是否已生成图片
+     */
+    boolean checkHasImgByTaskId(String taskId);
 }

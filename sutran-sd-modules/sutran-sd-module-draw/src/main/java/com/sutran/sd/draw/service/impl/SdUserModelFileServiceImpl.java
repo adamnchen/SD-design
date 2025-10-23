@@ -322,4 +322,9 @@ public class SdUserModelFileServiceImpl implements SdUserModelFileService {
         });
         return list;
     }
+
+    @Override
+    public boolean checkHasImgByTaskId(String taskId) {
+        return baseMapper.checkHasImgByTaskId(taskId);
+    }
 }

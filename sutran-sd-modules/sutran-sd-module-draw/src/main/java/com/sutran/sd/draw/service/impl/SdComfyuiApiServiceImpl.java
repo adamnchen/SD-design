@@ -218,10 +218,27 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
         }
         else if (status==1) {
             Integer progress = RedisUtils.getCacheMapValue(DRAW_TASK_PROGRESS, taskId);
+            if (progress!=null && progress == 100) {
+                // 查询是否已生成图片
+                boolean hasImg = sdUserModelFileService.checkHasImgByTaskId(taskId);
+                if (hasImg) {
+                    return 100;
+                }
+                else {
+                    // 图片还没有生成，则返回99
+                    return 99;
+                }
+            }
             return progress!=null?progress:0;
         }
         else {
-            return 100;
+            // 查询是否已生成图片
+            boolean hasImg = sdUserModelFileService.checkHasImgByTaskId(taskId);
+            if (hasImg) {
+                return 100;
+            }
+            // 图片还没有生成，则返回99
+            return 99;
         }
     }
 

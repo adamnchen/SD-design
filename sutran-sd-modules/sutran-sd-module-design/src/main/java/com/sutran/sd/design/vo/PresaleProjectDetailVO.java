@@ -179,6 +179,16 @@ public class PresaleProjectDetailVO {
      */
     private Object tieredPricingList;
 
+    /**
+     * 当前购买人数（已支付订单的用户数）
+     */
+    private Integer buyerCount;
+
+    /**
+     * 当前购买件数（已支付订单的总件数）
+     */
+    private Integer totalQuantity;
+
     public String getStatusDesc() {
         if (status == null) {
             return "未知";

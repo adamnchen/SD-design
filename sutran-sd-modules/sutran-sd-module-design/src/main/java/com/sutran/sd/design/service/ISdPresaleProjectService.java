@@ -59,7 +59,7 @@ public interface ISdPresaleProjectService {
      * @param pageQuery 分页查询
      * @return 预售项目分页数据
      */
-    R<TableDataInfo<PresaleProjectListVO>> getPresaleProjectListPage(PageQuery pageQuery);
+    TableDataInfo<PresaleProjectListVO> getPresaleProjectListPage(PageQuery pageQuery);
 
     /**
      * 获取预售项目详情
@@ -82,7 +82,7 @@ public interface ISdPresaleProjectService {
      * @param pageQuery 分页查询
      * @return 厂家参与的预售项目分页数据
      */
-    R<TableDataInfo<PresaleProjectListVO>> getManufacturerPresaleProjectsPage(PageQuery pageQuery);
+    TableDataInfo<PresaleProjectListVO> getManufacturerPresaleProjectsPage(PageQuery pageQuery);
 
     /**
      * 获取发起人的预售项目列表
@@ -97,7 +97,7 @@ public interface ISdPresaleProjectService {
      * @param pageQuery 分页查询
      * @return 发起人的预售项目分页数据
      */
-    R<TableDataInfo<PresaleProjectListVO>> getCreatorPresaleProjectsPage(PageQuery pageQuery);
+    TableDataInfo<PresaleProjectListVO> getCreatorPresaleProjectsPage(PageQuery pageQuery);
 
 
 
@@ -114,7 +114,7 @@ public interface ISdPresaleProjectService {
      * @param pageQuery 分页查询
      * @return 买家购买的预售项目分页数据
      */
-    R<TableDataInfo<PresaleProjectListVO>> getBuyerPresaleProjectsPage(PageQuery pageQuery);
+    TableDataInfo<PresaleProjectListVO> getBuyerPresaleProjectsPage(PageQuery pageQuery);
 
     /**
      * 创建预售订单
@@ -137,7 +137,16 @@ public interface ISdPresaleProjectService {
      * @param pageQuery 分页查询
      * @return 订单分页数据
      */
-    R<TableDataInfo<PresaleOrderListVO>> getMyPresaleOrdersPage(PageQuery pageQuery);
+    TableDataInfo<PresaleOrderListVO> getMyPresaleOrdersPage(PageQuery pageQuery);
+
+    /**
+     * 获取预售项目的订单列表（分页）- 发货用
+     *
+     * @param projectId 项目ID
+     * @param pageQuery 分页查询
+     * @return 订单分页数据
+     */
+    TableDataInfo<PresaleOrderListVO> getProjectPresaleOrdersPage(Long projectId, PageQuery pageQuery);
 
     /**
      * 获取预售订单详情

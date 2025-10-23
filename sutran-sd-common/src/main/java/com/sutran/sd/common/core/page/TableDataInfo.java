@@ -2,6 +2,7 @@ package com.sutran.sd.common.core.page;
 
 import cn.hutool.http.HttpStatus;
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -32,11 +33,13 @@ public class TableDataInfo<T> implements Serializable {
     /**
      * 消息状态码
      */
+    @JsonInclude(JsonInclude.Include.NON_DEFAULT)
     private int code;
 
     /**
      * 消息内容
      */
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     private String msg;
 
     /**

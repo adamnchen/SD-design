@@ -19,6 +19,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * @author zj
  * @date 2025年09月11日 23:00
  */
+@SuppressWarnings("AlibabaUndefineMagicConstant")
 @Slf4j
 @Service
 @RequiredArgsConstructor

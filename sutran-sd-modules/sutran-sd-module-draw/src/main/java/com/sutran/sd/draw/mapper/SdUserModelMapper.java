@@ -11,6 +11,7 @@ import com.sutran.sd.draw.domain.SdUserModel;
 import com.sutran.sd.draw.domain.vo.ComfyUserModelVo;
 import com.sutran.sd.draw.domain.vo.SdUserModelVo;
 import org.apache.ibatis.annotations.*;
+import org.apache.ibatis.annotations.Param;
 
 import java.util.Date;
 import java.util.List;
@@ -78,4 +79,20 @@ public interface SdUserModelMapper extends BaseMapperPlus<SdUserModelMapper, SdU
      * @return          模型列表
      */
     List<ComfyUserModelVo> getLatestModelInfoOfComfyui(@Param("userId") Long userId, @Param("limit") int limit);
+
+    /**
+     * 根据任务ID查询模型的预参数
+     * @param taskIds   任务ID列表
+     * @return          模型预参数列表
+     */
+    List<JSONObject> selectPreParamByTaskIds(@Param("taskIds") List<String> taskIds);
+
+    /**
+     * 获取comfyui lora模型列表
+     * @param dto       SdUserModelPageDto
+     * @param userId    用户ID
+     * @param page      分页查询参数
+     * @return  TableDataInfo<ComfyUserModelVo>
+     */
+    Page<ComfyUserModelVo> selectAllListOfComfyui(@Param("dto") SdUserModelPageDto dto, @Param("userId") Long userId, @Param("page") Page<SysUser> page);
 }

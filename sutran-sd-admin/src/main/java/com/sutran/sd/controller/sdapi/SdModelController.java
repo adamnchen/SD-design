@@ -148,4 +148,17 @@ public class SdModelController {
         return R.ok(sdUserModelService.getLatestModelInfoOfComfyui(LoginHelper.getUserId(),5));
     }
 
+    /**
+     * [comfyui]获取lora模型列表
+     */
+    @GetMapping("/comfyui/lora/list")
+    public TableDataInfo<ComfyUserModelVo> listLoraModelsOfComfyui(SdUserModelPageDto dto) {
+        PageQuery pageQuery = new PageQuery();
+        pageQuery.setPageNum(dto.getPageNum());
+        pageQuery.setPageSize(dto.getPageSize());
+        pageQuery.setOrderByColumn(dto.getOrderByColumn());
+        pageQuery.setIsAsc(dto.getIsAsc());
+        return sdUserModelService.listLoraModelsOfComfyui(dto,pageQuery);
+    }
+
 }

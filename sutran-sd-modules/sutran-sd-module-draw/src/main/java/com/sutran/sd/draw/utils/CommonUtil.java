@@ -40,10 +40,20 @@ public class CommonUtil {
         assert fileList != null;
         // 如果是文件则将其加入到文件数组中
         return Arrays.stream(fileList).filter(e ->
-            e.getName().contains(".jpg") || e.getName().contains(".JPG") ||
-                e.getName().contains(".png") || e.getName().contains(".PNG") ||
-                e.getName().contains(".jpeg") || e.getName().contains(".JPEG") || e.getName().contains(".txt")
+            e.getName().endsWith(".jpg") || e.getName().endsWith(".JPG") ||
+                e.getName().endsWith(".png") || e.getName().endsWith(".PNG") ||
+                e.getName().endsWith(".jpeg") || e.getName().endsWith(".JPEG") || e.getName().endsWith(".txt")
         ).collect(Collectors.toList());
+    }
+
+    /** 获取指定目录下的全部txt文件 **/
+    public static List<File> getAllFileOfTxt(File preImgDir) {
+        // 获取文件列表
+        File[] fileList = preImgDir.listFiles();
+        // 只要png、jpg、jpeg、txt文件
+        assert fileList != null;
+        // 如果是文件则将其加入到文件数组中
+        return Arrays.stream(fileList).filter(e -> e.getName().endsWith(".txt")).collect(Collectors.toList());
     }
 
     /** 获取指定目录下的全部文件（图片文件 和 图片标签参数文件）并分组 **/

@@ -1,6 +1,7 @@
 package com.sutran.sd.draw.service.impl;
 
 import cn.hutool.core.collection.CollectionUtil;
+import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.StrUtil;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
@@ -11,6 +12,7 @@ import com.sutran.sd.common.core.page.TableDataInfo;
 import com.sutran.sd.common.enums.TranslateType;
 import com.sutran.sd.common.exception.ServiceException;
 import com.sutran.sd.common.helper.LoginHelper;
+import com.sutran.sd.common.utils.StringUtils;
 import com.sutran.sd.common.utils.redis.RedisUtils;
 import com.sutran.sd.draw.domain.SdUserModel;
 import com.sutran.sd.draw.domain.dto.model.SdUserModelDto;
@@ -23,6 +25,7 @@ import com.sutran.sd.draw.domain.vo.SdUserModelVo;
 import com.sutran.sd.draw.mapper.SdUserModelClassifyMapper;
 import com.sutran.sd.draw.mapper.SdUserModelMapper;
 import com.sutran.sd.draw.service.SdUserModelService;
+import com.sutran.sd.draw.utils.CommonUtil;
 import com.sutran.sd.system.service.SysTranslateService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -31,6 +34,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
+import java.io.File;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -409,12 +413,128 @@ public class SdUserModelServiceImpl implements SdUserModelService {
         if (CollectionUtil.isEmpty(list)) {
             return Collections.emptyList();
         }
+        List<String> taskIds = list.stream().map(ComfyUserModelVo::getTaskId).filter(StringUtils::isNotBlank).distinct().collect(Collectors.toList());
+        if (CollectionUtil.isEmpty(taskIds)) {
+            return list;
+        }
+        // 获取每个训练任务的预参数
+        List<JSONObject> params = baseMapper.selectPreParamByTaskIds(taskIds);
+        // 构建任务ID到预参数的映射
+        Map<String, String> paramMap = CollectionUtil.isEmpty(params)?Collections.emptyMap():params.stream().collect(Collectors.toMap(e->e.getString("taskId"), e -> e.getString("preParam")));
         // 获取每个模型对应的训练数据中的提示词文件
         for (ComfyUserModelVo vo : list) {
-            // 获取关联训练任务ID
-            vo.getTaskId();
-            // 获取模型文件路径
+            // 处理ComfyUI数据中的提示词
+            dealComfyUiDataPrompt(vo,paramMap);
         }
-        return Collections.emptyList();
+        return list;
+    }
+
+    /**
+     * 获取comfyui lora模型列表
+     * @param dto       SdUserModelPageDto
+     * @param pageQuery 分页查询参数
+     * @return  TableDataInfo<ComfyUserModelVo>
+     */
+    @Override
+    public TableDataInfo<ComfyUserModelVo> listLoraModelsOfComfyui(SdUserModelPageDto dto, PageQuery pageQuery) {
+        Long userId = LoginHelper.getUserId();
+        Page<ComfyUserModelVo> page = baseMapper.selectAllListOfComfyui(dto, userId, pageQuery.build());
+        if (CollectionUtil.isEmpty(page.getRecords())) {
+            return TableDataInfo.build(page);
+        }
+        // 获取当前人的全部分类
+        List<JSONObject> list = classifyMapper.selectModelClassifyListByUserId(userId);
+        Map<String, JSONObject> modelClassifyMap = new HashMap<>(list.size());
+        if (CollectionUtil.isNotEmpty(list)) {
+            modelClassifyMap = list.stream().collect(Collectors.toMap(e -> e.getString("modelId"), e -> e, (v1, v2) -> v1));
+        }
+        // 获取任务ID集合
+        List<String> taskIds = page.getRecords().stream().map(ComfyUserModelVo::getTaskId).filter(StringUtils::isNotBlank).distinct().collect(Collectors.toList());
+        if (CollectionUtil.isEmpty(taskIds)) {
+            return TableDataInfo.build(page);
+        }
+        // 获取每个训练任务的预参数
+        List<JSONObject> params = baseMapper.selectPreParamByTaskIds(taskIds);
+        // 构建任务ID到预参数的映射
+        Map<String, String> paramMap = CollectionUtil.isEmpty(params)?Collections.emptyMap():params.stream().collect(Collectors.toMap(e->e.getString("taskId"), e -> e.getString("preParam")));
+        for (ComfyUserModelVo e : page.getRecords()) {
+            e.setClassifyName("1".equals(e.getClassifyId())?"全部模型":e.getClassifyName());
+            if (CollectionUtil.isNotEmpty(modelClassifyMap)) {
+                JSONObject object = modelClassifyMap.get(e.getId());
+                if (CollectionUtil.isNotEmpty(object)) {
+                    e.setClassifyName(object.getString("classifyName"));
+                    e.setClassifyId(object.getString("classifyId"));
+                }
+            }
+            // 如果不是模型归属人，则是被分享的模型
+            e.setShareModel(!Objects.equals(String.valueOf(userId), e.getBelongUserId()) && e.getIsOpen()==0 && e.getType()==1);
+            // 处理ComfyUI数据中的提示词
+            dealComfyUiDataPrompt(e,paramMap);
+        }
+        return TableDataInfo.build(page);
+    }
+
+    /**
+     * 处理ComfyUI数据中的提示词
+     * @param vo        模型实体
+     * @param paramMap  预参数映射
+     */
+    private void dealComfyUiDataPrompt(ComfyUserModelVo vo, Map<String, String> paramMap) {
+        // 获取关联训练任务ID
+        String preParam = paramMap.get(vo.getTaskId());
+        if (StringUtils.isBlank(preParam)) {
+            return;
+        }
+        // 解析预参数中的数据集路径
+        JSONObject paramJson = JSONObject.parseObject(preParam);
+        String captionStr = paramJson.getString("captions");
+        String loraName = paramJson.getString("loraName");
+        List<String> captions;
+        if (StringUtils.isBlank(captionStr)) {
+            String dataPath = paramJson.getString("path");
+            if (StringUtils.isBlank(dataPath)) {
+                return;
+            }
+            dataPath += CommonUtil.suggestNumRepeat();
+            // 获取dataPath目录下的全部txt文件
+            List<File> txtFiles = CommonUtil.getAllFileOfTxt(new File(dataPath));
+            if (CollectionUtil.isEmpty(txtFiles)) {
+                return;
+            }
+            // 解析每个txt文件中的提示词
+            captions = txtFiles.stream().map(FileUtil::readUtf8Lines).flatMap(List::stream).collect(Collectors.toList());
+        }
+        else {
+            // 获取训练使用的提示词列表
+            captions = JSONArray.parseArray(captionStr, String.class);
+        }
+        // 翻译提示词
+        List<ComfyUserModelVo.PromptVo> captionList = captions.stream().map(caption->{
+            String promptZh = RedisUtils.getCacheMapValue(TRANSLATE_EN_TO_ZH_MAP, caption);
+            // caption移除第一个逗号前的数据包括第一个逗号
+            String prompt = caption.substring(caption.indexOf(",")+1);
+            // 如果缓存中没有数据，则调用翻译接口
+            if (StringUtils.isBlank(promptZh)) {
+                try{
+                    promptZh = sysTranslateService.enToZh(prompt, TranslateType.BAIDU);
+                    if (StringUtils.isBlank(promptZh)) {
+                        promptZh = prompt;
+                    }
+                    else {
+                        // 翻译成功将翻译结果缓存起来
+                        RedisUtils.setCacheMapValue(TRANSLATE_EN_TO_ZH_MAP, caption, loraName+"，"+promptZh);
+                    }
+                }
+                catch (Exception e){
+                    promptZh = prompt;
+                }
+            }
+            else {
+                // value移除第一个逗号前的数据包括第一个逗号，示例：测试FLUX模型，五瓶Loveb布丁，粉红色表面。瓶子有不同的颜色，上面写着文字。在图像的底部，有额外的文本。
+                promptZh = promptZh.substring(promptZh.indexOf("，")+1);
+            }
+            return new ComfyUserModelVo.PromptVo().setPrompt(prompt).setPromptZh(promptZh);
+        }).collect(Collectors.toList());
+        vo.setPromptList(captionList);
     }
 }

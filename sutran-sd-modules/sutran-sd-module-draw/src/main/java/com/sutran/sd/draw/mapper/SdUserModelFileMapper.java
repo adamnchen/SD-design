@@ -113,4 +113,12 @@ public interface SdUserModelFileMapper extends BaseMapperPlus<SdUserModelFileMap
     @Select("SELECT A.id,A.task_id AS taskId,A.file_url AS fileUrl,A.belong_user_id AS belongUserId,A.belong_user_name AS belongUserName,A.model_strength AS modelStrength,B.init_img_list AS initImgList,B.prompt,B.prompt_zh AS promptZh " +
         "FROM sd_user_model_file AS A INNER JOIN sd_user_task AS B ON A.task_id=B.task_id WHERE A.task_id=#{taskId}")
     List<ComfyUserModelFileVo> getComfyImageOutputByTaskId(@Param("taskId") String taskId);
+
+    /**
+     * 检查指定任务是否已生成图片
+     * @param taskId 任务id
+     * @return 是否已生成图片
+     */
+    @Select("SELECT COUNT(1) FROM sd_user_model_file WHERE task_id=#{taskId} AND file_url IS NOT NULL")
+    boolean checkHasImgByTaskId(@Param("taskId") String taskId);
 }

@@ -163,4 +163,11 @@ public interface SdUserModelService {
      * @return  TableDataInfo<ComfyUserModelVo>
      */
     TableDataInfo<ComfyUserModelVo> listLoraModelsOfComfyui(SdUserModelPageDto dto, PageQuery pageQuery);
+
+     /**
+     * 获取comfyui lora模型详情
+     * @param id    模型ID
+     * @return      模型详情
+     */
+    ComfyUserModelVo getModelInfoOfComfyui(String id);
 }

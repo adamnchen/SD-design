@@ -170,4 +170,10 @@
         ORDER BY A.id DESC
     </select>
 
+    <select id="selectModelInfoOfComfyui" resultType="com.sutran.sd.draw.domain.vo.ComfyUserModelVo">
+        SELECT DISTINCT A.id, A.task_id, A.classify_id, A.title, A.model_name, A.model_name_zh, A.model_strength, A.file_name, A.url, A.remark, A.type, A.is_open, A.belong_user_id, A.publish_status, A.crt_time, A.is_user_del,B.user_name AS belong_user_name
+        FROM sd_user_model AS A LEFT JOIN sys_user AS B ON A.belong_user_id=B.user_id
+        WHERE A.id=#{id}
+    </select>
+
 </mapper>

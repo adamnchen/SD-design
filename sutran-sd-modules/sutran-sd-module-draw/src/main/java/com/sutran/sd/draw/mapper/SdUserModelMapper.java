@@ -95,4 +95,11 @@ public interface SdUserModelMapper extends BaseMapperPlus<SdUserModelMapper, SdU
      * @return  TableDataInfo<ComfyUserModelVo>
      */
     Page<ComfyUserModelVo> selectAllListOfComfyui(@Param("dto") SdUserModelPageDto dto, @Param("userId") Long userId, @Param("page") Page<SysUser> page);
+
+     /**
+     * 获取comfyui lora模型详情
+     * @param id    模型ID
+     * @return      模型详情
+     */
+    ComfyUserModelVo selectModelInfoOfComfyui(@Param("id") String id);
 }

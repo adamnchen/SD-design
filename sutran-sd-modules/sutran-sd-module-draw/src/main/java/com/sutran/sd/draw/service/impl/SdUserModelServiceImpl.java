@@ -475,6 +475,30 @@ public class SdUserModelServiceImpl implements SdUserModelService {
     }
 
     /**
+     * 获取comfyui lora模型详情
+     * @param id    模型ID
+     * @return      模型详情
+     */
+    @Override
+    public ComfyUserModelVo getModelInfoOfComfyui(String id) {
+        Long userId = LoginHelper.getUserId();
+        ComfyUserModelVo vo = baseMapper.selectModelInfoOfComfyui(id);
+        if (vo == null) {
+            throw new ServiceException("模型不存在");
+        }
+        // 获取每个训练任务的预参数
+        List<JSONObject> params = baseMapper.selectPreParamByTaskIds(Collections.singletonList(vo.getTaskId()));
+        // 构建任务ID到预参数的映射
+        Map<String, String> paramMap = CollectionUtil.isEmpty(params)?Collections.emptyMap():params.stream().collect(Collectors.toMap(e->e.getString("taskId"), e -> e.getString("preParam")));
+        vo.setClassifyName("1".equals(vo.getClassifyId())?"全部模型":vo.getClassifyName());
+        // 如果不是模型归属人，则是被分享的模型
+        vo.setShareModel(!Objects.equals(String.valueOf(userId), vo.getBelongUserId()) && vo.getIsOpen()==0 && vo.getType()==1);
+        // 处理ComfyUI数据中的提示词
+        dealComfyUiDataPrompt(vo,paramMap);
+        return null;
+    }
+
+    /**
      * 处理ComfyUI数据中的提示词
      * @param vo        模型实体
      * @param paramMap  预参数映射

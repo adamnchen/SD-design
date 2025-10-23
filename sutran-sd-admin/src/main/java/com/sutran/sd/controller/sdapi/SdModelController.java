@@ -26,6 +26,7 @@ import java.util.List;
  * @author zj
  * @date 2024-02-27
  */
+@SuppressWarnings("AlibabaUndefineMagicConstant")
 @RestController
 @RequestMapping("/sd/model")
 @RequiredArgsConstructor
@@ -159,6 +160,14 @@ public class SdModelController {
         pageQuery.setOrderByColumn(dto.getOrderByColumn());
         pageQuery.setIsAsc(dto.getIsAsc());
         return sdUserModelService.listLoraModelsOfComfyui(dto,pageQuery);
+    }
+
+    /**
+     *  [comfyui]获取模型详情
+     */
+    @GetMapping("/comfyui/lora/info")
+    public R<ComfyUserModelVo> getModelInfoOfComfyui(@RequestParam String id) {
+        return R.ok(sdUserModelService.getModelInfoOfComfyui(id));
     }
 
 }

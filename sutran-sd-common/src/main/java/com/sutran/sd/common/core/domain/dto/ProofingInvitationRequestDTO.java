@@ -88,6 +88,31 @@ public class ProofingInvitationRequestDTO implements Serializable {
     @NotNull(message = "抽奖数量不能为空")
     private Integer drawNumber;
 
+    // --- 收货信息 ---
+
+    /**
+     * 收货人姓名
+     */
+    @NotBlank(message = "收货人姓名不能为空")
+    private String receiverName;
+
+    /**
+     * 收货人手机号
+     */
+    @NotBlank(message = "收货人手机号不能为空")
+    private String receiverPhone;
+
+    /**
+     * 收货地址
+     */
+    @NotBlank(message = "收货地址不能为空")
+    private String receiverAddress;
+
+    /**
+     * 收货地区
+     */
+    private String receiverArea;
+
     /**
      * 状态
      */

@@ -74,4 +74,28 @@ public class SdCrowdfundingSupport extends BaseEntity {
      */
     @TableField("prize_info")
     private String prizeInfo;
+
+    /**
+     * 收货人姓名
+     */
+    @TableField("receiver_name")
+    private String receiverName;
+
+    /**
+     * 收货人手机号
+     */
+    @TableField("receiver_phone")
+    private String receiverPhone;
+
+    /**
+     * 收货地址
+     */
+    @TableField("receiver_address")
+    private String receiverAddress;
+
+    /**
+     * 收货地区
+     */
+    @TableField("receiver_area")
+    private String receiverArea;
 }

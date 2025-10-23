@@ -201,11 +201,21 @@ public class PayOrderServiceImpl implements PayOrderService {
                 }
                 // 发送支付状态到业务实现
                 PayTimeoutStatusVo vo = new PayTimeoutStatusVo().setUserId(order.getUserId()).setBusinessId(order.getBusinessId()).setTradeStatus(tradeStatus).setOutTradeNo(outTradeNo);
+                
+                // 为众筹项目设置项目ID和金额
+                if (BusinessType.PROOF_CROWDFUND.name().equals(order.getBusinessType())) {
+                    vo.setProjectid(order.getBusinessId()); // 众筹项目的businessId就是项目ID
+                    vo.setAmount(order.getTotalAmount()); // 使用订单总金额
+                }
+                
                 if (BusinessType.SD_MEMBER.name().equals(order.getBusinessType())) {
                     basePayNotifyServiceMap.get(PayNotifyServer.SD_MEMBER_NOTIFY).dealPayTimeoutData(vo);
                 }
                 if (BusinessType.PROOF_CROWDFUND.name().equals(order.getBusinessType())) {
                     basePayNotifyServiceMap.get(PayNotifyServer.PROOF_CROWDFUND_NOTIFY).dealPayTimeoutData(vo);
+                }
+                if (BusinessType.PRESALE.name().equals(order.getBusinessType())) {
+                    basePayNotifyServiceMap.get(PayNotifyServer.PRESALE_ORDER_NOTIFY).dealPayTimeoutData(vo);
                 }
                 RedisUtils.delCacheZSet(PAY_ORDER_TASK,outTradeNo);
             }
@@ -214,11 +224,21 @@ public class PayOrderServiceImpl implements PayOrderService {
                 log.error("[支付宝][定时处理未失效且未支付订单]>>>>>>>>>支付宝查询指定交易信息并修改订单数据失败,订单号：{}",outTradeNo);
                 // 发送支付状态到业务实现
                 PayTimeoutStatusVo vo = new PayTimeoutStatusVo().setUserId(order.getUserId()).setBusinessId(order.getBusinessId()).setTradeStatus(AliPayTradeStatus.TRADE_CLOSED.name()).setOutTradeNo(outTradeNo);
+                
+                // 为众筹项目设置项目ID和金额
+                if (BusinessType.PROOF_CROWDFUND.name().equals(order.getBusinessType())) {
+                    vo.setProjectid(order.getBusinessId()); // 众筹项目的businessId就是项目ID
+                    vo.setAmount(order.getTotalAmount()); // 使用订单总金额
+                }
+                
                 if (BusinessType.SD_MEMBER.name().equals(order.getBusinessType())) {
                     basePayNotifyServiceMap.get(PayNotifyServer.SD_MEMBER_NOTIFY).dealPayTimeoutData(vo);
                 }
                 if (BusinessType.PROOF_CROWDFUND.name().equals(order.getBusinessType())) {
                     basePayNotifyServiceMap.get(PayNotifyServer.PROOF_CROWDFUND_NOTIFY).dealPayTimeoutData(vo);
+                }
+                if (BusinessType.PRESALE.name().equals(order.getBusinessType())) {
+                    basePayNotifyServiceMap.get(PayNotifyServer.PRESALE_ORDER_NOTIFY).dealPayTimeoutData(vo);
                 }
                 RedisUtils.delCacheZSet(PAY_ORDER_TASK,outTradeNo);
             }

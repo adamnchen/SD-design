@@ -193,5 +193,31 @@ public class SdProofingInvitation extends BaseEntity {
     @NotNull(message = "抽奖数量不能为空")
     private Integer drawNumber;
 
+    // --- 收货信息 ---
+
+    /**
+     * 收货人姓名
+     */
+    @TableField("receiver_name")
+    private String receiverName;
+
+    /**
+     * 收货人手机号
+     */
+    @TableField("receiver_phone")
+    private String receiverPhone;
+
+    /**
+     * 收货地址
+     */
+    @TableField("receiver_address")
+    private String receiverAddress;
+
+    /**
+     * 收货地区
+     */
+    @TableField("receiver_area")
+    private String receiverArea;
+
 
 }

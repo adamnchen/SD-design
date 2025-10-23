@@ -16,6 +16,12 @@
 
     <dependencies>
 
+        <!-- common依赖 -->
+        <dependency>
+            <groupId>com.sutran.sd</groupId>
+            <artifactId>sutran-sd-common</artifactId>
+        </dependency>
+
         <!-- SD绘图模块(包含了common、oss、system) -->
         <dependency>
             <groupId>com.sutran.sd</groupId>

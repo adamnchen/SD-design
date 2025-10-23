@@ -277,6 +277,41 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
     }
 
     @Override
+    public TableDataInfo<CrowdfundingProjectListVO> getActiveCrowdfundingProjectsPage(PageQuery pageQuery) {
+        log.info("获取进行中的众筹项目列表（分页）");
+
+        // 使用分页查询进行中的众筹项目
+        com.baomidou.mybatisplus.extension.plugins.pagination.Page<SdCrowdfundingProject> page = pageQuery.build();
+        com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<SdCrowdfundingProject> queryWrapper = 
+            new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<>();
+        queryWrapper.eq(SdCrowdfundingProject::getStatus, 1) // 进行中
+                   .orderByDesc(SdCrowdfundingProject::getCreateTime);
+
+        com.baomidou.mybatisplus.core.metadata.IPage<SdCrowdfundingProject> result = 
+            crowdfundingProjectMapper.selectPage(page, queryWrapper);
+
+        // 转换为VO
+        List<CrowdfundingProjectListVO> voList = result.getRecords().stream().map(project -> {
+            CrowdfundingProjectListVO vo = new CrowdfundingProjectListVO();
+            org.springframework.beans.BeanUtils.copyProperties(project, vo);
+
+            // 计算进度百分比
+            if (project.getTargetAmount() != null && project.getTargetAmount().compareTo(BigDecimal.ZERO) > 0) {
+                BigDecimal progress = project.getCurrentAmount()
+                    .divide(project.getTargetAmount(), 4, BigDecimal.ROUND_HALF_UP)
+                    .multiply(new BigDecimal("100"));
+                vo.setProgressPercentage(progress);
+            } else {
+                vo.setProgressPercentage(BigDecimal.ZERO);
+            }
+
+            return vo;
+        }).collect(java.util.stream.Collectors.toList());
+
+        return new TableDataInfo<>(voList, result.getTotal());
+    }
+
+    @Override
     public CrowdfundingProjectDetailVO getCrowdfundingProjectDetail(Long id) {
         // 查询项目详情（包含阶梯价格）
         SdCrowdfundingProject project = crowdfundingProjectMapper.selectSdCrowdfundingProjectByIdWithTieredPricing(id);

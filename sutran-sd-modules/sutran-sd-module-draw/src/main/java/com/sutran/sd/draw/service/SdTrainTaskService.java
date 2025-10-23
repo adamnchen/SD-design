@@ -213,4 +213,11 @@ public interface SdTrainTaskService {
       * @param endTime 完成时间
       */
     void failFluxgymTrainTask(String taskId, String message, Date endTime);
+
+     /**
+      * 查询训练任务训练图片数量
+      * @param taskId 训练任务ID
+      * @return 训练图片数量
+      */
+    int selectTrainImageNumById(String taskId);
 }

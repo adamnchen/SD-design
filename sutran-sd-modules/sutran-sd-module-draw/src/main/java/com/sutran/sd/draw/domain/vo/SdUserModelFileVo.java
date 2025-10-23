@@ -48,9 +48,9 @@ public class SdUserModelFileVo implements Serializable {
     @Schema(name = "negative_prompt_zh", description = "反向提示词(原文)")
     private String negativePromptZh;
     /**
-     * 未翻译的提示词
+     * 模型强度
      */
-    @Schema(description="未翻译的提示词")
+    @Schema(description="模型强度")
     private String modelStrength;
     /**
      * 参考图片

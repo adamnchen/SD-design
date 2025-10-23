@@ -24,6 +24,7 @@ import com.sutran.sd.draw.domain.bo.ComfyModelTaskSubmitBo;
 import com.sutran.sd.draw.domain.bo.DrawingTaskInfo;
 import com.sutran.sd.draw.domain.bo.ImageInfoBo;
 import com.sutran.sd.draw.domain.pojo.*;
+import com.sutran.sd.draw.domain.vo.ComfyUserModelFileVo;
 import com.sutran.sd.draw.domain.vo.ComfyuiImageToolVo;
 import com.sutran.sd.draw.domain.vo.SdUserTaskVo;
 import com.sutran.sd.draw.enums.ImageType;
@@ -190,26 +191,13 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
     }
 
     /**
-     * 获取模型指定历史任务详情
+     * 查询指定任务的生图列表
      * @param taskId 任务id
      * @return 任务详情
      */
     @Override
-    public ComfyTaskHistoryInfo getComfyModelHistoryTask(String taskId) {
-        // 检查任务状态[0-排队等待中,1-执行中,2-执行成功,3-执行失败]
-        Long userId = LoginHelper.getUserId();
-        Integer status = sdUserTaskService.selectStatusByTaskIdAndUserId(taskId, userId);
-        if (status==null) {
-            throw new TaskErrorException("未找到任务");
-        }
-        if (status==0) {
-            throw new TaskErrorException("任务处于队列中");
-        }
-        String promptId = sdUserTaskService.getPromptIdByTaskId(taskId);
-        if (StringUtils.isBlank(promptId)) {
-            throw new TaskErrorException("任内务处于队列中");
-        }
-        return getTaskInfoById(promptId);
+    public List<ComfyUserModelFileVo> getComfyImageOutputByTaskId(String taskId) {
+        return sdUserModelFileService.getComfyImageOutputByTaskId(taskId);
     }
 
     /**

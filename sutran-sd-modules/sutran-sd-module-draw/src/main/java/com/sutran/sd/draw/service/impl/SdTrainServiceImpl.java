@@ -1202,15 +1202,15 @@ public class SdTrainServiceImpl implements SdTrainService {
         // 兼容容器路径
         String path = dealTrainDataSetPath(params.getString("path"));
 
-        File preImgDir = new File(path +CommonUtil.suggestNumRepeat());
-        if (!preImgDir.exists()) {
-            preImgDir = new File(path);
+        File trainDataImgDir = new File(path + CommonUtil.suggestNumRepeat());
+        if (!trainDataImgDir.exists()) {
+            trainDataImgDir = new File(path);
         }
         // 判断文件夹是否存在
-        if (!preImgDir.exists()) {
+        if (!trainDataImgDir.exists()) {
             throw new ServiceException("当前模型的预处理图片已被删除!");
         }
-        List<File> allFileList = CommonUtil.getAllFile(preImgDir);
+        List<File> allFileList = CommonUtil.getAllFile(trainDataImgDir);
         // 将数据分组
         Map<String, List<File>> group = allFileList.stream().collect(Collectors.groupingBy(
             e -> {
@@ -1642,6 +1642,10 @@ public class SdTrainServiceImpl implements SdTrainService {
         }
         try{
             JSONObject preParams = JSONObject.parseObject(taskNode.getString("preParams"));
+            preParams.put("userId", taskNode.getString("crtUserId"));
+            preParams.put("userName", taskNode.getString("crtUserName"));
+            preParams.put("startTime", taskNode.getString("startTime"));
+            preParams.put("endTime", taskNode.getString("endTime"));
             HttpRequest request = HttpRequest.get(taskNode.getString("baseUrl") + "/api/task/status/"+taskId).timeout(3000);
             String resp = execHttpRequest(request);
             FluxgymTrainProgressVo vo = JsonUtils.toObject(resp, FluxgymTrainProgressVo.class);
@@ -1692,7 +1696,10 @@ public class SdTrainServiceImpl implements SdTrainService {
             throw new ServiceException("训练任务使用的节点URL不存在或已被删除!");
         }
         JSONObject preParams = JSONObject.parseObject(taskNode.getString("preParams"));
-        String nodeId = taskNode.getString("nodeId");
+        preParams.put("userId", taskNode.getString("crtUserId"));
+        preParams.put("userName", taskNode.getString("crtUserName"));
+        preParams.put("startTime", taskNode.getString("startTime"));
+        preParams.put("endTime", taskNode.getString("endTime"));
         // 处理指定目录下的模型文件
         dealFluxgymTrainModelFile(taskId,preParams);
     }
@@ -1898,103 +1905,6 @@ public class SdTrainServiceImpl implements SdTrainService {
      * @param taskId     任务id
      * @param preParams  预处理参数
      */
-    public void dealFluxgymTrainModelFile2(String taskId, JSONObject preParams) {
-        // 快速检查，减少锁持有时间
-        if (RedisUtils.hasKey(DEAL_MODEL_LOCK+taskId))  {
-            return;
-        }
-        // 双重加锁，限制其他请求操作(主要是定时请求、前端轮询请求进度、手动处理请求)
-        MODEL_LOCK.lock();
-        try{
-            // 双重检查
-            if (RedisUtils.hasKey(DEAL_MODEL_LOCK+taskId))  {
-                return;
-            }
-            RedisUtils.setCacheObject(DEAL_MODEL_LOCK+taskId,"1", Duration.ofMinutes(2));
-        }
-        finally {
-            MODEL_LOCK.unlock();
-        }
-        // 仙宫云上，模型存储在云存储中 /root/cloud/lora-models 目录下
-        // 将模型移动到/home/stable-diffusion-webui/models/Lora目录下
-        // 模型目录
-        String modelDir = "/root/cloud/lora-models/"+taskId;
-        // 模型图片目录
-        String modelImgDir = "/root/cloud/lora-models/"+taskId+"/sample";
-        // 数据集目录
-        String modelDataDir = "/root/cloud/lora-models/"+taskId+"/dataset";
-        // 模型存储目标目录
-        String destDir = "/home/comfyui/models/Lora";
-        // 数据集存储目标目录大概是 /home/lora-scripts/train-data/{yyyy-MM-dd}/{userId}/{taskId}/20_zkz
-        String destDataDir = preParams.getString("path")+"/20_zkz";
-        log.warn("处理训练完成后的模型文件:\n任务ID：{}\n模型目录：{}\n模型图片目录：{}\n数据集目录：{}\n模型存储目标目录：{}\n数据集存储目标目录：{}",
-            taskId,modelDir,modelImgDir,modelDataDir,destDir,destDataDir);
-
-        // 获取modelDir下的所有.safetensors文件并按照名称升序排序
-        File[] models = new File(modelDir).listFiles((dir, name) -> name.endsWith(".safetensors"));
-        if (models!=null) {
-            Arrays.sort(models, Comparator.comparing(File::getName));
-        }
-        // 获取modelImgDir下的所有图片文件并按照名称升序排序
-        File[] modelImgs = new File(modelImgDir).listFiles((dir, name) -> name.matches(".*\\.(jpg|jpeg|png|gif|bmp)"));
-        if (modelImgs!=null) {
-            Arrays.sort(modelImgs, Comparator.comparing(File::getName));
-        }
-        final String loraNameZh = preParams.getString("loraName");
-        final Long userId = preParams.getLong("userId");
-        final Integer isOpen = preParams.getInteger("isOpen");
-        final String modelTag = preParams.getString("modelTag");
-        final String modelDesc = preParams.getString("modelDesc");
-
-        List<SdUserModel> modelList = new ArrayList<>();
-        // 移动模型到目标目录
-        if (models!=null && models.length>0) {
-            for (int i = 0; i < models.length; i++) {
-                String modelName = models[i].getName();
-                String title = modelName.split("-")[0].replace(".safetensors","");
-                File destModelFile = new File(destDir, modelName);
-                models[i].renameTo(destModelFile);
-                // 存储模型信息到数据库
-                //fileName获取模型的路径+名称
-                SdUserModel model = new SdUserModel().setId(IdUtil.getSnowflakeNextId()).setTitle(title).setTaskId(Long.parseLong(taskId)).setModelName(modelName).setModelNameZh(loraNameZh)
-                    .setFileName(destModelFile.getAbsolutePath()).setCrtTime(new Date()).setIsOpen(isOpen).setType(1).setPublishStatus(0).setBelongUserId(userId).setModelTag(modelTag).setRemark(modelDesc);
-                // 移动图片到目标目录并将图片名称修改和模型名称相同
-                if (modelImgs!=null && modelImgs.length>0) {
-                    File destImgFile = new File(destDir, modelName.replace(".safetensors",modelImgs[i].getName().substring(modelImgs[i].getName().lastIndexOf("."))));
-                    modelImgs[i].renameTo(destImgFile);
-                    model.setUrl(destImgFile.getAbsolutePath());
-                }
-                modelList.add(model);
-            }
-        }
-        // 移动数据集目录下的所有文件到数据集存储目标目录
-        File modelDataDirFile = new File(modelDataDir);
-        if (modelDataDirFile.exists()) {
-            File destDataDirFile = new File(destDataDir);
-            if (!destDataDirFile.exists()) {
-                destDataDirFile.mkdirs();
-            }
-            File[] modelDataFiles = modelDataDirFile.listFiles();
-            if (modelDataFiles!=null && modelDataFiles.length>0) {
-                for (int i = 0; i < modelDataFiles.length; i++) {
-                    File destDataFile = new File(destDataDir, modelDataFiles[i].getName());
-                    modelDataFiles[i].renameTo(destDataFile);
-                }
-            }
-        }
-        // 批量插入模型信息到数据库
-        if (CollectionUtil.isNotEmpty(modelList)) {
-            sdUserModelService.batchAdd(modelList);
-        }
-        RedisUtils.deleteKey(DEAL_MODEL_LOCK+taskId);
-    }
-
-    /**
-     * [FluxGym]SD训练-处理训练完成后的模型文件
-     *
-     * @param taskId     任务id
-     * @param preParams  预处理参数
-     */
     public void dealFluxgymTrainModelFile(String taskId, JSONObject preParams) {
         // 快速检查，减少锁持有时间
         if (RedisUtils.hasKey(DEAL_MODEL_LOCK+taskId))  {
@@ -2012,12 +1922,21 @@ public class SdTrainServiceImpl implements SdTrainService {
             MODEL_LOCK.unlock();
         }
 
+        final String modelDir = "/root/cloud/lora-models/" + taskId;
+        final String modelImgDir = "/root/cloud/lora-models/" + taskId + "/sample";
+        final String modelDataDir = "/root/cloud/lora-models/" + taskId + "/dataset";
+        final String destDir = "/home/comfyui/models/Lora";
+        final String destDataDir = preParams.getString("path") + CommonUtil.suggestNumRepeat();
+        final String loraNameZh = preParams.getString("loraName");
+        final Integer isOpen = preParams.getInteger("isOpen");
+        final String modelTag = preParams.getString("modelTag");
+        final String modelDesc = preParams.getString("modelDesc");
+        final long userId = preParams.getLongValue("userId");
+        final String userName = preParams.getString("userName");
+        final String startTime = preParams.getString("startTime");
+        final String endTime = preParams.getString("endTime");
+
         try {
-            String modelDir = "/root/cloud/lora-models/" + taskId;
-            String modelImgDir = "/root/cloud/lora-models/" + taskId + "/sample";
-            String modelDataDir = "/root/cloud/lora-models/" + taskId + "/dataset";
-            String destDir = "/home/comfyui/models/Lora";
-            String destDataDir = preParams.getString("path") + "/20_zkz";
             // 检查目标目录是否存在，不存在则创建
             File destDirFile = new File(destDir);
             if (!destDirFile.exists()) {
@@ -2044,11 +1963,7 @@ public class SdTrainServiceImpl implements SdTrainService {
                     Arrays.sort(modelImgs, Comparator.comparing(File::getName));
                 }
             }
-            final String loraNameZh = preParams.getString("loraName");
-            final Long userId = preParams.getLong("userId");
-            final Integer isOpen = preParams.getInteger("isOpen");
-            final String modelTag = preParams.getString("modelTag");
-            final String modelDesc = preParams.getString("modelDesc");
+
             List<SdUserModel> modelList = new ArrayList<>();
             // 移动模型文件
             for (int i = 0; i < models.length; i++) {
@@ -2076,7 +1991,7 @@ public class SdTrainServiceImpl implements SdTrainService {
                         File destImgFile = new File(destDir, modelName.replace(".safetensors", imgExtension));
 
                         Files.move(imgFile.toPath(), destImgFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
-                        model.setUrl(destImgFile.getAbsolutePath());
+                        model.setUrl(destImgFile.getAbsolutePath().replace(destDir,"/comfyui/lora-img"));
                         log.info("[模型训练完成][模型移动]>>>>>>>>>任务ID[{}],成功移动图片文件: {} -> {}", taskId, imgFile.getAbsolutePath(), destImgFile.getAbsolutePath());
                     }
                     modelList.add(model);
@@ -2091,15 +2006,46 @@ public class SdTrainServiceImpl implements SdTrainService {
             if (CollectionUtil.isNotEmpty(modelList)) {
                 sdUserModelService.batchAdd(modelList);
             }
-            // 删除模型目录
-            FileUtils.deleteFile(modelDirFile);
+
+            // 发送模型训练完成通知
+            sendWxMsg(taskId,userId,userName,startTime,endTime,loraNameZh);
         }
         catch (Exception e) {
             log.error("[模型训练完成][模型移动]>>>>>>>>>任务ID[{}],处理模型文件时发生异常: ", taskId, e);
         }
         finally {
+            try{
+                // 删除模型目录
+                FileUtils.deleteDirectory(modelDir);
+            }
+            catch (Exception e){
+                log.error("[模型训练完成][模型移动]>>>>>>>>>任务ID[{}],删除模型目录失败: ", taskId, e);
+            }
             RedisUtils.deleteKey(DEAL_MODEL_LOCK + taskId);
         }
+    }
+
+    /**
+     * 发送模型训练完成通知
+     * @param taskId 训练任务ID
+     * @param userId 用户ID
+     * @param userName 用户名
+     * @param startTime 训练开始时间
+     * @param endTime 训练结束时间
+     * @param loraNameZh 模型名称（中文）
+     */
+    private void sendWxMsg(String taskId, long userId, String userName, String startTime, String endTime, String loraNameZh) {
+        // 发送微信公众号消息
+        JSONObject wxMsg = new JSONObject();
+        wxMsg.put("preTaskId", taskId);
+        wxMsg.put("belongUserId",userId);
+        wxMsg.put("belongUserName",userName);
+        wxMsg.put("type","MODEL_TRAIN");
+        wxMsg.put("modelName",loraNameZh);
+        wxMsg.put("oldModelName",loraNameZh);
+        wxMsg.put("startTime",startTime);
+        wxMsg.put("endTime",endTime);
+        rabbitTemplate.convertAndSend(MqConstant.WX_MSG_EXCHANGE, MqConstant.WX_MSG_ROUTING_KEY,wxMsg);
     }
 
 }

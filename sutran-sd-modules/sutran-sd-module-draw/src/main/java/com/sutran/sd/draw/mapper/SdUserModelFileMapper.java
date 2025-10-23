@@ -4,9 +4,11 @@ import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.sutran.sd.common.core.mapper.BaseMapperPlus;
 import com.sutran.sd.draw.domain.SdUserModelFile;
+import com.sutran.sd.draw.domain.vo.ComfyUserModelFileVo;
 import com.sutran.sd.draw.domain.vo.SdUserModelFileVo;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Select;
 
 import java.util.List;
 
@@ -102,4 +104,13 @@ public interface SdUserModelFileMapper extends BaseMapperPlus<SdUserModelFileMap
      * @return    任务id列表
      */
     List<String> selectTaskIdsByIds(@Param("ids") List<String> ids);
+
+    /**
+     * 查询指定任务的生图列表
+     * @param taskId 任务id
+     * @return 任务详情
+     */
+    @Select("SELECT A.id,A.task_id AS taskId,A.file_url AS fileUrl,A.belong_user_id AS belongUserId,A.belong_user_name AS belongUserName,A.model_strength AS modelStrength,B.init_img_list AS initImgList,B.prompt,B.prompt_zh AS promptZh " +
+        "FROM sd_user_model_file AS A INNER JOIN sd_user_task AS B ON A.task_id=B.task_id WHERE A.task_id=#{taskId}")
+    List<ComfyUserModelFileVo> getComfyImageOutputByTaskId(@Param("taskId") String taskId);
 }

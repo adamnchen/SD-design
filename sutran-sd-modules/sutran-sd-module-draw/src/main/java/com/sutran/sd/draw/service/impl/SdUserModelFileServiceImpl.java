@@ -14,6 +14,7 @@ import com.sutran.sd.common.exception.ServiceException;
 import com.sutran.sd.common.utils.redis.RedisUtils;
 import com.sutran.sd.draw.domain.SdUserModelFile;
 import com.sutran.sd.draw.domain.dto.SdUserModelFilePageDto;
+import com.sutran.sd.draw.domain.vo.ComfyUserModelFileVo;
 import com.sutran.sd.draw.domain.vo.SdApiResult;
 import com.sutran.sd.draw.domain.vo.SdUserModelFileVo;
 import com.sutran.sd.draw.domain.vo.SdUserTaskVo;
@@ -301,5 +302,24 @@ public class SdUserModelFileServiceImpl implements SdUserModelFileService {
     public List<JSONObject> selectModelTestDataAndTaskInfo(String loraModelId) {
         List<JSONObject> list = baseMapper.selectModelTestDataAndTaskInfo(loraModelId);
         return CollectionUtil.isEmpty(list)?Collections.emptyList():list;
+    }
+
+    /**
+     * 查询指定任务的生图列表
+     * @param taskId 任务id
+     * @return 任务详情
+     */
+    @Override
+    public List<ComfyUserModelFileVo> getComfyImageOutputByTaskId(String taskId) {
+        List<ComfyUserModelFileVo> list = baseMapper.getComfyImageOutputByTaskId(taskId);
+        if (CollectionUtil.isEmpty(list)) {
+            return Collections.emptyList();
+        }
+        list.forEach(item -> {
+           if (item.getInitImgList()!=null) {
+               item.setInitImgList(JSONArray.parseArray(String.valueOf(item.getInitImgList()), String.class));
+           }
+        });
+        return list;
     }
 }

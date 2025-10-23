@@ -59,6 +59,10 @@ import org.springframework.transaction.annotation.Transactional;
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletResponse;
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -332,7 +336,26 @@ public class SdWebuiApiServiceImpl implements SdWebuiApiService {
         TableDataInfo<SdUserModelVo> info = sdUserModelService.listLoraModelsInTaskAndTrainData(dto);
         if (CollectionUtil.isNotEmpty(info.getRows())) {
             for (SdUserModelVo vo : info.getRows()) {
-                vo.setConfig(JSONObject.parseObject(String.valueOf(vo.getConfig()), SdLoraModelVo.MetadataVo.class));
+                if (vo.getConfig()==null && StringUtils.isNotBlank(vo.getTaskId())) {
+                    // 获取任务对应的训练图片数量
+                    int imgNum = sdTrainTaskService.selectTrainImageNumById(vo.getTaskId());
+                    JSONObject zkz = new JSONObject();
+                    zkz.put("img_count",imgNum);
+                    zkz.put("n_repeats",imgNum);
+                    JSONObject ssDatasetDirs = new JSONObject();
+                    ssDatasetDirs.put("20_zkz",zkz);
+
+                    JSONObject ssTagFrequency = new JSONObject();
+                    ssTagFrequency.put("20_zkz",new JSONObject());
+
+                    JSONObject config = new JSONObject();
+                    config.put("ss_dataset_dirs",ssDatasetDirs);
+                    config.put("ss_tag_frequency",ssTagFrequency);
+                    vo.setConfig(config);
+                }
+                else {
+                    vo.setConfig(JSONObject.parseObject(String.valueOf(vo.getConfig()), SdLoraModelVo.MetadataVo.class));
+                }
                 // 获取xyz测试数据集
                 List<JSONObject> taskList = sdUserModelFileService.selectModelTestDataAndTaskInfo(vo.getId());
                 vo.setTaskList(taskList);
@@ -473,12 +496,55 @@ public class SdWebuiApiServiceImpl implements SdWebuiApiService {
     public void publishModel(String id, Integer publishStatus, String modelStrength) {
         // 获取模型对应的用户的openId和手机号
         JSONObject info = sdUserModelService.selectUserOpenIdAndPhoneById(id);
-        if (info == null) {
+        if (info == null || CollectionUtil.isEmpty(info)) {
             return;
+        }
+        // 发布要先移动模型->然后再修改数据库状态->发送微信公众号通知
+        if (publishStatus==1) {
+            String fileName = info.getString("fileName");
+            if (StringUtils.isNotBlank(fileName)) {
+                // 将发布的模型放入到云存储目录下/root/cloud/comfyui-lora/
+                Path source = Paths.get(fileName);
+                String originalFileName = source.getFileName().toString();
+                String tempFileName = originalFileName + ".tmp";
+
+                String modelPath = "/root/cloud/comfyui-lora/" + originalFileName;
+                String tempModelPath = "/root/cloud/comfyui-lora/" + tempFileName;
+
+                Path target = Paths.get(modelPath);
+                Path tempTarget = Paths.get(tempModelPath);
+                log.warn("[模型发布]>>>>>>>>>开始移动模型：{}->{}->{}",fileName,tempModelPath,modelPath);
+                try {
+                    // 检查源文件
+                    if (!Files.exists(source)) {
+                        log.error("[模型发布]>>>>>>>>>源文件不存在: {}", fileName);
+                        return;
+                    }
+                    Path parentDir = tempTarget.getParent();
+                    if (parentDir != null && !Files.exists(parentDir)) {
+                        Files.createDirectories(parentDir);
+                    }
+                    // 临时文件
+                    Files.copy(source, tempTarget, StandardCopyOption.REPLACE_EXISTING);
+                    // 复制完成后重命名为正式文件
+                    Files.move(tempTarget, target, StandardCopyOption.REPLACE_EXISTING);
+                }
+                catch (Exception e) {
+                    if (Files.exists(tempTarget)) {
+                        try {
+                            Files.delete(tempTarget);
+                        }
+                        catch (IOException ex) {
+                            log.warn("[模型发布]>>>>>>>>>清理临时文件失败：{}", tempModelPath, ex);
+                        }
+                    }
+                    log.error("[模型发布]>>>>>>>>>{}复制到{}异常：", fileName, modelPath, e);
+                }
+            }
         }
         // isUserDel目前其实并没有使用到
         sdUserModelService.publishModel(id,publishStatus,Objects.equals(LoginHelper.getUserId(), info.getLong("userId"))?1:0,modelStrength);
-        if (publishStatus==1 && CollectionUtil.isNotEmpty(info)) {
+        if (publishStatus==1) {
             // 发送完成消息
             JSONObject wxMsg = new JSONObject();
             wxMsg.put("modelId",id);

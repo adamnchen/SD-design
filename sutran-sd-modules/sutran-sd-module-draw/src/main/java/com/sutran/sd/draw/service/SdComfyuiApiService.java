@@ -3,6 +3,7 @@ package com.sutran.sd.draw.service;
 import com.sutran.sd.draw.domain.SdDrawNode;
 import com.sutran.sd.draw.domain.bo.ComfyModelTaskSubmitBo;
 import com.sutran.sd.draw.domain.pojo.*;
+import com.sutran.sd.draw.domain.vo.ComfyUserModelFileVo;
 import com.sutran.sd.draw.domain.vo.ComfyuiImageToolVo;
 import com.sutran.sd.draw.enums.ImageType;
 import org.springframework.web.multipart.MultipartFile;
@@ -44,11 +45,11 @@ public interface SdComfyuiApiService {
     String submitComfyFlowTask(String flowId, String prompt, String promptZh, MultipartFile[] images) throws IOException;
 
     /**
-     * 获取模型指定历史任务详情
+     * 查询指定任务的生图列表
      * @param taskId 任务id
      * @return 任务详情
      */
-    ComfyTaskHistoryInfo getComfyModelHistoryTask(String taskId);
+    List<ComfyUserModelFileVo> getComfyImageOutputByTaskId(String taskId);
 
     /**
      * 获取任务进度

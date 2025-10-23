@@ -1,4 +1,4 @@
-/*
+﻿/*
  Navicat Premium Dump SQL
 
  Source Server         : mysql
@@ -47,6 +47,10 @@ CREATE TABLE `sd_proofing_invitations`  (
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间 (邀约时间)',
   `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '记录更新时间',
   `draw_number` int NOT NULL COMMENT '打样样品参与抽奖的数量分配给众筹用户,最少一个',
+  `receiver_name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '收货人姓名',
+  `receiver_phone` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '收货人手机号',
+  `receiver_address` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '收货地址',
+  `receiver_area` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '收货地区',
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `idx_work_id_status`(`work_id` ASC, `status` ASC) USING BTREE,
   INDEX `idx_inviter_user_id`(`inviter_user_id` ASC) USING BTREE,

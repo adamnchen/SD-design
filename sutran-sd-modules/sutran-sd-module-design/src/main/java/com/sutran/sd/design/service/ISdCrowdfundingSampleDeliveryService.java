@@ -4,7 +4,6 @@ import com.sutran.sd.common.core.domain.PageQuery;
 import com.sutran.sd.common.core.domain.R;
 import com.sutran.sd.common.core.page.TableDataInfo;
 import com.sutran.sd.design.domain.SdCrowdfundingSampleDelivery;
-import com.sutran.sd.design.vo.SampleDeliveryDetailVO;
 import com.sutran.sd.design.vo.SampleDeliveryListVO;
 import java.util.List;
 
@@ -98,5 +97,14 @@ public interface ISdCrowdfundingSampleDeliveryService {
      * @return 操作结果
      */
     R<String> uploadSampleImage(Long id, org.springframework.web.multipart.MultipartFile file);
+
+    /**
+     * 根据众筹项目ID查询所有发货信息
+     *
+     * @param projectId 众筹项目ID
+     * @param pageQuery 分页查询参数
+     * @return 发货信息分页数据
+     */
+    TableDataInfo<SampleDeliveryListVO> getProjectDeliveryInfo(Long projectId, PageQuery pageQuery);
 
 }

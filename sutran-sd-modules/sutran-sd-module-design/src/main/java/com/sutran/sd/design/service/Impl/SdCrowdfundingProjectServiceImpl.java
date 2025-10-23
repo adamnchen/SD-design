@@ -13,6 +13,9 @@ import com.sutran.sd.design.vo.CrowdfundingProjectDetailVO;
 import com.sutran.sd.design.vo.CrowdfundingProjectListVO;
 import com.sutran.sd.design.vo.CrowdfundingSupportVO;
 import com.sutran.sd.design.vo.CrowdfundingDrawVO;
+import com.sutran.sd.design.vo.TieredPricingItem;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.commons.lang3.StringUtils;
 import com.sutran.sd.design.mapper.SdCrowdfundingProjectMapper;
 import com.sutran.sd.design.mapper.SdCrowdfundingSupportMapper;
 import com.sutran.sd.design.service.ISdCrowdfundingProjectService;
@@ -31,6 +34,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
@@ -274,8 +278,8 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
 
     @Override
     public CrowdfundingProjectDetailVO getCrowdfundingProjectDetail(Long id) {
-        // 查询项目详情
-        SdCrowdfundingProject project = crowdfundingProjectMapper.selectSdCrowdfundingProjectById(id);
+        // 查询项目详情（包含阶梯价格）
+        SdCrowdfundingProject project = crowdfundingProjectMapper.selectSdCrowdfundingProjectByIdWithTieredPricing(id);
         if (project == null) {
             throw new RuntimeException("众筹项目不存在");
         }
@@ -284,6 +288,7 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
         CrowdfundingProjectDetailVO vo = new CrowdfundingProjectDetailVO();
         vo.setId(project.getId());
         vo.setProjectNo(project.getProjectNo());
+        vo.setProofingInvitationId(project.getProofingInvitationId());
         vo.setTitle(project.getTitle());
         vo.setDescription(project.getDescription());
         vo.setCoverImage(project.getCoverImage());
@@ -297,6 +302,7 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
         vo.setStatus(project.getStatus());
         vo.setDrawNumber(project.getDrawNumber());
         vo.setDrawStatus(project.getDrawStatus());
+        vo.setProfitShareRatio(project.getProfitShareRatio());
 
         // 计算进度百分比
         if (project.getTargetAmount() != null && project.getTargetAmount().compareTo(BigDecimal.ZERO) > 0) {
@@ -315,6 +321,9 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
         } else {
             vo.setRemainingDays(0L);
         }
+
+        // 计算阶梯价格相关信息
+        calculateCrowdfundingTieredPricingInfo(project, vo);
 
         return vo;
     }
@@ -404,6 +413,11 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
             support.setSupportAmount(supportDTO.getSupportAmount());
             support.setDrawStatus(0); // 未参与抽奖
             support.setIsWinner(0); // 未中奖
+            // 设置收货信息
+            support.setReceiverName(supportDTO.getReceiverName());
+            support.setReceiverPhone(supportDTO.getReceiverPhone());
+            support.setReceiverAddress(supportDTO.getReceiverAddress());
+            support.setReceiverArea(supportDTO.getReceiverArea());
             // createBy, createTime, updateBy, updateTime 字段由 BaseEntity 自动填充
 
             supportMapper.insert(support);
@@ -556,6 +570,100 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
         } catch (Exception e) {
             log.error("清理异常支持记录失败", e);
         }
+    }
+
+    /**
+     * 计算众筹项目阶梯价格相关信息
+     */
+    private void calculateCrowdfundingTieredPricingInfo(SdCrowdfundingProject project, CrowdfundingProjectDetailVO vo) {
+        try {
+            // 设置阶梯价格配置
+            vo.setTieredPricing(project.getTieredPricing());
+
+            // 1. 解析阶梯价格配置
+            if (StringUtils.isBlank(project.getTieredPricing())) {
+                // 没有阶梯价格配置，使用目标金额作为基础价格
+                vo.setCurrentPrice(project.getTargetAmount());
+                vo.setTieredPricingList(new ArrayList<>());
+                return;
+            }
+
+            ObjectMapper mapper = new ObjectMapper();
+            List<com.sutran.sd.design.vo.TieredPricingItem> tieredPricingList = mapper.readValue(project.getTieredPricing(),
+                mapper.getTypeFactory().constructCollectionType(List.class, com.sutran.sd.design.vo.TieredPricingItem.class));
+
+            vo.setTieredPricingList(tieredPricingList);
+
+            // 2. 查询当前支持数量（已支付的支持记录）
+            LambdaQueryWrapper<SdCrowdfundingSupport> queryWrapper = new LambdaQueryWrapper<>();
+            queryWrapper.eq(SdCrowdfundingSupport::getProjectId, project.getId());
+            // 注意：众筹支持记录没有status字段，我们假设所有记录都是已支付的
+
+            List<SdCrowdfundingSupport> paidSupports = supportMapper.selectList(queryWrapper);
+            // 众筹支持记录没有quantity字段，我们使用支持金额来计算
+            int totalQuantity = paidSupports.size(); // 使用支持记录数量作为数量
+
+            // 3. 计算当前价格
+            BigDecimal currentPrice = calculateCrowdfundingCurrentPrice(totalQuantity, tieredPricingList);
+            vo.setCurrentPrice(currentPrice);
+
+            // 4. 计算下一个价格阈值和价格
+            calculateCrowdfundingNextPriceInfo(totalQuantity, tieredPricingList, vo);
+
+        } catch (Exception e) {
+            log.error("[众筹项目] 计算阶梯价格信息失败: 项目ID={}", project.getId(), e);
+            // 出错时使用目标金额作为基础价格
+            vo.setCurrentPrice(project.getTargetAmount());
+            vo.setTieredPricingList(new ArrayList<>());
+        }
+    }
+
+    /**
+     * 计算众筹项目当前价格
+     */
+    private BigDecimal calculateCrowdfundingCurrentPrice(int totalQuantity, List<com.sutran.sd.design.vo.TieredPricingItem> tieredPricingList) {
+        if (tieredPricingList.isEmpty()) {
+            return BigDecimal.ZERO;
+        }
+
+        // 按数量节点排序
+        tieredPricingList.sort((a, b) -> Integer.compare(a.getNode(), b.getNode()));
+
+        // 找到对应的价格区间
+        for (int i = tieredPricingList.size() - 1; i >= 0; i--) {
+            com.sutran.sd.design.vo.TieredPricingItem tier = tieredPricingList.get(i);
+            if (totalQuantity >= tier.getNode()) {
+                return tier.getUnitPrice();
+            }
+        }
+
+        // 如果数量小于第一个节点，返回第一个价格
+        return tieredPricingList.get(0).getUnitPrice();
+    }
+
+    /**
+     * 计算众筹项目下一个价格信息
+     */
+    private void calculateCrowdfundingNextPriceInfo(int totalQuantity, List<com.sutran.sd.design.vo.TieredPricingItem> tieredPricingList, CrowdfundingProjectDetailVO vo) {
+        if (tieredPricingList.isEmpty()) {
+            return;
+        }
+
+        // 按数量节点排序
+        tieredPricingList.sort((a, b) -> Integer.compare(a.getNode(), b.getNode()));
+
+        // 找到下一个价格阈值
+        for (com.sutran.sd.design.vo.TieredPricingItem tier : tieredPricingList) {
+            if (totalQuantity < tier.getNode()) {
+                vo.setNextThreshold(tier.getNode());
+                vo.setNextPrice(tier.getUnitPrice());
+                return;
+            }
+        }
+
+        // 如果已经达到最高阶梯，没有下一个价格
+        vo.setNextThreshold(null);
+        vo.setNextPrice(null);
     }
 
 

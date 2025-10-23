@@ -12,8 +12,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.List;
-
 /**
  * 厂家样品发货管理Controller
  *
@@ -33,8 +31,8 @@ public class SampleDeliveryController extends BaseController {
      */
     @Operation(summary = "获取我的发货项目", description = "获取我承接的已完成众筹项目，包含中奖者和发起人自留样品信息")
     @GetMapping("/my-projects")
-    public TableDataInfo<SampleDeliveryListVO> getMyDeliveryProjects(PageQuery pageQuery) {
-        return sampleDeliveryService.getMyDeliveryProjects(pageQuery);
+    public R<TableDataInfo<SampleDeliveryListVO>> getMyDeliveryProjects(PageQuery pageQuery) {
+        return R.ok(sampleDeliveryService.getMyDeliveryProjects(pageQuery));
     }
 
     /**
@@ -53,5 +51,14 @@ public class SampleDeliveryController extends BaseController {
     @PostMapping("/upload-sample-image/{id}")
     public R<String> uploadSampleImage(@PathVariable Long id, @RequestParam("file") MultipartFile file) {
         return sampleDeliveryService.uploadSampleImage(id, file);
+    }
+
+    /**
+     * 根据众筹项目ID查询所有发货信息
+     */
+    @Operation(summary = "查询项目发货信息", description = "根据众筹项目ID查询该项目所有中奖人和发起人自留的发货信息")
+    @GetMapping("/project/{projectId}")
+    public R<TableDataInfo<SampleDeliveryListVO>> getProjectDeliveryInfo(@PathVariable Long projectId, PageQuery pageQuery) {
+        return R.ok(sampleDeliveryService.getProjectDeliveryInfo(projectId, pageQuery));
     }
 }

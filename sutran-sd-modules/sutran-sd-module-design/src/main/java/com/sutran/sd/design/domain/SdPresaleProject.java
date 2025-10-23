@@ -191,6 +191,12 @@ public class SdPresaleProject extends BaseEntity {
     private Date manufacturerUploadTime;
 
     /**
+     * 销售数量
+     */
+    @TableField("total_quantities")
+    private Integer totalQuantities;
+
+    /**
      * 累计销售金额
      */
     @TableField("total_sales_amount")

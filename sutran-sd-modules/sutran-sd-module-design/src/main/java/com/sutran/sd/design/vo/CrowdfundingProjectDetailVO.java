@@ -183,4 +183,34 @@ public class CrowdfundingProjectDetailVO {
      * 创建时间
      */
     private Date createTime;
+
+    /**
+     * 阶梯价格配置（JSON格式）
+     */
+    private String tieredPricing;
+
+    /**
+     * 阶梯价格列表
+     */
+    private java.util.List<TieredPricingItem> tieredPricingList;
+
+    /**
+     * 当前价格（基于当前支持数量计算的阶梯价格）
+     */
+    private BigDecimal currentPrice;
+
+    /**
+     * 下一个价格阈值
+     */
+    private Integer nextThreshold;
+
+    /**
+     * 下一个价格
+     */
+    private BigDecimal nextPrice;
+
+    /**
+     * 利润分成比例
+     */
+    private String profitShareRatio;
 }

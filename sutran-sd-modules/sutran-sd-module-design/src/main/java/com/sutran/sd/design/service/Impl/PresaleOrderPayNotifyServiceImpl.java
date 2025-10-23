@@ -75,7 +75,8 @@ public class PresaleOrderPayNotifyServiceImpl extends BasePayNotifyService {
                 presaleOrderMapper.updateById(presaleOrder);
 
                 // 更新项目销售金额和销售数量
-                updateProjectSalesInfo(presaleOrder.getProjectId(), amount, presaleOrder.getQuantity());
+                BigDecimal amountDecimal = new BigDecimal(totalAmount);
+                updateProjectSalesInfo(presaleOrder.getProjectId(), amountDecimal, presaleOrder.getQuantity());
 
                 // 检查是否需要阶梯价格调整
                 checkAndAdjustTieredPricing(presaleOrder);
@@ -137,14 +138,39 @@ public class PresaleOrderPayNotifyServiceImpl extends BasePayNotifyService {
      */
     private void updateProjectSalesInfo(Long projectId, BigDecimal amount, Integer quantity) {
         try {
+            log.info("[预售订单] 开始更新项目销售信息: 项目ID={}, 新增金额={}, 新增数量={}", projectId, amount, quantity);
+            
             SdPresaleProject project = presaleProjectMapper.selectSdPresaleProjectById(projectId);
             if (project != null) {
-                // 更新销售金额
+                // 获取当前销售金额和数量
                 BigDecimal currentAmount = project.getTotalSalesAmount() != null ? project.getTotalSalesAmount() : BigDecimal.ZERO;
-                project.setTotalSalesAmount(currentAmount.add(amount));              
-                presaleProjectMapper.updateById(project);
-                log.info("[预售订单] 更新项目销售信息: 项目ID={}, 新增金额={}, 新增数量={}, 累计金额={}",
-                    projectId, amount, quantity, project.getTotalSalesAmount());
+                Integer currentQuantity = project.getTotalQuantities() != null ? project.getTotalQuantities() : 0;
+                
+                log.info("[预售订单] 项目当前销售信息: 项目ID={}, 当前金额={}, 当前数量={}", projectId, currentAmount, currentQuantity);
+                
+                // 计算新的销售金额和数量
+                BigDecimal newAmount = currentAmount.add(amount);
+                Integer newQuantity = currentQuantity + quantity;
+                
+                project.setTotalSalesAmount(newAmount);
+                project.setTotalQuantities(newQuantity);
+                
+                // 更新数据库
+                int updateResult = presaleProjectMapper.updateById(project);
+                log.info("[预售订单] 数据库更新结果: 项目ID={}, 更新行数={}, 新销售金额={}, 新销售数量={}", 
+                    projectId, updateResult, newAmount, newQuantity);
+                
+                // 验证更新结果
+                SdPresaleProject updatedProject = presaleProjectMapper.selectSdPresaleProjectById(projectId);
+                if (updatedProject != null) {
+                    log.info("[预售订单] 更新后验证: 项目ID={}, 数据库中的销售金额={}, 销售数量={}", 
+                        projectId, updatedProject.getTotalSalesAmount(), updatedProject.getTotalQuantities());
+                }
+                
+                log.info("[预售订单] 更新项目销售信息完成: 项目ID={}, 新增金额={}, 新增数量={}, 累计金额={}, 累计数量={}",
+                    projectId, amount, quantity, newAmount, newQuantity);
+            } else {
+                log.error("[预售订单] 项目不存在: 项目ID={}", projectId);
             }
         } catch (Exception e) {
             log.error("[预售订单] 更新项目销售信息失败: 项目ID={}, 金额={}, 数量={}", projectId, amount, quantity, e);

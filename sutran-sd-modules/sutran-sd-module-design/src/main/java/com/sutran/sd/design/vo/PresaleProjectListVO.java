@@ -44,6 +44,11 @@ public class PresaleProjectListVO {
     private String manufacturerName;
 
     /**
+     * 厂家头像
+     */
+    private String manufacturerAvatar;
+
+    /**
      * 关联的打样邀约ID
      */
     private Long proofingInvitationId;

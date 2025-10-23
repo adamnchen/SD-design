@@ -89,6 +89,14 @@ public interface ISdCrowdfundingProjectService {
     List<CrowdfundingProjectListVO> getActiveCrowdfundingProjects();
 
     /**
+     * 获取进行中的众筹项目列表（分页）
+     *
+     * @param pageQuery 分页查询
+     * @return 进行中的众筹项目分页数据
+     */
+    TableDataInfo<CrowdfundingProjectListVO> getActiveCrowdfundingProjectsPage(PageQuery pageQuery);
+
+    /**
      * 获取众筹项目详情
      *
      * @param id 项目ID

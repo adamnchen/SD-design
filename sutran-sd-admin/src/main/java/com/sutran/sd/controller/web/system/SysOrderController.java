@@ -9,10 +9,7 @@ import com.sutran.sd.pay.service.AliPayService;
 import com.sutran.sd.pay.service.PayOrderService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 /**
  * [订单]后台API
@@ -47,14 +44,14 @@ public class SysOrderController extends BaseController {
     }
 
     /**
-     * 同步支付宝支付状态
-     * @param outTradeNo 订单号
-     * @param tradeNo 交易流水号
-     * @return 交易信息
+     * 手动同步支付宝指定订单支付状态
+     * @param outTradeNo 订单号（和tradeNo二选一）
+     * @param tradeNo 交易流水号（和outTradeNo二选一）
+     * @return 同步完成
      */
-    @GetMapping(value = "/syncStatus")
-    public R<Void> syncStatus(@RequestParam(required = false, name = "outTradeNo") String outTradeNo, @RequestParam(required = false, name = "tradeNo") String tradeNo) {
-        aliPayService.syncStatus(outTradeNo, tradeNo);
+    @GetMapping(value = "/sync-order-status")
+    public R<Void> syncOrderStatus(@RequestParam(required = false, name = "outTradeNo") String outTradeNo, @RequestParam(required = false, name = "tradeNo") String tradeNo) {
+        aliPayService.syncOrderStatus(outTradeNo, tradeNo);
         return R.ok();
     }
 

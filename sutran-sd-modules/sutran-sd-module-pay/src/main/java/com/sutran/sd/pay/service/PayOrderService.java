@@ -1,5 +1,6 @@
 package com.sutran.sd.pay.service;
 
+import com.alipay.api.response.AlipayTradeQueryResponse;
 import com.sutran.sd.common.core.domain.PageQuery;
 import com.sutran.sd.common.core.page.TableDataInfo;
 import com.sutran.sd.pay.domain.PayOrder;
@@ -48,6 +49,15 @@ public interface PayOrderService {
      * @return 订单
      */
     PayOrder isExistNoDealOrder(Long userId, String appId);
+
+    /**
+     * 处理支付宝支付订单
+     *
+     * @param response   支付宝支付查询响应
+     * @param outTradeNo 订单号
+     * @param tradeNo 交易号
+     */
+    void dealOrderBySyncStatus(AlipayTradeQueryResponse response, String outTradeNo, String tradeNo);
 
     /**
      * 新增订单

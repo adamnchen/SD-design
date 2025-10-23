@@ -12,7 +12,9 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ijpay.alipay.AliPayApi;
 import com.sutran.sd.common.core.domain.PageQuery;
+import com.sutran.sd.common.core.domain.entity.PayMember;
 import com.sutran.sd.common.core.page.TableDataInfo;
+import com.sutran.sd.common.core.service.UserService;
 import com.sutran.sd.common.exception.ServiceException;
 import com.sutran.sd.common.utils.StringUtils;
 import com.sutran.sd.common.utils.redis.RedisUtils;
@@ -24,6 +26,7 @@ import com.sutran.sd.pay.enums.BusinessType;
 import com.sutran.sd.pay.enums.ChannelType;
 import com.sutran.sd.pay.mapper.PayOrderMapper;
 import com.sutran.sd.pay.service.BasePayNotifyService;
+import com.sutran.sd.pay.service.PayMemberService;
 import com.sutran.sd.pay.service.PayOrderService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,6 +36,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Date;
 import java.util.Map;
+import java.util.Objects;
 
 import static com.sutran.sd.common.constant.CacheConstants.PAY_ORDER_QR;
 import static com.sutran.sd.common.constant.CacheConstants.PAY_ORDER_TASK;
@@ -41,13 +45,15 @@ import static com.sutran.sd.common.constant.CacheConstants.PAY_ORDER_TASK;
  * @author zj
  * @date 2025年08月23日 23:00
  */
-@SuppressWarnings({"AlibabaAvoidComplexCondition", "LoggingSimilarMessage"})
+@SuppressWarnings({"AlibabaAvoidComplexCondition", "LoggingSimilarMessage", "AlibabaUndefineMagicConstant"})
 @RequiredArgsConstructor(onConstructor_ = @Lazy)
 @Slf4j
 @Service
 public class PayOrderServiceImpl implements PayOrderService {
 
     private final PayOrderMapper payOrderMapper;
+    private final UserService userService;
+    private final PayMemberService payMemberService;
     private final Map<String,BasePayNotifyService> basePayNotifyServiceMap;
 
     @Override
@@ -149,6 +155,60 @@ public class PayOrderServiceImpl implements PayOrderService {
             .orderByDesc(PayOrder::getId).last("LIMIT 1"));
     }
 
+
+
+    /**
+     * 处理通过手动同步账单来处理支付订单
+     *
+     * @param response   支付宝支付查询响应
+     * @param outTradeNo 订单号
+     * @param tradeNo    交易号
+     */
+    @Override
+    public void dealOrderBySyncStatus(AlipayTradeQueryResponse response, String outTradeNo, String tradeNo) {
+        if (response.isSuccess()) {
+            // 根据outTradeNo查询订单
+            PayOrder order = detailByOutTradeNo(outTradeNo);
+            if (order == null) {
+                return;
+            }
+            // 检查订单状态,已处理过，直接返回成功
+            if (order.getStatus() != 0) {
+                return;
+            }
+            // 业务逻辑：更新订单状态（需保证幂等性，避免重复处理）
+            if (AliPayTradeStatus.TRADE_SUCCESS.name().equals(response.getTradeStatus()) || AliPayTradeStatus.TRADE_FINISHED.name().equals(response.getTradeStatus())) {
+                // 修改订单状态
+                boolean updateSuccess = successPay(outTradeNo, tradeNo, response.getTotalAmount(), DateUtil.formatDateTime(response.getSendPayDate()));
+                if (updateSuccess) {
+                    dealPaySuccessBySyncStatus(order,response);
+                }
+            }
+            else {
+                failPay(outTradeNo, tradeNo, response.getTotalAmount());
+                log.error("[支付宝][查询指定交易信息]>>>>>>>>>支付宝查询指定交易信息并修改订单数据失败,订单号：{},流水号：{},交易状态：{}",outTradeNo,tradeNo,response.getTradeStatus());
+            }
+        }
+    }
+    /**
+     * 处理通过手动同步账单来处理支付成功订单
+     *
+     * @param order    订单
+     * @param response 支付宝支付查询响应
+     */
+    private void dealPaySuccessBySyncStatus(PayOrder order, AlipayTradeQueryResponse response) {
+        // 通知支付宝处理成功，不再重复通知，并处理用户会员逻辑
+        if (Objects.equals(order.getBusinessType(), BusinessType.SD_MEMBER.name())) {
+            basePayNotifyServiceMap.get(PayNotifyServer.SD_MEMBER_NOTIFY).handleSuccessBusiness(response.getTradeStatus(),response.getOutTradeNo(),response.getTradeNo(),response.getTotalAmount(),DateUtil.formatDateTime(response.getSendPayDate()),order.getBusinessId(),order.getUserId());
+            PayMember payMember = payMemberService.detailById(order.getBusinessId().toString());
+            // 处理用户会员逻辑
+            userService.insertMember(order.getUserId(),order.getBusinessId(),new Date(),payMember,order.getOutTradeNo());
+        }
+        //TODO 其他业务逻辑
+    }
+
+
+
     @Override
     public void insert(PayOrder order) {
         payOrderMapper.insert(order);
@@ -168,6 +228,8 @@ public class PayOrderServiceImpl implements PayOrderService {
     public void saveQrCode(String outTradeNo, String qrCode) {
         payOrderMapper.saveQrCode(outTradeNo, qrCode);
     }
+
+
 
     /**
      * 处理未失效且未支付订单
@@ -201,53 +263,57 @@ public class PayOrderServiceImpl implements PayOrderService {
                 }
                 // 发送支付状态到业务实现
                 PayTimeoutStatusVo vo = new PayTimeoutStatusVo().setUserId(order.getUserId()).setBusinessId(order.getBusinessId()).setTradeStatus(tradeStatus).setOutTradeNo(outTradeNo);
-                
-                // 为众筹项目设置项目ID和金额
-                if (BusinessType.PROOF_CROWDFUND.name().equals(order.getBusinessType())) {
-                    vo.setProjectid(order.getBusinessId()); // 众筹项目的businessId就是项目ID
-                    vo.setAmount(order.getTotalAmount()); // 使用订单总金额
-                }
-                
-                if (BusinessType.SD_MEMBER.name().equals(order.getBusinessType())) {
-                    basePayNotifyServiceMap.get(PayNotifyServer.SD_MEMBER_NOTIFY).dealPayTimeoutData(vo);
-                }
-                if (BusinessType.PROOF_CROWDFUND.name().equals(order.getBusinessType())) {
-                    basePayNotifyServiceMap.get(PayNotifyServer.PROOF_CROWDFUND_NOTIFY).dealPayTimeoutData(vo);
-                }
-                if (BusinessType.PRESALE.name().equals(order.getBusinessType())) {
-                    basePayNotifyServiceMap.get(PayNotifyServer.PRESALE_ORDER_NOTIFY).dealPayTimeoutData(vo);
-                }
-                RedisUtils.delCacheZSet(PAY_ORDER_TASK,outTradeNo);
+                // 处理超时订单的业务逻辑
+                dealTimeoutPayOrder(vo,order,outTradeNo);
             }
             else {
                 failPay(outTradeNo, null, response.getTotalAmount());
                 log.error("[支付宝][定时处理未失效且未支付订单]>>>>>>>>>支付宝查询指定交易信息并修改订单数据失败,订单号：{}",outTradeNo);
                 // 发送支付状态到业务实现
                 PayTimeoutStatusVo vo = new PayTimeoutStatusVo().setUserId(order.getUserId()).setBusinessId(order.getBusinessId()).setTradeStatus(AliPayTradeStatus.TRADE_CLOSED.name()).setOutTradeNo(outTradeNo);
-                
-                // 为众筹项目设置项目ID和金额
-                if (BusinessType.PROOF_CROWDFUND.name().equals(order.getBusinessType())) {
-                    vo.setProjectid(order.getBusinessId()); // 众筹项目的businessId就是项目ID
-                    vo.setAmount(order.getTotalAmount()); // 使用订单总金额
-                }
-                
-                if (BusinessType.SD_MEMBER.name().equals(order.getBusinessType())) {
-                    basePayNotifyServiceMap.get(PayNotifyServer.SD_MEMBER_NOTIFY).dealPayTimeoutData(vo);
-                }
-                if (BusinessType.PROOF_CROWDFUND.name().equals(order.getBusinessType())) {
-                    basePayNotifyServiceMap.get(PayNotifyServer.PROOF_CROWDFUND_NOTIFY).dealPayTimeoutData(vo);
-                }
-                if (BusinessType.PRESALE.name().equals(order.getBusinessType())) {
-                    basePayNotifyServiceMap.get(PayNotifyServer.PRESALE_ORDER_NOTIFY).dealPayTimeoutData(vo);
-                }
-                RedisUtils.delCacheZSet(PAY_ORDER_TASK,outTradeNo);
+                // 处理超时订单的业务逻辑
+                dealTimeoutPayOrder(vo,order,outTradeNo);
             }
         }
         catch (AlipayApiException e) {
             log.error("[支付宝][定时处理未失效且未支付订单]>>>>>>>>>查询支付宝指定交易信息失败,订单号：{},异常：",order.getOutTradeNo(),e);
         }
     }
+    /**
+     * 处理超时订单的业务逻辑
+     * @param vo 超时订单VO
+     * @param order 订单实体
+     * @param outTradeNo 订单号
+     */
+    private void dealTimeoutPayOrder(PayTimeoutStatusVo vo, PayOrder order, String outTradeNo) {
+        // 处理用户会员订单超时逻辑
+        if (BusinessType.SD_MEMBER.name().equals(order.getBusinessType())) {
+            basePayNotifyServiceMap.get(PayNotifyServer.SD_MEMBER_NOTIFY).dealPayTimeoutData(vo);
+        }
+        // 处理众筹项目订单超时逻辑
+        if (BusinessType.PROOF_CROWDFUND.name().equals(order.getBusinessType())) {
+            // 众筹项目的businessId就是项目ID
+            vo.setProjectid(order.getBusinessId());
+            // 使用订单总金额
+            vo.setAmount(order.getTotalAmount());
+            basePayNotifyServiceMap.get(PayNotifyServer.PROOF_CROWDFUND_NOTIFY).dealPayTimeoutData(vo);
+        }
+        // 处理预售订单超时逻辑
+        if (BusinessType.PRESALE.name().equals(order.getBusinessType())) {
+            basePayNotifyServiceMap.get(PayNotifyServer.PRESALE_ORDER_NOTIFY).dealPayTimeoutData(vo);
+        }
+        // 移除缓存中的订单
+        RedisUtils.delCacheZSet(PAY_ORDER_TASK,outTradeNo);
+    }
 
+
+
+    /**
+     * 获取支付二维码
+     * @param outTradeNo 订单号
+     * @param userId 用户ID
+     * @return 支付二维码
+     */
     @Override
     public String getPayQr(String outTradeNo, Long userId) {
         if (StringUtils.isBlank(outTradeNo)) {
@@ -260,7 +326,7 @@ public class PayOrderServiceImpl implements PayOrderService {
             if (order == null) {
                 return null;
             }
-            else if (order.getStatus()!=null && (order.getStatus()==1 || order.getStatus()==2)) {
+            else if (order.getStatus()!=null && (order.getStatus()==1 || order.getStatus()==2 || order.getStatus()==3)) {
                 throw new ServiceException("订单已完成!");
             }
             else {

@@ -144,10 +144,11 @@ public class PayOrderServiceImpl implements PayOrderService {
     }
 
     @Override
-    public PayOrder isExistNoDealOrder(Long userId, String appId) {
+    public PayOrder isExistNoDealOrder(Long userId, String appId, Long memberId) {
         return payOrderMapper.selectOne(new LambdaQueryWrapper<PayOrder>()
             .eq(PayOrder::getAppId, appId)
             .eq(PayOrder::getUserId, userId)
+            .eq(PayOrder::getBusinessId, memberId)
             .eq(PayOrder::getBusinessType, BusinessType.SD_MEMBER.name())
             .eq(PayOrder::getChannelType, ChannelType.ALI_PAY.name())
             .eq(PayOrder::getStatus, 0)
@@ -337,5 +338,10 @@ public class PayOrderServiceImpl implements PayOrderService {
             }
         }
         return qr;
+    }
+
+    @Override
+    public void deleteById(Long id) {
+        payOrderMapper.deleteById(id);
     }
 }

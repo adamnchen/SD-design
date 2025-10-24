@@ -32,10 +32,10 @@ public interface AliPayService {
      * @param body 商品参数或者描述信息(可以用json字符串表示)
      * @param totalAmount 订单总金额
      * @param notifyUrl 支付结果回调接口
-     * @param businessId 业务ID(会员ID)
+     * @param memberId 会员ID
      * @return 支付二维码
      */
-    String createMemberPayOrder(Long userId, String userName, String outTradeNo, String subject, String body, BigDecimal totalAmount, String notifyUrl, Long businessId);
+    String createMemberPayOrder(Long userId, String userName, String outTradeNo, String subject, String body, BigDecimal totalAmount, String notifyUrl, Long memberId);
 
     /**
      * 创建支付订单

@@ -92,18 +92,26 @@ public class AliPayServiceImpl implements AliPayService {
      * @param body 商品参数或者描述信息(可以用json字符串表示)
      * @param totalAmount 订单总金额
      * @param notifyUrl 支付结果回调接口
-     * @param businessId 业务ID(会员ID)
+     * @param memberId (会员ID
      * @return 支付二维码
      */
     @Override
-    public String createMemberPayOrder(Long userId, String userName, String outTradeNo, String subject, String body, BigDecimal totalAmount, String notifyUrl, Long businessId) {
+    public String createMemberPayOrder(Long userId, String userName, String outTradeNo, String subject, String body, BigDecimal totalAmount, String notifyUrl, Long memberId) {
         // 支付宝应用ID
         final String appId = aliPayConfig.getAppId();
 
-        // 获取当前用户在当前支付应用下是否存在未超时且未完成的支付
-        PayOrder payOrder = payOrderService.isExistNoDealOrder(userId,appId);
-        if (payOrder != null) {
-            throw new ServiceException("当前用户在当前支付应用下存在未完成的订单",500,payOrder.getId().toString());
+        // 获取当前用户在当前支付应用下是否存在未超时且未完成的支付的会员订单
+        PayOrder payOrder = payOrderService.isExistNoDealOrder(userId,appId,memberId);
+        if (payOrder != null && StringUtils.isNotBlank(payOrder.getQrCode())) {
+            return payOrder.getQrCode();
+        }
+        else if (payOrder != null) {
+            // 删除没有qrCode的订单
+            payOrderService.deleteById(payOrder.getId());
+            // 删除缓存
+            RedisUtils.deleteKey(PAY_ORDER_QR+outTradeNo);
+            // 移除缓存中的订单
+            RedisUtils.delCacheZSet(PAY_ORDER_TASK,outTradeNo);
         }
 
         // 订单过期时间，11分钟后过期(稍微大于支付认超时时间)
@@ -120,7 +128,7 @@ public class AliPayServiceImpl implements AliPayService {
             .setTotalAmount(totalAmount).setStatus(0)
             .setChannelType(ChannelType.ALI_PAY.name())
             .setBusinessType(BusinessType.SD_MEMBER.name())
-            .setBusinessId(businessId).setCreateTime(now).setExpireTime(expireTime);
+            .setBusinessId(memberId).setCreateTime(now).setExpireTime(expireTime);
         payOrderService.insert(order);
         try {
             return tradePrecreatePay(outTradeNo, subject, body, totalAmount, notifyUrl);

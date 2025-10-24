@@ -44,11 +44,12 @@ public interface PayOrderService {
     /**
      * 检查用户是否存在未处理订单
      *
-     * @param userId 用户ID
-     * @param appId 应用ID
+     * @param userId   用户ID
+     * @param appId    应用ID
+     * @param memberId       会员ID
      * @return 订单
      */
-    PayOrder isExistNoDealOrder(Long userId, String appId);
+    PayOrder isExistNoDealOrder(Long userId, String appId, Long memberId);
 
     /**
      * 处理支付宝支付订单
@@ -104,4 +105,10 @@ public interface PayOrderService {
      * @return 支付二维码地址
      */
     String getPayQr(String outTradeNo, Long userId);
+
+     /**
+     * 删除订单
+     * @param id 订单ID
+     */
+    void deleteById(Long id);
 }

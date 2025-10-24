@@ -371,11 +371,16 @@ public class AliPayServiceImpl implements AliPayService {
         model.setRefundReason(refundReason);
         try {
             AlipayTradeRefundResponse refundToResponse = AliPayApi.tradeRefundToResponse(model, null);
-            //TODO 退款成功，需要修改订单状态
             if (refundToResponse.isSuccess()) {
-
-            }
-            else {
+                log.info("[支付宝][交易退款]>>>>>>>>>退款成功,订单号:{},支付宝交易流水号:{},退款金额:{},退款原因:{}",
+                    outTradeNo, tradeNo, refundAmount, refundReason);
+                payOrderService.updateRefundStatus(outTradeNo, new BigDecimal(refundAmount));
+                PayOrder payOrder = payOrderService.detailByOutTradeNo(outTradeNo);
+                if (payOrder != null) {
+                    log.info("[支付宝][交易退款]>>>>>>>>>业务订单退款处理完成,订单号:{},业务类型:{}",
+                        outTradeNo, payOrder.getBusinessType());
+                }
+            } else {
                 log.error("[支付宝][交易退款]>>>>>>>>>退款失败,订单号:{},支付宝交易流水号:{},退款金额:{},退款原因:{},失败原因：{}", outTradeNo, tradeNo, refundAmount, refundReason, refundToResponse.getSubMsg());
             }
         }

@@ -7,6 +7,7 @@ import com.sutran.sd.common.core.domain.PageQuery;
 import com.sutran.sd.common.core.page.TableDataInfo;
 import com.sutran.sd.design.domain.SdCrowdfundingProject;
 import com.sutran.sd.design.domain.SdCrowdfundingSupport;
+import com.sutran.sd.design.enums.CrowdfundingProjectStatus;
 import com.sutran.sd.design.dto.CrowdfundingProjectSimpleCreateDTO;
 import com.sutran.sd.design.dto.CrowdfundingSupportDTO;
 import com.sutran.sd.design.vo.CrowdfundingProjectDetailVO;
@@ -196,7 +197,7 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
         calendar.add(java.util.Calendar.DAY_OF_MONTH, crowdfundingDays);
         project.setEndTime(calendar.getTime());
 
-        project.setStatus(1); // 众筹中
+        project.setStatus(CrowdfundingProjectStatus.FUNDING.getCode()); // 众筹中
         project.setDrawNumber(invitationDetail.getDrawNumber()); // 使用邀约中的抽奖数量
         project.setTotalSamples(invitationDetail.getProofingQuantity());
         project.setDrawStatus(0); // 未开始

@@ -3,14 +3,17 @@ package com.sutran.sd.design.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.sutran.sd.design.domain.SdPresaleOrder;
 import com.sutran.sd.design.domain.SdPresaleProject;
+import com.sutran.sd.design.enums.PresaleOrderStatus;
 import com.sutran.sd.design.mapper.SdPresaleOrderMapper;
 import com.sutran.sd.design.mapper.SdPresaleProjectMapper;
 import com.sutran.sd.pay.constants.PayNotifyServer;
 import com.sutran.sd.pay.domain.PayOrder;
 import com.sutran.sd.pay.domain.vo.PayTimeoutStatusVo;
 import com.sutran.sd.pay.enums.AliPayTradeStatus;
+import com.sutran.sd.pay.service.AliPayService;
 import com.sutran.sd.pay.service.BasePayNotifyService;
 import com.sutran.sd.pay.service.PayOrderService;
+import com.sutran.sd.common.utils.StringUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Lazy;
@@ -19,7 +22,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.interceptor.TransactionAspectSupport;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -35,6 +40,7 @@ public class PresaleOrderPayNotifyServiceImpl extends BasePayNotifyService {
     private final PayOrderService payOrderService;
     private final SdPresaleOrderMapper presaleOrderMapper;
     private final SdPresaleProjectMapper presaleProjectMapper;
+    private final AliPayService aliPayService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -70,7 +76,7 @@ public class PresaleOrderPayNotifyServiceImpl extends BasePayNotifyService {
                 payOrderService.successPay(outTradeNo, tradeNo, totalAmount, gmtPayment);
 
                 // 更新预售订单状态
-                presaleOrder.setOrderStatus(2); // 已支付
+                presaleOrder.setOrderStatus(PresaleOrderStatus.PAID.getCode()); // 已支付
                 presaleOrder.setPayOrderId(payOrder.getId());
                 presaleOrderMapper.updateById(presaleOrder);
 
@@ -82,6 +88,10 @@ public class PresaleOrderPayNotifyServiceImpl extends BasePayNotifyService {
                 checkAndAdjustTieredPricing(presaleOrder);
 
                 log.info("[预售订单][支付回调] 支付成功处理完成: 订单号={}, 项目ID={}", outTradeNo, presaleOrder.getProjectId());
+            } else {
+                // 支付失败
+                log.warn("[预售订单][支付回调] 支付失败: 订单号={}, 交易状态={}", outTradeNo, tradeStatus);
+                payOrderService.failPay(outTradeNo, tradeNo, totalAmount);
             }
 
 
@@ -101,7 +111,7 @@ public class PresaleOrderPayNotifyServiceImpl extends BasePayNotifyService {
 
         payOrderService.failPay(outTradeNo, tradeNo, totalAmount);
         // 更新预售订单状态
-        presaleOrder.setOrderStatus(6); // 已取消
+        presaleOrder.setOrderStatus(PresaleOrderStatus.CANCELLED.getCode()); // 已取消
         presaleOrderMapper.updateById(presaleOrder);
 
         log.error("[预售订单][支付回调] 支付失败: 订单号={}, 交易状态={}", outTradeNo, tradeStatus);
@@ -123,7 +133,7 @@ public class PresaleOrderPayNotifyServiceImpl extends BasePayNotifyService {
             SdPresaleOrder presaleOrder = presaleOrderMapper.selectByOrderNo(vo.getOutTradeNo());
             if (presaleOrder != null) {
                 // 更新订单状态为已取消
-                presaleOrder.setOrderStatus(6); // 已取消
+                presaleOrder.setOrderStatus(PresaleOrderStatus.CANCELLED.getCode()); // 已取消
                 presaleOrderMapper.updateById(presaleOrder);
                 log.info("[预售订单][支付超时] 订单已取消: 订单号={}", vo.getOutTradeNo());
             }
@@ -202,7 +212,7 @@ public class PresaleOrderPayNotifyServiceImpl extends BasePayNotifyService {
             // 3. 查询项目当前总订单数量（已支付的订单）
             LambdaQueryWrapper<SdPresaleOrder> queryWrapper = new LambdaQueryWrapper<>();
             queryWrapper.eq(SdPresaleOrder::getProjectId, presaleOrder.getProjectId())
-                       .eq(SdPresaleOrder::getOrderStatus, 2); // 已支付状态
+                       .eq(SdPresaleOrder::getOrderStatus, PresaleOrderStatus.PAID.getCode()); // 已支付状态
 
             List<SdPresaleOrder> paidOrders = presaleOrderMapper.selectList(queryWrapper);
             int totalQuantity = paidOrders.stream()
@@ -287,10 +297,9 @@ public class PresaleOrderPayNotifyServiceImpl extends BasePayNotifyService {
 
                 presaleOrderMapper.updateById(order);
 
-                // TODO: 发起支付宝退款流程
-                // 这里需要调用支付宝退款接口，暂时记录日志
+                // 发起支付宝退款流程
                 log.info("[预售订单] 发起退款流程: 订单号={}, 退款金额={}", order.getOrderNo(), refundAmount);
-                // processAlipayRefund(order, refundAmount);
+                processAlipayRefund(order, refundAmount);
 
             } else if (refundAmount.compareTo(BigDecimal.ZERO) < 0) {
                 // 理论上不应该出现这种情况，因为阶梯价格只会降低
@@ -330,13 +339,42 @@ public class PresaleOrderPayNotifyServiceImpl extends BasePayNotifyService {
     }
 
     /**
-     * 处理支付宝退款（TODO: 待实现）
+     * 处理支付宝退款
      */
     private void processAlipayRefund(SdPresaleOrder order, BigDecimal refundAmount) {
-        // TODO: 实现支付宝退款接口
-        // 1. 调用支付宝退款API
-        // 2. 更新支付订单的退款状态
-        // 3. 更新预售订单的退款状态
-        log.info("[预售订单] 支付宝退款接口待实现: 订单号={}, 退款金额={}", order.getOrderNo(), refundAmount);
+        try {
+            // 1. 查询支付订单获取支付宝交易号
+            PayOrder payOrder = payOrderService.detailByOutTradeNo(order.getOrderNo());
+            if (payOrder == null) {
+                log.error("[预售订单] 退款失败: 未找到支付订单, 订单号={}", order.getOrderNo());
+                return;
+            }
+
+            if (StringUtils.isBlank(payOrder.getTradeNo())) {
+                log.error("[预售订单] 退款失败: 支付订单缺少支付宝交易号, 订单号={}", order.getOrderNo());
+                return;
+            }
+
+            // 2. 调用支付宝退款API
+            String refundReason = "阶梯价格调整退款";
+            aliPayService.tradeRefund(order.getOrderNo(), payOrder.getTradeNo(),
+                refundAmount.setScale(2, RoundingMode.HALF_UP).toString(), refundReason);
+
+            // 3. 更新预售订单状态为已退款
+            order.setOrderStatus(PresaleOrderStatus.REFUNDED.getCode());
+            order.setRefundTime(new Date());
+            order.setRefundReason(refundReason);
+            presaleOrderMapper.updateById(order);
+
+            // 4. 更新支付订单状态
+            payOrderService.updateRefundStatus(order.getOrderNo(), refundAmount);
+
+            log.info("[预售订单] 退款成功: 订单号={}, 退款金额={}, 支付宝交易号={}",
+                order.getOrderNo(), refundAmount, payOrder.getTradeNo());
+
+        } catch (Exception e) {
+            log.error("[预售订单] 退款失败: 订单号={}, 退款金额={}, 异常：", order.getOrderNo(), refundAmount, e);
+            // 退款失败时，可以考虑发送通知给管理员或用户
+        }
     }
 }

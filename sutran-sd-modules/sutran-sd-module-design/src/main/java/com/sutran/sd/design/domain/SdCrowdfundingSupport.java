@@ -98,4 +98,22 @@ public class SdCrowdfundingSupport extends BaseEntity {
      */
     @TableField("receiver_area")
     private String receiverArea;
+
+    /**
+     * 支持状态：0=正常，1=已取消，2=已退款
+     */
+    @TableField("status")
+    private Integer status;
+
+    /**
+     * 退款时间
+     */
+    @TableField("refund_time")
+    private java.util.Date refundTime;
+
+    /**
+     * 退款原因
+     */
+    @TableField("refund_reason")
+    private String refundReason;
 }

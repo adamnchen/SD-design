@@ -5,6 +5,8 @@ import com.sutran.sd.common.core.domain.PageQuery;
 import com.sutran.sd.common.core.page.TableDataInfo;
 import com.sutran.sd.pay.domain.PayOrder;
 
+import java.math.BigDecimal;
+
 /**
  * @author zj
  * @date 2025年08月23日 22:59
@@ -111,4 +113,12 @@ public interface PayOrderService {
      * @param id 订单ID
      */
     void deleteById(Long id);
+
+    /**
+     * 更新退款状态
+     * @param outTradeNo 订单号
+     * @param refundAmount 退款金额
+     * @return 是否更新成功
+     */
+    boolean updateRefundStatus(String outTradeNo, BigDecimal refundAmount);
 }

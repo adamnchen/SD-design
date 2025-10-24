@@ -12,6 +12,8 @@ import com.sutran.sd.common.utils.OrderNumUtils;
 import com.sutran.sd.common.utils.StringUtils;
 import com.sutran.sd.design.domain.SdPresaleOrder;
 import com.sutran.sd.design.domain.SdPresaleProject;
+import com.sutran.sd.design.enums.PresaleOrderStatus;
+import com.sutran.sd.design.enums.PresaleProjectStatus;
 import com.sutran.sd.design.dto.PresaleOrderCreateDTO;
 import com.sutran.sd.design.dto.PresaleProjectPublishDTO;
 import com.sutran.sd.design.mapper.SdPresaleOrderMapper;
@@ -290,7 +292,7 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
             order.setReceiverPhone(createDTO.getReceiverPhone());
             order.setReceiverAddress(createDTO.getReceiverAddress());
             order.setReceiverArea(createDTO.getReceiverArea());
-            order.setOrderStatus(1); // 待支付
+            order.setOrderStatus(PresaleOrderStatus.PENDING_PAYMENT.getCode()); // 待支付
 
             presaleOrderMapper.insert(order);
 
@@ -583,7 +585,7 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
             // 有效期天数：使用用户填写的有效期天数
             project.setValidityDays(publishDTO.getValidityDays());
             project.setManufacturerPhotos(publishDTO.getManufacturerPhotos());
-            project.setStatus(1); // 销售中
+            project.setStatus(PresaleProjectStatus.ON_SALE.getCode()); // 销售中
             project.setViewCount(0);
             project.setFavoriteCount(0);
             project.setShareCount(0);

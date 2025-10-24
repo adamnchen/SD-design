@@ -152,7 +152,7 @@ public class PayOrderServiceImpl implements PayOrderService {
             .eq(PayOrder::getBusinessType, BusinessType.SD_MEMBER.name())
             .eq(PayOrder::getChannelType, ChannelType.ALI_PAY.name())
             .eq(PayOrder::getStatus, 0)
-            .gt(PayOrder::getExpireTime, new Date())
+            .gt(PayOrder::getExpireTime, DateUtil.offsetMinute(new Date(), -1))
             .orderByDesc(PayOrder::getId).last("LIMIT 1"));
     }
 

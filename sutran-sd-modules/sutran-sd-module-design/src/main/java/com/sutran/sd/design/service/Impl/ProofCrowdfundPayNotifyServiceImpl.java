@@ -4,15 +4,21 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.sutran.sd.design.config.CrowdfundingConfig;
 import com.sutran.sd.design.domain.SdCrowdfundingProject;
 import com.sutran.sd.design.domain.SdCrowdfundingSupport;
+import com.sutran.sd.design.enums.CrowdfundingProjectStatus;
+import com.sutran.sd.design.enums.CrowdfundingSupportStatus;
 import com.sutran.sd.design.mapper.SdCrowdfundingProjectMapper;
 import com.sutran.sd.design.mapper.SdCrowdfundingSupportMapper;
 import com.sutran.sd.design.mapper.SdProofingInvitationMapper;
 import com.sutran.sd.common.core.domain.entity.SdProofingInvitation;
 import com.sutran.sd.design.service.CrowdfundingRedisService;
 import com.sutran.sd.pay.constants.PayNotifyServer;
+import com.sutran.sd.pay.domain.PayOrder;
 import com.sutran.sd.pay.domain.vo.PayTimeoutStatusVo;
 import com.sutran.sd.pay.enums.AliPayTradeStatus;
+import com.sutran.sd.pay.service.AliPayService;
 import com.sutran.sd.pay.service.BasePayNotifyService;
+import com.sutran.sd.pay.service.PayOrderService;
+import com.sutran.sd.common.utils.StringUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Lazy;
@@ -20,6 +26,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.Date;
 import java.util.Collections;
 import java.util.List;
@@ -39,6 +46,8 @@ public class ProofCrowdfundPayNotifyServiceImpl extends BasePayNotifyService {
     private final SdCrowdfundingProjectMapper crowdfundingProjectMapper;
     private final CrowdfundingConfig crowdfundingConfig;
     private final SdProofingInvitationMapper proofingInvitationMapper;
+    private final AliPayService aliPayService;
+    private final PayOrderService payOrderService;
 
     /**
      * 处理支付成功业务
@@ -67,7 +76,7 @@ public class ProofCrowdfundPayNotifyServiceImpl extends BasePayNotifyService {
             // 检查是否达到目标金额
             if (project.getCurrentAmount().compareTo(project.getTargetAmount()) >= 0) {
                 // 众筹成功，自动开始抽奖
-                project.setStatus(2);
+                project.setStatus(CrowdfundingProjectStatus.SUCCESS.getCode());
                 project.setDrawStatus(1);
                 project.setDrawTime(new Date()); // 记录抽奖开始时间
                 log.info("众筹成功，自动开始抽奖: 项目ID={}, 项目名称={}", project.getId(), project.getTitle());
@@ -319,6 +328,106 @@ public class ProofCrowdfundPayNotifyServiceImpl extends BasePayNotifyService {
                 log.error("延迟执行抽奖异常: 项目ID={}", project.getId(), e);
             }
         }).start();
+    }
+
+    /**
+     * 处理众筹退款（内部方法）
+     * @param orderNo 订单号
+     * @param refundReason 退款原因
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void processCrowdfundingRefund(String orderNo, String refundReason) {
+        try {
+            log.info("[众筹订单] 开始处理退款: 订单号={}, 退款原因={}", orderNo, refundReason);
+
+            // 1. 查询众筹支持记录
+            SdCrowdfundingSupport support = supportMapper.selectByOrderNo(orderNo);
+            if (support == null) {
+                log.error("[众筹订单] 退款失败: 未找到支持记录, 订单号={}", orderNo);
+                return;
+            }
+
+            // 2. 检查支持状态
+            if (support.getStatus() == CrowdfundingSupportStatus.REFUNDED.getCode()) {
+                log.warn("[众筹订单] 退款失败: 订单已经退款, 订单号={}", orderNo);
+                return;
+            }
+
+            // 3. 查询支付订单获取支付宝交易号
+            PayOrder payOrder = payOrderService.detailByOutTradeNo(orderNo);
+            if (payOrder == null) {
+                log.error("[众筹订单] 退款失败: 未找到支付订单, 订单号={}", orderNo);
+                return;
+            }
+
+            if (StringUtils.isBlank(payOrder.getTradeNo())) {
+                log.error("[众筹订单] 退款失败: 支付订单缺少支付宝交易号, 订单号={}", orderNo);
+                return;
+            }
+
+            // 4. 调用支付宝退款API
+            String reason = StringUtils.isNotBlank(refundReason) ? refundReason : "众筹项目退款";
+            aliPayService.tradeRefund(orderNo, payOrder.getTradeNo(), 
+                support.getSupportAmount().setScale(2, RoundingMode.HALF_UP).toString(), reason);
+
+            // 5. 更新众筹支持记录状态为已退款
+            support.setStatus(CrowdfundingSupportStatus.REFUNDED.getCode());
+            support.setRefundTime(new Date());
+            support.setRefundReason(reason);
+            supportMapper.updateById(support);
+
+            // 6. 更新支付订单状态
+            payOrderService.updateRefundStatus(orderNo, support.getSupportAmount());
+
+            // 7. 回滚项目金额和支持人数
+            rollbackProjectAmount(support.getProjectId(), support.getSupportAmount());
+
+            log.info("[众筹订单] 退款成功: 订单号={}, 退款金额={}, 支付宝交易号={}", 
+                orderNo, support.getSupportAmount(), payOrder.getTradeNo());
+
+        } catch (Exception e) {
+            log.error("[众筹订单] 退款失败: 订单号={}, 异常：", orderNo, e);
+            throw e;
+        }
+    }
+
+    /**
+     * 回滚项目金额和支持人数
+     * @param projectId 项目ID
+     * @param amount 退款金额
+     */
+    private void rollbackProjectAmount(Long projectId, BigDecimal amount) {
+        try {
+            SdCrowdfundingProject project = crowdfundingProjectMapper.selectById(projectId);
+            if (project != null) {
+                // 回滚当前金额
+                BigDecimal newCurrentAmount = project.getCurrentAmount().subtract(amount);
+                project.setCurrentAmount(newCurrentAmount);
+                
+                // 回滚支持人数
+                Integer newSupportCount = project.getSupportCount() - 1;
+                project.setSupportCount(newSupportCount);
+
+                // 如果回滚后金额低于目标金额，需要重新调整项目状态
+                if (newCurrentAmount.compareTo(project.getTargetAmount()) < 0) {
+                    project.setStatus(CrowdfundingProjectStatus.FUNDING.getCode()); // 重新设为进行中
+                    project.setDrawStatus(0); // 重置抽奖状态
+                    project.setDrawTime(null); // 清空抽奖时间
+                    log.info("[众筹订单] 项目状态回滚: 项目ID={}, 当前金额={}, 目标金额={}", 
+                        projectId, newCurrentAmount, project.getTargetAmount());
+                }
+
+                crowdfundingProjectMapper.updateSdCrowdfundingProject(project);
+                
+                // 同时回滚Redis中的金额
+                crowdfundingRedisService.refundAmount(projectId, amount);
+                
+                log.info("[众筹订单] 项目金额回滚成功: 项目ID={}, 回滚金额={}, 新当前金额={}, 新支持人数={}", 
+                    projectId, amount, newCurrentAmount, newSupportCount);
+            }
+        } catch (Exception e) {
+            log.error("[众筹订单] 项目金额回滚失败: 项目ID={}, 回滚金额={}, 异常：", projectId, amount, e);
+        }
     }
 
 }

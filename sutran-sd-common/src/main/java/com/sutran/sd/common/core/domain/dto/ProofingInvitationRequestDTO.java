@@ -83,10 +83,10 @@ public class ProofingInvitationRequestDTO implements Serializable {
     private Integer cancelTimeLimit;
 
     /**
-     * 【必填】打样样品参与抽奖的数量分配给众筹用户,最少一个
+     * 【必填】打样样品参与抽奖的数量分配给众筹用户,最少2个
      */
     @NotNull(message = "抽奖数量不能为空")
-    private Integer drawNumber;
+    private Integer drawNumber = 2; // 默认2个
 
     // --- 收货信息 ---
 

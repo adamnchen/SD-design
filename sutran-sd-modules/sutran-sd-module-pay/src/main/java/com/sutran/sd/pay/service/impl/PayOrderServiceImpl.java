@@ -34,6 +34,7 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.Date;
 import java.util.Map;
 import java.util.Objects;
@@ -343,5 +344,33 @@ public class PayOrderServiceImpl implements PayOrderService {
     @Override
     public void deleteById(Long id) {
         payOrderMapper.deleteById(id);
+    }
+
+    @Override
+    public boolean updateRefundStatus(String outTradeNo, BigDecimal refundAmount) {
+        try {
+            PayOrder payOrder = detailByOutTradeNo(outTradeNo);
+            if (payOrder == null) {
+                log.error("[支付订单] 更新退款状态失败: 订单不存在, 订单号={}", outTradeNo);
+                return false;
+            }
+
+            // 更新退款金额和状态
+            payOrder.setRefundAmount(refundAmount);
+            payOrder.setRefundTime(new Date());
+            payOrder.setStatus(3); // 3表示已退款
+
+            int result = payOrderMapper.updateById(payOrder);
+            if (result > 0) {
+                log.info("[支付订单] 更新退款状态成功: 订单号={}, 退款金额={}", outTradeNo, refundAmount);
+                return true;
+            } else {
+                log.error("[支付订单] 更新退款状态失败: 订单号={}, 退款金额={}", outTradeNo, refundAmount);
+                return false;
+            }
+        } catch (Exception e) {
+            log.error("[支付订单] 更新退款状态异常: 订单号={}, 退款金额={}, 异常：", outTradeNo, refundAmount, e);
+            return false;
+        }
     }
 }

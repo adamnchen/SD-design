@@ -106,6 +106,26 @@ public class PayOrder implements Serializable {
      */
     private String qrCode;
 
+    /**
+     * 退款金额
+     */
+    private BigDecimal refundAmount;
+
+    /**
+     * 退款时间
+     */
+    private Date refundTime;
+
+    /**
+     * 退款单号
+     */
+    private String refundNo;
+
+    /**
+     * 退款原因
+     */
+    private String refundReason;
+
     @TableField(exist = false)
     private Map<String, Object> params = new HashMap<>();
 }

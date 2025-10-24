@@ -5,6 +5,8 @@ import com.sutran.sd.common.core.domain.PageQuery;
 import com.sutran.sd.common.core.page.TableDataInfo;
 import com.sutran.sd.pay.domain.PayOrder;
 
+import java.math.BigDecimal;
+
 /**
  * @author zj
  * @date 2025年08月23日 22:59
@@ -104,4 +106,19 @@ public interface PayOrderService {
      * @return 支付二维码地址
      */
     String getPayQr(String outTradeNo, Long userId);
+
+    /**
+     * 更新退款状态
+     * @param outTradeNo 订单号
+     * @param refundAmount 退款金额
+     * @return 是否更新成功
+     */
+    boolean updateRefundStatus(String outTradeNo, BigDecimal refundAmount);
+
+    /**
+     * 获取退款金额
+     * @param outTradeNo 订单号
+     * @return 退款金额
+     */
+    BigDecimal getRefundAmount(String outTradeNo);
 }

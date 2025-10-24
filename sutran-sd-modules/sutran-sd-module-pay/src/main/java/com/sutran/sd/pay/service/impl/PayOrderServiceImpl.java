@@ -34,6 +34,7 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.Date;
 import java.util.Map;
 import java.util.Objects;
@@ -204,7 +205,17 @@ public class PayOrderServiceImpl implements PayOrderService {
             // 处理用户会员逻辑
             userService.insertMember(order.getUserId(),order.getBusinessId(),new Date(),payMember,order.getOutTradeNo());
         }
-        //TODO 其他业务逻辑
+        // 处理众筹支持业务
+        else if (Objects.equals(order.getBusinessType(), BusinessType.PROOF_CROWDFUND.name())) {
+            basePayNotifyServiceMap.get(PayNotifyServer.PROOF_CROWDFUND_NOTIFY).handleSuccessBusiness(response.getTradeStatus(),response.getOutTradeNo(),response.getTradeNo(),response.getTotalAmount(),DateUtil.formatDateTime(response.getSendPayDate()),order.getBusinessId(),order.getUserId());
+        }
+        // 处理预售订单业务
+        else if (Objects.equals(order.getBusinessType(), BusinessType.PRESALE.name())) {
+            basePayNotifyServiceMap.get(PayNotifyServer.PRESALE_ORDER_NOTIFY).handleSuccessBusiness(response.getTradeStatus(),response.getOutTradeNo(),response.getTradeNo(),response.getTotalAmount(),DateUtil.formatDateTime(response.getSendPayDate()),order.getBusinessId(),order.getUserId());
+        }
+        else {
+            log.warn("未知的业务类型: {}", order.getBusinessType());
+        }
     }
 
 
@@ -337,5 +348,48 @@ public class PayOrderServiceImpl implements PayOrderService {
             }
         }
         return qr;
+    }
+
+    @Override
+    public boolean updateRefundStatus(String outTradeNo, BigDecimal refundAmount) {
+        try {
+            PayOrder payOrder = detailByOutTradeNo(outTradeNo);
+            if (payOrder == null) {
+                log.error("[支付订单] 更新退款状态失败: 订单不存在, 订单号={}", outTradeNo);
+                return false;
+            }
+
+            // 更新退款金额和状态
+            payOrder.setRefundAmount(refundAmount);
+            payOrder.setRefundTime(new Date());
+            payOrder.setStatus(3); // 3表示已退款
+
+            int result = payOrderMapper.updateById(payOrder);
+            if (result > 0) {
+                log.info("[支付订单] 更新退款状态成功: 订单号={}, 退款金额={}", outTradeNo, refundAmount);
+                return true;
+            } else {
+                log.error("[支付订单] 更新退款状态失败: 订单号={}, 退款金额={}", outTradeNo, refundAmount);
+                return false;
+            }
+        } catch (Exception e) {
+            log.error("[支付订单] 更新退款状态异常: 订单号={}, 退款金额={}, 异常：", outTradeNo, refundAmount, e);
+            return false;
+        }
+    }
+
+    @Override
+    public BigDecimal getRefundAmount(String outTradeNo) {
+        try {
+            PayOrder payOrder = detailByOutTradeNo(outTradeNo);
+            if (payOrder == null) {
+                log.warn("[支付订单] 查询退款金额失败: 订单不存在, 订单号={}", outTradeNo);
+                return null;
+            }
+            return payOrder.getRefundAmount();
+        } catch (Exception e) {
+            log.error("[支付订单] 查询退款金额异常: 订单号={}, 异常：", outTradeNo, e);
+            return null;
+        }
     }
 }

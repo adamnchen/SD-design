@@ -66,7 +66,7 @@ public class PayOrder implements Serializable {
      */
     private BigDecimal totalAmount;
     /**
-     * 支付状态[0-待支付,1-已支付,2-支付失败,3-已关闭]
+     * 支付状态[0-待支付,1-已支付,2-支付失败,3-已退款]
      */
     private Integer status;
     /**
@@ -115,11 +115,6 @@ public class PayOrder implements Serializable {
      * 退款时间
      */
     private Date refundTime;
-
-    /**
-     * 退款单号
-     */
-    private String refundNo;
 
     /**
      * 退款原因

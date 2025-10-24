@@ -116,9 +116,10 @@ public interface PayOrderService {
 
     /**
      * 更新退款状态
-     * @param outTradeNo 订单号
+     *
+     * @param outTradeNo   订单号
      * @param refundAmount 退款金额
-     * @return 是否更新成功
+     * @param refundReason 退款原因
      */
-    boolean updateRefundStatus(String outTradeNo, BigDecimal refundAmount);
+    void updateRefundStatus(String outTradeNo, BigDecimal refundAmount, String refundReason);
 }

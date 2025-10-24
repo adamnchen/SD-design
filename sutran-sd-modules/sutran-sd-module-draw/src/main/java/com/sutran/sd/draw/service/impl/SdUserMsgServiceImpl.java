@@ -228,7 +228,7 @@ public class SdUserMsgServiceImpl implements SdUserMsgService {
         String modelName1 = modelName.length() > 11 ? modelName.substring(0, 7) + "..." : modelName;
         wxMsg.addData(new WxMpTemplateData("thing3", modelName1));
         wxMsg.addData(new WxMpTemplateData("time21", startTime));
-        wxMsg.addData(new WxMpTemplateData("time11", endTime));
+        wxMsg.addData(new WxMpTemplateData("time11", StrUtil.isNotEmpty(endTime) ? endTime : DateUtil.now()));
         wxMsg.setToUser(openId);
         try{
             if (StrUtil.isNotEmpty(openId)){

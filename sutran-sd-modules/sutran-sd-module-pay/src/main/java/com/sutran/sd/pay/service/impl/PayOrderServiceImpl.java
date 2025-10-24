@@ -347,30 +347,22 @@ public class PayOrderServiceImpl implements PayOrderService {
     }
 
     @Override
-    public boolean updateRefundStatus(String outTradeNo, BigDecimal refundAmount) {
+    public void updateRefundStatus(String outTradeNo, BigDecimal refundAmount, String refundReason) {
         try {
-            PayOrder payOrder = detailByOutTradeNo(outTradeNo);
+            PayOrder payOrder = payOrderMapper.selectOne(new LambdaQueryWrapper<PayOrder>().eq(PayOrder::getOutTradeNo, outTradeNo));;
             if (payOrder == null) {
-                log.error("[支付订单] 更新退款状态失败: 订单不存在, 订单号={}", outTradeNo);
-                return false;
+                log.error("[支付宝][退款]>>>>>>>>>更新退款状态失败: 订单不存在, 订单号={}", outTradeNo);
+                return;
             }
-
-            // 更新退款金额和状态
+            // 更新退款金额和状态,3表示已退款
             payOrder.setRefundAmount(refundAmount);
             payOrder.setRefundTime(new Date());
-            payOrder.setStatus(3); // 3表示已退款
-
-            int result = payOrderMapper.updateById(payOrder);
-            if (result > 0) {
-                log.info("[支付订单] 更新退款状态成功: 订单号={}, 退款金额={}", outTradeNo, refundAmount);
-                return true;
-            } else {
-                log.error("[支付订单] 更新退款状态失败: 订单号={}, 退款金额={}", outTradeNo, refundAmount);
-                return false;
-            }
-        } catch (Exception e) {
-            log.error("[支付订单] 更新退款状态异常: 订单号={}, 退款金额={}, 异常：", outTradeNo, refundAmount, e);
-            return false;
+            payOrder.setRefundReason(refundReason);
+            payOrder.setStatus(3);
+            payOrderMapper.updateById(payOrder);
+        }
+        catch (Exception e) {
+            log.error("[支付宝][退款]>>>>>>>>>更新退款状态异常: 订单号={}, 退款金额={}, 退款原因={}, 异常：", outTradeNo, refundAmount, refundReason, e);
         }
     }
 }

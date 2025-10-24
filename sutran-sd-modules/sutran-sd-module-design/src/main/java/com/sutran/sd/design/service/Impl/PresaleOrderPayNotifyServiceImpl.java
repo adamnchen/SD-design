@@ -1,11 +1,13 @@
 package com.sutran.sd.design.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.sutran.sd.common.exception.ServiceException;
 import com.sutran.sd.design.domain.SdPresaleOrder;
 import com.sutran.sd.design.domain.SdPresaleProject;
 import com.sutran.sd.design.enums.PresaleOrderStatus;
 import com.sutran.sd.design.mapper.SdPresaleOrderMapper;
 import com.sutran.sd.design.mapper.SdPresaleProjectMapper;
+import com.sutran.sd.design.vo.TieredPricingItem;
 import com.sutran.sd.pay.constants.PayNotifyServer;
 import com.sutran.sd.pay.domain.PayOrder;
 import com.sutran.sd.pay.domain.vo.PayTimeoutStatusVo;
@@ -24,6 +26,7 @@ import org.springframework.transaction.interceptor.TransactionAspectSupport;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 
@@ -149,34 +152,34 @@ public class PresaleOrderPayNotifyServiceImpl extends BasePayNotifyService {
     private void updateProjectSalesInfo(Long projectId, BigDecimal amount, Integer quantity) {
         try {
             log.info("[预售订单] 开始更新项目销售信息: 项目ID={}, 新增金额={}, 新增数量={}", projectId, amount, quantity);
-            
+
             SdPresaleProject project = presaleProjectMapper.selectSdPresaleProjectById(projectId);
             if (project != null) {
                 // 获取当前销售金额和数量
                 BigDecimal currentAmount = project.getTotalSalesAmount() != null ? project.getTotalSalesAmount() : BigDecimal.ZERO;
                 Integer currentQuantity = project.getTotalQuantities() != null ? project.getTotalQuantities() : 0;
-                
+
                 log.info("[预售订单] 项目当前销售信息: 项目ID={}, 当前金额={}, 当前数量={}", projectId, currentAmount, currentQuantity);
-                
+
                 // 计算新的销售金额和数量
                 BigDecimal newAmount = currentAmount.add(amount);
                 Integer newQuantity = currentQuantity + quantity;
-                
+
                 project.setTotalSalesAmount(newAmount);
                 project.setTotalQuantities(newQuantity);
-                
+
                 // 更新数据库
                 int updateResult = presaleProjectMapper.updateById(project);
-                log.info("[预售订单] 数据库更新结果: 项目ID={}, 更新行数={}, 新销售金额={}, 新销售数量={}", 
+                log.info("[预售订单] 数据库更新结果: 项目ID={}, 更新行数={}, 新销售金额={}, 新销售数量={}",
                     projectId, updateResult, newAmount, newQuantity);
-                
+
                 // 验证更新结果
                 SdPresaleProject updatedProject = presaleProjectMapper.selectSdPresaleProjectById(projectId);
                 if (updatedProject != null) {
-                    log.info("[预售订单] 更新后验证: 项目ID={}, 数据库中的销售金额={}, 销售数量={}", 
+                    log.info("[预售订单] 更新后验证: 项目ID={}, 数据库中的销售金额={}, 销售数量={}",
                         projectId, updatedProject.getTotalSalesAmount(), updatedProject.getTotalQuantities());
                 }
-                
+
                 log.info("[预售订单] 更新项目销售信息完成: 项目ID={}, 新增金额={}, 新增数量={}, 累计金额={}, 累计数量={}",
                     projectId, amount, quantity, newAmount, newQuantity);
             } else {
@@ -254,7 +257,7 @@ public class PresaleOrderPayNotifyServiceImpl extends BasePayNotifyService {
      */
     private BigDecimal calculateCurrentUnitPrice(int totalQuantity, List<TieredPricingItem> tieredPricingList) {
         // 按数量节点排序
-        tieredPricingList.sort((a, b) -> Integer.compare(a.getNode(), b.getNode()));
+        tieredPricingList.sort(Comparator.comparingInt(TieredPricingItem::getNode));
 
         // 找到对应的价格区间
         for (int i = tieredPricingList.size() - 1; i >= 0; i--) {
@@ -315,30 +318,6 @@ public class PresaleOrderPayNotifyServiceImpl extends BasePayNotifyService {
     }
 
     /**
-     * 阶梯价格配置项
-     */
-    public static class TieredPricingItem {
-        private BigDecimal unitPrice;
-        private Integer node;
-
-        public BigDecimal getUnitPrice() {
-            return unitPrice;
-        }
-
-        public void setUnitPrice(BigDecimal unitPrice) {
-            this.unitPrice = unitPrice;
-        }
-
-        public Integer getNode() {
-            return node;
-        }
-
-        public void setNode(Integer node) {
-            this.node = node;
-        }
-    }
-
-    /**
      * 处理支付宝退款
      */
     private void processAlipayRefund(SdPresaleOrder order, BigDecimal refundAmount) {
@@ -357,8 +336,7 @@ public class PresaleOrderPayNotifyServiceImpl extends BasePayNotifyService {
 
             // 2. 调用支付宝退款API
             String refundReason = "阶梯价格调整退款";
-            aliPayService.tradeRefund(order.getOrderNo(), payOrder.getTradeNo(),
-                refundAmount.setScale(2, RoundingMode.HALF_UP).toString(), refundReason);
+            aliPayService.tradeRefund(order.getOrderNo(), payOrder.getTradeNo(), refundAmount.setScale(2, RoundingMode.HALF_UP).toString(), refundReason);
 
             // 3. 更新预售订单状态为已退款
             order.setOrderStatus(PresaleOrderStatus.REFUNDED.getCode());
@@ -366,8 +344,8 @@ public class PresaleOrderPayNotifyServiceImpl extends BasePayNotifyService {
             order.setRefundReason(refundReason);
             presaleOrderMapper.updateById(order);
 
-            // 4. 更新支付订单状态
-            payOrderService.updateRefundStatus(order.getOrderNo(), refundAmount);
+            // 4. 更新支付订单状态 TODO 调用支付包退款已经更新了支付订单的状态了
+            //payOrderService.updateRefundStatus(order.getOrderNo(), refundAmount, refundReason);
 
             log.info("[预售订单] 退款成功: 订单号={}, 退款金额={}, 支付宝交易号={}",
                 order.getOrderNo(), refundAmount, payOrder.getTradeNo());
@@ -375,6 +353,7 @@ public class PresaleOrderPayNotifyServiceImpl extends BasePayNotifyService {
         } catch (Exception e) {
             log.error("[预售订单] 退款失败: 订单号={}, 退款金额={}, 异常：", order.getOrderNo(), refundAmount, e);
             // 退款失败时，可以考虑发送通知给管理员或用户
+            throw new ServiceException("预售订单退款失败: " + e.getMessage());
         }
     }
 }

@@ -1,6 +1,7 @@
 package com.sutran.sd.design.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.sutran.sd.common.exception.ServiceException;
 import com.sutran.sd.design.config.CrowdfundingConfig;
 import com.sutran.sd.design.domain.SdCrowdfundingProject;
 import com.sutran.sd.design.domain.SdCrowdfundingSupport;
@@ -30,6 +31,7 @@ import java.math.RoundingMode;
 import java.util.Date;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * 众筹订单支付回调
@@ -262,7 +264,7 @@ public class ProofCrowdfundPayNotifyServiceImpl extends BasePayNotifyService {
                             initiatorSupport.setReceiverPhone(invitation.getReceiverPhone());
                             initiatorSupport.setReceiverAddress(invitation.getReceiverAddress());
                             initiatorSupport.setReceiverArea(invitation.getReceiverArea());
-                            log.info("从打样邀约获取发起人收货信息: 邀约ID={}, 收货人={}, 电话={}", 
+                            log.info("从打样邀约获取发起人收货信息: 邀约ID={}, 收货人={}, 电话={}",
                                 project.getProofingInvitationId(), invitation.getReceiverName(), invitation.getReceiverPhone());
                         } else {
                             log.warn("未找到对应的打样邀约: 邀约ID={}", project.getProofingInvitationId());
@@ -348,7 +350,7 @@ public class ProofCrowdfundPayNotifyServiceImpl extends BasePayNotifyService {
             }
 
             // 2. 检查支持状态
-            if (support.getStatus() == CrowdfundingSupportStatus.REFUNDED.getCode()) {
+            if (Objects.equals(support.getStatus(), CrowdfundingSupportStatus.REFUNDED.getCode())) {
                 log.warn("[众筹订单] 退款失败: 订单已经退款, 订单号={}", orderNo);
                 return;
             }
@@ -367,8 +369,7 @@ public class ProofCrowdfundPayNotifyServiceImpl extends BasePayNotifyService {
 
             // 4. 调用支付宝退款API
             String reason = StringUtils.isNotBlank(refundReason) ? refundReason : "众筹项目退款";
-            aliPayService.tradeRefund(orderNo, payOrder.getTradeNo(), 
-                support.getSupportAmount().setScale(2, RoundingMode.HALF_UP).toString(), reason);
+            aliPayService.tradeRefund(orderNo, payOrder.getTradeNo(), support.getSupportAmount().setScale(2, RoundingMode.HALF_UP).toString(), reason);
 
             // 5. 更新众筹支持记录状态为已退款
             support.setStatus(CrowdfundingSupportStatus.REFUNDED.getCode());
@@ -376,18 +377,18 @@ public class ProofCrowdfundPayNotifyServiceImpl extends BasePayNotifyService {
             support.setRefundReason(reason);
             supportMapper.updateById(support);
 
-            // 6. 更新支付订单状态
-            payOrderService.updateRefundStatus(orderNo, support.getSupportAmount());
+            // 6. 更新支付订单状态 TODO 调用支付宝退款的方法中就更新了，这里就不需要再更新了
+            //payOrderService.updateRefundStatus(orderNo, support.getSupportAmount(), refundReason);
 
             // 7. 回滚项目金额和支持人数
             rollbackProjectAmount(support.getProjectId(), support.getSupportAmount());
 
-            log.info("[众筹订单] 退款成功: 订单号={}, 退款金额={}, 支付宝交易号={}", 
+            log.info("[众筹订单] 退款成功: 订单号={}, 退款金额={}, 支付宝交易号={}",
                 orderNo, support.getSupportAmount(), payOrder.getTradeNo());
 
         } catch (Exception e) {
             log.error("[众筹订单] 退款失败: 订单号={}, 异常：", orderNo, e);
-            throw e;
+            throw new ServiceException("众筹订单退款失败: " + e.getMessage());
         }
     }
 
@@ -403,7 +404,7 @@ public class ProofCrowdfundPayNotifyServiceImpl extends BasePayNotifyService {
                 // 回滚当前金额
                 BigDecimal newCurrentAmount = project.getCurrentAmount().subtract(amount);
                 project.setCurrentAmount(newCurrentAmount);
-                
+
                 // 回滚支持人数
                 Integer newSupportCount = project.getSupportCount() - 1;
                 project.setSupportCount(newSupportCount);
@@ -413,16 +414,16 @@ public class ProofCrowdfundPayNotifyServiceImpl extends BasePayNotifyService {
                     project.setStatus(CrowdfundingProjectStatus.FUNDING.getCode()); // 重新设为进行中
                     project.setDrawStatus(0); // 重置抽奖状态
                     project.setDrawTime(null); // 清空抽奖时间
-                    log.info("[众筹订单] 项目状态回滚: 项目ID={}, 当前金额={}, 目标金额={}", 
+                    log.info("[众筹订单] 项目状态回滚: 项目ID={}, 当前金额={}, 目标金额={}",
                         projectId, newCurrentAmount, project.getTargetAmount());
                 }
 
                 crowdfundingProjectMapper.updateSdCrowdfundingProject(project);
-                
+
                 // 同时回滚Redis中的金额
                 crowdfundingRedisService.refundAmount(projectId, amount);
-                
-                log.info("[众筹订单] 项目金额回滚成功: 项目ID={}, 回滚金额={}, 新当前金额={}, 新支持人数={}", 
+
+                log.info("[众筹订单] 项目金额回滚成功: 项目ID={}, 回滚金额={}, 新当前金额={}, 新支持人数={}",
                     projectId, amount, newCurrentAmount, newSupportCount);
             }
         } catch (Exception e) {

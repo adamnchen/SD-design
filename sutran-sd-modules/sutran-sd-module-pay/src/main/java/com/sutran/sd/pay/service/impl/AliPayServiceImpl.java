@@ -372,20 +372,16 @@ public class AliPayServiceImpl implements AliPayService {
         try {
             AlipayTradeRefundResponse refundToResponse = AliPayApi.tradeRefundToResponse(model, null);
             if (refundToResponse.isSuccess()) {
-                log.info("[支付宝][交易退款]>>>>>>>>>退款成功,订单号:{},支付宝交易流水号:{},退款金额:{},退款原因:{}",
-                    outTradeNo, tradeNo, refundAmount, refundReason);
-                payOrderService.updateRefundStatus(outTradeNo, new BigDecimal(refundAmount));
-                PayOrder payOrder = payOrderService.detailByOutTradeNo(outTradeNo);
-                if (payOrder != null) {
-                    log.info("[支付宝][交易退款]>>>>>>>>>业务订单退款处理完成,订单号:{},业务类型:{}",
-                        outTradeNo, payOrder.getBusinessType());
-                }
-            } else {
+                log.info("[支付宝][交易退款]>>>>>>>>>退款成功,订单号:{},支付宝交易流水号:{},退款金额:{},退款原因:{}", outTradeNo, tradeNo, refundAmount, refundReason);
+                payOrderService.updateRefundStatus(outTradeNo, new BigDecimal(refundAmount), refundReason);
+            }
+            else {
                 log.error("[支付宝][交易退款]>>>>>>>>>退款失败,订单号:{},支付宝交易流水号:{},退款金额:{},退款原因:{},失败原因：{}", outTradeNo, tradeNo, refundAmount, refundReason, refundToResponse.getSubMsg());
             }
         }
         catch (Exception e) {
             log.error("[支付宝][交易退款]>>>>>>>>>退款失败,订单号:{},支付宝交易流水号:{},退款金额:{},退款原因:{},异常原因：", outTradeNo, tradeNo, refundAmount, refundReason, e);
+            throw new ServiceException(e.getMessage());
         }
     }
 

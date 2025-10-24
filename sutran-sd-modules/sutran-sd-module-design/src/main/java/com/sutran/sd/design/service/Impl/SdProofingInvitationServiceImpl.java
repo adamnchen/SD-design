@@ -108,8 +108,11 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
         }
 
         // 4. 验证抽奖数量
-        if (createDTO.getDrawNumber() == null || createDTO.getDrawNumber() < 1 ||createDTO.getDrawNumber() > createDTO.getProofingQuantity()) {
-            throw new ServiceException("抽奖数量必须大于等于1且不得超过打样数量");
+        if (createDTO.getDrawNumber() == null || createDTO.getDrawNumber() < 2) {
+            throw new ServiceException("抽奖数量必须大于等于2个");
+        }
+        if (createDTO.getDrawNumber() > createDTO.getProofingQuantity()) {
+            throw new ServiceException("抽奖数量不能超过打样数量");
         }
 
         // 5. 为每个被邀约人创建独立的邀约记录

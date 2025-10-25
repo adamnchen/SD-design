@@ -30,6 +30,21 @@ public class PresaleOrderListVO {
     private Long projectId;
 
     /**
+     * 用户ID
+     */
+    private Long userId;
+
+    /**
+     * 用户名（手机号）
+     */
+    private String userName;
+
+    /**
+     * 用户昵称
+     */
+    private String nickName;
+
+    /**
      * 项目标题
      */
     private String projectTitle;
@@ -123,6 +138,26 @@ public class PresaleOrderListVO {
      * 退款原因
      */
     private String refundReason;
+
+    /**
+     * 收货人姓名
+     */
+    private String receiverName;
+
+    /**
+     * 收货人电话
+     */
+    private String receiverPhone;
+
+    /**
+     * 收货地址
+     */
+    private String receiverAddress;
+
+    /**
+     * 收货地区
+     */
+    private String receiverArea;
 
     public String getOrderStatusDesc() {
         if (orderStatus == null) {

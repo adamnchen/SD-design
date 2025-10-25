@@ -3,6 +3,7 @@ package com.sutran.sd.design.vo;
 import lombok.Data;
 
 import java.math.BigDecimal;
+import java.util.Date;
 
 /**
  * 预售项目列表VO
@@ -72,6 +73,11 @@ public class PresaleProjectListVO {
      * 项目状态：1=销售中，2=暂停销售，3=已下架，4=已取消
      */
     private Integer status;
+
+    /**
+     * 创建时间
+     */
+    private Date createTime;
 
     /**
      * 项目状态描述

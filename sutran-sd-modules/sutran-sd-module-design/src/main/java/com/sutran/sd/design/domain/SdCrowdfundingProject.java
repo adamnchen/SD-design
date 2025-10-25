@@ -234,6 +234,18 @@ public class SdCrowdfundingProject extends BaseEntity {
     private Date manufacturerUploadTime;
 
     /**
+     * 设计师上传的实物照片（JSON格式，多张图片）
+     */
+    @TableField("designer_photos")
+    private String designerPhotos;
+
+    /**
+     * 设计师上传照片时间
+     */
+    @TableField("designer_upload_time")
+    private Date designerUploadTime;
+
+    /**
      * 资金托管状态：0=托管中，1=已释放给厂家，2=已退款
      */
     @TableField("escrow_status")

@@ -187,11 +187,11 @@ public class SdProofingInvitation extends BaseEntity {
     private String updateBy;
 
     /**
-     * 打样样品参与抽奖的数量分配给众筹用户,最少2个
+     * 打样样品参与抽奖的数量分配给众筹用户,最少1个
      */
     @TableField("draw_number")
     @NotNull(message = "抽奖数量不能为空")
-    private Integer drawNumber = 2; // 默认2个
+    private Integer drawNumber = 1; // 默认1个
 
     // --- 收货信息 ---
 

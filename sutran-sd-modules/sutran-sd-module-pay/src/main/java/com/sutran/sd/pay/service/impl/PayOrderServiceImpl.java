@@ -270,7 +270,7 @@ public class PayOrderServiceImpl implements PayOrderService {
             }
             else {
                 failPay(outTradeNo, null, response.getTotalAmount());
-                log.error("[支付宝][定时处理未失效且未支付订单]>>>>>>>>>支付宝查询指定交易信息并修改订单数据失败,订单号：{}",outTradeNo);
+                log.error("[支付宝][定时处理未失效且未支付订单]>>>>>>>>>支付宝查询指定超时交易信息并修改订单数据状态,订单号：{}",outTradeNo);
                 // 发送支付状态到业务实现
                 PayTimeoutStatusVo vo = new PayTimeoutStatusVo().setUserId(order.getUserId()).setBusinessId(order.getBusinessId()).setTradeStatus(AliPayTradeStatus.TRADE_CLOSED.name()).setOutTradeNo(outTradeNo);
                 // 处理超时订单的业务逻辑

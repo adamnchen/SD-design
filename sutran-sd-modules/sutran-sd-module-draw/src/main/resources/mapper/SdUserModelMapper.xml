@@ -45,6 +45,8 @@
         <result property="publishStatus" column="publish_status"/>
         <result property="belongUserId" column="belong_user_id"/>
         <result property="belongUserName" column="belong_user_name"/>
+        <result property="belongNickName" column="belong_nick_name"/>
+        <result property="belongAvatar" column="belong_avatar"/>
         <result property="crtTime" column="crt_time"/>
         <result property="isUserDel" column="is_user_del"/>
     </resultMap>
@@ -132,7 +134,7 @@
 
     <!-- 获取ComfyUI最近使用的n个模型列表 -->
     <select id="getLatestModelInfoOfComfyui" resultMap="BaseComfyuiModelVo">
-        SELECT DISTINCT B.id, A.crt_time, A.use_times, B.classify_id, B.title, B.model_name, B.model_name_zh, B.file_name, B.url, B.remark, B.type, IFNULL(A.model_strength,B.model_strength) AS model_strength, B.is_open, B.belong_user_id, B.publish_status, B.task_id,C.user_name AS belong_user_name
+        SELECT DISTINCT B.id, A.crt_time, A.use_times, B.classify_id, B.title, B.model_name, B.model_name_zh, B.file_name, B.url, B.remark, B.type, IFNULL(A.model_strength,B.model_strength) AS model_strength, B.is_open, B.belong_user_id, B.publish_status, B.task_id,C.user_name AS belong_user_name,C.nick_name AS belong_nick_name,C.avatar AS belong_avater
         FROM sd_user_model_log AS A
              LEFT JOIN sd_user_model AS B ON A.lora_model_id=B.id
              LEFT JOIN sys_user AS C ON B.belong_user_id=C.user_id
@@ -148,9 +150,9 @@
         WHERE id IN <foreach collection="taskIds" open="(" item="taskId" separator="," close=")">#{taskId}</foreach>
     </select>
 
-    <!-- 获取comfyui lora模型列表 -->
+    <!-- 获取当前用户能看到的comfyui lora模型列表 -->
     <select id="selectAllListOfComfyui" resultMap="BaseComfyuiModelVo">
-        SELECT DISTINCT A.id, A.task_id, A.classify_id, A.title, A.model_name, A.model_name_zh, A.model_strength, A.file_name, A.url, A.remark, A.type, A.is_open, A.belong_user_id, A.publish_status, A.crt_time, A.is_user_del,B.user_name AS belong_user_name
+        SELECT DISTINCT A.id, A.task_id, A.classify_id, A.title, A.model_name, A.model_name_zh, A.model_strength, A.file_name, A.url, A.remark, A.type, A.is_open, A.belong_user_id, A.publish_status, A.crt_time, A.is_user_del,B.user_name AS belong_user_name,B.nick_name AS belong_nick_name,B.avatar AS belong_avater
         FROM sd_user_model AS A
             LEFT JOIN sys_user AS B ON A.belong_user_id=B.user_id
         <if test="dto.classifyId!=null and dto.classifyId!='' and dto.classifyId!=1">LEFT JOIN sd_user_model_classify_tmp AS C ON A.id=C.model_id</if>
@@ -160,6 +162,23 @@
             <when test="dto.shareModel!=null and dto.shareModel">AND D.user_id=#{userId})</when>
             <otherwise>AND (A.type=0 OR A.is_open=1 OR (A.type=1 AND A.belong_user_id=#{userId}) OR D.user_id=#{userId})</otherwise>
         </choose>
+        <if test="dto.classifyId!=null and dto.classifyId!=''">
+            <choose>
+                <when test="dto.classifyId==1">AND A.classify_id=1</when>
+                <otherwise>AND C.classify_id=#{dto.classifyId}</otherwise>
+            </choose>
+        </if>
+        <if test="dto.searchValue!=null and dto.searchValue!=''">AND A.model_name_zh LIKE CONCAT('%',#{dto.searchValue},'%')</if>
+        ORDER BY A.id DESC
+    </select>
+
+    <!-- 获取归属当前用户的comfyui lora模型列表 -->
+    <select id="selectUserAllListOfComfyui" resultMap="BaseComfyuiModelVo">
+        SELECT DISTINCT A.id, A.task_id, A.classify_id, A.title, A.model_name, A.model_name_zh, A.model_strength, A.file_name, A.url, A.remark, A.type, A.is_open, A.belong_user_id, A.publish_status, A.crt_time, A.is_user_del,B.user_name AS belong_user_name,B.nick_name AS belong_nick_name,B.avatar AS belong_avater
+        FROM sd_user_model AS A
+        LEFT JOIN sys_user AS B ON A.belong_user_id=B.user_id
+        <if test="dto.classifyId!=null and dto.classifyId!='' and dto.classifyId!=1">LEFT JOIN sd_user_model_classify_tmp AS C ON A.id=C.model_id</if>
+        WHERE A.publish_status=1 AND A.type=1 AND A.belong_user_id=#{userId}
         <if test="dto.classifyId!=null and dto.classifyId!=''">
             <choose>
                 <when test="dto.classifyId==1">AND A.classify_id=1</when>

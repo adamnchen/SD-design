@@ -158,12 +158,20 @@ public interface SdUserModelService {
     List<ComfyUserModelVo> getLatestModelInfoOfComfyui(Long userId, int num);
 
     /**
-     * 获取comfyui lora模型列表
+     * 获取能看到的comfyui lora模型列表
      * @param dto       SdUserModelPageDto
      * @param pageQuery 分页查询参数
      * @return  TableDataInfo<ComfyUserModelVo>
      */
     TableDataInfo<ComfyUserModelVo> listLoraModelsOfComfyui(SdUserModelPageDto dto, PageQuery pageQuery);
+
+    /**
+     * 获取归属个人的comfyui lora模型列表
+     * @param dto       SdUserModelPageDto
+     * @param pageQuery 分页查询参数
+     * @return TableDataInfo<ComfyUserModelVo>
+     */
+    TableDataInfo<ComfyUserModelVo> listUserLoraModelsOfComfyui(SdUserModelPageDto dto, PageQuery pageQuery);
 
      /**
      * 获取comfyui lora模型详情
@@ -185,4 +193,18 @@ public interface SdUserModelService {
      * @return  预览图地址列表
      */
     List<String> selectModelUrlListByTaskId(String taskId);
+
+    /**
+     * 检查是否能删除当前任务下的模型（只要存在已发布的模型，就可以删除未发布的）
+     * @param taskId    任务ID
+     * @return 是否能删除
+     */
+    boolean checkCanDelModelByTaskId(String taskId);
+
+    /**
+     * 获取当前任务下未发布的模型详情
+     * @param taskId    任务ID
+     * @return 模型集合(id、fileName、modelName、belongUserId)
+     */
+    List<SdUserModel> selectUserModelBaseInfoOfUnpublishedByTaskId(String taskId);
 }

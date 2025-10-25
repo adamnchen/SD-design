@@ -72,7 +72,6 @@ public class FileUtils extends FileUtil {
      * @param inputStream   文件输入流
      * @param desFileSize   目标文件大小(单位b，例：300kb = 300 * 1024)
      * @param accuracy      压缩比(例：0.8)
-     * @Return: void
      **/
     public static InputStream compressPicCycle(InputStream inputStream, long desFileSize, double accuracy) {
         try{
@@ -99,7 +98,7 @@ public class FileUtils extends FileUtil {
             return compressPicCycle(new ByteArrayInputStream(returnOutputStream.toByteArray()), desFileSize, accuracy);
         }
         catch (Exception e) {
-            e.printStackTrace();
+            log.error("图片等比压缩异常>>>>>>>>>原因：",e);
             return inputStream;
         }
     }
@@ -133,7 +132,7 @@ public class FileUtils extends FileUtil {
             return new ByteArrayInputStream(imageBytes);
         }
         catch (Exception e) {
-            e.printStackTrace();
+            log.error("图片大小压缩异常>>>>>>>>>原因：",e);
             return oldInputStream;
         }
     }
@@ -420,8 +419,9 @@ public class FileUtils extends FileUtil {
         }
 
         Files.walkFileTree(sourcePath, new SimpleFileVisitor<Path>() {
+            @NotNull
             @Override
-            public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+            public FileVisitResult visitFile(@NotNull Path file, @NotNull BasicFileAttributes attrs) throws IOException {
                 Path relativePath = sourcePath.relativize(file);
                 Path targetFile = targetPath.resolve(relativePath);
 
@@ -438,8 +438,9 @@ public class FileUtils extends FileUtil {
                 return FileVisitResult.CONTINUE;
             }
 
+            @NotNull
             @Override
-            public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
+            public FileVisitResult preVisitDirectory(@NotNull Path dir, @NotNull BasicFileAttributes attrs) throws IOException {
                 if (!dir.equals(sourcePath)) {
                     Path relativePath = sourcePath.relativize(dir);
                     Path targetDirPath = targetPath.resolve(relativePath);
@@ -448,8 +449,9 @@ public class FileUtils extends FileUtil {
                 return FileVisitResult.CONTINUE;
             }
 
+            @NotNull
             @Override
-            public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
+            public FileVisitResult postVisitDirectory(@NotNull Path dir, IOException exc) throws IOException {
                 // 删除空目录
                 if (!dir.equals(sourcePath)) {
                     try {
@@ -462,8 +464,9 @@ public class FileUtils extends FileUtil {
                 return FileVisitResult.CONTINUE;
             }
 
+            @NotNull
             @Override
-            public FileVisitResult visitFileFailed(Path file, IOException exc) throws IOException {
+            public FileVisitResult visitFileFailed(@NotNull Path file, @NotNull IOException exc) {
                 System.err.println("访问文件失败: " + file + " - " + exc.getMessage());
                 return FileVisitResult.CONTINUE;
             }
@@ -478,13 +481,13 @@ public class FileUtils extends FileUtil {
                 return null;
             }
             List<Path> imageFiles = new ArrayList<>();
-            // 使用 Files.walk 遍历目录
-            Files.walk(dir, 1) // 1 表示只遍历当前目录，不包含子目录
+            // 使用 Files.walk 遍历目录， 1 表示只遍历当前目录，不包含子目录
+            Files.walk(dir, 1)
                 .filter(Files::isRegularFile)
-                .filter(e->isImageFile(e))
+                .filter(FileUtils::isImageFile)
                 .forEach(imageFiles::add);
             // 按创建时间排序（最早的在前）
-            imageFiles.sort(Comparator.comparing(e->getCreationTime(e)));
+            imageFiles.sort(Comparator.comparing(FileUtils::getCreationTime));
             return imageFiles.isEmpty() ? null : imageFiles.get(0).getFileName().toString();
         }
         catch (Exception e){
@@ -493,17 +496,22 @@ public class FileUtils extends FileUtil {
         }
     }
 
-    // 获取文件的创建时间
+    /**
+     * 获取文件的创建时间
+     * @param file  文件地址
+     * @return 文件存储时间
+     */
     private static FileTime getCreationTime(Path file) {
         try {
             BasicFileAttributes attrs = Files.readAttributes(file, BasicFileAttributes.class);
             return attrs.creationTime();
         } catch (IOException e) {
-            return FileTime.fromMillis(0); // 如果无法获取创建时间，返回默认值
+            // 如果无法获取创建时间，返回默认值
+            return FileTime.fromMillis(0);
         }
     }
 
-    // 检查文件是否为图片文件
+    /** 检查文件是否为图片文件 **/
     private static boolean isImageFile(Path file) {
         String fileName = file.getFileName().toString().toLowerCase();
         for (String ext : IMAGE_EXTENSIONS) {
@@ -512,5 +520,49 @@ public class FileUtils extends FileUtil {
             }
         }
         return false;
+    }
+
+    /**
+     * 删除指定目录下相同名称（后缀不同）的所有文件
+     */
+    public static void deleteFilesWithSameName(String directoryPath, String fileNameWithoutExtension) {
+        try{
+            Path dir = Paths.get(directoryPath);
+            if (!Files.exists(dir) || !Files.isDirectory(dir)) {
+                log.error("目录不存在或不是有效目录: {}", directoryPath);
+            }
+
+            // 遍历目录查找匹配的文件
+            Files.list(dir)
+                .filter(Files::isRegularFile)
+                .filter(file -> hasSameFileName(file, fileNameWithoutExtension))
+                .forEach(file -> {
+                    try {
+                        Files.delete(file);
+                    }
+                    catch (IOException e) {
+                        log.error("[同名文件删除异常]>>>>>>>>>目录：[{}]，文件名：[{}]，异常原因：",directoryPath,file.getFileName(), e);
+                    }
+                });
+        }
+        catch (Exception e) {
+            log.error("[同名文件删除异常]>>>>>>>>>目录：[{}]，文件名：[{}]，异常原因：",directoryPath,fileNameWithoutExtension,e);
+        }
+    }
+
+    /**
+     * 检查文件是否具有相同的名称（忽略后缀）
+     */
+    private static boolean hasSameFileName(Path file, String targetName) {
+        String fileName = file.getFileName().toString();
+        int dotIndex = fileName.lastIndexOf('.');
+
+        if (dotIndex > 0) {
+            String nameWithoutExtension = fileName.substring(0, dotIndex);
+            return nameWithoutExtension.equals(targetName);
+        } else {
+            // 没有后缀的文件
+            return fileName.equals(targetName);
+        }
     }
 }

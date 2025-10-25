@@ -431,7 +431,7 @@ public class SdUserModelServiceImpl implements SdUserModelService {
     }
 
     /**
-     * 获取comfyui lora模型列表
+     * 获取当前用户能看到的comfyui lora模型列表
      * @param dto       SdUserModelPageDto
      * @param pageQuery 分页查询参数
      * @return  TableDataInfo<ComfyUserModelVo>
@@ -440,6 +440,51 @@ public class SdUserModelServiceImpl implements SdUserModelService {
     public TableDataInfo<ComfyUserModelVo> listLoraModelsOfComfyui(SdUserModelPageDto dto, PageQuery pageQuery) {
         Long userId = LoginHelper.getUserId();
         Page<ComfyUserModelVo> page = baseMapper.selectAllListOfComfyui(dto, userId, pageQuery.build());
+        if (CollectionUtil.isEmpty(page.getRecords())) {
+            return TableDataInfo.build(page);
+        }
+        // 获取当前人的全部分类
+        List<JSONObject> list = classifyMapper.selectModelClassifyListByUserId(userId);
+        Map<String, JSONObject> modelClassifyMap = new HashMap<>(list.size());
+        if (CollectionUtil.isNotEmpty(list)) {
+            modelClassifyMap = list.stream().collect(Collectors.toMap(e -> e.getString("modelId"), e -> e, (v1, v2) -> v1));
+        }
+        // 获取任务ID集合
+        List<String> taskIds = page.getRecords().stream().map(ComfyUserModelVo::getTaskId).filter(StringUtils::isNotBlank).distinct().collect(Collectors.toList());
+        if (CollectionUtil.isEmpty(taskIds)) {
+            return TableDataInfo.build(page);
+        }
+        // 获取每个训练任务的预参数
+        List<JSONObject> params = baseMapper.selectPreParamByTaskIds(taskIds);
+        // 构建任务ID到预参数的映射
+        Map<String, String> paramMap = CollectionUtil.isEmpty(params)?Collections.emptyMap():params.stream().collect(Collectors.toMap(e->e.getString("taskId"), e -> e.getString("preParams")));
+        for (ComfyUserModelVo e : page.getRecords()) {
+            e.setClassifyName("1".equals(e.getClassifyId())?"全部模型":e.getClassifyName());
+            if (CollectionUtil.isNotEmpty(modelClassifyMap)) {
+                JSONObject object = modelClassifyMap.get(e.getId());
+                if (CollectionUtil.isNotEmpty(object)) {
+                    e.setClassifyName(object.getString("classifyName"));
+                    e.setClassifyId(object.getString("classifyId"));
+                }
+            }
+            // 如果不是模型归属人，则是被分享的模型
+            e.setShareModel(!Objects.equals(String.valueOf(userId), e.getBelongUserId()) && e.getIsOpen()==0 && e.getType()==1);
+            // 处理ComfyUI数据中的提示词
+            dealComfyUiDataPrompt(e,paramMap);
+        }
+        return TableDataInfo.build(page);
+    }
+
+    /**
+     * 获取归属个人的comfyui lora模型列表
+     * @param dto       SdUserModelPageDto
+     * @param pageQuery 分页查询参数
+     * @return  TableDataInfo<ComfyUserModelVo>
+     */
+    @Override
+    public TableDataInfo<ComfyUserModelVo> listUserLoraModelsOfComfyui(SdUserModelPageDto dto, PageQuery pageQuery) {
+        Long userId = LoginHelper.getUserId();
+        Page<ComfyUserModelVo> page = baseMapper.selectUserAllListOfComfyui(dto, userId, pageQuery.build());
         if (CollectionUtil.isEmpty(page.getRecords())) {
             return TableDataInfo.build(page);
         }
@@ -517,6 +562,30 @@ public class SdUserModelServiceImpl implements SdUserModelService {
     @Override
     public List<String> selectModelUrlListByTaskId(String taskId) {
         return baseMapper.selectModelUrlListByTaskId(taskId);
+    }
+
+    /**
+     * 检查是否能删除当前任务下的模型（只要存在已发布的模型，就可以删除未发布的）
+     * @param taskId    任务ID
+     * @return 是否能删除
+     */
+    @Override
+    public boolean checkCanDelModelByTaskId(String taskId) {
+        return baseMapper.checkCanDelModelByTaskId(taskId);
+    }
+
+    /**
+     * 获取当前任务下未发布的模型详情
+     * @param taskId    任务ID
+     * @return 模型集合(id、fileName、modelName、belongUserId)
+     */
+    @Override
+    public List<SdUserModel> selectUserModelBaseInfoOfUnpublishedByTaskId(String taskId) {
+        return baseMapper.selectList(new LambdaQueryWrapper<SdUserModel>()
+            .select(SdUserModel::getId,SdUserModel::getFileName,SdUserModel::getModelName,SdUserModel::getBelongUserId)
+            .eq(SdUserModel::getTaskId, taskId)
+            .eq(SdUserModel::getPublishStatus,0)
+        );
     }
 
     /**

@@ -89,13 +89,22 @@ public interface SdUserModelMapper extends BaseMapperPlus<SdUserModelMapper, SdU
     List<JSONObject> selectPreParamByTaskIds(@Param("taskIds") List<String> taskIds);
 
     /**
-     * 获取comfyui lora模型列表
+     * 获取当前用户能看到的comfyui lora模型列表
      * @param dto       SdUserModelPageDto
      * @param userId    用户ID
      * @param page      分页查询参数
      * @return  TableDataInfo<ComfyUserModelVo>
      */
     Page<ComfyUserModelVo> selectAllListOfComfyui(@Param("dto") SdUserModelPageDto dto, @Param("userId") Long userId, @Param("page") Page<SysUser> page);
+
+    /**
+     * 获取归属当前用户的comfyui lora模型列表
+     * @param dto       SdUserModelPageDto
+     * @param userId    用户ID
+     * @param page      分页查询参数
+     * @return  TableDataInfo<ComfyUserModelVo>
+     */
+    Page<ComfyUserModelVo> selectUserAllListOfComfyui(@Param("dto") SdUserModelPageDto dto, @Param("userId") Long userId, @Param("page") Page<SysUser> page);
 
      /**
      * 获取comfyui lora模型详情
@@ -119,4 +128,12 @@ public interface SdUserModelMapper extends BaseMapperPlus<SdUserModelMapper, SdU
      */
     @Select("SELECT url FROM sd_user_model WHERE task_id=#{taskId} ORDER BY model_name_zh ASC")
     List<String> selectModelUrlListByTaskId(@Param("taskId") String taskId);
+
+    /**
+     * 检查是否能删除当前任务下的模型（只要存在已发布的模型，就可以删除未发布的）
+     * @param taskId    任务ID
+     * @return 是否能删除
+     */
+    @Select("SELECT COUNT(1) FROM sd_user_model WHERE task_id=#{taskId} AND publish_status=1")
+    boolean checkCanDelModelByTaskId(@Param("taskId") String taskId);
 }

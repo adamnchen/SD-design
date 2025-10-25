@@ -1858,7 +1858,26 @@ public class SdTrainServiceImpl implements SdTrainService {
      */
     @Override
     public void removeUnpublishedModelOfFluxgym(String taskId) {
-
+        // 先查询当前任务关联的模型是否存在已发布的（只要存在已发布的模型，就可以删除未发布的）
+        boolean isCanDel = sdUserModelService.checkCanDelModelByTaskId(taskId);
+        if (isCanDel) {
+            // 获取当前任务下未发布的模型详情(返回数据只有id、fileName、modelName、belongUserId)
+            List<SdUserModel> list = sdUserModelService.selectUserModelBaseInfoOfUnpublishedByTaskId(taskId);
+            if (CollectionUtil.isEmpty(list)){
+                return;
+            }
+            for (SdUserModel userModel : list) {
+                // 删除模型
+                sdUserModelService.removeModelById(userModel.getId().toString(),userModel.getBelongUserId());
+                if (StringUtils.isBlank(userModel.getFileName())) {
+                    continue;
+                }
+                // 获取模型存储父目录
+                String dir = userModel.getFileName().substring(0, userModel.getFileName().lastIndexOf("/"));
+                String modelName = userModel.getModelName();
+                FileUtils.deleteFilesWithSameName(dir,modelName.split(".")[0]);
+            }
+        }
     }
 
     /**

@@ -150,7 +150,8 @@ public class SdModelController {
     }
 
     /**
-     * [comfyui]获取lora模型列表
+     * [comfyui]获取当前用户能看到的lora模型列表
+     * @param dto 分页查询参数
      */
     @GetMapping("/comfyui/lora/list")
     public TableDataInfo<ComfyUserModelVo> listLoraModelsOfComfyui(SdUserModelPageDto dto) {
@@ -160,6 +161,20 @@ public class SdModelController {
         pageQuery.setOrderByColumn(dto.getOrderByColumn());
         pageQuery.setIsAsc(dto.getIsAsc());
         return sdUserModelService.listLoraModelsOfComfyui(dto,pageQuery);
+    }
+
+    /**
+     * [comfyui]获取当前用户所属的lora模型列表
+     * @param dto 分页查询参数
+     */
+    @GetMapping("/comfyui/user-lora/list")
+    public TableDataInfo<ComfyUserModelVo> listUserLoraModelsOfComfyui(SdUserModelPageDto dto) {
+        PageQuery pageQuery = new PageQuery();
+        pageQuery.setPageNum(dto.getPageNum());
+        pageQuery.setPageSize(dto.getPageSize());
+        pageQuery.setOrderByColumn(dto.getOrderByColumn());
+        pageQuery.setIsAsc(dto.getIsAsc());
+        return sdUserModelService.listUserLoraModelsOfComfyui(dto,pageQuery);
     }
 
     /**

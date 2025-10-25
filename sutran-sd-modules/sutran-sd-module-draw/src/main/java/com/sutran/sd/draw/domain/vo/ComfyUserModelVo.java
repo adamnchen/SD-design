@@ -102,6 +102,16 @@ public class ComfyUserModelVo implements Serializable {
     @Schema(name = "belongUserName", description = "模型归属人名称")
     private String belongUserName;
     /**
+     * 模型归属人昵称
+     */
+    @Schema(name = "belongNickName", description = "模型归属人昵称")
+    private String belongNickName;
+    /**
+     * 模型归属人头像地址
+     */
+    @Schema(name = "belongAvatar", description = "模型归属人头像地址")
+    private String belongAvatar;
+    /**
      * 模型创建时间
      */
     @Schema(name = "crtTime", description = "模型创建时间")

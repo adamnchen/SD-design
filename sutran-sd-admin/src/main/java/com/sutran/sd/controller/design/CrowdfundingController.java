@@ -16,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.util.List;
 import java.util.Map;
@@ -151,6 +152,116 @@ public class CrowdfundingController extends BaseController {
         } catch (Exception e) {
             log.error("[众筹项目] 修改抽奖数量失败: 项目ID={}", projectId, e);
             return R.fail("修改抽奖数量失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 厂家上传实物照片
+     */
+    @PostMapping("/{projectId}/manufacturer/photos")
+    @Operation(summary = "厂家上传实物照片", description = "该项目的厂家上传打样完成的实物照片")
+    public R<String> uploadManufacturerPhotos(
+            @Parameter(description = "项目ID", required = true)
+            @PathVariable Long projectId,
+            @Parameter(description = "照片URL列表", required = true)
+            @RequestBody @Validated Map<String, Object> request) {
+        
+        try {
+            @SuppressWarnings("unchecked")
+            List<String> photoUrls = (List<String>) request.get("photoUrls");
+            if (photoUrls == null || photoUrls.isEmpty()) {
+                return R.fail("照片不能为空");
+            }
+            
+            // 查询项目信息
+            SdCrowdfundingProject project = crowdfundingProjectService.selectSdCrowdfundingProjectById(projectId);
+            if (project == null) {
+                return R.fail("众筹项目不存在");
+            }
+            
+            // 检查权限：只有该项目的厂家可以上传
+            Long currentUserId = LoginHelper.getUserId();
+            if (!currentUserId.equals(project.getManufacturerUserId())) {
+                return R.fail("权限不足，只有该项目的厂家可以上传照片");
+            }
+            
+            // 检查项目状态：只有众筹成功的项目可以上传
+            if (project.getStatus() != 2) { // 2表示众筹成功
+                return R.fail("只有众筹成功的项目可以上传照片");
+            }
+            
+            // 将照片URL列表转换为JSON字符串
+            ObjectMapper mapper = new ObjectMapper();
+            String photosJson = mapper.writeValueAsString(photoUrls);
+            
+            // 更新厂家照片
+            project.setManufacturerPhotos(photosJson);
+            project.setManufacturerUploadTime(new java.util.Date());
+            crowdfundingProjectMapper.updateSdCrowdfundingProject(project);
+            
+            log.info("[众筹项目] 厂家上传照片成功: 项目ID={}, 厂家ID={}, 照片数量={}", 
+                projectId, currentUserId, photoUrls.size());
+            
+            return R.ok("上传照片成功");
+            
+        } catch (Exception e) {
+            log.error("[众筹项目] 厂家上传照片失败: 项目ID={}", projectId, e);
+            return R.fail("上传照片失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 设计师上传实物照片
+     */
+    @PostMapping("/{projectId}/designer/photos")
+    @Operation(summary = "设计师上传实物照片", description = "该项目的发起人（设计师）上传打样完成的实物照片")
+    public R<String> uploadDesignerPhotos(
+            @Parameter(description = "项目ID", required = true)
+            @PathVariable Long projectId,
+            @Parameter(description = "照片URL列表", required = true)
+            @RequestBody @Validated Map<String, Object> request) {
+        
+        try {
+            @SuppressWarnings("unchecked")
+            List<String> photoUrls = (List<String>) request.get("photoUrls");
+            if (photoUrls == null || photoUrls.isEmpty()) {
+                return R.fail("照片不能为空");
+            }
+            
+            // 查询项目信息
+            SdCrowdfundingProject project = crowdfundingProjectService.selectSdCrowdfundingProjectById(projectId);
+            if (project == null) {
+                return R.fail("众筹项目不存在");
+            }
+            
+            // 检查权限：只有该项目的发起人（设计师）可以上传
+            Long currentUserId = LoginHelper.getUserId();
+            if (!currentUserId.equals(project.getCreatorUserId())) {
+                return R.fail("权限不足，只有该项目的发起人可以上传照片");
+            }
+            
+            // 检查项目状态：只有众筹成功的项目可以上传
+            if (project.getStatus() != 2) { // 2表示众筹成功
+                return R.fail("只有众筹成功的项目可以上传照片");
+            }
+            
+            // 将照片URL列表转换为JSON字符串
+            ObjectMapper mapper = new ObjectMapper();
+            String photosJson = mapper.writeValueAsString(photoUrls);
+            
+            // 更新设计师照片
+            project.setDesignerPhotos(photosJson);
+            project.setDesignerUploadTime(new java.util.Date());
+            crowdfundingProjectMapper.updateSdCrowdfundingProject(project);
+            
+            log.info("[众筹项目] 设计师上传照片成功: 项目ID={}, 设计师ID={}, 照片数量={}", 
+                projectId, currentUserId, photoUrls.size());
+            
+            return R.ok("上传照片成功");
+            
+        } catch (Exception e) {
+            log.error("[众筹项目] 设计师上传照片失败: 项目ID={}", projectId, e);
+            return R.fail("上传照片失败: " + e.getMessage());
         }
     }
 

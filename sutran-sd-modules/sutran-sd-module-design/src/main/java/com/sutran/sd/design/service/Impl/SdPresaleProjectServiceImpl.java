@@ -26,8 +26,10 @@ import com.sutran.sd.design.vo.PresaleProjectDetailVO;
 import com.sutran.sd.design.vo.PresaleProjectListVO;
 import com.sutran.sd.pay.service.impl.PayOrderServiceImpl;
 import com.sutran.sd.pay.service.AliPayService;
-import com.sutran.sd.system.service.ISysOssService;
 import com.sutran.sd.system.domain.vo.SysOssVo;
+import com.sutran.sd.system.service.ISysOssService;
+import com.sutran.sd.system.service.ISysUserService;
+import com.sutran.sd.common.core.domain.entity.SysUser;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -58,7 +60,8 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
     private final PayOrderServiceImpl payOrderService;
     private final AliPayService aliPayService;
     private final SdProofingInvitationMapper proofingInvitationMapper;
-    private final ISysOssService ossService;
+    private final ISysOssService sysOssService;
+    private final ISysUserService userService;
 
     @Override
     public SdPresaleProject selectSdPresaleProjectById(Long id) {
@@ -207,13 +210,13 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
 
         Long currentUserId = LoginHelper.getUserId();
         log.info("当前用户ID: {}", currentUserId);
-        
+
         // 先查询用户是否有预售订单
         LambdaQueryWrapper<SdPresaleOrder> orderQuery = new LambdaQueryWrapper<>();
         orderQuery.eq(SdPresaleOrder::getUserId, currentUserId);
         List<SdPresaleOrder> userOrders = presaleOrderMapper.selectList(orderQuery);
-        log.info("用户预售订单数量: {}, 订单详情: {}", userOrders.size(), 
-            userOrders.stream().map(order -> String.format("订单ID=%d, 项目ID=%d, 状态=%d", 
+        log.info("用户预售订单数量: {}, 订单详情: {}", userOrders.size(),
+            userOrders.stream().map(order -> String.format("订单ID=%d, 项目ID=%d, 状态=%d",
                 order.getId(), order.getProjectId(), order.getOrderStatus())).collect(Collectors.toList()));
 
         // 查询符合条件的订单（已支付及以上状态）
@@ -222,13 +225,13 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
                      .in(SdPresaleOrder::getOrderStatus, 2, 3, 4, 5);
         List<SdPresaleOrder> paidOrders = presaleOrderMapper.selectList(paidOrderQuery);
         log.info("用户已支付订单数量: {}, 订单详情: {}", paidOrders.size(),
-            paidOrders.stream().map(order -> String.format("订单ID=%d, 项目ID=%d, 状态=%d", 
+            paidOrders.stream().map(order -> String.format("订单ID=%d, 项目ID=%d, 状态=%d",
                 order.getId(), order.getProjectId(), order.getOrderStatus())).collect(Collectors.toList()));
 
         Page<SdPresaleProject> page = pageQuery.build();
         IPage<SdPresaleProject> result = presaleProjectMapper.selectUserPresaleProjects(page, currentUserId, "buyer");
         log.info("查询到的预售项目数量: {}", result.getRecords().size());
-        
+
         // 如果查询结果为空，尝试直接查询项目
         if (result.getRecords().isEmpty() && !paidOrders.isEmpty()) {
             log.info("尝试直接查询项目...");
@@ -237,7 +240,7 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
                     .distinct()
                     .collect(Collectors.toList());
             log.info("项目ID列表: {}", projectIds);
-            
+
             if (!projectIds.isEmpty()) {
                 LambdaQueryWrapper<SdPresaleProject> projectQuery = new LambdaQueryWrapper<>();
                 projectQuery.in(SdPresaleProject::getId, projectIds);
@@ -487,16 +490,16 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
         LambdaQueryWrapper<SdPresaleOrder> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(SdPresaleOrder::getProjectId, project.getId())
                    .ge(SdPresaleOrder::getOrderStatus, 2); // 已支付及以上状态
-        
+
         List<SdPresaleOrder> paidOrders = presaleOrderMapper.selectList(queryWrapper);
-        
+
         // 计算购买人数（去重用户ID）
         long buyerCount = paidOrders.stream()
                 .map(SdPresaleOrder::getUserId)
                 .distinct()
                 .count();
         vo.setBuyerCount((int) buyerCount);
-        
+
         // 计算购买件数（所有订单的数量总和）
         int totalQuantity = paidOrders.stream()
                 .mapToInt(SdPresaleOrder::getQuantity)
@@ -515,6 +518,24 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
     private PresaleOrderListVO convertToOrderListVO(SdPresaleOrder order) {
         PresaleOrderListVO vo = new PresaleOrderListVO();
         BeanUtils.copyProperties(order, vo);
+
+        // 查询用户昵称
+        try {
+            if (order.getUserId() != null) {
+                SysUser user = userService.selectUserById(order.getUserId());
+                if (user != null && StringUtils.isNotBlank(user.getNickName())) {
+                    vo.setNickName(user.getNickName());
+                } else {
+                    // 如果没有昵称，使用用户名（手机号）作为备选
+                    vo.setNickName(order.getUserName());
+                }
+            }
+        } catch (Exception e) {
+            log.warn("查询用户昵称失败: 用户ID={}", order.getUserId(), e);
+            // 查询失败时使用用户名作为备选
+            vo.setNickName(order.getUserName());
+        }
+
         return vo;
     }
 
@@ -635,7 +656,7 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
             }
 
             // 3. 上传文件
-            SysOssVo oss = ossService.upload(file);
+            SysOssVo oss = sysOssService.upload(file);
             String photoUrl = oss.getUrl();
 
             log.info("[上传实物照片] 上传成功: URL={}", photoUrl);

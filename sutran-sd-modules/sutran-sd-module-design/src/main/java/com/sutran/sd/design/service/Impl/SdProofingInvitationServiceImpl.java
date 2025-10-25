@@ -107,15 +107,26 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
             throw new ServiceException("自动取消时限值无效，必须是1、2、3中的一个");
         }
 
-        // 4. 验证抽奖数量
-        if (createDTO.getDrawNumber() == null || createDTO.getDrawNumber() < 2) {
-            throw new ServiceException("抽奖数量必须大于等于2个");
+        // 4. 验证打样数量
+        if (createDTO.getProofingQuantity() == null || createDTO.getProofingQuantity() < 2) {
+            throw new ServiceException("打样数量必须大于等于2个");
+        }
+        
+        // 5. 验证抽奖数量
+        if (createDTO.getDrawNumber() == null || createDTO.getDrawNumber() < 1) {
+            throw new ServiceException("抽奖数量必须大于等于1个");
         }
         if (createDTO.getDrawNumber() > createDTO.getProofingQuantity()) {
             throw new ServiceException("抽奖数量不能超过打样数量");
         }
+        
+        // 6. 验证发起者自留数量（打样数量 - 抽奖数量 >= 1）
+        int reservedQuantity = createDTO.getProofingQuantity() - createDTO.getDrawNumber();
+        if (reservedQuantity < 1) {
+            throw new ServiceException("发起者必须自留至少1个样品，当前打样数量=" + createDTO.getProofingQuantity() + "，抽奖数量=" + createDTO.getDrawNumber() + "，自留数量=" + reservedQuantity);
+        }
 
-        // 5. 为每个被邀约人创建独立的邀约记录
+        // 7. 为每个被邀约人创建独立的邀约记录
         SdProofingInvitation createdInvitation = null;
         for (Long inviteeId : inviteeIds) {
             SdProofingInvitation invitation = new SdProofingInvitation();

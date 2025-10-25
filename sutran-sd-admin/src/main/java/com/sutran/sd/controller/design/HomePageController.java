@@ -7,6 +7,7 @@ import com.sutran.sd.design.service.ISdCrowdfundingProjectService;
 import com.sutran.sd.design.service.ISdPresaleProjectService;
 import com.sutran.sd.design.vo.CrowdfundingProjectListVO;
 import com.sutran.sd.design.vo.PresaleProjectListVO;
+import cn.dev33.satoken.annotation.SaIgnore;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -35,6 +36,7 @@ public class HomePageController {
      * 获取销售中的预售项目列表（分页）
      */
     @Operation(summary = "获取销售中的预售项目列表（分页）", description = "首页展示所有正在销售中的预售项目")
+    @SaIgnore
     @GetMapping("/presale/projects")
     public R<TableDataInfo<PresaleProjectListVO>> getActivePresaleProjects(PageQuery pageQuery) {
         log.info("首页查询销售中的预售项目列表（分页）");
@@ -45,6 +47,7 @@ public class HomePageController {
      * 获取进行中的众筹项目列表（分页）
      */
     @Operation(summary = "获取进行中的众筹项目列表（分页）", description = "首页展示所有正在进行中的众筹项目")
+    @SaIgnore
     @GetMapping("/crowdfunding/projects")
     public R<TableDataInfo<CrowdfundingProjectListVO>> getActiveCrowdfundingProjects(PageQuery pageQuery) {
         log.info("首页查询进行中的众筹项目列表（分页）");

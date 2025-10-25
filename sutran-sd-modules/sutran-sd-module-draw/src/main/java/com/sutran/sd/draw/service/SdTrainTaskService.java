@@ -3,6 +3,9 @@ package com.sutran.sd.draw.service;
 import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.sutran.sd.common.core.domain.PageQuery;
+import com.sutran.sd.common.core.page.TableDataInfo;
+import com.sutran.sd.draw.domain.dto.model.SdTrainTaskDto;
+import com.sutran.sd.draw.domain.vo.SdUserModelVo;
 import com.sutran.sd.draw.domain.vo.TrainTaskStatusVo;
 import com.sutran.sd.draw.domain.SdGpuPool;
 import com.sutran.sd.draw.domain.SdTrainTask;
@@ -220,4 +223,20 @@ public interface SdTrainTaskService {
       * @return 训练图片数量
       */
     int selectTrainImageNumById(String taskId);
+
+    /**
+     * 按任务状态查询列表
+     *
+     * @param newStatus 任务状态
+     * @param pageQuery 分页参数
+     * @return 任务列表
+     */
+    Page<SdTrainTask> listTrainTaskOfFluxgym(Integer newStatus, PageQuery pageQuery);
+
+    /**
+     * 获取训练任务的预处理参数
+     * @param id 任务ID
+     * @return 预处理参数
+     */
+    String selectPreParamsById(String id);
 }

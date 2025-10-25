@@ -20,6 +20,7 @@ import com.sutran.sd.draw.domain.dto.model.SdUserModelModifyDto;
 import com.sutran.sd.draw.domain.dto.model.SdUserModelPageDto;
 import com.sutran.sd.draw.domain.dto.model.SdUserModelShareDto;
 import com.sutran.sd.draw.domain.vo.ComfyUserModelVo;
+import com.sutran.sd.draw.domain.vo.FluxgymModelListVo;
 import com.sutran.sd.draw.domain.vo.SdLoraModelVo;
 import com.sutran.sd.draw.domain.vo.SdUserModelVo;
 import com.sutran.sd.draw.mapper.SdUserModelClassifyMapper;
@@ -456,7 +457,7 @@ public class SdUserModelServiceImpl implements SdUserModelService {
         // 获取每个训练任务的预参数
         List<JSONObject> params = baseMapper.selectPreParamByTaskIds(taskIds);
         // 构建任务ID到预参数的映射
-        Map<String, String> paramMap = CollectionUtil.isEmpty(params)?Collections.emptyMap():params.stream().collect(Collectors.toMap(e->e.getString("taskId"), e -> e.getString("preParam")));
+        Map<String, String> paramMap = CollectionUtil.isEmpty(params)?Collections.emptyMap():params.stream().collect(Collectors.toMap(e->e.getString("taskId"), e -> e.getString("preParams")));
         for (ComfyUserModelVo e : page.getRecords()) {
             e.setClassifyName("1".equals(e.getClassifyId())?"全部模型":e.getClassifyName());
             if (CollectionUtil.isNotEmpty(modelClassifyMap)) {
@@ -499,6 +500,26 @@ public class SdUserModelServiceImpl implements SdUserModelService {
     }
 
     /**
+     * [FluxGym]根据任务ID查询模型名称列表
+     * @param taskId 训练任务id
+     * @return 模型名称列表
+     */
+    @Override
+    public List<FluxgymModelListVo> listModelNameOfFluxgym(String taskId) {
+        return baseMapper.listModelNameOfFluxgym(taskId);
+    }
+
+    /**
+     * 查询模型预览图
+     * @param taskId    任务Id
+     * @return  预览图地址列表
+     */
+    @Override
+    public List<String> selectModelUrlListByTaskId(String taskId) {
+        return baseMapper.selectModelUrlListByTaskId(taskId);
+    }
+
+    /**
      * 处理ComfyUI数据中的提示词
      * @param vo        模型实体
      * @param paramMap  预参数映射
@@ -519,7 +540,7 @@ public class SdUserModelServiceImpl implements SdUserModelService {
             if (StringUtils.isBlank(dataPath)) {
                 return;
             }
-            dataPath += CommonUtil.suggestNumRepeat();
+            dataPath = dataPath + CommonUtil.suggestNumRepeat();
             // 获取dataPath目录下的全部txt文件
             List<File> txtFiles = CommonUtil.getAllFileOfTxt(new File(dataPath));
             if (CollectionUtil.isEmpty(txtFiles)) {

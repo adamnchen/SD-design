@@ -9,6 +9,7 @@ import com.sutran.sd.draw.domain.dto.model.SdUserModelPageDto;
 import com.sutran.sd.draw.domain.dto.model.SdUserModelShareDto;
 import com.sutran.sd.draw.domain.SdUserModel;
 import com.sutran.sd.draw.domain.vo.ComfyUserModelVo;
+import com.sutran.sd.draw.domain.vo.FluxgymModelListVo;
 import com.sutran.sd.draw.domain.vo.SdUserModelVo;
 
 import java.util.List;
@@ -170,4 +171,18 @@ public interface SdUserModelService {
      * @return      模型详情
      */
     ComfyUserModelVo getModelInfoOfComfyui(String id);
+
+    /**
+     * [FluxGym]根据任务ID查询模型名称列表
+     * @param taskId 训练任务id
+     * @return 模型名称列表
+     */
+    List<FluxgymModelListVo> listModelNameOfFluxgym(String taskId);
+
+    /**
+     * 查询模型预览图
+     * @param taskId    任务Id
+     * @return  预览图地址列表
+     */
+    List<String> selectModelUrlListByTaskId(String taskId);
 }

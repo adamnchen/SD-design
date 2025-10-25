@@ -10,6 +10,8 @@ import com.sutran.sd.common.core.domain.dto.BatchRemoveDto;
 import com.sutran.sd.common.core.page.TableDataInfo;
 import com.sutran.sd.common.exception.ServiceException;
 import com.sutran.sd.draw.domain.SdGpuPool;
+import com.sutran.sd.draw.domain.SdTrainTask;
+import com.sutran.sd.draw.domain.dto.model.SdTrainTaskDto;
 import com.sutran.sd.draw.domain.dto.model.SdUserModelDto;
 import com.sutran.sd.draw.domain.dto.task.SdUserTaskPageDto;
 import com.sutran.sd.draw.domain.dto.txt2img.SdText2ImgDto;
@@ -247,6 +249,58 @@ public class SysSdController extends BaseController {
     public R<Void> syncTranslationFromDbToRedis(@RequestParam Integer type) {
         sdTranslationService.syncTranslationFromDbToRedis(type);
         return R.ok("同步成功");
+    }
+
+
+    /**
+     * [Fluxgym]分页查询训练任务
+     * @param dto 查询参数实体
+     * @return 训练任务列表
+     */
+    @GetMapping("/fluxgym/train-task")
+    public TableDataInfo<TrainTaskVo> listTrainTaskOfFluxgym(SdTrainTaskDto dto) {
+        return sdTrainService.listTrainTaskOfFluxgym(dto);
+    }
+
+    /**
+     * [Fluxgym]根据任务ID查询模型名称列表
+     * @param taskId 训练任务id
+     * @return 模型名称列表
+     */
+    @GetMapping("/fluxgym/train-task/model-name-list")
+    public R<List<FluxgymModelListVo>> listModelNameOfFluxgym(@RequestParam String taskId) {
+        return R.ok(sdTrainService.listModelNameOfFluxgym(taskId));
+    }
+
+    /**
+     * [Fluxgym]根据任务ID查询模型素材原图、提示词和缩略图
+     * @param taskId 训练任务id
+     * @return 模型名称列表
+     */
+    @GetMapping("/fluxgym/train-task/model-preview")
+    public R<FluxgymModelPreviewVo> listModelPreviewOfFluxgym(@RequestParam String taskId) {
+        return R.ok(sdTrainService.listModelPreviewOfFluxgym(taskId));
+    }
+
+    /**
+     * [Fluxgym]发布/取消发布模型
+     * @param id 模型id
+     * @param publishStatus 发布状态[0-取消发布,1-发布]
+     */
+    @PutMapping("/fluxgym/lora/publish-status")
+    public R<Void> publishModelOfFluxgym(@RequestParam String id,@RequestParam Integer publishStatus) {
+        sdTrainService.publishModelOfFluxgym(id,publishStatus);
+        return R.ok();
+    }
+
+    /**
+     * [Fluxgym]删除当前任务未发布模型
+     * @param taskId 任务id
+     */
+    @DeleteMapping("/fluxgym/lora")
+    public R<Void> removeUnpublishedModelOfFluxgym(@RequestParam String taskId) {
+        sdTrainService.removeUnpublishedModelOfFluxgym(taskId);
+        return R.ok();
     }
 
 }

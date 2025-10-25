@@ -9,6 +9,7 @@ import com.sutran.sd.draw.domain.dto.model.SdUserModelPageDto;
 import com.sutran.sd.draw.domain.dto.model.SdUserModelShareDto;
 import com.sutran.sd.draw.domain.SdUserModel;
 import com.sutran.sd.draw.domain.vo.ComfyUserModelVo;
+import com.sutran.sd.draw.domain.vo.FluxgymModelListVo;
 import com.sutran.sd.draw.domain.vo.SdUserModelVo;
 import org.apache.ibatis.annotations.*;
 import org.apache.ibatis.annotations.Param;
@@ -102,4 +103,20 @@ public interface SdUserModelMapper extends BaseMapperPlus<SdUserModelMapper, SdU
      * @return      模型详情
      */
     ComfyUserModelVo selectModelInfoOfComfyui(@Param("id") String id);
+
+    /**
+     * [FluxGym]根据任务ID查询模型名称列表
+     * @param taskId 训练任务id
+     * @return 模型名称列表
+     */
+    @Select("SELECT id AS modelId,model_name_zh AS modelName,publish_status AS publishStatus FROM sd_user_model WHERE task_id=#{taskId}")
+    List<FluxgymModelListVo> listModelNameOfFluxgym(@Param("taskId") String taskId);
+
+    /**
+     * 查询模型预览图
+     * @param taskId    任务Id
+     * @return  预览图地址列表
+     */
+    @Select("SELECT url FROM sd_user_model WHERE task_id=#{taskId} ORDER BY model_name_zh ASC")
+    List<String> selectModelUrlListByTaskId(@Param("taskId") String taskId);
 }

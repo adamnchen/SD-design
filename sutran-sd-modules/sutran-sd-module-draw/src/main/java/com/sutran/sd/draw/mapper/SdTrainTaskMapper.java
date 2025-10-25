@@ -226,4 +226,12 @@ public interface SdTrainTaskMapper extends BaseMapperPlus<SdTrainTaskMapper, SdT
       */
     @Select("SELECT img_num FROM sd_train_task WHERE id=#{taskId}")
     int selectTrainImageNumById(@Param("taskId") String taskId);
+
+    /**
+     * 获取训练任务的预处理参数
+     * @param id 任务ID
+     * @return 预处理参数
+     */
+    @Select("SELECT pre_params FROM sd_train_task WHERE id=#{id}")
+    String selectPreParamsById(@Param("id") String id);
 }

@@ -12,6 +12,7 @@ import cn.hutool.core.util.StrUtil;
 import cn.hutool.http.HttpRequest;
 import cn.hutool.http.HttpResponse;
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.alibaba.fastjson.serializer.SerializerFeature;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -30,6 +31,7 @@ import com.sutran.sd.common.utils.redis.RedisUtils;
 import com.sutran.sd.draw.domain.*;
 import com.sutran.sd.draw.domain.bo.ImageInfoBo;
 import com.sutran.sd.draw.domain.bo.TrainTaskInfo;
+import com.sutran.sd.draw.domain.dto.model.SdTrainTaskDto;
 import com.sutran.sd.draw.domain.dto.train.*;
 import com.sutran.sd.draw.domain.vo.*;
 import com.sutran.sd.draw.events.RefreshLoraEvent;
@@ -47,7 +49,6 @@ import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.rabbit.connection.CorrelationData;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.BeanUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -56,10 +57,7 @@ import org.springframework.web.multipart.MultipartFile;
 import javax.annotation.Resource;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
-import java.nio.file.WatchEvent;
+import java.nio.file.*;
 import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.util.*;
@@ -99,8 +97,9 @@ public class SdTrainServiceImpl implements SdTrainService {
     private final static Map<String,WatchMonitor> MONITOR_MAP = new ConcurrentHashMap<>();
     private final static Lock TRAIN_LOCK = new ReentrantLock();
     private final static Lock MODEL_LOCK = new ReentrantLock();
-    @Autowired
-    private SdUserModelService sdUserModelService;
+    private final SdUserModelService sdUserModelService;
+
+
 
     /**
      * 预处理图片任务状态列表
@@ -1702,6 +1701,164 @@ public class SdTrainServiceImpl implements SdTrainService {
         preParams.put("endTime", taskNode.getString("endTime"));
         // 处理指定目录下的模型文件
         dealFluxgymTrainModelFile(taskId,preParams);
+    }
+
+    /**
+     * [FluxGym]SD训练-查询用户训练任务列表
+     * @param dto 查询参数
+     * @return 训练任务列表
+     */
+    @Override
+    public TableDataInfo<TrainTaskVo> listTrainTaskOfFluxgym(SdTrainTaskDto dto) {
+        PageQuery pageQuery = new PageQuery();
+        pageQuery.setPageNum(dto.getPageNum());
+        pageQuery.setPageSize(dto.getPageSize());
+        pageQuery.setOrderByColumn(dto.getOrderByColumn());
+        pageQuery.setIsAsc(dto.getIsAsc());
+        // 根据当前用户和任务状态获取任务列表
+        Page<SdTrainTask> page = sdTrainTaskService.listTrainTaskOfFluxgym(dto.getNewStatus(),pageQuery);
+        List<SdTrainTask> list = page.getRecords();
+        if (CollectionUtil.isEmpty(list)) {
+            return TableDataInfo.build(Collections.emptyList());
+        }
+
+        List<TrainTaskVo> records = list.stream().map(e -> {
+            TrainTaskVo vo = new TrainTaskVo();
+            BeanUtils.copyProperties(e, vo);
+            vo.setPreTaskId(String.valueOf(e.getId()));
+            if (StringUtils.isNotBlank(e.getPreParams())) {
+                JSONObject preParams = JSONObject.parseObject(e.getPreParams());
+                vo.setPreTaskParams(preParams);
+            }
+            if (StringUtils.isNotBlank(e.getTrainParams())) {
+                JSONObject trainParams = JSONObject.parseObject(e.getTrainParams());
+                vo.setTrainTaskParams(trainParams);
+            }
+            if (StringUtils.isNotBlank(e.getAdditionTag())) {
+                List<String> additionTag = JSON.parseArray(e.getAdditionTag(), String.class);
+                vo.setAdditionTag(additionTag);
+            }
+            return vo;
+        }).collect(Collectors.toList());
+        return new TableDataInfo<>(records,page.getTotal());
+    }
+
+    /**
+     * [FluxGym]根据任务ID查询模型名称列表
+     * @param taskId 训练任务id
+     * @return 模型名称列表
+     */
+    @Override
+    public List<FluxgymModelListVo> listModelNameOfFluxgym(String taskId) {
+        return sdUserModelService.listModelNameOfFluxgym(taskId);
+    }
+
+    /**
+     * [FluxGym]根据任务ID查询模型预览列表
+     * @param taskId 训练任务id
+     * @return 模型预览列表
+     */
+    @Override
+    public FluxgymModelPreviewVo listModelPreviewOfFluxgym(String taskId) {
+        FluxgymModelPreviewVo vo  = new FluxgymModelPreviewVo();
+        // 预览图地址列表
+        List<String> previewImgUrlList = sdUserModelService.selectModelUrlListByTaskId(taskId);
+        vo.setPreviewImgUrlList(previewImgUrlList);
+        // 获取第一张图片提示词
+        String preParams = sdTrainTaskService.selectPreParamsById(taskId);
+        if (StringUtils.isNotBlank(preParams)) {
+            JSONObject preParam = JSONObject.parseObject(preParams);
+            String captions = preParam.getString("captions");
+            if (StringUtils.isNotBlank(captions)) {
+                vo.setPrompt(JSONArray.parseArray(captions, String.class).get(0));
+            }
+            String path = preParam.getString("path");
+            if (StringUtils.isNotBlank(path)) {
+                // 获取 path+/20_zkz目录下的第一张图片
+                String imageName = FileUtils.getFirstImageByCreationTime(path + CommonUtil.suggestNumRepeat());
+                if (StringUtils.isNotBlank(imageName)) {
+                    vo.setOriginalImgUrl("/lora-img/" + imageName);
+                }
+            }
+        }
+        return vo;
+    }
+
+    /**
+     * [FluxGym]发布/取消发布模型
+     * @param id 模型id
+     * @param publishStatus 发布状态[0-取消发布,1-发布]
+     */
+    @Override
+    public void publishModelOfFluxgym(String id, Integer publishStatus) {
+        // 获取模型对应的用户的openId和手机号
+        JSONObject info = sdUserModelService.selectUserOpenIdAndPhoneById(id);
+        if (info == null || CollectionUtil.isEmpty(info)) {
+            return;
+        }
+        // 发布要先移动模型->然后再修改数据库状态->发送微信公众号通知
+        if (publishStatus==1) {
+            String fileName = info.getString("fileName");
+            if (StringUtils.isNotBlank(fileName)) {
+                // 将发布的模型放入到云存储目录下/root/cloud/comfyui-lora/
+                Path source = Paths.get(fileName);
+                String originalFileName = source.getFileName().toString();
+                String tempFileName = originalFileName + ".tmp";
+
+                String modelPath = "/root/cloud/comfyui-lora/" + originalFileName;
+                String tempModelPath = "/root/cloud/comfyui-lora/" + tempFileName;
+
+                Path target = Paths.get(modelPath);
+                Path tempTarget = Paths.get(tempModelPath);
+                log.warn("[模型发布]>>>>>>>>>开始移动模型：{}->{}->{}",fileName,tempModelPath,modelPath);
+                try {
+                    // 检查源文件
+                    if (!Files.exists(source)) {
+                        log.error("[模型发布]>>>>>>>>>源文件不存在: {}", fileName);
+                        return;
+                    }
+                    Path parentDir = tempTarget.getParent();
+                    if (parentDir != null && !Files.exists(parentDir)) {
+                        Files.createDirectories(parentDir);
+                    }
+                    // 临时文件
+                    Files.copy(source, tempTarget, StandardCopyOption.REPLACE_EXISTING);
+                    // 复制完成后重命名为正式文件
+                    Files.move(tempTarget, target, StandardCopyOption.REPLACE_EXISTING);
+                }
+                catch (Exception e) {
+                    if (Files.exists(tempTarget)) {
+                        try {
+                            Files.delete(tempTarget);
+                        }
+                        catch (IOException ex) {
+                            log.warn("[模型发布]>>>>>>>>>清理临时文件失败：{}", tempModelPath, ex);
+                        }
+                    }
+                    log.error("[模型发布]>>>>>>>>>{}复制到{}异常：", fileName, modelPath, e);
+                }
+            }
+        }
+        // isUserDel目前其实并没有使用到
+        sdUserModelService.publishModel(id,publishStatus,Objects.equals(LoginHelper.getUserId(), info.getLong("userId"))?1:0,null);
+        if (publishStatus==1) {
+            // 发送完成消息
+            JSONObject wxMsg = new JSONObject();
+            wxMsg.put("modelId",id);
+            wxMsg.put("type","PUBLISH_MODEL");
+            wxMsg.put("openId",info.getString("wxOpenId"));
+            wxMsg.put("userId",info.getString("userId"));
+            rabbitTemplate.convertAndSend(WX_MSG_EXCHANGE,WX_MSG_ROUTING_KEY,wxMsg);
+        }
+    }
+
+    /**
+     * [FluxGym]根据任务ID删除个人未发布的模型
+     * @param taskId 训练任务id
+     */
+    @Override
+    public void removeUnpublishedModelOfFluxgym(String taskId) {
+
     }
 
     /**

@@ -143,7 +143,7 @@
 
     <!-- 获取训练任务的预参数 -->
     <select id="selectPreParamByTaskIds" resultType="com.alibaba.fastjson.JSONObject">
-        select id AS taskId,pre_params AS preParam
+        select id AS taskId,pre_params AS preParams
         FROM sd_train_task
         WHERE id IN <foreach collection="taskIds" open="(" item="taskId" separator="," close=")">#{taskId}</foreach>
     </select>

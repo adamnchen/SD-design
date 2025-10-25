@@ -18,6 +18,7 @@ import java.util.List;
 @Data
 @Accessors(chain = true)
 public class TrainTaskVo implements Serializable {
+    private String id;
     /**
      * 预处理任务id
      */

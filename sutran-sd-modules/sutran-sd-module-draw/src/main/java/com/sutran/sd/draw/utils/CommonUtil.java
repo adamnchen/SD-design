@@ -48,12 +48,20 @@ public class CommonUtil {
 
     /** 获取指定目录下的全部txt文件 **/
     public static List<File> getAllFileOfTxt(File preImgDir) {
+        // 检查目录是否存在且是一个目录
+        if (preImgDir == null || !preImgDir.exists() || !preImgDir.isDirectory() || !preImgDir.canRead()) {
+            log.error("目录不存在或不是有效目录或没有读取权限: {}", preImgDir);
+            return new ArrayList<>();
+        }
         // 获取文件列表
         File[] fileList = preImgDir.listFiles();
-        // 只要png、jpg、jpeg、txt文件
-        assert fileList != null;
+        // 如果文件列表为null，返回空列表
+        if (fileList == null) {
+            log.error("无法读取目录内容或目录不存在: {}", preImgDir.getAbsolutePath());
+            return new ArrayList<>();
+        }
         // 如果是文件则将其加入到文件数组中
-        return Arrays.stream(fileList).filter(e -> e.getName().endsWith(".txt")).collect(Collectors.toList());
+        return Arrays.stream(fileList).filter(e -> e.isFile() && e.getName().toLowerCase().endsWith(".txt")).collect(Collectors.toList());
     }
 
     /** 获取指定目录下的全部文件（图片文件 和 图片标签参数文件）并分组 **/

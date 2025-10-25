@@ -6,8 +6,11 @@ import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.sutran.sd.common.core.domain.PageQuery;
+import com.sutran.sd.common.core.page.TableDataInfo;
 import com.sutran.sd.draw.domain.SdGpuPool;
 import com.sutran.sd.draw.domain.SdTrainTask;
+import com.sutran.sd.draw.domain.dto.model.SdTrainTaskDto;
+import com.sutran.sd.draw.domain.vo.SdUserModelVo;
 import com.sutran.sd.draw.domain.vo.TrainTaskStatusVo;
 import com.sutran.sd.draw.mapper.SdTrainTaskMapper;
 import com.sutran.sd.draw.service.SdTrainTaskService;
@@ -244,5 +247,21 @@ public class SdTrainTaskServiceImpl implements SdTrainTaskService {
         return baseMapper.selectTrainImageNumById(taskId);
     }
 
+    @Override
+    public Page<SdTrainTask> listTrainTaskOfFluxgym(Integer newStatus, PageQuery pageQuery) {
+        LambdaQueryWrapper<SdTrainTask> lqw = new LambdaQueryWrapper<>();
+        lqw.eq(newStatus!=null, SdTrainTask::getNewStatus, newStatus).orderByDesc(SdTrainTask::getCrtTime);
+        return baseMapper.selectPage(pageQuery.build(),lqw);
+    }
+
+    /**
+     * 获取训练任务的预处理参数
+     * @param id 任务ID
+     * @return 预处理参数
+     */
+    @Override
+    public String selectPreParamsById(String id) {
+        return baseMapper.selectPreParamsById(id);
+    }
 
 }

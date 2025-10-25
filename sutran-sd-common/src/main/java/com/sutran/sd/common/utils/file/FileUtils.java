@@ -19,6 +19,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.nio.file.attribute.FileTime;
 import java.util.*;
 import java.util.stream.Stream;
 
@@ -30,6 +31,9 @@ import java.util.stream.Stream;
 @Slf4j
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class FileUtils extends FileUtil {
+    public static final String[] IMAGE_EXTENSIONS = {
+        "jpg","JPG","jpeg","JPEG","png","PNG","gif","GIF","bmp","BMP","webp","WEBP","tiff","TIFF","tif","TIF"
+    };
 
     /**
      * 下载文件名重新编码
@@ -464,5 +468,49 @@ public class FileUtils extends FileUtil {
                 return FileVisitResult.CONTINUE;
             }
         });
+    }
+
+    public static String getFirstImageByCreationTime(String directoryPath){
+        try{
+            Path dir = Paths.get(directoryPath);
+
+            if (!Files.exists(dir) || !Files.isDirectory(dir)) {
+                return null;
+            }
+            List<Path> imageFiles = new ArrayList<>();
+            // 使用 Files.walk 遍历目录
+            Files.walk(dir, 1) // 1 表示只遍历当前目录，不包含子目录
+                .filter(Files::isRegularFile)
+                .filter(e->isImageFile(e))
+                .forEach(imageFiles::add);
+            // 按创建时间排序（最早的在前）
+            imageFiles.sort(Comparator.comparing(e->getCreationTime(e)));
+            return imageFiles.isEmpty() ? null : imageFiles.get(0).getFileName().toString();
+        }
+        catch (Exception e){
+            log.error("获取第一张图片异常：",e);
+            return null;
+        }
+    }
+
+    // 获取文件的创建时间
+    private static FileTime getCreationTime(Path file) {
+        try {
+            BasicFileAttributes attrs = Files.readAttributes(file, BasicFileAttributes.class);
+            return attrs.creationTime();
+        } catch (IOException e) {
+            return FileTime.fromMillis(0); // 如果无法获取创建时间，返回默认值
+        }
+    }
+
+    // 检查文件是否为图片文件
+    private static boolean isImageFile(Path file) {
+        String fileName = file.getFileName().toString().toLowerCase();
+        for (String ext : IMAGE_EXTENSIONS) {
+            if (fileName.endsWith("." + ext)) {
+                return true;
+            }
+        }
+        return false;
     }
 }

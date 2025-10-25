@@ -4,6 +4,8 @@ import com.alibaba.fastjson.JSONObject;
 import com.sutran.sd.common.core.domain.PageQuery;
 import com.sutran.sd.common.core.page.TableDataInfo;
 import com.sutran.sd.draw.domain.SdGpuPool;
+import com.sutran.sd.draw.domain.SdTrainTask;
+import com.sutran.sd.draw.domain.dto.model.SdTrainTaskDto;
 import com.sutran.sd.draw.domain.dto.train.SdTrainAdditionTagDto;
 import com.sutran.sd.draw.domain.dto.train.SdTrainLoraDto;
 import com.sutran.sd.draw.domain.dto.train.SdTrainPreImgDto;
@@ -185,4 +187,38 @@ public interface SdTrainService {
       * @param taskId     任务id
       */
      void dealFluxgymTrainModelFile(String taskId);
+
+    /**
+     * [FluxGym]SD训练-查询训练任务列表
+     * @param dto 查询参数实体
+     * @return 训练任务列表
+     */
+     TableDataInfo<TrainTaskVo> listTrainTaskOfFluxgym(SdTrainTaskDto dto);
+
+     /**
+      * [FluxGym]SD训练-根据任务ID查询模型名称列表
+      * @param taskId 训练任务id
+      * @return 模型名称列表
+      */
+    List<FluxgymModelListVo> listModelNameOfFluxgym(String taskId);
+
+     /**
+      * [FluxGym]SD训练-根据任务ID查询模型素材原图、提示词和缩略图
+      * @param taskId 训练任务id
+      * @return 模型名称列表
+      */
+    FluxgymModelPreviewVo listModelPreviewOfFluxgym(String taskId);
+
+     /**
+      * [FluxGym]SD训练-发布/取消发布模型
+      * @param id 模型id
+      * @param publishStatus 发布状态[0-取消发布,1-发布]
+      */
+    void publishModelOfFluxgym(String id, Integer publishStatus);
+
+     /**
+      * [FluxGym]SD训练-删除当前任务未发布模型
+      * @param taskId 任务id
+      */
+    void removeUnpublishedModelOfFluxgym(String taskId);
 }

@@ -261,7 +261,7 @@ public class PayOrderServiceImpl implements PayOrderService {
                 }
                 else {
                     failPay(outTradeNo, tradeNo, response.getTotalAmount());
-                    log.error("[支付宝][定时处理未失效且未支付订单]>>>>>>>>>支付宝查询指定交易信息并修改订单数据失败,订单号：{},流水号：{},交易状态：{}",outTradeNo,tradeNo, tradeStatus);
+                    log.error("[支付宝][定时处理未失效且未支付订单]>>>>>>>>>支付宝查询指定超时交易信息并修改订单数据状态,订单号：{},流水号：{},交易状态：{}",outTradeNo,tradeNo, tradeStatus);
                 }
                 // 发送支付状态到业务实现
                 PayTimeoutStatusVo vo = new PayTimeoutStatusVo().setUserId(order.getUserId()).setBusinessId(order.getBusinessId()).setTradeStatus(tradeStatus).setOutTradeNo(outTradeNo);
@@ -278,7 +278,7 @@ public class PayOrderServiceImpl implements PayOrderService {
             }
         }
         catch (AlipayApiException e) {
-            log.error("[支付宝][定时处理未失效且未支付订单]>>>>>>>>>查询支付宝指定交易信息失败,订单号：{},异常：",order.getOutTradeNo(),e);
+            log.error("[支付宝][定时处理未失效且未支付订单]>>>>>>>>>支付宝查询指定超时交易信息,订单号：{},异常：",order.getOutTradeNo(),e);
         }
     }
     /**

@@ -540,6 +540,9 @@ public class SdUserModelServiceImpl implements SdUserModelService {
             if (StringUtils.isBlank(dataPath)) {
                 return;
             }
+            if (!dataPath.startsWith("/home")) {
+                dataPath = "/home"+dataPath;
+            }
             dataPath = dataPath + CommonUtil.suggestNumRepeat();
             // 获取dataPath目录下的全部txt文件
             List<File> txtFiles = CommonUtil.getAllFileOfTxt(new File(dataPath));

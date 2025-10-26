@@ -121,6 +121,7 @@ public class SdTrainServiceImpl implements SdTrainService {
             TrainTaskVo vo = new TrainTaskVo();
             BeanUtils.copyProperties(e, vo);
             vo.setPreTaskId(String.valueOf(e.getId()));
+            vo.setId(String.valueOf(e.getId()));
             if (StringUtils.isNotBlank(e.getPreParams())) {
                 JSONObject preParams = JSONObject.parseObject(e.getPreParams());
                 vo.setPreTaskParams(preParams);
@@ -1200,6 +1201,8 @@ public class SdTrainServiceImpl implements SdTrainService {
         JSONObject params = JSONObject.parseObject(task.getPreParams());
         // 兼容容器路径
         String path = dealTrainDataSetPath(params.getString("path"));
+        // 如果预处理参数中有模型名称，则表示当前训练是fluxgym训练的模型
+        String loraName = dealTrainDataSetPath(params.getString("loraName"));
 
         File trainDataImgDir = new File(path + CommonUtil.suggestNumRepeat());
         if (!trainDataImgDir.exists()) {
@@ -1246,15 +1249,23 @@ public class SdTrainServiceImpl implements SdTrainService {
                 if (first1.isPresent()) {
                     String line = first1.get();
                     line = StringEscapeUtils.unescapeJava(line);
-                    List<String> tags = Arrays.asList(line.split(", "));
-                    if (CollectionUtil.isNotEmpty(tags)) {
-                        data.put("tags",tags);
+                    if (StringUtils.isNotBlank(loraName)) {
+                        data.put("tags",Collections.singletonList(line));
                         // 将tags使用redis中的缓存TRANSLATE_EN_TO_ZH_MAP转换为中文
-                        List<String> tagZhs = tags.stream().map(e->{
-                            String zhStr = RedisUtils.getCacheMapValue(TRANSLATE_EN_TO_ZH_MAP,e);
-                            return StringUtils.isBlank(zhStr)?e:zhStr;
-                        }).collect(Collectors.toList());
-                        data.put("tagZhs",tagZhs);
+                        String tagZh = RedisUtils.getCacheMapValue(TRANSLATE_EN_TO_ZH_MAP,line);
+                        data.put("tagZhs",Collections.singletonList(tagZh));
+                    }
+                    else {
+                        List<String> tags = Arrays.asList(line.split(", "));
+                        if (CollectionUtil.isNotEmpty(tags)) {
+                            data.put("tags",tags);
+                            // 将tags使用redis中的缓存TRANSLATE_EN_TO_ZH_MAP转换为中文
+                            List<String> tagZhs = tags.stream().map(e->{
+                                String zhStr = RedisUtils.getCacheMapValue(TRANSLATE_EN_TO_ZH_MAP,e);
+                                return StringUtils.isBlank(zhStr)?e:zhStr;
+                            }).collect(Collectors.toList());
+                            data.put("tagZhs",tagZhs);
+                        }
                     }
                 }
             }
@@ -1726,6 +1737,7 @@ public class SdTrainServiceImpl implements SdTrainService {
             TrainTaskVo vo = new TrainTaskVo();
             BeanUtils.copyProperties(e, vo);
             vo.setPreTaskId(String.valueOf(e.getId()));
+            vo.setId(String.valueOf(e.getId()));
             if (StringUtils.isNotBlank(e.getPreParams())) {
                 JSONObject preParams = JSONObject.parseObject(e.getPreParams());
                 vo.setPreTaskParams(preParams);
@@ -1733,6 +1745,9 @@ public class SdTrainServiceImpl implements SdTrainService {
             if (StringUtils.isNotBlank(e.getTrainParams())) {
                 JSONObject trainParams = JSONObject.parseObject(e.getTrainParams());
                 vo.setTrainTaskParams(trainParams);
+                if (StringUtils.isNotBlank(trainParams.getString("instance_prompt"))) {
+                    vo.setAdditionTag(Collections.singletonList(trainParams.getString("instance_prompt")));
+                }
             }
             if (StringUtils.isNotBlank(e.getAdditionTag())) {
                 List<String> additionTag = JSON.parseArray(e.getAdditionTag(), String.class);
@@ -1777,7 +1792,8 @@ public class SdTrainServiceImpl implements SdTrainService {
                 // 获取 path+/20_zkz目录下的第一张图片
                 String imageName = FileUtils.getFirstImageByCreationTime(path + CommonUtil.suggestNumRepeat());
                 if (StringUtils.isNotBlank(imageName)) {
-                    vo.setOriginalImgUrl("/lora-img/" + imageName);
+                    String originalPath = path.replace("/home/lora-scripts","").replace("/lora-scripts/","");
+                    vo.setOriginalImgUrl(originalPath + CommonUtil.suggestNumRepeat() + "/" + imageName);
                 }
             }
         }

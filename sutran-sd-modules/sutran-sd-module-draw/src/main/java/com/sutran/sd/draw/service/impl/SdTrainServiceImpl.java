@@ -1891,7 +1891,7 @@ public class SdTrainServiceImpl implements SdTrainService {
                 // 获取模型存储父目录
                 String dir = userModel.getFileName().substring(0, userModel.getFileName().lastIndexOf("/"));
                 String modelName = userModel.getModelName();
-                FileUtils.deleteFilesWithSameName(dir,modelName.split(".")[0]);
+                FileUtils.deleteFilesWithSameName(dir,modelName.endsWith(".safetensors")?modelName.split(".")[0]:modelName);
             }
         }
     }

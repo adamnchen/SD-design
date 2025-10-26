@@ -7,6 +7,7 @@ import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.ObjectUtil;
+import cn.hutool.core.util.PhoneUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.sutran.sd.common.constant.CacheConstants;
 import com.sutran.sd.common.constant.Constants;
@@ -86,7 +87,8 @@ public class SysLoginService {
             validateCaptcha(username, code, uuid);
         }
         // 框架登录不限制从什么表查询 只要最终构建出 LoginUser 即可
-        SysUser user = loadUserByUsername(username);
+        // 如果登录名是手机号，则使用手机号登录，否则使用用户名登录
+        SysUser user = PhoneUtil.isMobile(username) ? loadSysUserByPhonenumber(username) : loadUserByUsername(username);
         checkLogin(LoginType.PASSWORD, username, user.getUserId(), user.getUserType(), () -> !BCrypt.checkpw(password, user.getPassword()));
         // 此处可根据登录用户的数据不同 自行创建 loginUser 属性不够用继承扩展就行了
         LoginUser loginUser = buildLoginUser(user);
@@ -373,7 +375,7 @@ public class SysLoginService {
                 if (insert<=0) {
                     throw new UserException("user.register.error");
                 }
-                
+
                 // 为第三方登录用户自动创建默认身份标签
                 createDefaultIdentityTagForThirdParty(user.getUserId());
             }
@@ -525,10 +527,10 @@ public class SysLoginService {
     public String selectConfigByKey(String key) {
         return configService.selectConfigByKey(key);
     }
-    
+
     /**
      * 为第三方登录用户创建默认身份标签
-     * 
+     *
      * @param userId 用户ID
      */
     private void createDefaultIdentityTagForThirdParty(Long userId) {

@@ -589,11 +589,15 @@ public class SdUserModelServiceImpl implements SdUserModelService {
     }
 
     /**
-     * 处理ComfyUI数据中的提示词
+     * 处理ComfyUI数据中的提示词 以及 模型名称不携带.safetensors后缀,则添加.safetensors后缀
      * @param vo        模型实体
      * @param paramMap  预参数映射
      */
     private void dealComfyUiDataPrompt(ComfyUserModelVo vo, Map<String, String> paramMap) {
+        // 处理模型名称不携带.safetensors后缀,则添加.safetensors后缀
+        if (StringUtils.isNotBlank(vo.getModelName()) && !vo.getModelName().endsWith(".safetensors")) {
+            vo.setModelName(vo.getModelName() + ".safetensors");
+        }
         // 获取关联训练任务ID
         String preParam = paramMap.get(vo.getTaskId());
         if (StringUtils.isBlank(preParam)) {

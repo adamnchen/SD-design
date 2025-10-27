@@ -98,6 +98,24 @@ public class SysUser extends BaseEntity {
     private String phonenumber;
 
     /**
+     * 支付宝账号
+     */
+    @TableField("alipay_account")
+    private String alipayAccount;
+
+    /**
+     * 支付宝实名姓名
+     */
+    @TableField("alipay_real_name")
+    private String alipayRealName;
+
+    /**
+     * 支付宝绑定状态（0-未绑定，1-已绑定）
+     */
+    @TableField("alipay_bind_status")
+    private String alipayBindStatus;
+
+    /**
      * 用户性别
      */
     private String sex;

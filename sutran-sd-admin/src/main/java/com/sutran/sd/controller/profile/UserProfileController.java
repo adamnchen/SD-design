@@ -364,4 +364,57 @@ public class UserProfileController extends BaseController {
         SysUserMember member = userService.selectUserMember(userId);
         return R.ok(member);
     }
+
+    // ==================== 支付宝账号管理 ====================
+
+    /**
+     * 绑定支付宝账号
+     */
+    @Operation(summary = "绑定支付宝账号", description = "用户绑定支付宝账号和实名姓名，用于接收资金转账")
+    @Log(title = "支付宝账号管理", businessType = BusinessType.UPDATE)
+    @PostMapping("/alipay/bind")
+    public R<Void> bindAlipayAccount(@RequestBody @Valid com.sutran.sd.common.core.domain.dto.AlipayAccountBindDTO bindDTO) {
+        Long userId = LoginHelper.getUserId();
+        if (userId == null) {
+            return R.fail("用户未登录或Token无效");
+        }
+        
+        if (userProfileService.bindAlipayAccount(userId, bindDTO)) {
+            return R.ok("支付宝账号绑定成功");
+        }
+        return R.fail("绑定失败，请联系管理员");
+    }
+
+    /**
+     * 解绑支付宝账号
+     */
+    @Operation(summary = "解绑支付宝账号", description = "用户解绑已绑定的支付宝账号")
+    @Log(title = "支付宝账号管理", businessType = BusinessType.UPDATE)
+    @DeleteMapping("/alipay/unbind")
+    public R<Void> unbindAlipayAccount() {
+        Long userId = LoginHelper.getUserId();
+        if (userId == null) {
+            return R.fail("用户未登录或Token无效");
+        }
+        
+        if (userProfileService.unbindAlipayAccount(userId)) {
+            return R.ok("支付宝账号解绑成功");
+        }
+        return R.fail("解绑失败，请联系管理员");
+    }
+
+    /**
+     * 获取支付宝账号信息
+     */
+    @Operation(summary = "获取支付宝账号信息", description = "查询当前用户已绑定的支付宝账号信息")
+    @GetMapping("/alipay/info")
+    public R<com.sutran.sd.common.core.domain.dto.AlipayAccountBindDTO> getAlipayAccount() {
+        Long userId = LoginHelper.getUserId();
+        if (userId == null) {
+            return R.fail("用户未登录或Token无效");
+        }
+        
+        com.sutran.sd.common.core.domain.dto.AlipayAccountBindDTO accountInfo = userProfileService.getAlipayAccount(userId);
+        return R.ok(accountInfo);
+    }
 }

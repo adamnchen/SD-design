@@ -452,4 +452,73 @@ public class AliPayServiceImpl implements AliPayService {
         }
     }
 
+    /**
+     * 众筹项目资金释放（转账给商家）
+     * @param businessOrderNo 业务订单号（如众筹订单号）
+     * @param payeeAccount 商家支付宝账号
+     * @param payeeName 商家姓名
+     * @param amount 转账金额
+     * @param projectTitle 项目标题（用于备注）
+     * @return 转账订单号
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public String releaseCrowdfundingFunds(String businessOrderNo, String payeeAccount, String payeeName, BigDecimal amount, String projectTitle) {
+        getConfig();
+        
+        // 生成转账订单号（格式：T + 时间戳）
+        String transferOrderNo = "TF" + DateUtil.current();
+        
+        // 构建统一转账模型
+        AlipayFundTransUniTransferModel model = new AlipayFundTransUniTransferModel();
+        // 业务订单号
+        model.setOutBizNo(transferOrderNo);
+        // 转账金额，单位为元，精确到小数点后两位
+        model.setTransAmount(amount.setScale(2, RoundingMode.HALF_UP).toString());
+        // 产品码，固定值TRANS_ACCOUNT_NO_PWD
+        model.setProductCode("TRANS_ACCOUNT_NO_PWD");
+        // 业务场景，固定值DIRECT_TRANSFER
+        model.setBizScene("DIRECT_TRANSFER");
+        // 订单标题
+        model.setOrderTitle("众筹项目资金释放-" + projectTitle);
+        // 转账备注
+        model.setRemark("众筹项目《" + projectTitle + "》资金释放，业务订单号：" + businessOrderNo);
+        
+        // 收款方信息
+        Participant payeeInfo = new Participant();
+        // 收款方账号（支付宝账号）
+        payeeInfo.setIdentity(payeeAccount);
+        // 收款方账号类型，固定值ALIPAY_LOGON_ID
+        payeeInfo.setIdentityType("ALIPAY_LOGON_ID");
+        // 收款方姓名
+        payeeInfo.setName(payeeName);
+        model.setPayeeInfo(payeeInfo);
+        
+        try {
+            log.info("[支付宝][众筹资金释放]开始转账,业务订单号:{},转账订单号:{},收款方:{},金额:{}", 
+                businessOrderNo, transferOrderNo, payeeAccount, amount);
+            
+            AlipayFundTransUniTransferResponse response = AliPayApi.uniTransferToResponse(model, null);
+            
+            if (response.isSuccess()) {
+                String alipayOrderId = response.getOrderId();
+                String status = response.getStatus();
+                
+                log.info("[支付宝][众筹资金释放]转账成功,业务订单号:{},转账订单号:{},支付宝订单号:{},状态:{}", 
+                    businessOrderNo, transferOrderNo, alipayOrderId, status);
+                
+                return transferOrderNo;
+            } else {
+                String errorMsg = response.getSubMsg();
+                log.error("[支付宝][众筹资金释放]转账失败,业务订单号:{},转账订单号:{},失败原因:{}", 
+                    businessOrderNo, transferOrderNo, errorMsg);
+                throw new ServiceException("转账失败：" + errorMsg);
+            }
+        }
+        catch (Exception e) {
+            log.error("[支付宝][众筹资金释放]转账异常,业务订单号:{},转账订单号:{},异常：", businessOrderNo, transferOrderNo, e);
+            throw new ServiceException("转账异常：" + e.getMessage());
+        }
+    }
+
 }

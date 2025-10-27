@@ -1,5 +1,6 @@
 package com.sutran.sd.user.service;
 
+import com.sutran.sd.common.core.domain.dto.AlipayAccountBindDTO;
 import com.sutran.sd.common.core.domain.dto.UserProfileUpdateDTO;
 import com.sutran.sd.common.core.domain.vo.UserProfileVO;
 import org.springframework.web.multipart.MultipartFile;
@@ -42,5 +43,27 @@ public interface IUserProfileService {
      * @return 头像URL
      */
     String uploadAvatar(Long userId, MultipartFile avatarFile);
+
+    /**
+     * 绑定支付宝账号
+     * @param userId 用户ID
+     * @param bindDTO 绑定信息
+     * @return 绑定结果
+     */
+    boolean bindAlipayAccount(Long userId, AlipayAccountBindDTO bindDTO);
+
+    /**
+     * 解绑支付宝账号
+     * @param userId 用户ID
+     * @return 解绑结果
+     */
+    boolean unbindAlipayAccount(Long userId);
+
+    /**
+     * 获取支付宝账号信息
+     * @param userId 用户ID
+     * @return 支付宝账号信息
+     */
+    AlipayAccountBindDTO getAlipayAccount(Long userId);
 
 }

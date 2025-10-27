@@ -28,7 +28,9 @@ import com.sutran.sd.common.utils.OrderNumUtils;
 import com.sutran.sd.common.exception.ServiceException;
 import com.sutran.sd.design.mapper.SdProofingInvitationMapper;
 import com.sutran.sd.pay.domain.PayOrder;
+import com.sutran.sd.pay.service.AliPayService;
 import com.sutran.sd.system.service.ISysUserService;
+import com.sutran.sd.common.core.domain.entity.SysUser;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -58,6 +60,7 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
     private final CrowdfundingConfig crowdfundingConfig;
     private final SdProofingInvitationMapper invitationMapper;
     private final ISysUserService userService;
+    private final AliPayService aliPayService;
 
     @Override
     public SdCrowdfundingProject selectSdCrowdfundingProjectById(Long id) {
@@ -702,5 +705,105 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
         vo.setNextPrice(null);
     }
 
+    /**
+     * 释放众筹资金给商家（商家上传图片后调用）
+     *
+     * @param projectId 众筹项目ID
+     * @return 转账订单号
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public String releaseCrowdfundingFunds(Long projectId) {
+        log.info("[众筹资金释放] 开始处理项目ID: {}", projectId);
+
+        try {
+            // 1. 查询众筹项目信息
+            SdCrowdfundingProject project = crowdfundingProjectMapper.selectSdCrowdfundingProjectById(projectId);
+            if (project == null) {
+                log.error("[众筹资金释放] 项目不存在: 项目ID={}", projectId);
+                throw new ServiceException("众筹项目不存在");
+            }
+
+            // 2. 验证项目状态（只允许成功或已完成的项目释放资金）
+            if (project.getStatus() == null || project.getStatus() != CrowdfundingProjectStatus.SUCCESS.getCode()) {
+                log.error("[众筹资金释放] 项目状态不允许释放资金: 项目ID={}, 状态={}", projectId, project.getStatus());
+                throw new ServiceException("只有众筹成功的项目才能释放资金");
+            }
+
+            // 3. 验证托管状态（确保资金还未释放）
+            if (project.getEscrowStatus() == null || project.getEscrowStatus() != 1) {
+                log.error("[众筹资金释放] 资金状态不允许释放: 项目ID={}, 托管状态={}", projectId, project.getEscrowStatus());
+                throw new ServiceException("资金已释放或状态异常");
+            }
+
+            // 4. 验证是否上传了实物照片
+            if (StringUtils.isBlank(project.getManufacturerPhotos())) {
+                log.error("[众筹资金释放] 商家尚未上传实物照片: 项目ID={}", projectId);
+                throw new ServiceException("商家尚未上传实物照片，无法释放资金");
+            }
+
+            // 5. 获取商家用户信息（需要支付宝账号）
+            Long manufacturerUserId = project.getManufacturerUserId();
+            
+            // 查询商家用户信息
+            SysUser manufacturer = userService.selectUserById(manufacturerUserId);
+            if (manufacturer == null) {
+                log.error("[众筹资金释放] 商家用户不存在: 商家用户ID={}", manufacturerUserId);
+                throw new ServiceException("商家用户不存在");
+            }
+
+            // 验证商家是否绑定支付宝账号
+            if (!"1".equals(manufacturer.getAlipayBindStatus())) {
+                log.error("[众筹资金释放] 商家尚未绑定支付宝账号: 商家用户ID={}", manufacturerUserId);
+                throw new ServiceException("商家尚未绑定支付宝账号，无法释放资金");
+            }
+
+            // 验证支付宝账号是否为空
+            if (StringUtils.isBlank(manufacturer.getAlipayAccount())) {
+                log.error("[众筹资金释放] 商家支付宝账号为空: 商家用户ID={}", manufacturerUserId);
+                throw new ServiceException("商家支付宝账号为空，无法释放资金");
+            }
+
+            // 6. 调用支付服务进行资金释放
+            String projectNo = project.getProjectNo();
+            String payeeName = project.getManufacturerName();
+            BigDecimal releaseAmount = project.getCurrentAmount(); // 释放已筹集的全部金额
+            
+            log.info("[众筹资金释放] 准备转账: 项目ID={}, 收款方={}, 金额={}", 
+                projectId, payeeName, releaseAmount);
+
+            // 使用商家真实的支付宝账号
+            String payeeAccount = manufacturer.getAlipayAccount();
+            String payeeRealName = manufacturer.getAlipayRealName();
+            
+            String transferOrderNo = aliPayService.releaseCrowdfundingFunds(
+                projectNo,           // 业务订单号（使用项目编号）
+                payeeAccount,        // 商家支付宝账号（真实账号）
+                payeeRealName,       // 商家实名姓名（真实姓名）
+                releaseAmount,       // 释放金额
+                project.getTitle()   // 项目标题
+            );
+
+            // 7. 更新项目托管状态为已释放
+            project.setEscrowStatus(2); // 2=已释放
+            project.setFundReleaseTime(new Date());
+            int updateResult = crowdfundingProjectMapper.updateById(project);
+
+            if (updateResult > 0) {
+                log.info("[众筹资金释放] 成功: 项目ID={}, 转账订单号={}", projectId, transferOrderNo);
+                return transferOrderNo;
+            } else {
+                log.error("[众筹资金释放] 更新项目状态失败: 项目ID={}", projectId);
+                throw new ServiceException("更新项目状态失败");
+            }
+
+        } catch (ServiceException e) {
+            log.error("[众筹资金释放] 业务异常: 项目ID={}, 错误={}", projectId, e.getMessage());
+            throw e;
+        } catch (Exception e) {
+            log.error("[众筹资金释放] 系统异常: 项目ID={}, 异常=", projectId, e);
+            throw new ServiceException("释放资金失败: " + e.getMessage());
+        }
+    }
 
 }

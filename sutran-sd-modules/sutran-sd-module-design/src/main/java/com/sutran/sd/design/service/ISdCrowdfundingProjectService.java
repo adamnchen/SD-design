@@ -152,4 +152,12 @@ public interface ISdCrowdfundingProjectService {
      * @return 厂家参与的众筹成功项目列表
      */
     List<CrowdfundingProjectListVO> getManufacturerSuccessfulProjects();
+
+    /**
+     * 释放众筹资金给商家（商家上传图片后调用）
+     *
+     * @param projectId 众筹项目ID
+     * @return 转账订单号
+     */
+    String releaseCrowdfundingFunds(Long projectId);
 }

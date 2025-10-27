@@ -377,7 +377,7 @@ public class ProofCrowdfundPayNotifyServiceImpl extends BasePayNotifyService {
             support.setRefundReason(reason);
             supportMapper.updateById(support);
 
-            // 6. 更新支付订单状态 TODO 调用支付宝退款的方法中就更新了，这里就不需要再更新了
+            // 6. 更新支付订单状态 调用支付宝退款的方法中就更新了，这里就不需要再更新了
             //payOrderService.updateRefundStatus(orderNo, support.getSupportAmount(), refundReason);
 
             // 7. 回滚项目金额和支持人数

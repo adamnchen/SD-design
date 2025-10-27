@@ -3,10 +3,7 @@ package com.sutran.sd.draw.service;
 import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.sutran.sd.common.core.domain.PageQuery;
-import com.sutran.sd.common.core.page.TableDataInfo;
-import com.sutran.sd.draw.domain.dto.model.SdTrainTaskDto;
 import com.sutran.sd.draw.domain.vo.FluxgymTaskStatusVo;
-import com.sutran.sd.draw.domain.vo.SdUserModelVo;
 import com.sutran.sd.draw.domain.vo.TrainTaskStatusVo;
 import com.sutran.sd.draw.domain.SdGpuPool;
 import com.sutran.sd.draw.domain.SdTrainTask;
@@ -247,4 +244,11 @@ public interface SdTrainTaskService {
      * @return 任务状态
      */
     FluxgymTaskStatusVo getFluxgymTaskStatus(String taskId);
+
+    /**
+     * FluxGym]SD训练-当前用户正在训练的任务ID
+     * @param userId 用户ID
+     * @return 进行中的任务ID
+     */
+    String getDoingFluxgymTask(Long userId);
 }

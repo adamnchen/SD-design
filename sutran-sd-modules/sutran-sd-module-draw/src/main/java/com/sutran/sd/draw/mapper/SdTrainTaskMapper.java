@@ -243,4 +243,12 @@ public interface SdTrainTaskMapper extends BaseMapperPlus<SdTrainTaskMapper, SdT
      */
     @Select("SELECT id AS taskId,new_status AS status FROM sd_train_task WHERE id=#{taskId}")
     FluxgymTaskStatusVo getFluxgymTaskStatus(@Param("taskId") String taskId);
+
+    /**
+     * FluxGym]SD训练-当前用户正在训练的任务ID
+     * @param userId 用户ID
+     * @return 进行中的任务ID
+     */
+    @Select("SELECT id FROM sd_train_task WHERE crt_user_id=#{userId} AND new_status IN (3,4)")
+    String getDoingFluxgymTask(Long userId);
 }

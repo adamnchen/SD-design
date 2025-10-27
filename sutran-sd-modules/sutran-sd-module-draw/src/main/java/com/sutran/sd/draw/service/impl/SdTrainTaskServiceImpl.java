@@ -6,12 +6,9 @@ import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.sutran.sd.common.core.domain.PageQuery;
-import com.sutran.sd.common.core.page.TableDataInfo;
 import com.sutran.sd.draw.domain.SdGpuPool;
 import com.sutran.sd.draw.domain.SdTrainTask;
-import com.sutran.sd.draw.domain.dto.model.SdTrainTaskDto;
 import com.sutran.sd.draw.domain.vo.FluxgymTaskStatusVo;
-import com.sutran.sd.draw.domain.vo.SdUserModelVo;
 import com.sutran.sd.draw.domain.vo.TrainTaskStatusVo;
 import com.sutran.sd.draw.mapper.SdTrainTaskMapper;
 import com.sutran.sd.draw.service.SdTrainTaskService;
@@ -273,6 +270,16 @@ public class SdTrainTaskServiceImpl implements SdTrainTaskService {
     @Override
     public FluxgymTaskStatusVo getFluxgymTaskStatus(String taskId) {
         return baseMapper.getFluxgymTaskStatus(taskId);
+    }
+
+    /**
+     * FluxGym]SD训练-当前用户正在训练的任务ID
+     * @param userId 用户ID
+     * @return 进行中的任务ID
+     */
+    @Override
+    public String getDoingFluxgymTask(Long userId) {
+        return baseMapper.getDoingFluxgymTask(userId);
     }
 
 }

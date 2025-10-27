@@ -4,7 +4,6 @@ import com.alibaba.fastjson.JSONObject;
 import com.sutran.sd.common.core.domain.PageQuery;
 import com.sutran.sd.common.core.page.TableDataInfo;
 import com.sutran.sd.draw.domain.SdGpuPool;
-import com.sutran.sd.draw.domain.SdTrainTask;
 import com.sutran.sd.draw.domain.dto.model.SdTrainTaskDto;
 import com.sutran.sd.draw.domain.dto.train.SdTrainAdditionTagDto;
 import com.sutran.sd.draw.domain.dto.train.SdTrainLoraDto;
@@ -228,4 +227,11 @@ public interface SdTrainService {
       * @param taskId 任务id
       */
     void removeUnpublishedModelOfFluxgym(String taskId);
+
+    /**
+     * FluxGym]SD训练-当前用户正在训练的任务ID
+     * @param userId 用户ID
+     * @return 进行中的任务ID
+     */
+    String getDoingFluxgymTask(Long userId);
 }

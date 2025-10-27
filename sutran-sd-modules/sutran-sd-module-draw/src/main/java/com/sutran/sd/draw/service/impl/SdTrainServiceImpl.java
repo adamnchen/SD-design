@@ -1909,6 +1909,16 @@ public class SdTrainServiceImpl implements SdTrainService {
     }
 
     /**
+     * FluxGym]SD训练-当前用户正在训练的任务ID
+     * @param userId 用户ID
+     * @return 进行中的任务ID
+     */
+    @Override
+    public String getDoingFluxgymTask(Long userId) {
+        return sdTrainTaskService.getDoingFluxgymTask(userId);
+    }
+
+    /**
      * [FluxGym]SD训练-插入训练任务数据
      *
      * @param taskInfo      训练任务实体

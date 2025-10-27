@@ -257,6 +257,15 @@ public class SdTrainController {
     }
 
     /**
+     * [FluxGym]SD训练-当前用户正在训练的任务ID
+     */
+    @ApiOperationSupport(order = 16)
+    @GetMapping("/fluxgym/doing-task")
+    public R<String> getDoingTask(){
+        return R.ok("操作成功",sdTrainService.getDoingFluxgymTask(LoginHelper.getUserId()));
+    }
+
+    /**
      * 测试消息推送
      */
     @PostMapping("/test-msg")

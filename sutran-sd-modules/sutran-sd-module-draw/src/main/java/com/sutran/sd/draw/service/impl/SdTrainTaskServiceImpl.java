@@ -10,6 +10,7 @@ import com.sutran.sd.common.core.page.TableDataInfo;
 import com.sutran.sd.draw.domain.SdGpuPool;
 import com.sutran.sd.draw.domain.SdTrainTask;
 import com.sutran.sd.draw.domain.dto.model.SdTrainTaskDto;
+import com.sutran.sd.draw.domain.vo.FluxgymTaskStatusVo;
 import com.sutran.sd.draw.domain.vo.SdUserModelVo;
 import com.sutran.sd.draw.domain.vo.TrainTaskStatusVo;
 import com.sutran.sd.draw.mapper.SdTrainTaskMapper;
@@ -262,6 +263,16 @@ public class SdTrainTaskServiceImpl implements SdTrainTaskService {
     @Override
     public String selectPreParamsById(String id) {
         return baseMapper.selectPreParamsById(id);
+    }
+
+    /**
+     * [FluxGym]SD训练-查询训练任务状态
+     * @param taskId 任务ID
+     * @return 任务状态
+     */
+    @Override
+    public FluxgymTaskStatusVo getFluxgymTaskStatus(String taskId) {
+        return baseMapper.getFluxgymTaskStatus(taskId);
     }
 
 }

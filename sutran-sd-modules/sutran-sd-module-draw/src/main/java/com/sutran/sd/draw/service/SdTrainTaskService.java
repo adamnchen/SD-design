@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.sutran.sd.common.core.domain.PageQuery;
 import com.sutran.sd.common.core.page.TableDataInfo;
 import com.sutran.sd.draw.domain.dto.model.SdTrainTaskDto;
+import com.sutran.sd.draw.domain.vo.FluxgymTaskStatusVo;
 import com.sutran.sd.draw.domain.vo.SdUserModelVo;
 import com.sutran.sd.draw.domain.vo.TrainTaskStatusVo;
 import com.sutran.sd.draw.domain.SdGpuPool;
@@ -239,4 +240,11 @@ public interface SdTrainTaskService {
      * @return 预处理参数
      */
     String selectPreParamsById(String id);
+
+    /**
+     * [FluxGym]SD训练-查询训练任务状态
+     * @param taskId 任务ID
+     * @return 任务状态
+     */
+    FluxgymTaskStatusVo getFluxgymTaskStatus(String taskId);
 }

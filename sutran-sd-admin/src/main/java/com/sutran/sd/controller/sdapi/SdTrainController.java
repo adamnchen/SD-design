@@ -238,11 +238,22 @@ public class SdTrainController {
 
     /**
      * [FluxGym]SD训练-查询训练进度
+     * @param taskId 任务ID
      */
     @ApiOperationSupport(order = 16)
     @GetMapping("/fluxgym/progress")
     public R<FluxgymTrainProgressVo> getFluxgymProgress(@RequestParam String taskId){
         return R.ok("操作成功",sdTrainService.getFluxgymProgress(taskId, null, false));
+    }
+
+    /**
+     * [FluxGym]SD训练-查询训练任务状态
+     * @param taskId 任务ID
+     */
+    @ApiOperationSupport(order = 16)
+    @GetMapping("/fluxgym/task-status")
+    public R<FluxgymTaskStatusVo> getTaskInfo(@RequestParam String taskId){
+        return R.ok("操作成功",sdTrainService.getFluxgymTaskStatus(taskId));
     }
 
     /**

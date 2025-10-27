@@ -1696,6 +1696,16 @@ public class SdTrainServiceImpl implements SdTrainService {
     }
 
     /**
+     * [FluxGym]SD训练-查询训练任务状态
+     * @param taskId 任务ID
+     * @return 任务状态
+     */
+    @Override
+    public FluxgymTaskStatusVo getFluxgymTaskStatus(String taskId) {
+        return sdTrainTaskService.getFluxgymTaskStatus(taskId);
+    }
+
+    /**
      * [FluxGym]SD训练-处理训练完成后的模型文件
      * @param taskId     任务id
      */

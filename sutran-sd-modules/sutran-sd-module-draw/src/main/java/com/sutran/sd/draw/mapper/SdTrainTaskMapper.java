@@ -3,6 +3,7 @@ package com.sutran.sd.draw.mapper;
 import com.alibaba.fastjson.JSONObject;
 import com.sutran.sd.common.core.mapper.BaseMapperPlus;
 import com.sutran.sd.draw.domain.SdTrainTask;
+import com.sutran.sd.draw.domain.vo.FluxgymTaskStatusVo;
 import com.sutran.sd.draw.domain.vo.TrainTaskStatusVo;
 import org.apache.ibatis.annotations.*;
 import org.apache.ibatis.annotations.Param;
@@ -234,4 +235,12 @@ public interface SdTrainTaskMapper extends BaseMapperPlus<SdTrainTaskMapper, SdT
      */
     @Select("SELECT pre_params FROM sd_train_task WHERE id=#{id}")
     String selectPreParamsById(@Param("id") String id);
+
+    /**
+     * [FluxGym]SD训练-查询训练任务状态
+     * @param taskId 任务ID
+     * @return 任务状态
+     */
+    @Select("SELECT id AS taskId,new_status AS status FROM sd_train_task WHERE id=#{taskId}")
+    FluxgymTaskStatusVo getFluxgymTaskStatus(@Param("taskId") String taskId);
 }

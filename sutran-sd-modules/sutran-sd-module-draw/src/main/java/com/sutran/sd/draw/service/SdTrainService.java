@@ -181,6 +181,13 @@ public interface SdTrainService {
       */
      FluxgymTrainProgressVo getFluxgymProgress(String taskId, String nodeId,boolean isSchedule);
 
+    /**
+     * [FluxGym]SD训练-查询训练任务状态
+     * @param taskId 任务ID
+     * @return 任务状态
+     */
+     FluxgymTaskStatusVo getFluxgymTaskStatus(String taskId);
+
      /**
       * [FluxGym]SD训练-处理训练完成后的模型文件
       *

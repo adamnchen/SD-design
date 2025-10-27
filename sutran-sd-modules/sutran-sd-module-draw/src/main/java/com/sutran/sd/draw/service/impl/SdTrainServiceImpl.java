@@ -1202,7 +1202,7 @@ public class SdTrainServiceImpl implements SdTrainService {
         // 兼容容器路径
         String path = dealTrainDataSetPath(params.getString("path"));
         // 如果预处理参数中有模型名称，则表示当前训练是fluxgym训练的模型
-        String loraName = dealTrainDataSetPath(params.getString("loraName"));
+        String loraName = params.getString("loraName");
 
         File trainDataImgDir = new File(path + CommonUtil.suggestNumRepeat());
         if (!trainDataImgDir.exists()) {

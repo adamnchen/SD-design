@@ -424,7 +424,7 @@ public class SdUserModelServiceImpl implements SdUserModelService {
             params = params.stream().filter(CollectionUtil::isNotEmpty).collect(Collectors.toList());
         }
         // 构建任务ID到预参数的映射
-        Map<String, String> paramMap = CollectionUtil.isEmpty(params)?Collections.emptyMap():params.stream().collect(Collectors.toMap(e->e.getString("taskId"), e -> e.getString("preParam")));
+        Map<String, String> paramMap = CollectionUtil.isEmpty(params)?Collections.emptyMap():params.stream().collect(Collectors.toMap(e->e.getString("taskId"), e -> e.getString("preParams")));
         // 获取每个模型对应的训练数据中的提示词文件
         for (ComfyUserModelVo vo : list) {
             // 处理ComfyUI数据中的提示词

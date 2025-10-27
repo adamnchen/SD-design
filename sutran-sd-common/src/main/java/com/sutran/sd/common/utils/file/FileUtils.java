@@ -323,7 +323,7 @@ public class FileUtils extends FileUtil {
      * @param directoryPath 目录路径
      * @return 删除成功返回true，否则返回false
      */
-    public static boolean deleteDirectory(String directoryPath) {
+    public static boolean deleteDirectory1(String directoryPath) {
         Path directory = Paths.get(directoryPath);
         if (!Files.exists(directory) || !Files.isDirectory(directory)) {
             log.error("目录不存在或不是目录: {}", directoryPath);
@@ -343,6 +343,40 @@ public class FileUtils extends FileUtil {
 
             return true;
 
+        }
+        catch (IOException e) {
+            log.error("删除目录时发生错误: {} - {}", directoryPath, e.getMessage(), e);
+            return false;
+        }
+    }
+
+    /**
+     * 使用NIO递归删除目录
+     */
+    public static boolean deleteDirectory(String directoryPath) {
+        Path path = Paths.get(directoryPath);
+        if (!Files.exists(path)) {
+            log.error("目录不存在或不是目录: {}", directoryPath);
+            return false;
+        }
+        try {
+            // 递归删除目录和文件
+            Files.walkFileTree(path, new SimpleFileVisitor<Path>() {
+                @NotNull
+                @Override
+                public FileVisitResult visitFile(@NotNull Path file, @NotNull BasicFileAttributes attrs) throws IOException {
+                    Files.delete(file);
+                    return FileVisitResult.CONTINUE;
+                }
+
+                @NotNull
+                @Override
+                public FileVisitResult postVisitDirectory(@NotNull Path dir, IOException exc) throws IOException {
+                    Files.delete(dir);
+                    return FileVisitResult.CONTINUE;
+                }
+            });
+            return true;
         }
         catch (IOException e) {
             log.error("删除目录时发生错误: {} - {}", directoryPath, e.getMessage(), e);

@@ -33,13 +33,11 @@ public class TableDataInfo<T> implements Serializable {
     /**
      * 消息状态码
      */
-    @JsonInclude(JsonInclude.Include.NON_DEFAULT)
     private int code;
 
     /**
      * 消息内容
      */
-    @JsonInclude(JsonInclude.Include.NON_NULL)
     private String msg;
 
     /**

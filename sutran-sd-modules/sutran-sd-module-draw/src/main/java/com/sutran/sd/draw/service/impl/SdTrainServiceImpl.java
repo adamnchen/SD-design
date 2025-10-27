@@ -1786,11 +1786,13 @@ public class SdTrainServiceImpl implements SdTrainService {
             String captions = preParam.getString("captions");
             if (StringUtils.isNotBlank(captions)) {
                 vo.setPrompt(JSONArray.parseArray(captions, String.class).get(0));
+                String promptZh = RedisUtils.getCacheMapValue(TRANSLATE_EN_TO_ZH_MAP, vo.getPrompt());
+                vo.setPromptZh(promptZh);
             }
             String path = preParam.getString("path");
             if (StringUtils.isNotBlank(path)) {
-                // 获取 path+/20_zkz目录下的第一张图片
-                String imageName = FileUtils.getFirstImageByCreationTime(path + CommonUtil.suggestNumRepeat());
+                // 获取 path+/20_zkz目录下匹配提示词的图片文件名称（不包含后缀）
+                String imageName = FileUtils.getImageNameByPrompt(path + CommonUtil.suggestNumRepeat(), vo.getPrompt());
                 if (StringUtils.isNotBlank(imageName)) {
                     String originalPath = path.replace("/home/lora-scripts","").replace("/lora-scripts/","");
                     vo.setOriginalImgUrl(originalPath + CommonUtil.suggestNumRepeat() + "/" + imageName);
@@ -1891,7 +1893,7 @@ public class SdTrainServiceImpl implements SdTrainService {
                 // 获取模型存储父目录
                 String dir = userModel.getFileName().substring(0, userModel.getFileName().lastIndexOf("/"));
                 String modelName = userModel.getModelName();
-                FileUtils.deleteFilesWithSameName(dir,modelName.endsWith(".safetensors")?modelName.split(".")[0]:modelName);
+                FileUtils.deleteFilesWithSameName(dir,modelName.replace(".safetensors",""));
             }
         }
     }

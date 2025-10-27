@@ -420,6 +420,9 @@ public class SdUserModelServiceImpl implements SdUserModelService {
         }
         // 获取每个训练任务的预参数
         List<JSONObject> params = baseMapper.selectPreParamByTaskIds(taskIds);
+        if (CollectionUtil.isNotEmpty(params)) {
+            params = params.stream().filter(CollectionUtil::isNotEmpty).collect(Collectors.toList());
+        }
         // 构建任务ID到预参数的映射
         Map<String, String> paramMap = CollectionUtil.isEmpty(params)?Collections.emptyMap():params.stream().collect(Collectors.toMap(e->e.getString("taskId"), e -> e.getString("preParam")));
         // 获取每个模型对应的训练数据中的提示词文件
@@ -456,6 +459,9 @@ public class SdUserModelServiceImpl implements SdUserModelService {
         }
         // 获取每个训练任务的预参数
         List<JSONObject> params = baseMapper.selectPreParamByTaskIds(taskIds);
+        if (CollectionUtil.isNotEmpty(params)) {
+            params = params.stream().filter(CollectionUtil::isNotEmpty).collect(Collectors.toList());
+        }
         // 构建任务ID到预参数的映射
         Map<String, String> paramMap = CollectionUtil.isEmpty(params)?Collections.emptyMap():params.stream().collect(Collectors.toMap(e->e.getString("taskId"), e -> e.getString("preParams")));
         for (ComfyUserModelVo e : page.getRecords()) {
@@ -501,6 +507,9 @@ public class SdUserModelServiceImpl implements SdUserModelService {
         }
         // 获取每个训练任务的预参数
         List<JSONObject> params = baseMapper.selectPreParamByTaskIds(taskIds);
+        if (CollectionUtil.isNotEmpty(params)) {
+            params = params.stream().filter(CollectionUtil::isNotEmpty).collect(Collectors.toList());
+        }
         // 构建任务ID到预参数的映射
         Map<String, String> paramMap = CollectionUtil.isEmpty(params)?Collections.emptyMap():params.stream().collect(Collectors.toMap(e->e.getString("taskId"), e -> e.getString("preParams")));
         for (ComfyUserModelVo e : page.getRecords()) {
@@ -534,6 +543,9 @@ public class SdUserModelServiceImpl implements SdUserModelService {
         }
         // 获取每个训练任务的预参数
         List<JSONObject> params = baseMapper.selectPreParamByTaskIds(Collections.singletonList(vo.getTaskId()));
+        if (CollectionUtil.isNotEmpty(params)) {
+            params = params.stream().filter(CollectionUtil::isNotEmpty).collect(Collectors.toList());
+        }
         // 构建任务ID到预参数的映射
         Map<String, String> paramMap = CollectionUtil.isEmpty(params)?Collections.emptyMap():params.stream().collect(Collectors.toMap(e->e.getString("taskId"), e -> e.getString("preParam")));
         vo.setClassifyName("1".equals(vo.getClassifyId())?"全部模型":vo.getClassifyName());

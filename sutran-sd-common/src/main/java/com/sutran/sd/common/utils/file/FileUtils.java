@@ -1,7 +1,9 @@
 package com.sutran.sd.common.utils.file;
 
 import cn.hutool.core.io.FileUtil;
+import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.sutran.sd.common.exception.ServiceException;
+import com.sutran.sd.common.utils.StringUtils;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,6 +23,7 @@ import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileTime;
 import java.util.*;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -473,22 +476,59 @@ public class FileUtils extends FileUtil {
         });
     }
 
-    public static String getFirstImageByCreationTime(String directoryPath){
+    /**
+     * 获取目录下第一个创建时间最早的图片文件名称（不包含后缀）
+     * @param directoryPath 目录路径
+     * @param prompt        提示词
+     * @return 图片文件名称（不包含后缀）
+     */
+    public static String getImageNameByPrompt(String directoryPath, String prompt){
         try{
             Path dir = Paths.get(directoryPath);
-
             if (!Files.exists(dir) || !Files.isDirectory(dir)) {
                 return null;
             }
-            List<Path> imageFiles = new ArrayList<>();
-            // 使用 Files.walk 遍历目录， 1 表示只遍历当前目录，不包含子目录
+            List<Path> txtAndImageFiles = new ArrayList<>();
+            // 使用 Files.walk 遍历目录， 1 表示只遍历当前目录，不包含子目录，过滤出txt文件
             Files.walk(dir, 1)
                 .filter(Files::isRegularFile)
+                .filter(e->FileUtils.isTxtFile(e) || FileUtils.isImageFile(e))
+                .forEach(txtAndImageFiles::add);
+            if (CollectionUtils.isEmpty(txtAndImageFiles)) {
+                return null;
+            }
+            // 过滤出所有的txt文件
+            List<Path> txtFiles = txtAndImageFiles.stream()
+                .filter(FileUtils::isTxtFile)
+                .collect(Collectors.toList());
+            // 过滤出所有的图片文件
+            List<Path> imageFiles = txtAndImageFiles.stream()
                 .filter(FileUtils::isImageFile)
-                .forEach(imageFiles::add);
-            // 按创建时间排序（最早的在前）
-            imageFiles.sort(Comparator.comparing(FileUtils::getCreationTime));
-            return imageFiles.isEmpty() ? null : imageFiles.get(0).getFileName().toString();
+                .collect(Collectors.toList());
+
+            // 获取txtFiles中每个txt文件中的内容，如果txt文件内容=prompt，则直接返回文件名称
+            Optional<Path> firstMatch = txtFiles.stream()
+                .filter(file -> {
+                    try {
+                        return Files.readAllLines(file, StandardCharsets.UTF_8).stream().map(String::trim).collect(Collectors.joining()).equals(prompt);
+                    }
+                    catch (IOException e) {
+                        log.error("读取文件内容时发生错误: {}", file, e);
+                        return false;
+                    }
+                })
+                .findFirst();
+            // xxx.txt
+            final String fileName = firstMatch.map(Path::getFileName).map(Path::toString).orElse(null);
+            if (StringUtils.isBlank(fileName)) {
+                return  null;
+            }
+            // 先根据文件名过滤出所有匹配的图片文件
+            Optional<Path> matchingImage = imageFiles.stream()
+                .filter(img -> img.getFileName().toString().equals(fileName.replace(".txt","")))
+                .findFirst();
+            // 返回图片文件名称携带后缀
+            return matchingImage.map(Path::getFileName).map(Path::toString).orElse(null);
         }
         catch (Exception e){
             log.error("获取第一张图片异常：",e);
@@ -509,6 +549,11 @@ public class FileUtils extends FileUtil {
             // 如果无法获取创建时间，返回默认值
             return FileTime.fromMillis(0);
         }
+    }
+
+    /** 检查文件是否为图片文件 **/
+    private static boolean isTxtFile(Path file) {
+        return  file.getFileName().toString().toLowerCase().endsWith(".txt");
     }
 
     /** 检查文件是否为图片文件 **/

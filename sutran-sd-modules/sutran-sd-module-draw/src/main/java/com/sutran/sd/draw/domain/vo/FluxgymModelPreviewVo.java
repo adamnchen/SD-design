@@ -21,6 +21,7 @@ public class FluxgymModelPreviewVo {
      * 提示词
      */
     private String prompt;
+    private String promptZh;
     /**
      * 预览图地址列表
      */

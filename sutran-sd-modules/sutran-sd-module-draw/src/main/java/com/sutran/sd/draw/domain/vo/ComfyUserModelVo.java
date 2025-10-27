@@ -57,6 +57,11 @@ public class ComfyUserModelVo implements Serializable {
     @Schema(name = "modelStrength", description = "模型强度")
     private String modelStrength;
     /**
+     * 模型标签
+     */
+    @Schema(name = "modelTag", description = "模型标签")
+    private String modelTag;
+    /**
      * 模型存储位置
      */
     @Schema(name = "fileName", description = "模型存储位置")

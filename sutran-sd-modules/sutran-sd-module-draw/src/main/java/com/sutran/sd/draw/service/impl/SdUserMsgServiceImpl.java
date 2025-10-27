@@ -14,6 +14,7 @@ import com.sutran.sd.common.core.domain.PageQuery;
 import com.sutran.sd.common.core.domain.entity.SysUser;
 import com.sutran.sd.common.core.page.TableDataInfo;
 import com.sutran.sd.common.exception.ServiceException;
+import com.sutran.sd.common.utils.StringUtils;
 import com.sutran.sd.draw.domain.SdUserModel;
 import com.sutran.sd.draw.domain.SdUserMsg;
 import com.sutran.sd.draw.domain.vo.MsgVo;
@@ -266,7 +267,7 @@ public class SdUserMsgServiceImpl implements SdUserMsgService {
             wxMsg1.addData(new WxMpTemplateData("thing22", modelName2));
             wxMsg1.addData(new WxMpTemplateData("thing16", "有新的模型需要您审核!"));
             wxMsg1.addData(new WxMpTemplateData("thing19", StrUtil.isEmptyIfStr(belongUserName)? belongUserId :belongUserName));
-            wxMsg1.addData(new WxMpTemplateData("time4", endTime));
+            wxMsg1.addData(new WxMpTemplateData("time4", StringUtils.isNotBlank(endTime)?endTime:DateUtil.now()));
 
             for (Map<String,String> e : openIds) {
                 wxMsg1.setToUser(e.get("wxOpenId"));

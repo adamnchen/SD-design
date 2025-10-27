@@ -521,11 +521,11 @@ public class FileUtils extends FileUtil {
             // xxx.txt
             final String fileName = firstMatch.map(Path::getFileName).map(Path::toString).orElse(null);
             if (StringUtils.isBlank(fileName)) {
-                return  null;
+                return null;
             }
             // 先根据文件名过滤出所有匹配的图片文件
             Optional<Path> matchingImage = imageFiles.stream()
-                .filter(img -> img.getFileName().toString().equals(fileName.replace(".txt","")))
+                .filter(img -> img.getFileName().toString().startsWith(fileName.replace(".txt","")))
                 .findFirst();
             // 返回图片文件名称携带后缀
             return matchingImage.map(Path::getFileName).map(Path::toString).orElse(null);

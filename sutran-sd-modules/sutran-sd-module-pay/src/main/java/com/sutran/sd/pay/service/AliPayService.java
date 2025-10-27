@@ -127,4 +127,15 @@ public interface AliPayService {
      * @return 支付二维码
      */
     String tradePrecreatePay(String outTradeNo, String subject, String body, BigDecimal totalAmount, String notifyUrl);
+
+    /**
+     * 众筹项目资金释放（转账给商家）
+     * @param businessOrderNo 业务订单号（如众筹订单号）
+     * @param payeeAccount 商家支付宝账号
+     * @param payeeName 商家姓名
+     * @param amount 转账金额
+     * @param projectTitle 项目标题（用于备注）
+     * @return 转账订单号
+     */
+    String releaseCrowdfundingFunds(String businessOrderNo, String payeeAccount, String payeeName, BigDecimal amount, String projectTitle);
 }

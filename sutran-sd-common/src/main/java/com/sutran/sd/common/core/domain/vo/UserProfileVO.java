@@ -80,4 +80,19 @@ public class UserProfileVO implements Serializable {
      * 是否关闭引导[0-否,1-是]
      */
     private Integer isCloseGuide;
+
+    /**
+     * 支付宝账号（脱敏）
+     */
+    private String alipayAccount;
+
+    /**
+     * 支付宝实名姓名
+     */
+    private String alipayRealName;
+
+    /**
+     * 支付宝绑定状态（0-未绑定，1-已绑定）
+     */
+    private String alipayBindStatus;
 }

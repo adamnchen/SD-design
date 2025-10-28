@@ -31,6 +31,7 @@ import java.util.List;
  * @author zj
  * @date 2024-02-27
  */
+@SuppressWarnings("AlibabaUndefineMagicConstant")
 @RestController
 @RequestMapping("/sd/api")
 @RequiredArgsConstructor
@@ -164,6 +165,12 @@ public class SdDrawController {
         SdUserModel model = sdUserModelService.selectById(bo.getModelId());
         if (model == null) {
             throw new TaskErrorException("模型不存在或已被删除!");
+        }
+        if (StringUtils.isBlank(model.getModelName())) {
+            throw new TaskErrorException("模型名称不能为空!");
+        }
+        if (!model.getModelName().endsWith(".safetensors")) {
+            model.setModelName(model.getModelName()+".safetensors");
         }
         ComfyModelTaskSubmitBo modelTaskBo = new ComfyModelTaskSubmitBo()
             .setModelId(bo.getModelId()).setPrompt(bo.getPrompt())

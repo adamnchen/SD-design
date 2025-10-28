@@ -1828,6 +1828,10 @@ public class SdTrainServiceImpl implements SdTrainService {
         if (publishStatus==1) {
             String fileName = info.getString("fileName");
             if (StringUtils.isNotBlank(fileName)) {
+                if (fileName.contains("/stable-diffusion-webui/models/Lora") && !fileName.startsWith("/home")) {
+                    // 补齐路径
+                    fileName = "/home"+fileName;
+                }
                 // 将发布的模型放入到云存储目录下/root/cloud/comfyui-lora/
                 Path source = Paths.get(fileName);
                 String originalFileName = source.getFileName().toString();
@@ -1869,7 +1873,8 @@ public class SdTrainServiceImpl implements SdTrainService {
         }
         // isUserDel目前其实并没有使用到
         sdUserModelService.publishModel(id,publishStatus,Objects.equals(LoginHelper.getUserId(), info.getLong("userId"))?1:0,null);
-        if (publishStatus==1) {
+        // 如果之前已经发布过的就不在消息通知
+        if (publishStatus==1 && info.getInteger("publishStatus")!=null && info.getInteger("publishStatus")==1) {
             // 发送完成消息
             JSONObject wxMsg = new JSONObject();
             wxMsg.put("modelId",id);

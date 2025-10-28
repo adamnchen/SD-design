@@ -50,7 +50,7 @@ public interface SdUserModelMapper extends BaseMapperPlus<SdUserModelMapper, SdU
      * @param id    任务ID
      * @return 数据
      */
-    @Select("SELECT DISTINCT B.wx_open_id AS wxOpenId,B.phonenumber,B.user_id AS userId,A.file_name AS fileName FROM sd_user_model AS A,sys_user AS B WHERE A.belong_user_id=B.user_id AND A.id=#{id}")
+    @Select("SELECT DISTINCT B.wx_open_id AS wxOpenId,B.phonenumber,B.user_id AS userId,A.file_name AS fileName,A.publish_status AS publishStatus FROM sd_user_model AS A,sys_user AS B WHERE A.belong_user_id=B.user_id AND A.id=#{id}")
     JSONObject selectUserOpenIdAndPhoneById(@Param("id") String id);
 
     @Select("SELECT DISTINCT B.model_name_zh AS modelNameZh,DATE_FORMAT(C.crt_time,'%Y-%m-%d %H:%i:%s') AS startTime,DATE_FORMAT(C.upd_time,'%Y-%m-%d %H:%i:%s') AS endTime FROM sd_user_model_file AS A LEFT JOIN sd_user_model AS B ON A.lora_model_id=B.id LEFT JOIN sd_user_task AS C ON A.task_id=C.task_id WHERE A.task_id=#{taskId}")

@@ -1,14 +1,14 @@
 package com.sutran.sd.system.service;
 
-import com.baomidou.mybatisplus.extension.service.IService; // 1. 导入 IService
+import com.baomidou.mybatisplus.extension.service.IService;
 import com.sutran.sd.common.core.domain.entity.SysAddressArea;
-import org.springframework.cache.annotation.Cacheable;
+
 import java.util.List;
 
 /**
  * 行政区划 服务层接口
+ * @author Administrator
  */
-// 2. 继承 IService<SysAddressArea>
 public interface ISysUserAddressAreaService extends IService<SysAddressArea> {
 
     /**
@@ -16,7 +16,6 @@ public interface ISysUserAddressAreaService extends IService<SysAddressArea> {
      * @param parentCode 父级编码
      * @return 子级列表
      */
-    @Cacheable(value = "sys:address:area", key = "#parentCode", unless = "#result == null or #result.isEmpty()")
     List<SysAddressArea> selectAreasByParentCode(String parentCode);
 
     /**

@@ -130,7 +130,7 @@ public class UserProfileController extends BaseController {
         if (currentUserId == null) {
             return R.fail("用户未登录或Token无效");
         }
-        
+
         // 验证必填字段
         if (address.getName() == null || address.getName().trim().isEmpty()) {
             return R.fail("收件人姓名不能为空");
@@ -153,7 +153,7 @@ public class UserProfileController extends BaseController {
         if (address.getPhonenumber() == null || address.getPhonenumber().trim().isEmpty()) {
             return R.fail("手机号不能为空");
         }
-        
+
         addressService.addAddress(address);
         return R.ok("地址添加成功");
     }
@@ -169,11 +169,11 @@ public class UserProfileController extends BaseController {
         if (currentUserId == null) {
             return R.fail("用户未登录或Token无效");
         }
-        
+
         if (address.getId() == null) {
             return R.fail("地址ID不能为空");
         }
-        
+
         // 验证必填字段
         if (address.getName() == null || address.getName().trim().isEmpty()) {
             return R.fail("收件人姓名不能为空");
@@ -196,7 +196,7 @@ public class UserProfileController extends BaseController {
         if (address.getPhonenumber() == null || address.getPhonenumber().trim().isEmpty()) {
             return R.fail("手机号不能为空");
         }
-        
+
         addressService.updateAddress(address);
         return R.ok("地址修改成功");
     }
@@ -242,14 +242,13 @@ public class UserProfileController extends BaseController {
 
     /**
      * 省市区街道四级地址接口
+     * @param parentCode 父级区域代码，默认值为"0"，表示查询所有省份
+     * @return 区域列表
      */
     @Log(title = "用户地址管理", businessType = BusinessType.OTHER)
     @GetMapping("/address/area")
-    public R<List<SysAddressArea>> getAreaList(
-        @RequestParam(value = "parentCode", defaultValue = "0", required = false) String parentCode) {
-
+    public R<List<SysAddressArea>> getAreaList(@RequestParam(value = "parentCode", defaultValue = "0", required = false) String parentCode) {
         List<SysAddressArea> areaList = addressService.getAreaList(parentCode);
-
         if (areaList == null || areaList.isEmpty()) {
             return R.fail("未查询到区域信息，请检查父级代码是否正确。");
         }
@@ -378,7 +377,7 @@ public class UserProfileController extends BaseController {
         if (userId == null) {
             return R.fail("用户未登录或Token无效");
         }
-        
+
         if (userProfileService.bindAlipayAccount(userId, bindDTO)) {
             return R.ok("支付宝账号绑定成功");
         }
@@ -396,7 +395,7 @@ public class UserProfileController extends BaseController {
         if (userId == null) {
             return R.fail("用户未登录或Token无效");
         }
-        
+
         if (userProfileService.unbindAlipayAccount(userId)) {
             return R.ok("支付宝账号解绑成功");
         }
@@ -413,7 +412,7 @@ public class UserProfileController extends BaseController {
         if (userId == null) {
             return R.fail("用户未登录或Token无效");
         }
-        
+
         com.sutran.sd.common.core.domain.dto.AlipayAccountBindDTO accountInfo = userProfileService.getAlipayAccount(userId);
         return R.ok(accountInfo);
     }

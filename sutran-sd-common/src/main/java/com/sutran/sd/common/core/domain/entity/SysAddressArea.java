@@ -10,9 +10,10 @@ import lombok.Data;
  * 【SysAddressArea】
  * 系统用户地址行政区划实体类
  * 对应数据库表：sys_user_address_area
+ * @author Administrator
  */
 @Data
-@TableName("sys_user_address_area")
+@TableName("sys_address")
 public class SysAddressArea implements Serializable {
 
     private static final long serialVersionUID = 1L;
@@ -55,6 +56,5 @@ public class SysAddressArea implements Serializable {
      */
     @TableField(exist = false)
     private java.util.List<SysAddressArea> children;
-
 
 }

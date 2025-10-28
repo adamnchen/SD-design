@@ -1489,7 +1489,7 @@ public class SdTrainServiceImpl implements SdTrainService {
             HttpRequest request = HttpRequest.post(node.getBaseUrl() + "/api/caption-service").contentType("multipart/form-data")
                 .form("concept_sentence", "")
                 .form("taskId",taskId)
-                .timeout(60000);
+                .timeout(90000);
             // 存储图片字节流
             Map<String,byte[]> imageMap = new HashMap<>(images.length);
             for (MultipartFile image : images) {

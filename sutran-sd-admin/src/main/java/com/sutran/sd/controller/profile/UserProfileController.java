@@ -96,7 +96,7 @@ public class UserProfileController extends BaseController {
         if (!avatarfile.isEmpty()) {
             String avatar = userProfileService.uploadAvatar(getUserId(), avatarfile);
             if (avatar != null) {
-                Map<String, Object> data = new HashMap<>();
+                Map<String, Object> data = new HashMap<>(2);
                 data.put("imgUrl", avatar);
                 return R.ok(data);
             }

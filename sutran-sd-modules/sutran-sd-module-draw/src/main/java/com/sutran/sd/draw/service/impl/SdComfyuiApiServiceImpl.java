@@ -444,7 +444,32 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
             log.warn("[提交任务]>>>>>>>>>提交[{}]任务返回结果: {}", taskId, resp);
             JsonNode jsonNode = JsonUtils.toJsonNode(resp);
             JsonNode taskIdNode = jsonNode.get("prompt_id");
-            if (taskIdNode == null) {
+            JsonNode error = jsonNode.get("error");
+            JsonNode nodeErrors = jsonNode.get("node_errors");
+            if (taskIdNode == null || error!=null || nodeErrors!=null) {
+                if (nodeErrors!=null) {
+                    // 遍历nodeErrors 拼接错误信息，nodeErrors的数据如:{"3":{"errors":[{"type":"value_not_in_list","message":"Value not in list","details":"ckpt_name: 'sd_xl_base_1.0_0.9vae.safetensors' not in (list of length 45)","extra_info":{"input_name":"ckpt_name","input_config":null,"received_value":"sd_xl_base_1.0_0.9vae.safetensors"}}],"dependent_outputs":["8","9"],"class_type":"CheckpointLoaderSimple"},"12":{"errors":[{"type":"value_not_in_list","message":"Value not in list","details":"lora_name: 'user_1969640892151017472-000012' not in (list of length 91)","extra_info":{"input_name":"lora_name","input_config":null,"received_value":"user_1969640892151017472-000012"}}],"dependent_outputs":["8","9"],"class_type":"LoraLoader"}
+                    StringBuilder errorMsg = new StringBuilder();
+                    nodeErrors.fields().forEachRemaining(entry -> {
+                        errorMsg.append("节点").append(entry.getKey()).append(":");
+                        int index = 0;
+                        for (JsonNode errors : entry.getValue().get("errors")) {
+                            // 最后一个错误信息不添加逗号
+                            if (index == entry.getValue().get("errors").size() - 1) {
+                                errorMsg.append(errors.get("details").asText());
+                            }
+                            else {
+                                errorMsg.append(errors.get("details").asText()).append("、");
+                            }
+                            index++;
+                        }
+                        errorMsg.append("\n");
+                    });
+                    throw new WorkFlowErrorException(errorMsg.toString());
+                }
+                if (error!=null) {
+                    throw new WorkFlowErrorException(error.get("message").asText());
+                }
                 //任务提交错误 工作流节点出现错误
                 throw new WorkFlowErrorException("工作流执行异常");
             }

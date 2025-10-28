@@ -49,16 +49,17 @@ public class SdUserTaskServiceImpl implements SdUserTaskService {
      * @param prompt    英文提示词
      * @param promptZh  中文提示词
      * @param imageUrls 参考图地址集合
+     * @param category  任务类型[0-SD文生图,1-SD图生图,2-测试,3-Comfy生图,4-工具修复]
      */
     @Override
-    public void addComfyTask(String taskId, Long userId, String userName, String flow, String prompt, String promptZh, List<String> imageUrls) {
+    public void addComfyTask(String taskId, Long userId, String userName, String flow, String prompt, String promptZh, List<String> imageUrls, int category) {
         Date now = new Date();
         SdUserTask task = new SdUserTask()
             .setTaskId(Long.parseLong(taskId))
             .setTaskType(TaskType.COMFYUI.name())
             .setIsRedraw(0)
             .setStatus(0)
-            .setCategory(3)
+            .setCategory(category)
             .setBelongUserId(userId)
             .setBelongUserName(userName)
             .setPrompt(prompt)
@@ -219,6 +220,16 @@ public class SdUserTaskServiceImpl implements SdUserTaskService {
                 loraInfo.put("loraModelUrl",firstVo.getLoraModelUrl());
                 loraInfo.put("modelStrength",firstVo.getLoraTitleZh());
                 e.setLoraInfo(Collections.singletonList(loraInfo));
+            }
+            // 兼容webui的图生图：初始化图片为空时，设置为第一个模型的初始化图片
+            if (StringUtils.isBlank(e.getInitImgList()) && StringUtils.isNotBlank(firstVo.getInitImg())) {
+                e.setInitImgList(JSONArray.toJSONString(Collections.singletonList(firstVo.getInitImg())));
+            }
+            if (StringUtils.isBlank(e.getPrompt())) {
+                e.setPrompt(firstVo.getPrompt());
+            }
+            if (StringUtils.isBlank(e.getPromptZh())) {
+                e.setPromptZh(firstVo.getPromptZh());
             }
         }
         return TableDataInfo.build(page);

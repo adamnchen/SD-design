@@ -40,8 +40,8 @@ public class AddressUtils {
             return RegionUtils.getCityInfo(ip);
         }
         catch (Exception e){
-            log.error("获取IP地址失败:", e);
-            return UNKNOWN;
+            log.error("获取IP地址失败:{}", e.getMessage());
+            return "127.0.0.1";
         }
     }
 }

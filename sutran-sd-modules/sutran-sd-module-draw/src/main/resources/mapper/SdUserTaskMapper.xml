@@ -23,14 +23,14 @@
         <result property="updTime" column="upd_time" jdbcType="TIMESTAMP"/>
     </resultMap>
 
+    <!-- 查询用户任务列表(包含0,1,3,4类别) -->
     <select id="selectAllList" resultMap="SdUserTaskVoMap">
         SELECT A.*
         FROM sd_user_task AS A
-        <where>
+        WHERE A.category IN (0,1,3,4)
             <if test="userId!=null">AND A.belong_user_id=#{userId}</if>
             <if test="category!=null">AND A.category=#{category}</if>
             <if test="status!=null">AND A.status=#{status}</if>
-        </where>
         ORDER BY A.task_id DESC
     </select>
 

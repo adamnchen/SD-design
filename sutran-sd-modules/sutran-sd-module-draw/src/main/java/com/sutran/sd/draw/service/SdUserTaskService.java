@@ -23,8 +23,9 @@ public interface SdUserTaskService {
      * @param prompt    英文提示词
      * @param promptZh  中文提示词
      * @param imageUrls 参考图地址集合
+     * @param category  任务类型[0-SD文生图,1-SD图生图,2-测试,3-Comfy生图,4-工具修复]
      */
-    void addComfyTask(String taskId, Long userId, String userName, String flow, String prompt, String promptZh, List<String> imageUrls);
+    void addComfyTask(String taskId, Long userId, String userName, String flow, String prompt, String promptZh, List<String> imageUrls, int category);
     /**
      * 新增用户任务
      * @param taskId    任务ID

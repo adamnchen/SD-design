@@ -446,8 +446,8 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
             JsonNode taskIdNode = jsonNode.get("prompt_id");
             JsonNode error = jsonNode.get("error");
             JsonNode nodeErrors = jsonNode.get("node_errors");
-            if (taskIdNode == null || error!=null || nodeErrors!=null) {
-                if (nodeErrors!=null) {
+            if (taskIdNode == null || CollectionUtil.isNotEmpty(error) || CollectionUtil.isNotEmpty(nodeErrors)) {
+                if (CollectionUtil.isNotEmpty(nodeErrors)) {
                     // 遍历nodeErrors 拼接错误信息，nodeErrors的数据如:{"3":{"errors":[{"type":"value_not_in_list","message":"Value not in list","details":"ckpt_name: 'sd_xl_base_1.0_0.9vae.safetensors' not in (list of length 45)","extra_info":{"input_name":"ckpt_name","input_config":null,"received_value":"sd_xl_base_1.0_0.9vae.safetensors"}}],"dependent_outputs":["8","9"],"class_type":"CheckpointLoaderSimple"},"12":{"errors":[{"type":"value_not_in_list","message":"Value not in list","details":"lora_name: 'user_1969640892151017472-000012' not in (list of length 91)","extra_info":{"input_name":"lora_name","input_config":null,"received_value":"user_1969640892151017472-000012"}}],"dependent_outputs":["8","9"],"class_type":"LoraLoader"}
                     StringBuilder errorMsg = new StringBuilder();
                     nodeErrors.fields().forEachRemaining(entry -> {
@@ -467,8 +467,8 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
                     });
                     throw new WorkFlowErrorException(errorMsg.toString());
                 }
-                if (error!=null) {
-                    throw new WorkFlowErrorException(error.get("message").asText());
+                if (CollectionUtil.isNotEmpty(error)) {
+                    throw new WorkFlowErrorException(error.get(0).get("message").asText());
                 }
                 //任务提交错误 工作流节点出现错误
                 throw new WorkFlowErrorException("工作流执行异常");

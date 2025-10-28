@@ -563,7 +563,16 @@ public class SdUserModelServiceImpl implements SdUserModelService {
      */
     @Override
     public List<FluxgymModelListVo> listModelNameOfFluxgym(String taskId) {
-        return baseMapper.listModelNameOfFluxgym(taskId);
+        List<FluxgymModelListVo> vos = baseMapper.listModelNameOfFluxgym(taskId);
+        if (CollectionUtil.isEmpty(vos)) {
+            return Collections.emptyList();
+        }
+        // 如果第一个模型没有0000xx后缀，则移动到最后一个
+        if (vos.size()>1 && StringUtils.isNotBlank(vos.get(0).getModelName()) && !vos.get(0).getModelName().contains("0000")) {
+            FluxgymModelListVo first = vos.remove(0);
+            vos.add(first);
+        }
+        return vos;
     }
 
     /**
@@ -573,7 +582,16 @@ public class SdUserModelServiceImpl implements SdUserModelService {
      */
     @Override
     public List<String> selectModelUrlListByTaskId(String taskId) {
-        return baseMapper.selectModelUrlListByTaskId(taskId);
+        List<String> list = baseMapper.selectModelUrlListByTaskId(taskId);
+        if (CollectionUtil.isEmpty(list)) {
+            return Collections.emptyList();
+        }
+        // 如果第一个模型没有-000001后缀，则移动到最后一个
+        if (list.size()>1 && !list.get(0).contains("-000001")) {
+            String url = list.remove(0);
+            list.add(url);
+        }
+        return list;
     }
 
     /**

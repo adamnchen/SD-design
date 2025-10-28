@@ -10,7 +10,6 @@ import com.sutran.sd.common.core.domain.dto.BatchRemoveDto;
 import com.sutran.sd.common.core.page.TableDataInfo;
 import com.sutran.sd.common.exception.ServiceException;
 import com.sutran.sd.draw.domain.SdGpuPool;
-import com.sutran.sd.draw.domain.SdTrainTask;
 import com.sutran.sd.draw.domain.dto.model.SdTrainTaskDto;
 import com.sutran.sd.draw.domain.dto.model.SdUserModelDto;
 import com.sutran.sd.draw.domain.dto.task.SdUserTaskPageDto;

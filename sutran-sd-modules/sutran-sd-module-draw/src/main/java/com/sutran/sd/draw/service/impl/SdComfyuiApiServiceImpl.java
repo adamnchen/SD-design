@@ -441,6 +441,7 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
             HttpRequest request = HttpRequest.post(sdDrawNode.getBaseUrl() + "/prompt").body(param.toJSONString(), "application/json").timeout(2000);
             //提交任务
             String resp = execHttpRequest(request);
+            log.warn("[提交任务]>>>>>>>>>提交[{}]任务返回结果: {}", taskId, resp);
             JsonNode jsonNode = JsonUtils.toJsonNode(resp);
             JsonNode taskIdNode = jsonNode.get("prompt_id");
             if (taskIdNode == null) {
@@ -671,10 +672,9 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
                 return;
             }
             dealTaskAndNodeAndWebsocket(taskId, nodeId);
-            return;
         }
         // 任务已完成
-        if (taskInfo.getCompleted() != null && taskInfo.getCompleted()) {
+        else if (taskInfo.getCompleted() != null && taskInfo.getCompleted()) {
             boolean isComplete = sdUserTaskService.completeComfyTask(taskId, new Date());
             if (!isComplete) {
                 dealTaskAndNodeAndWebsocket(taskId, nodeId);
@@ -706,6 +706,11 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
             if (CollectionUtil.isNotEmpty(urlList)) {
                 sdUserModelFileService.asyncBatchInsert(taskVo,urlList);
             }
+            dealTaskAndNodeAndWebsocket(taskId, nodeId);
+        }
+        // 任务超时
+        else if (taskVo.getStartTime()!=null && (new Date().after(DateUtil.offsetMinute(taskVo.getStartTime(), 2)))){
+            sdUserTaskService.failComfyTask(taskId, "任务超时", new Date());
             dealTaskAndNodeAndWebsocket(taskId, nodeId);
         }
     }

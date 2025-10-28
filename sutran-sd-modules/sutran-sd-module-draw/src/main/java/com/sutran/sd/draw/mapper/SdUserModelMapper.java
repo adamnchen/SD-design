@@ -118,7 +118,7 @@ public interface SdUserModelMapper extends BaseMapperPlus<SdUserModelMapper, SdU
      * @param taskId 训练任务id
      * @return 模型名称列表
      */
-    @Select("SELECT id AS modelId,model_name_zh AS modelName,publish_status AS publishStatus FROM sd_user_model WHERE task_id=#{taskId}")
+    @Select("SELECT id AS modelId,model_name_zh AS modelName,publish_status AS publishStatus FROM sd_user_model WHERE task_id=#{taskId} ORDER BY model_name_zh")
     List<FluxgymModelListVo> listModelNameOfFluxgym(@Param("taskId") String taskId);
 
     /**
@@ -126,7 +126,7 @@ public interface SdUserModelMapper extends BaseMapperPlus<SdUserModelMapper, SdU
      * @param taskId    任务Id
      * @return  预览图地址列表
      */
-    @Select("SELECT url FROM sd_user_model WHERE task_id=#{taskId} ORDER BY model_name_zh ASC")
+    @Select("SELECT url FROM sd_user_model WHERE task_id=#{taskId} ORDER BY model_name_zh")
     List<String> selectModelUrlListByTaskId(@Param("taskId") String taskId);
 
     /**

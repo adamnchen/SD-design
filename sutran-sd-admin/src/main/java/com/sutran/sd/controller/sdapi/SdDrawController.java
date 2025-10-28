@@ -14,7 +14,6 @@ import com.sutran.sd.draw.domain.dto.task.SdUserTaskPageDto;
 import com.sutran.sd.draw.domain.dto.txt2img.SdText2ImgDto;
 import com.sutran.sd.draw.domain.vo.*;
 import com.sutran.sd.draw.service.SdComfyuiApiService;
-import com.sutran.sd.draw.service.SdDrawNodeService;
 import com.sutran.sd.draw.service.SdUserModelService;
 import com.sutran.sd.draw.service.SdWebuiApiService;
 import lombok.RequiredArgsConstructor;
@@ -28,19 +27,18 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * SD-API接口
+ * SD-绘图接口
  * @author zj
  * @date 2024-02-27
  */
 @RestController
 @RequestMapping("/sd/api")
 @RequiredArgsConstructor
-public class SdApiController {
+public class SdDrawController {
 
     private final SdWebuiApiService sdWebuiApiService;
     private final SdComfyuiApiService sdComfyuiApiService;
     private final SdUserModelService sdUserModelService;
-    private final SdDrawNodeService sdDrawNodeService;
 
     /**
      * [WebUI]文生图

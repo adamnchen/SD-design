@@ -7,8 +7,7 @@ import cn.hutool.core.util.ObjectUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.http.HttpStatus;
 import com.sutran.sd.common.core.domain.R;
-import com.sutran.sd.common.exception.DemoModeException;
-import com.sutran.sd.common.exception.ServiceException;
+import com.sutran.sd.common.exception.*;
 import com.sutran.sd.common.exception.base.BaseException;
 import com.sutran.sd.common.utils.StreamUtils;
 import lombok.extern.slf4j.Slf4j;
@@ -120,6 +119,33 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(BaseException.class)
     public R<Void> handleBaseException(BaseException e, HttpServletRequest request) {
+        log.error(e.getMessage());
+        return R.fail(e.getMessage());
+    }
+
+    /**
+     * 业务异常
+     */
+    @ExceptionHandler(TaskErrorException.class)
+    public R<Void> handleTaskErrorException(TaskErrorException e, HttpServletRequest request) {
+        log.error(e.getMessage());
+        return R.fail(e.getMessage());
+    }
+
+    /**
+     * 业务异常
+     */
+    @ExceptionHandler(TaskTimeoutException.class)
+    public R<Void> handleTaskTimeoutException(TaskTimeoutException e, HttpServletRequest request) {
+        log.error(e.getMessage());
+        return R.fail(e.getMessage());
+    }
+
+    /**
+     * 业务异常
+     */
+    @ExceptionHandler(WorkFlowErrorException.class)
+    public R<Void> handleWorkFlowErrorException(WorkFlowErrorException e, HttpServletRequest request) {
         log.error(e.getMessage());
         return R.fail(e.getMessage());
     }

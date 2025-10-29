@@ -62,7 +62,6 @@ public class SysUserServiceImpl implements ISysUserService, UserService {
     private final SysUserRoleMapper userRoleMapper;
     private final SysUserPostMapper userPostMapper;
     private final SysUserMemberMapper userMemberMapper;
-    private final SysUserAddressMapper addressMapper;
     private final ISysUserTagService sysUserTagService;
     /** 会员新增锁 **/
     private final static Lock MEMBER_INSERY_LOCK = new ReentrantLock();

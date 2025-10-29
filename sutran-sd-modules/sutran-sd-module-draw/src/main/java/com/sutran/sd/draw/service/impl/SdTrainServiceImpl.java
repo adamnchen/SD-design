@@ -1576,7 +1576,7 @@ public class SdTrainServiceImpl implements SdTrainService {
         }
         FluxgymImgVo imgVo = RedisUtils.getCacheObject(FLUXGYM_IMG_TASK+taskId);
         if (imgVo==null) {
-            throw new ServiceException("训练任务ID不存在!");
+            throw new ServiceException("训练任务预处理数据已存储超时,请重新提交图片进行预处理!");
         }
         //
         final Long userId = LoginHelper.getUserId();

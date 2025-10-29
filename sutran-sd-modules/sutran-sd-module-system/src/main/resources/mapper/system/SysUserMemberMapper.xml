@@ -61,5 +61,20 @@
         WHERE rn = 1
     </select>
 
+     <select id="selectMemberInfoByUserId" resultMap="SysUserMemberResult">
+         SELECT *
+         FROM (
+             SELECT
+             t.*,
+             @row_num := IF(@prev_user_id = t.user_id, @row_num + 1, 1) AS rn,
+             @prev_user_id := t.user_id
+             FROM sys_user_member t, (SELECT @row_num := 0, @prev_user_id := NULL) AS vars
+             WHERE user_id = #{userId}
+             AND `status` = 1  AND end_time &gt;= #{now}
+             ORDER BY t.user_id, t.create_time DESC
+         ) tmp
+         WHERE rn = 1
+    </select>
+
 
 </mapper>

@@ -2,11 +2,13 @@ package com.sutran.sd.system.mapper;
 
 import com.sutran.sd.common.core.domain.entity.SysUserMember;
 import com.sutran.sd.common.core.mapper.BaseMapperPlus;
-import org.apache.ibatis.annotations.*;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Update;
 
 import java.util.Date;
 import java.util.List;
-import java.util.Map;
 
 /**
  * @author zj
@@ -31,7 +33,6 @@ public interface SysUserMemberMapper extends BaseMapperPlus<SysUserMemberMapper,
      * @param now 当前时间
      * @return 会员信息
      */
-    @MapKey("userId")
     List<SysUserMember> selectMemberInfoByUserIds(@Param("userIds") List<Long> userIds, @Param("now") Date now);
 
     /**
@@ -93,4 +94,12 @@ public interface SysUserMemberMapper extends BaseMapperPlus<SysUserMemberMapper,
      */
     @Update("UPDATE sys_user_member SET use_draw_num = use_draw_num - #{num} WHERE user_id = #{userId} and status = 1 AND end_time >= #{now} ORDER BY id DESC LIMIT 1")
     void returnedDrawNum(@Param("userId") Long userId, @Param("num") int num, @Param("now") Date now);
+
+    /**
+     * 根据用户ID查询用户当前有效会员信息
+     * @param userId 用户ID
+     * @param now 当前时间
+     * @return 会员信息
+     */
+    SysUserMember selectMemberInfoByUserId(@Param("userId") Long userId, @Param("now") Date now);
 }

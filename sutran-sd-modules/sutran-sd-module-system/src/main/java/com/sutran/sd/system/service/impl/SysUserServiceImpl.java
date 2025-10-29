@@ -630,6 +630,15 @@ public class SysUserServiceImpl implements ISysUserService, UserService {
         }
     }
 
+    /**
+     * 根据用户ID查询用户当前有效会员信息
+     * @param userId 用户ID
+     * @return 会员信息
+     */
+    @Override
+    public SysUserMember selectPayMemberByUserId(Long userId) {
+        return userMemberMapper.selectMemberInfoByUserId(userId, new Date());
+    }
 
 
     /**

@@ -46,8 +46,8 @@
         update_time AS updateTime
     </sql>
 
-    <select id="selectMemberInfoByUserIds" resultType="java.util.Map">
-        SELECT <include refid="convertMap"/>
+    <select id="selectMemberInfoByUserIds" resultMap="SysUserMemberResult">
+        SELECT *
         FROM (
             SELECT
                 t.*,

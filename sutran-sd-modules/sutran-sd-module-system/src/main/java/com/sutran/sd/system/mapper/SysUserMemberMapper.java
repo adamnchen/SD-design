@@ -32,7 +32,7 @@ public interface SysUserMemberMapper extends BaseMapperPlus<SysUserMemberMapper,
      * @return 会员信息
      */
     @MapKey("userId")
-    Map<Long, SysUserMember> selectMemberInfoByUserIds(@Param("userIds") List<Long> userIds, @Param("now") Date now);
+    List<SysUserMember> selectMemberInfoByUserIds(@Param("userIds") List<Long> userIds, @Param("now") Date now);
 
     /**
      * 获取当前用户已购买且处于生效中的会员绘图次数

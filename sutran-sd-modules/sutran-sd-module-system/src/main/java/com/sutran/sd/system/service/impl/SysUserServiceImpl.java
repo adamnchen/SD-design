@@ -1,6 +1,7 @@
 package com.sutran.sd.system.service.impl;
 
 import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.util.ArrayUtil;
 import cn.hutool.core.util.ObjectUtil;
@@ -71,8 +72,11 @@ public class SysUserServiceImpl implements ISysUserService, UserService {
         Page<SysUser> page = baseMapper.selectPageUserList(pageQuery.build(), this.buildQueryWrapper(user));
         if (CollUtil.isNotEmpty(page.getRecords())) {
             List<Long> userIds = page.getRecords().stream().map(SysUser::getUserId).collect(Collectors.toList());
-            Map<Long, SysUserMember> memberMap = userMemberMapper.selectMemberInfoByUserIds(userIds, new Date());
-            page.getRecords().forEach(item -> item.setMember(memberMap.get(item.getUserId())));
+            List<SysUserMember> members = userMemberMapper.selectMemberInfoByUserIds(userIds, new Date());
+            if (CollectionUtil.isNotEmpty(members)) {
+                Map<Long, SysUserMember> memberMap = members.stream().collect(Collectors.toMap(SysUserMember::getUserId, a -> a));
+                page.getRecords().forEach(item -> item.setMember(memberMap.get(item.getUserId())));
+            }
         }
         return TableDataInfo.build(page);
     }

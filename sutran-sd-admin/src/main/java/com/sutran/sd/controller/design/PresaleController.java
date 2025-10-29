@@ -2,6 +2,7 @@ package com.sutran.sd.controller.design;
 
 import cn.dev33.satoken.annotation.SaIgnore;
 import com.ijpay.alipay.AliPayApiConfig;
+import com.sutran.sd.common.annotation.RequireMember;
 import com.sutran.sd.common.core.controller.BaseController;
 import com.sutran.sd.common.core.domain.PageQuery;
 import com.sutran.sd.common.core.domain.R;
@@ -212,6 +213,7 @@ public class PresaleController extends BaseAliPayApiController {
      */
     @Operation(summary = "发布预售项目", description = "厂家发布预售项目，包含AI设计图和实物照片")
     @PostMapping("/publish")
+    @RequireMember(value = "发布预售项目", newUserBenefit = {RequireMember.NewUserBenefitType.DESIGN})
     public R<String> publishPresaleProject(@Valid @RequestBody PresaleProjectPublishDTO publishDTO) {
         return presaleProjectService.publishPresaleProject(publishDTO);
     }

@@ -77,10 +77,12 @@ public class SysProfileController extends BaseController {
         }
 
         user.setUserId(getUserId());
+        // 防止修改敏感字段
         user.setUserName(null);
         user.setPassword(null);
-        user.setAvatar(null);
         user.setDeptId(null);
+        // 注意：bizType 字段保留，允许修改
+        
         if (userService.updateUserProfile(user) > 0) {
             return R.ok();
         }

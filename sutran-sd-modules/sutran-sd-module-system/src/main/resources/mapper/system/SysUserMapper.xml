@@ -11,6 +11,7 @@
         <result property="userName" column="user_name"/>
         <result property="nickName" column="nick_name"/>
         <result property="userType" column="user_type"/>
+        <result property="bizType" column="biz_type"/>
         <result property="email" column="email"/>
         <result property="phonenumber" column="phonenumber"/>
         <result property="channel" column="channel"/>
@@ -63,6 +64,7 @@
                u.user_name,
                u.nick_name,
                u.user_type,
+               u.biz_type,
                u.email,
                u.avatar,
                u.phonenumber,
@@ -103,7 +105,7 @@
     </sql>
     <select id="selectPageUserList" resultMap="SysUserResult">
         select u.user_id, u.dept_id, u.nick_name, u.user_name, u.email, u.avatar, u.phonenumber, u.sex, u.user_type, u.limit_valid_date, u.limit_train_times, u.limit_draw_num, u.channel, u.channel_id, u.channel_user_id,
-            u.status, u.del_flag, u.login_ip, u.login_date, u.create_by, u.create_time, u.remark, u.description, d.dept_name, d.leader
+            u.status, u.del_flag, u.biz_type,u.login_ip, u.login_date, u.create_by, u.create_time, u.remark, u.description, d.dept_name, d.leader
         from sys_user u
             left join sys_dept d on u.dept_id = d.dept_id
         ${ew.getCustomSqlSegment}

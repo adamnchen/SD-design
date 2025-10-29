@@ -67,6 +67,13 @@ public class SysUser extends BaseEntity {
     private String userType;
 
     /**
+     * 用户身份类型（0=厂商和设计师，1=设计师，2=普通用户）
+     * @see com.sutran.sd.common.enums.UserBizType
+     */
+    @TableField("biz_type")
+    private Integer bizType;
+
+    /**
      * 用户渠道来源ID
      */
     @TableField("channel_id")

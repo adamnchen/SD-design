@@ -1,5 +1,6 @@
 package com.sutran.sd.controller.design;
 
+import com.sutran.sd.common.annotation.RequireMember;
 import com.sutran.sd.common.core.domain.R;
 import com.sutran.sd.common.core.domain.dto.ProofingInvitationRequestDTO;
 import com.sutran.sd.common.core.domain.vo.ProofingInvitationDetailVO;
@@ -33,6 +34,7 @@ public class ProofingInvitationController {
      * 发起一个新的合作邀约
      */
     @PostMapping
+    @RequireMember(value = "发起打样邀约", newUserBenefit = {RequireMember.NewUserBenefitType.DESIGN})
     public R<String> createInvitation(@Validated @RequestBody ProofingInvitationRequestDTO createDTO) {
         invitationService.createInvitation(createDTO);
         return R.ok("邀约发送成功");
@@ -86,6 +88,7 @@ public class ProofingInvitationController {
      * 接受合作邀约
      */
     @PutMapping("/{id}/accept")
+    @RequireMember(value = "接受打样邀约", newUserBenefit = {RequireMember.NewUserBenefitType.DESIGN})
     public R<Void> acceptInvitation(@PathVariable("id") Long id, @Validated @RequestBody com.sutran.sd.common.core.domain.dto.ProofingInvitationAcceptDto dto) {
         dto.setInvitationId(id);
         invitationService.acceptInvitation(dto);

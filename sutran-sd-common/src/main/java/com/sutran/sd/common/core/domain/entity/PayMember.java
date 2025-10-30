@@ -63,6 +63,10 @@ public class PayMember implements Serializable {
      */
     private Integer status;
     /**
+     * 是否隐藏（0否 1是）
+     */
+    private Integer isHide;
+    /**
      * 创建人
      */
     private Long createBy;

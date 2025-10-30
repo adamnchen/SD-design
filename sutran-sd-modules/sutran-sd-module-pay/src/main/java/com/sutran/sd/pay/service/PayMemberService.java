@@ -1,6 +1,8 @@
 package com.sutran.sd.pay.service;
 
+import com.sutran.sd.common.core.domain.PageQuery;
 import com.sutran.sd.common.core.domain.entity.PayMember;
+import com.sutran.sd.common.core.page.TableDataInfo;
 
 import java.util.List;
 
@@ -23,6 +25,14 @@ public interface PayMemberService {
      * @return          会员配置列表
      */
     List<PayMember> selectMemberList(PayMember config);
+
+    /**
+     * 获取会员配置分页列表
+     * @param config    会员配置
+     * @param pageQuery 分页查询参数
+     * @return          会员配置分页列表
+     */
+    TableDataInfo<PayMember> selectMemberPage(PayMember config, PageQuery pageQuery);
 
     /**
      * 获取会员配置详情

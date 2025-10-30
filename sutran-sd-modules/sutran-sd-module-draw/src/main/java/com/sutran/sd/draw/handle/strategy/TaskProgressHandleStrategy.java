@@ -47,7 +47,7 @@ public class TaskProgressHandleStrategy implements IComfyWebSocketTextHandleStra
         }
         // 添加任务进度缓存
         if (StringUtils.isNotBlank(taskId)) {
-            RedisUtils.setCacheMapValue(DRAW_TASK_PROGRESS, taskId, percent);
+            RedisUtils.setCacheMapValue(DRAW_TASK_PROGRESS, taskId, percent>=100?99:percent);
         }
     }
 }

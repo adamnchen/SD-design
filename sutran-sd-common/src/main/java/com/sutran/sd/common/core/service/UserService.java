@@ -1,6 +1,7 @@
 package com.sutran.sd.common.core.service;
 
 import com.sutran.sd.common.core.domain.entity.PayMember;
+import com.sutran.sd.common.core.domain.entity.SysUser;
 import com.sutran.sd.common.core.domain.entity.SysUserMember;
 
 import java.util.Date;
@@ -105,9 +106,24 @@ public interface UserService {
     void checkDrawNumOfMember(Long userId, Integer drawNum);
 
      /**
-     * 获取用户会员信息
+     * 获取用户会员信息(包含过期会员)
      * @param userId 用户ID
      * @return 用户会员信息
      */
     SysUserMember selectUserMember(Long userId);
+
+    /**
+     * 根据用户ID查询用户当前有效会员信息
+     * @param userId 用户ID
+     * @return 会员信息
+     */
+    SysUserMember selectPayMemberByUserId(Long userId);
+
+    /**
+     * 通过用户ID查询用户
+     *
+     * @param userId 用户ID
+     * @return 用户对象信息
+     */
+    SysUser selectUserInfoById(Long userId);
 }

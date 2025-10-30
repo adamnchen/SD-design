@@ -59,17 +59,12 @@
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
 
-<!--        <dependency>-->
-<!--            <groupId>de.codecentric</groupId>-->
-<!--            <artifactId>spring-boot-admin-starter-client</artifactId>-->
-<!--        </dependency>-->
-
         <dependency>
             <groupId>com.alibaba</groupId>
             <artifactId>transmittable-thread-local</artifactId>
         </dependency>
 
-        <!-- 系统模块-->
+        <!-- 工具模块-->
         <dependency>
             <groupId>com.sutran.sd</groupId>
             <artifactId>sutran-sd-common</artifactId>
@@ -79,10 +74,6 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-amqp</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.sutran.sd</groupId>
-            <artifactId>sutran-sd-module-system</artifactId>
         </dependency>
 
     </dependencies>

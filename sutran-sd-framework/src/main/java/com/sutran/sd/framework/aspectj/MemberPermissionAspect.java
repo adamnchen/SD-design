@@ -4,11 +4,11 @@ import cn.hutool.core.date.DateUtil;
 import com.sutran.sd.common.annotation.RequireMember;
 import com.sutran.sd.common.core.domain.entity.SysUser;
 import com.sutran.sd.common.core.domain.entity.SysUserMember;
+import com.sutran.sd.common.core.service.UserService;
 import com.sutran.sd.common.exception.ServiceException;
 import com.sutran.sd.common.helper.LoginHelper;
 import com.sutran.sd.common.utils.StringUtils;
-import com.sutran.sd.system.mapper.SysUserMemberMapper;
-import com.sutran.sd.system.mapper.SysUserMapper;
+import com.sutran.sd.common.utils.spring.SpringUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -16,9 +16,7 @@ import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.springframework.stereotype.Component;
 
-import java.util.Collections;
 import java.util.Date;
-import java.util.List;
 
 /**
  * 会员权限校验切面
@@ -31,14 +29,11 @@ import java.util.List;
 @Slf4j
 public class MemberPermissionAspect {
 
-    private final SysUserMemberMapper userMemberMapper;
-    private final SysUserMapper userMapper;
-    
     /**
      * 新用户生图权益天数（3天）
      */
     private static final int NEW_USER_DRAW_BENEFIT_DAYS = 3;
-    
+
     /**
      * 新用户设计权益天数（30天）
      */
@@ -81,14 +76,14 @@ public class MemberPermissionAspect {
      */
     private SysUserMember getCurrentValidMember(Long userId) {
         try {
-            List<Long> userIds = Collections.singletonList(userId);
-            List<SysUserMember> members = userMemberMapper.selectMemberInfoByUserIds(userIds, new Date());
-
-            if (members != null && !members.isEmpty()) {
-                return members.get(0);
+            UserService userService = SpringUtils.getBean(UserService.class);
+            SysUserMember member = userService.selectPayMemberByUserId(userId);
+            if (member != null && member.getStatus() == 1) {
+                return member;
             }
             return null;
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             log.error("[会员权限校验] 查询用户会员信息失败: 用户ID={}", userId, e);
             return null;
         }
@@ -102,19 +97,20 @@ public class MemberPermissionAspect {
         if (requireMember.newUserBenefit() == null || requireMember.newUserBenefit().length == 0) {
             return false;
         }
-        
+
         try {
             // 获取用户信息
-            SysUser user = userMapper.selectUserById(userId);
+            UserService userService = SpringUtils.getBean(UserService.class);
+            SysUser user = userService.selectUserInfoById(userId);
             if (user == null || user.getCreateTime() == null) {
                 return false;
             }
-            
+
             Date now = new Date();
             Date createTime = user.getCreateTime();
             // 计算注册天数：createTime到now的天数差
             long daysSinceRegister = DateUtil.betweenDay(createTime, now, true);
-            
+
             // 检查各种新用户权益类型
             for (RequireMember.NewUserBenefitType benefitType : requireMember.newUserBenefit()) {
                 switch (benefitType) {
@@ -132,9 +128,12 @@ public class MemberPermissionAspect {
                             return true;
                         }
                         break;
+                    default:
+                        // 其他理想
+                        break;
                 }
             }
-            
+
             return false;
         } catch (Exception e) {
             log.error("[会员权限校验] 检查新用户权益失败: 用户ID={}", userId, e);

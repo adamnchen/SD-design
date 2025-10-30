@@ -172,6 +172,7 @@ public class SdTrainController {
      */
     @ApiOperationSupport(order = 11)
     @PostMapping("/sd-lora")
+    @com.sutran.sd.common.annotation.RequireMember(value = "AI模型训练", newUserBenefit = {com.sutran.sd.common.annotation.RequireMember.NewUserBenefitType.DRAW})
     public R<Void> trainSdLora(@RequestBody SdTrainLoraDto dto) {
         sdTrainService.trainSdLora(dto);
         return R.ok();
@@ -182,6 +183,7 @@ public class SdTrainController {
      */
     @ApiOperationSupport(order = 11)
     @PostMapping("/v2/sd-lora")
+    @com.sutran.sd.common.annotation.RequireMember(value = "AI模型训练", newUserBenefit = {com.sutran.sd.common.annotation.RequireMember.NewUserBenefitType.DRAW})
     public R<Void> trainSdLoraV2(@RequestBody SdTrainLoraDto dto) {
         sdTrainService.trainSdLoraV2(dto);
         return R.ok();
@@ -229,6 +231,7 @@ public class SdTrainController {
      */
     @ApiOperationSupport(order = 15)
     @PostMapping("/fluxgym/start-train")
+    @com.sutran.sd.common.annotation.RequireMember(value = "AI模型训练", newUserBenefit = {com.sutran.sd.common.annotation.RequireMember.NewUserBenefitType.DRAW})
     public R<String> starTrain(@RequestParam("taskId") String taskId,
                                @RequestParam(value = "modelTag",required = false) String modelTag,
                                @RequestParam(value = "isOpen",required = false) Integer isOpen,

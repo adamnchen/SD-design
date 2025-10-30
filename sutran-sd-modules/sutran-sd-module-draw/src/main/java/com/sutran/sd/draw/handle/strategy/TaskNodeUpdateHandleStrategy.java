@@ -21,6 +21,6 @@ public class TaskNodeUpdateHandleStrategy implements IComfyWebSocketTextHandleSt
     @Override
     public void handleMessage(JsonNode dataNode) {
         //当前消息没有真实进度 使用虚假进度;
-        log.info("[任务执行节点更新]>>>>>>>>>节点: {}", dataNode);
+        log.warn("[任务执行节点更新]>>>>>>>>>节点: {}", dataNode);
     }
 }

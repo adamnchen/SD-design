@@ -1,5 +1,6 @@
 package com.sutran.sd.draw.websocket;
 
+import cn.hutool.core.collection.CollectionUtil;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.sutran.sd.draw.enums.ComfyWebSocketMessageType;
 import com.sutran.sd.draw.handle.ComfyWebSocketMessageHandler;
@@ -19,7 +20,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * @author zj
  * @date 2025年09月11日 23:00
  */
-@SuppressWarnings("AlibabaUndefineMagicConstant")
+@SuppressWarnings({"AlibabaUndefineMagicConstant", "AlibabaAvoidComplexCondition"})
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -62,7 +63,7 @@ public class ComfyWebsocketClient {
                         if (msgType == ComfyWebSocketMessageType.MONITOR) {
                             log.info("[ComfUI][系统性能状态更新]>>>>>>>>>{}",dataNode);
                         }
-                        else if (msgType == ComfyWebSocketMessageType.TASK_NUMBER || Objects.equals(dataNode.get("prompt_id").asText(), promptId)) {
+                        else if ( msgType == ComfyWebSocketMessageType.TASK_NUMBER || ( CollectionUtil.isNotEmpty(dataNode.get("prompt_id")) && Objects.equals(dataNode.get("prompt_id").asText(), promptId) ) ) {
                             //ComfyUI状态更新消息直接进行处理
                             messageHandler.handleMessage(msgType, dataNode);
                         }

@@ -13,7 +13,7 @@ import org.springframework.stereotype.Service;
 @Slf4j
 @Service("EXECUTING")
 @RequiredArgsConstructor
-public class TaskNodeHandleStrategy implements IComfyWebSocketTextHandleStrategy {
+public class TaskNodeExecutingHandleStrategy implements IComfyWebSocketTextHandleStrategy {
 
     /**
      * 获取任务进度
@@ -21,6 +21,6 @@ public class TaskNodeHandleStrategy implements IComfyWebSocketTextHandleStrategy
      */
     @Override
     public void handleMessage(JsonNode dataNode) {
-        log.warn("[ComfUI][任务节点更新]>>>>>>>>>当前节点：{}",dataNode);
+        log.info("[ComfUI][任务节点更新]>>>>>>>>>当前节点：{}",dataNode);
     }
 }

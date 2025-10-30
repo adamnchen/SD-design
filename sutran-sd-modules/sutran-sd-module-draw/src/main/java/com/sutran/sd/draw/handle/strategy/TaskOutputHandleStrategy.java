@@ -84,7 +84,7 @@ public class TaskOutputHandleStrategy implements IComfyWebSocketTextHandleStrate
                         .addQuery("subfolder", image.getSubFolder());
                     HttpUtil.download(builder.build(), out, false);
                     // 压缩图片大小
-                    byte[] compressPic = FileUtils.compressPic(out.toByteArray(), 0.7);
+                    byte[] compressPic = FileUtils.compressPic(out.toByteArray(), 0.8);
                     UploadResult uploadResult = storage.uploadSuffix(compressPic,JPG,"image/jpeg");
                     urlList.add(uploadResult.getUrl());
                     sysOssService.insertOssData(SD + DateUtil.format(new Date(),"yyyyMMdd")+"_"+ IdUtil.getSnowflakeNextIdStr()+JPG,JPG,storage.getConfigKey(),uploadResult.getUrl(),uploadResult.getFilename(),task.getBelongUserName());

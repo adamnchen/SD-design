@@ -82,10 +82,9 @@ public interface SdUserModelService {
      * 发布模型
      * @param id            模型ID
      * @param publishStatus 发布状态
-     * @param isUserDel     是否用户删除
      * @param modelStrength 模型强度
      */
-    void publishModel(String id, Integer publishStatus, Integer isUserDel, String modelStrength);
+    void publishModel(String id, Integer publishStatus, String modelStrength);
 
     /**
      * 修改模型强度
@@ -140,14 +139,20 @@ public interface SdUserModelService {
      * @param modelId   模型ID
      * @param userId    用户ID
      */
-    void removeShareModelById(String modelId, Long userId);
+    void removeShareUserModelById(String modelId, Long userId);
 
     /**
      * 分享指定模型
      * @param dto       分享参数实体
      * @param userId    模型拥有者userId
      */
-    void shareModel(SdUserModelShareDto dto, Long userId);
+    void shareUserModel(SdUserModelShareDto dto, Long userId);
+
+    /**
+     * 删除用户模型
+     * @param modelId    模型ID
+     */
+    void removeUserModel(String modelId);
 
      /**
      * 获取ComfyUI最近使用的n个模型列表

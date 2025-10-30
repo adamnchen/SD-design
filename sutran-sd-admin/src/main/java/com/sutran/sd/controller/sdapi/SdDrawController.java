@@ -122,7 +122,7 @@ public class SdDrawController {
     }
 
     /**
-     * [WebUI]获取当前用户正在进行的任务taskId
+     * [通用]获取当前用户正在进行的任务taskId
      */
     @GetMapping("/doing-task")
     public R<String> getDoingTask(@RequestParam Integer category) {
@@ -155,8 +155,6 @@ public class SdDrawController {
     public R<List<ComfyuiImageToolVo>> queryPhotoEditToolList() {
         return R.ok(sdComfyuiApiService.queryFixedFlowList());
     }
-
-
 
     /**
      * [ComfyUI]提交模型生图任务(从模型列表获取模型)

@@ -303,20 +303,6 @@ public class SdWebuiApiServiceImpl implements SdWebuiApiService {
     }
 
 
-    /** 模型分享 **/
-    @Override
-    public void shareModel(SdUserModelShareDto dto) {
-        if (StringUtils.isBlank(dto.getToShareUserId())) {
-            String userId = userService.selectUserIdByPhone(dto.getToSharePhone());
-            if (StringUtils.isBlank(userId)) {
-                throw new ServiceException("手机号["+dto.getToSharePhone()+"]不存在!");
-            }
-            dto.setToShareUserId(userId);
-        }
-        sdUserModelService.shareModel(dto,LoginHelper.getUserId());
-    }
-
-
     /** Lora模型分页查询 **/
     @Override
     public TableDataInfo<SdUserModelVo> listLoraModels(SdUserModelPageDto dto, PageQuery pageQuery) {
@@ -380,7 +366,7 @@ public class SdWebuiApiServiceImpl implements SdWebuiApiService {
         // 个人模型，但是 模型归属人不是当前人(分享模型)，则只能删除分享数据
         else if (model.getType()==1 && !Objects.requireNonNull(userId).equals(model.getBelongUserId())) {
             // 删除分享给我的模型，只删除分享关联数据
-            sdUserModelService.removeShareModelById(id,userId);
+            sdUserModelService.removeShareUserModelById(id,userId);
             return;
         }
         // 拼接模型路径(lora模型所属目录下：model.getFileName() = /home/stable-diffusion-webui/models/Lora/user_xxxxxx.safetensors)
@@ -543,7 +529,7 @@ public class SdWebuiApiServiceImpl implements SdWebuiApiService {
             }
         }
         // isUserDel目前其实并没有使用到
-        sdUserModelService.publishModel(id,publishStatus,Objects.equals(LoginHelper.getUserId(), info.getLong("userId"))?1:0,modelStrength);
+        sdUserModelService.publishModel(id,publishStatus,modelStrength);
         if (publishStatus==1) {
             // 发送完成消息
             JSONObject wxMsg = new JSONObject();

@@ -541,7 +541,7 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
     @Override
     public ComfyTaskHistoryInfo getTaskInfoById(String promptId, SdDrawNode node) {
         try{
-            HttpRequest request = HttpRequest.get(node.getBaseUrl() + "/history/" + promptId).timeout(2000);
+            HttpRequest request = HttpRequest.get(node.getBaseUrl() + "/history/" + promptId).timeout(6000);
             String historyInfo = execHttpRequest(request);
             JsonNode taskNode = JsonUtils.toJsonNode(historyInfo).get(promptId);
             if (taskNode == null) {

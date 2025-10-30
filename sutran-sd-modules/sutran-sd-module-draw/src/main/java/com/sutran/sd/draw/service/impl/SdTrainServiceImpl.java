@@ -1872,7 +1872,7 @@ public class SdTrainServiceImpl implements SdTrainService {
             }
         }
         // isUserDel目前其实并没有使用到
-        sdUserModelService.publishModel(id,publishStatus,Objects.equals(LoginHelper.getUserId(), info.getLong("userId"))?1:0,null);
+        sdUserModelService.publishModel(id,publishStatus,null);
         // 如果之前已经发布过的就不在消息通知
         if (publishStatus==1 && info.getInteger("publishStatus")!=null && info.getInteger("publishStatus")==1) {
             // 发送完成消息

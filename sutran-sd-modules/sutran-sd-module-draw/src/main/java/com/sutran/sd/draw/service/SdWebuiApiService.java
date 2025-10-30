@@ -62,12 +62,6 @@ public interface SdWebuiApiService {
     void removeModelClassify(String id);
 
     /**
-     * 分享模型
-     * @param dto   SdUserModelShareDto
-     */
-    void shareModel(SdUserModelShareDto dto);
-
-    /**
      * 获取lora模型列表
      * @param dto   SdUserModelPageDto
      * @param pageQuery  分页查询参数

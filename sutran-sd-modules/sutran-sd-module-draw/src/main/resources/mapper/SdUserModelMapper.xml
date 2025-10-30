@@ -60,9 +60,7 @@
 
     <update id="publishModel">
         UPDATE sd_user_model
-        SET publish_status=#{publishStatus}
-          <if test="isUserDel!=null">,is_user_del=#{isUserDel}</if>
-          <if test="modelStrength!='' and modelStrength!=null">,model_strength=#{modelStrength}</if>
+        SET publish_status=#{publishStatus}<if test="modelStrength!='' and modelStrength!=null">,model_strength=#{modelStrength}</if>
         WHERE id=#{id}
     </update>
 
@@ -75,7 +73,7 @@
         WHERE A.publish_status=1
         <choose>
             <when test="dto.shareModel!=null and dto.shareModel">AND D.user_id=#{userId})</when>
-            <otherwise>AND (A.type=0 OR A.is_open=1 OR (A.type=1 AND A.belong_user_id=#{userId}) OR D.user_id=#{userId})</otherwise>
+            <otherwise>AND (A.type=0 OR A.is_open=1 OR (A.type=1 AND A.belong_user_id=#{userId} AND A.is_user_del=0) OR D.user_id=#{userId})</otherwise>
         </choose>
         <if test="dto.classifyId!=null and dto.classifyId!=''">
             <choose>
@@ -113,7 +111,7 @@
         FROM sd_user_model AS A
              LEFT JOIN sys_user AS B ON A.belong_user_id=B.user_id
              LEFT JOIN sd_user_model_share AS C ON A.id=C.model_id
-        WHERE A.id=#{id} AND A.publish_status=1 AND (A.type=0 OR A.is_open=1 OR (A.type=1 AND A.belong_user_id=#{userId}) OR C.user_id=#{userId})
+        WHERE A.id=#{id} AND A.publish_status=1 AND (A.type=0 OR A.is_open=1 OR (A.type=1 AND A.belong_user_id=#{userId} AND A.is_user_del=0) OR C.user_id=#{userId})
     </select>
 
 
@@ -123,7 +121,7 @@
             LEFT JOIN sd_user_model AS B ON A.lora_model_id=B.id
             LEFT JOIN sys_user AS C ON B.belong_user_id=C.user_id
             LEFT JOIN sd_user_model_share AS D ON B.id=D.model_id
-        WHERE A.user_id=#{userId} AND B.publish_status=1 AND (B.type=0 OR B.is_open=1 OR (B.type=1 AND B.belong_user_id=#{userId}) OR D.user_id=#{userId})
+        WHERE A.user_id=#{userId} AND B.publish_status=1 AND (B.type=0 OR B.is_open=1 OR (B.type=1 AND B.belong_user_id=#{userId} AND B.is_user_del=0) OR D.user_id=#{userId})
         ORDER BY A.crt_time DESC,A.use_times DESC LIMIT #{limit}
     </select>
 
@@ -140,7 +138,7 @@
              LEFT JOIN sd_user_model AS B ON A.lora_model_id=B.id
              LEFT JOIN sys_user AS C ON B.belong_user_id=C.user_id
              LEFT JOIN sd_user_model_share AS D ON B.id=D.model_id
-        WHERE A.user_id=#{userId} AND B.publish_status=1 AND (B.type=0 OR B.is_open=1 OR (B.type=1 AND B.belong_user_id=#{userId}) OR D.user_id=#{userId})
+        WHERE A.user_id=#{userId} AND B.publish_status=1 AND (B.type=0 OR B.is_open=1 OR (B.type=1 AND B.belong_user_id=#{userId} AND B.is_user_del=0) OR D.user_id=#{userId})
         ORDER BY A.crt_time DESC,A.use_times DESC LIMIT #{limit}
     </select>
 
@@ -161,7 +159,7 @@
         WHERE A.publish_status=1
         <choose>
             <when test="dto.shareModel!=null and dto.shareModel">AND D.user_id=#{userId})</when>
-            <otherwise>AND (A.type=0 OR A.is_open=1 OR (A.type=1 AND A.belong_user_id=#{userId}) OR D.user_id=#{userId})</otherwise>
+            <otherwise>AND (A.type=0 OR A.is_open=1 OR (A.type=1 AND A.belong_user_id=#{userId} AND A.is_user_del=0) OR D.user_id=#{userId})</otherwise>
         </choose>
         <if test="dto.classifyId!=null and dto.classifyId!=''">
             <choose>
@@ -179,7 +177,7 @@
         FROM sd_user_model AS A
         LEFT JOIN sys_user AS B ON A.belong_user_id=B.user_id
         <if test="dto.classifyId!=null and dto.classifyId!='' and dto.classifyId!=1">LEFT JOIN sd_user_model_classify_tmp AS C ON A.id=C.model_id</if>
-        WHERE A.publish_status=1 AND A.type=1 AND A.belong_user_id=#{userId}
+        WHERE A.publish_status=1 AND A.type=1 AND A.belong_user_id=#{userId} AND is_user_del=0
         <if test="dto.classifyId!=null and dto.classifyId!=''">
             <choose>
                 <when test="dto.classifyId==1">AND A.classify_id=1</when>

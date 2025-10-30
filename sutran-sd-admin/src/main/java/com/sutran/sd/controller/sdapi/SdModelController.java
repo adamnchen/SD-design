@@ -124,11 +124,11 @@ public class SdModelController {
     }
 
     /**
-     * [webui]SD Lora模型-分享模型
+     * [comfyui]分享个人模型
      * @param dto 分享请求参数
      * @return 返回分享结果
      */
-    @PostMapping("/lora/share")
+    @PostMapping("/user-lora/share")
     public R<Void> shareModel(@RequestBody SdUserModelShareDto dto) {
         if (CollectionUtil.isEmpty(dto.getModelIds())) {
             throw new ServiceException("请选择要分享的模型!");
@@ -136,10 +136,19 @@ public class SdModelController {
         if (StrUtil.isBlankIfStr(dto.getToShareUserId()) && StrUtil.isBlankIfStr(dto.getToSharePhone())){
             throw new ServiceException("请选择要分享的用户或者手机号!");
         }
-        sdWebuiApiService.shareModel(dto);
+        sdUserModelService.shareUserModel(dto,LoginHelper.getUserId());
         return R.ok();
     }
 
+    /**
+     * [comfyui]删除个人模型
+     * @param modelId 模型ID
+     */
+    @DeleteMapping("/user-lora/remove")
+    public R<Void> removeUserModel(@RequestParam String modelId) {
+        sdUserModelService.removeUserModel(modelId);
+        return R.ok();
+    }
 
     /**
      * [comfyui]获取最近使用的模型(返回最近5个模型)
@@ -164,7 +173,7 @@ public class SdModelController {
     }
 
     /**
-     * [comfyui]获取当前用户所属的lora模型列表
+     * [comfyui]获取所属当前用户的lora模型列表
      * @param dto 分页查询参数
      */
     @GetMapping("/comfyui/user-lora/list")

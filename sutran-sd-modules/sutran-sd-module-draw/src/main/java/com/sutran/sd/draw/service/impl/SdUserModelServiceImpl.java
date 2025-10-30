@@ -9,6 +9,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.sutran.sd.common.core.domain.PageQuery;
 import com.sutran.sd.common.core.page.TableDataInfo;
+import com.sutran.sd.common.core.service.UserService;
 import com.sutran.sd.common.enums.TranslateType;
 import com.sutran.sd.common.exception.ServiceException;
 import com.sutran.sd.common.helper.LoginHelper;
@@ -57,6 +58,7 @@ public class SdUserModelServiceImpl implements SdUserModelService {
     private final SdUserModelMapper baseMapper;
     private final SdUserModelClassifyMapper classifyMapper;
     private final SysTranslateService sysTranslateService;
+    private final UserService userService;
 
     @Resource(name = "threadPoolTaskExecutor")
     private Executor executor;
@@ -275,12 +277,11 @@ public class SdUserModelServiceImpl implements SdUserModelService {
      * 发布模型
      * @param id            模型ID
      * @param publishStatus 发布状态
-     * @param isUserDel     是否用户删除
      * @param modelStrength 模型强度
      */
     @Override
-    public void publishModel(String id, Integer publishStatus, Integer isUserDel, String modelStrength) {
-        baseMapper.publishModel(id,publishStatus,isUserDel,modelStrength);
+    public void publishModel(String id, Integer publishStatus, String modelStrength) {
+        baseMapper.publishModel(id,publishStatus,modelStrength);
     }
 
     /**
@@ -362,7 +363,7 @@ public class SdUserModelServiceImpl implements SdUserModelService {
      * @param userId    用户ID
      */
     @Override
-    public void removeShareModelById(String modelId, Long userId) {
+    public void removeShareUserModelById(String modelId, Long userId) {
         baseMapper.removeShareModelById(modelId,userId);
     }
 
@@ -373,7 +374,15 @@ public class SdUserModelServiceImpl implements SdUserModelService {
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void shareModel(SdUserModelShareDto dto, Long userId) {
+    public void shareUserModel(SdUserModelShareDto dto, Long userId) {
+        if (StringUtils.isBlank(dto.getToShareUserId())) {
+            String shareUserId = userService.selectUserIdByPhone(dto.getToSharePhone());
+            if (StringUtils.isBlank(shareUserId)) {
+                throw new ServiceException("手机号["+dto.getToSharePhone()+"]不存在!");
+            }
+            dto.setToShareUserId(shareUserId);
+        }
+
         List<SdUserModel> list = baseMapper.selectList(new LambdaQueryWrapper<SdUserModel>().in(SdUserModel::getId, dto.getModelIds()));
         if (CollectionUtil.isEmpty(list)) {
             throw new ServiceException("分享模型不存在或已被删除!");
@@ -402,7 +411,34 @@ public class SdUserModelServiceImpl implements SdUserModelService {
         }
     }
 
-     /**
+    /**
+     * 删除用户模型
+     * @param modelId    模型ID
+     */
+    @Override
+    public void removeUserModel(String modelId) {
+        final Long userId = LoginHelper.getUserId();
+        SdUserModel model = baseMapper.selectById(modelId);
+        if (model==null) {
+            throw new ServiceException("模型不存在!");
+        }
+        else if (model.getType()==0) {
+            throw new ServiceException("系统模型,不可删除!");
+        }
+        // 个人模型，但是 模型归属人不是当前人(分享模型)，则只能删除分享数据
+        else if (model.getType()==1 && !Objects.requireNonNull(userId).equals(model.getBelongUserId())) {
+            // 删除分享给我的模型，只删除分享关联数据
+            baseMapper.removeShareModelById(modelId,userId);
+            return;
+        }
+        // 个人模型，模型归属人是当前登录人，做逻辑删除
+        else {
+            // 逻辑删除模型
+            baseMapper.updateRemoveUserModelById(modelId,userId);
+        }
+    }
+
+    /**
      * 获取ComfyUI最近使用的n个模型列表
      * @param userId    用户ID
      * @param num       数量

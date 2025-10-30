@@ -1,6 +1,5 @@
 package com.sutran.sd.draw.websocket;
 
-import cn.hutool.core.collection.CollectionUtil;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.sutran.sd.draw.enums.ComfyWebSocketMessageType;
 import com.sutran.sd.draw.handle.ComfyWebSocketMessageHandler;
@@ -20,7 +19,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * @author zj
  * @date 2025年09月11日 23:00
  */
-@SuppressWarnings({"AlibabaUndefineMagicConstant", "AlibabaAvoidComplexCondition"})
+@SuppressWarnings("AlibabaUndefineMagicConstant")
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -60,10 +59,13 @@ public class ComfyWebsocketClient {
                         // executing=EXECUTING：当前任务节点更新
                         // progress_state=PROGRESS_STATE：当前运行的耗时节点执行进度更新
                         ComfyWebSocketMessageType msgType = ComfyWebSocketMessageType.fromType(type.asText());
-                        if (msgType == ComfyWebSocketMessageType.MONITOR) {
+                        if (msgType == ComfyWebSocketMessageType.EXECUTING) {
+                            log.info("[ComfUI][任务节点更新]>>>>>>>>>任务节点ID：{}",dataNode.get("node"));
+                        }
+                        else if (msgType == ComfyWebSocketMessageType.MONITOR) {
                             log.info("[ComfUI][系统性能状态更新]>>>>>>>>>{}",dataNode);
                         }
-                        else if ( msgType == ComfyWebSocketMessageType.TASK_NUMBER || ( CollectionUtil.isNotEmpty(dataNode.get("prompt_id")) && Objects.equals(dataNode.get("prompt_id").asText(), promptId) ) ) {
+                        else if (msgType == ComfyWebSocketMessageType.TASK_NUMBER || Objects.equals(dataNode.get("prompt_id").asText(), promptId)) {
                             //ComfyUI状态更新消息直接进行处理
                             messageHandler.handleMessage(msgType, dataNode);
                         }

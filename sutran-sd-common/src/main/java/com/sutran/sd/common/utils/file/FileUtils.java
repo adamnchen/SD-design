@@ -140,6 +140,36 @@ public class FileUtils extends FileUtil {
         }
     }
 
+    /**
+     * 图片压缩(压缩大小，不改宽高)
+     * @param imageBytes        原始文件字节数组
+     * @param accuracy          图片质量(0-1之间，1为最好)
+     * @return
+     */
+    public static byte[] compressPic(byte[] imageBytes, double accuracy) {
+        try{
+            ByteArrayInputStream byteInput = new ByteArrayInputStream(imageBytes);
+            BufferedImage image = ImageIO.read(byteInput);
+            // 如果图片空，返回空
+            if (image == null) {
+                return null;
+            }
+            final long srcSize = imageBytes.length;
+            log.info("压缩前图片大小：{} B",srcSize);
+            ByteArrayInputStream dataStream = new ByteArrayInputStream(imageBytes);
+
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            Thumbnails.of(dataStream).scale(1f).outputQuality(accuracy).outputFormat("jpg").toOutputStream(outputStream);
+            imageBytes = outputStream.toByteArray();
+            log.info("压缩后图片大小：{} B",imageBytes.length);
+            return imageBytes;
+        }
+        catch (Exception e) {
+            log.error("图片大小压缩异常>>>>>>>>>原因：",e);
+            return imageBytes;
+        }
+    }
+
     /** 计算压缩精度 **/
     private static double getAccuracy(long size, long desFileSize) {
         if (size<=desFileSize) {

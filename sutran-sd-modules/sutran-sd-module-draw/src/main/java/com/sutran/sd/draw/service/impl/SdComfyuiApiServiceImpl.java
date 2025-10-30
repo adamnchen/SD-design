@@ -369,6 +369,7 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
                 return;
             }
             List<String> urlList = new ArrayList<>();
+            OssClient storage = OssFactory.instance();
             for (ComfyTaskImage image : historyInfo.getOutputs()) {
                 // 只保留任务输出图片
                 if (image.getFileName().startsWith(taskId)) {
@@ -377,8 +378,9 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
                 try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
                     UrlBuilder builder = UrlBuilder.of(node.getBaseUrl()).addPath("/view").addQuery("filename", image.getFileName()).addQuery("type", image.getFolder()).addQuery("subfolder", image.getSubFolder());
                     HttpUtil.download(builder.build(), out, false);
-                    OssClient storage = OssFactory.instance();
-                    UploadResult uploadResult = storage.uploadSuffix(out.toByteArray(),JPG,"image/jpeg");
+                    // 压缩图片大小
+                    byte[] compressPic = FileUtils.compressPic(out.toByteArray(), 0.7);
+                    UploadResult uploadResult = storage.uploadSuffix(compressPic,JPG,"image/jpeg");
                     sysOssService.insertOssData(SD + DateUtil.format(new Date(),"yyyyMMdd")+"_"+ IdUtil.getSnowflakeNextIdStr()+JPG,JPG,storage.getConfigKey(),uploadResult.getUrl(),uploadResult.getFilename(),task.getBelongUserName());
                     urlList.add(uploadResult.getUrl());
                 } catch (Exception e) {
@@ -709,6 +711,7 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
                 return;
             }
             List<String> urlList = new ArrayList<>();
+            OssClient storage = OssFactory.instance();
             for (ComfyTaskImage image : taskInfo.getOutputs()) {
                 // 只保留任务输出图片
                 if (image.getFileName().startsWith(taskId)) {
@@ -720,8 +723,9 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
                         .addQuery("type", image.getFolder())
                         .addQuery("subfolder", image.getSubFolder());
                     HttpUtil.download(builder.build(), out, false);
-                    OssClient storage = OssFactory.instance();
-                    UploadResult uploadResult = storage.uploadSuffix(out.toByteArray(),JPG,"image/jpeg");
+                    // 压缩图片大小
+                    byte[] compressPic = FileUtils.compressPic(out.toByteArray(), 0.7);
+                    UploadResult uploadResult = storage.uploadSuffix(compressPic,JPG,"image/jpeg");
                     urlList.add(uploadResult.getUrl());
                     sysOssService.insertOssData(SD + DateUtil.format(new Date(),"yyyyMMdd")+"_"+ IdUtil.getSnowflakeNextIdStr()+JPG,JPG,storage.getConfigKey(),uploadResult.getUrl(),uploadResult.getFilename(),taskVo.getBelongUserName());
                 } catch (Exception e) {

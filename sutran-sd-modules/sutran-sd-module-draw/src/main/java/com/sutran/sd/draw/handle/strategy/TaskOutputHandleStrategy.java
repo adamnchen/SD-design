@@ -7,6 +7,7 @@ import cn.hutool.core.util.IdUtil;
 import cn.hutool.http.HttpUtil;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.sutran.sd.common.utils.StringUtils;
+import com.sutran.sd.common.utils.file.FileUtils;
 import com.sutran.sd.draw.domain.pojo.ComfyTaskImage;
 import com.sutran.sd.draw.domain.vo.SdUserTaskVo;
 import com.sutran.sd.draw.service.SdUserModelFileService;
@@ -21,6 +22,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -71,6 +73,7 @@ public class TaskOutputHandleStrategy implements IComfyWebSocketTextHandleStrate
             return;
         }
         List<String> urlList = new ArrayList<>();
+        OssClient storage = OssFactory.instance();
         for (ComfyTaskImage image : currentOutputImages) {
             try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
                 UrlBuilder builder = UrlBuilder.of(task.getNodeUrl()).addPath("/view")
@@ -78,8 +81,9 @@ public class TaskOutputHandleStrategy implements IComfyWebSocketTextHandleStrate
                     .addQuery("type", image.getFolder())
                     .addQuery("subfolder", image.getSubFolder());
                 HttpUtil.download(builder.build(), out, false);
-                OssClient storage = OssFactory.instance();
-                UploadResult uploadResult = storage.uploadSuffix(out.toByteArray(),JPG,"image/jpeg");
+                // 压缩图片大小
+                byte[] compressPic = FileUtils.compressPic(out.toByteArray(), 0.7);
+                UploadResult uploadResult = storage.uploadSuffix(compressPic,JPG,"image/jpeg");
                 urlList.add(uploadResult.getUrl());
                 sysOssService.insertOssData(SD + DateUtil.format(new Date(),"yyyyMMdd")+"_"+ IdUtil.getSnowflakeNextIdStr()+JPG,JPG,storage.getConfigKey(),uploadResult.getUrl(),uploadResult.getFilename(),task.getBelongUserName());
             } catch (Exception e) {

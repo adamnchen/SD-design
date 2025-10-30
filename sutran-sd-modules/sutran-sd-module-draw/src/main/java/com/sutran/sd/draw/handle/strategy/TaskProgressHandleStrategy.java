@@ -39,7 +39,7 @@ public class TaskProgressHandleStrategy implements IComfyWebSocketTextHandleStra
         int current = dataNode.get("value").asInt();
         int max = dataNode.path("max").asInt();
         //计算进度百分比
-        int percent = 100;
+        int percent = 99;
         if (max!= 0) {
             BigDecimal bd1 = new BigDecimal(current);
             BigDecimal bd2 = new BigDecimal(max);

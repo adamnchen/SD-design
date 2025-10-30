@@ -27,4 +27,10 @@ public interface ISysUserTagService {
      * @return 标签列表
      */
     List<TagDetailVO> selectUserTagListByType(Long userId, Integer bizType);
+
+    /**
+     * 删除用户的所有身份标签（0,1,2）
+     * @param userId 用户ID
+     */
+    void deleteIdentityTagsByUserId(Long userId);
 }

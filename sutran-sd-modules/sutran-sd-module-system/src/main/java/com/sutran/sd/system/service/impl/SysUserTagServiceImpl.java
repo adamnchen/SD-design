@@ -136,4 +136,14 @@ public class SysUserTagServiceImpl
                 })
                 .collect(Collectors.toList());
     }
+
+    @Override
+    public void deleteIdentityTagsByUserId(Long userId) {
+        // 删除用户的所有身份标签（bizType = 0, 1, 2）
+        LambdaQueryWrapper<SysUserTag> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(SysUserTag::getUserId, userId)
+                .in(SysUserTag::getBizType, 0, 1, 2); // 身份标签类型
+        
+        this.remove(wrapper);
+    }
 }

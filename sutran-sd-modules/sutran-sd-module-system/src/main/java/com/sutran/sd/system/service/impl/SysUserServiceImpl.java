@@ -352,9 +352,12 @@ public class SysUserServiceImpl implements ISysUserService, UserService {
             UserTagDTO defaultTagDTO = new UserTagDTO();
             defaultTagDTO.setTagName("普通用户");
             defaultTagDTO.setDescription("系统默认身份标签");
-            defaultTagDTO.setBizType(TagConstants.IDENTITY_TAG_USER); // 2 = 普通用户
-            defaultTagDTO.setTagLevel(TagConstants.TAG_LEVEL_NORMAL); // 1 = 普通等级
-            defaultTagDTO.setSortOrder(TagConstants.DEFAULT_SORT_ORDER); // 0 = 默认排序
+            // 2 = 普通用户
+            defaultTagDTO.setBizType(TagConstants.IDENTITY_TAG_USER);
+            // 1 = 普通等级
+            defaultTagDTO.setTagLevel(TagConstants.TAG_LEVEL_NORMAL);
+            // 0 = 默认排序
+            defaultTagDTO.setSortOrder(TagConstants.DEFAULT_SORT_ORDER);
 
             // 使用系统用户标签服务创建标签
             if (sysUserTagService != null) {
@@ -377,10 +380,10 @@ public class SysUserServiceImpl implements ISysUserService, UserService {
     @Transactional(rollbackFor = Exception.class)
     public int updateUser(SysUser user) {
         Long userId = user.getUserId();
-        
+
         // 获取更新前的用户信息，用于比较bizType是否变化
         SysUser oldUser = baseMapper.selectById(userId);
-        
+
         // 删除用户与角色关联
         userRoleMapper.delete(new LambdaQueryWrapper<SysUserRole>().eq(SysUserRole::getUserId, userId));
         // 新增用户与角色管理
@@ -389,15 +392,15 @@ public class SysUserServiceImpl implements ISysUserService, UserService {
         userPostMapper.delete(new LambdaQueryWrapper<SysUserPost>().eq(SysUserPost::getUserId, userId));
         // 新增用户与岗位管理
         insertUserPost(user);
-        
+
         // 更新用户基本信息
         int result = baseMapper.updateById(user);
-        
+
         // 如果bizType发生变化，同步更新用户身份标签
         if (oldUser != null && !Objects.equals(oldUser.getBizType(), user.getBizType())) {
             syncUserIdentityTag(userId, user.getBizType());
         }
-        
+
         return result;
     }
 
@@ -903,7 +906,7 @@ public class SysUserServiceImpl implements ISysUserService, UserService {
      */
     @Override
     public SysUserMember selectUserMember(Long userId) {
-        return userMemberMapper.selectVoOne(new LambdaQueryWrapper<SysUserMember>().eq(SysUserMember::getUserId, userId).orderByDesc(SysUserMember::getId).last("limit 1"));
+        return userMemberMapper.selectOne(new LambdaQueryWrapper<SysUserMember>().eq(SysUserMember::getUserId, userId).orderByDesc(SysUserMember::getId).last("limit 1"));
     }
 
     /**
@@ -930,7 +933,7 @@ public class SysUserServiceImpl implements ISysUserService, UserService {
 
     /**
      * 同步更新用户身份标签
-     * 
+     *
      * @param userId 用户ID
      * @param newBizType 新的身份类型
      */
@@ -938,23 +941,26 @@ public class SysUserServiceImpl implements ISysUserService, UserService {
         try {
             // 删除旧的身份标签
             sysUserTagService.deleteIdentityTagsByUserId(userId);
-            
+
             // 根据新的bizType创建对应的身份标签
             UserTagDTO identityTag = new UserTagDTO();
             identityTag.setBizType(newBizType);
             identityTag.setTagLevel(TagConstants.TAG_LEVEL_NORMAL);
             identityTag.setSortOrder(TagConstants.DEFAULT_SORT_ORDER);
-            
+
             switch (newBizType) {
-                case 0: // 厂商和设计师
+                // 厂商和设计师
+                case 0:
                     identityTag.setTagName("厂商和设计师");
                     identityTag.setDescription("既是厂商又是设计师");
                     break;
-                case 1: // 设计师
+                // 设计师
+                case 1:
                     identityTag.setTagName("设计师");
                     identityTag.setDescription("专业设计师");
                     break;
-                case 2: // 普通用户
+                // 普通用户
+                case 2:
                     identityTag.setTagName("普通用户");
                     identityTag.setDescription("普通用户");
                     break;
@@ -962,9 +968,9 @@ public class SysUserServiceImpl implements ISysUserService, UserService {
                     log.warn("未知的用户身份类型: {}", newBizType);
                     return;
             }
-            
+
             sysUserTagService.addTag(userId, identityTag);
-            log.info("同步更新用户身份标签成功: userId={}, bizType={}, tagName={}", 
+            log.info("同步更新用户身份标签成功: userId={}, bizType={}, tagName={}",
                     userId, newBizType, identityTag.getTagName());
         } catch (Exception e) {
             log.error("同步更新用户身份标签失败: userId={}, bizType={}", userId, newBizType, e);

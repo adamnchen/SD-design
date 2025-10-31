@@ -12,6 +12,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.rabbitmq.client.Channel;
 import com.sutran.sd.common.core.service.UserService;
+import com.sutran.sd.common.exception.ServiceException;
 import com.sutran.sd.common.exception.TaskErrorException;
 import com.sutran.sd.common.exception.WorkFlowErrorException;
 import com.sutran.sd.common.helper.LoginHelper;
@@ -166,13 +167,26 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
         // 处理参考图片
         List<String> imageUrls = new ArrayList<>();
         List<ImageInfoBo> images = new ArrayList<>();
+        int index = 0;
         for (MultipartFile file : imageList) {
             if (file==null || file.isEmpty()) {
                 continue;
             }
             SysOssVo ossVo = sysOssService.upload(file);
             imageUrls.add(ossVo.getUrl());
-            images.add(new ImageInfoBo().setImageName(file.getOriginalFilename()).setContentType(file.getContentType()).setFileData(file.getBytes()));
+
+            // 生成新的文件名,避免文件名重复
+            String fileName = file.getOriginalFilename();
+            if (StringUtils.isBlank(fileName) || !fileName.contains(".")) {
+                fileName = IdUtil.getSnowflakeNextIdStr()+"_"+index + FileUtils.getExtensionFromContentType(file.getContentType());
+            }
+            else {
+                String suffix = fileName.substring(fileName.lastIndexOf("."));
+                fileName = fileName.substring(0, fileName.lastIndexOf("."))+"_"+index+suffix;
+            }
+
+            images.add(new ImageInfoBo().setImageName(fileName).setContentType(file.getContentType()).setFileData(file.getBytes()));
+            index++;
         }
         // 生图任务落库
         final String taskId = IdUtil.getSnowflakeNextIdStr();
@@ -237,6 +251,10 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
                 }
             }
             return progress!=null?progress:0;
+        }
+        // 执行失败
+        else if (status==3) {
+            throw new ServiceException("生图失败!");
         }
         else {
             // 查询是否已生成图片
@@ -313,6 +331,7 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
                     }
                 }
                 catch (Exception e){
+                    log.error("[ComfyUI绘图MQ]>>>>>>>>>初始图片上传到comfyui失败!,任务ID: {},异常信息: {}", taskId,e.getMessage(), e);
                     sdUserTaskService.failComfyTask(taskId,"初始图片上传到comfyui失败!",new Date());
                     // 归还绘图次数
                     userService.returnedDrawNum(taskInfo.getUserId(), taskInfo.getDrawNum());
@@ -325,8 +344,8 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
                 // 提交任务，返回ComfyUI内部任务ID
                 String promptId = submitDrawTask(taskId, JSONObject.parseObject(flowStr), node);
                 if (StringUtils.isNotBlank(promptId)) {
-                    RedisUtils.setCacheObject(COMFY_TASK+taskId,promptId, Duration.ofMinutes(1));
-                    RedisUtils.setCacheObject(COMFY_TASK+promptId,taskId, Duration.ofMinutes(1));
+                    RedisUtils.setCacheObject(COMFY_TASK+taskId,promptId, Duration.ofMinutes(5));
+                    RedisUtils.setCacheObject(COMFY_TASK+promptId,taskId, Duration.ofMinutes(5));
                 }
                 // 检查任务是否有缓存
                 checkCacheTask(promptId,taskId,node,taskInfo,task);

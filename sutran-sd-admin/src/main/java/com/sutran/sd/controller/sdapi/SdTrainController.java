@@ -2,11 +2,13 @@ package com.sutran.sd.controller.sdapi;
 
 import cn.dev33.satoken.annotation.SaIgnore;
 import com.github.xiaoymin.knife4j.annotations.ApiOperationSupport;
+import com.sutran.sd.common.annotation.RequireMember;
 import com.sutran.sd.common.core.domain.PageQuery;
 import com.sutran.sd.common.core.domain.R;
 import com.sutran.sd.common.core.domain.dto.WxMsgDto;
 import com.sutran.sd.common.core.page.TableDataInfo;
 import com.sutran.sd.common.helper.LoginHelper;
+import com.sutran.sd.draw.domain.bo.TrainCaptionBo;
 import com.sutran.sd.draw.domain.dto.train.SdTrainAdditionTagDto;
 import com.sutran.sd.draw.domain.dto.train.SdTrainLoraDto;
 import com.sutran.sd.draw.domain.dto.train.SdTrainPreImgDto;
@@ -23,6 +25,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.List;
 
 /**
  * SD-lora模型训练API
@@ -231,12 +234,35 @@ public class SdTrainController {
      */
     @ApiOperationSupport(order = 15)
     @PostMapping("/fluxgym/start-train")
-    @com.sutran.sd.common.annotation.RequireMember(value = "AI模型训练", newUserBenefit = {com.sutran.sd.common.annotation.RequireMember.NewUserBenefitType.DRAW})
+    @RequireMember(value = "AI模型训练", newUserBenefit = {RequireMember.NewUserBenefitType.DRAW})
     public R<String> starTrain(@RequestParam("taskId") String taskId,
                                @RequestParam(value = "modelTag",required = false) String modelTag,
                                @RequestParam(value = "isOpen",required = false) Integer isOpen,
                                @RequestParam(value = "modelDesc",required = false) String modelDesc) throws IOException {
         return R.ok("操作成功",sdTrainService.startTrainTask(taskId,modelTag,isOpen,modelDesc));
+    }
+
+    /**
+     * [FluxGym][V2]SD训练-提交训练
+     * @param images        图片集合
+     * @param loraName      训练模型名称(用于触发词)
+     * @param captions      图片英文描述词
+     * @param modelTag      模型标签(多个用逗号隔开)
+     * @param isOpen        是否公开[0-否,1-是]
+     * @param modelDesc     模型描述
+     * @throws IOException  图片IO异常
+     * @return 任务id
+     */
+    @ApiOperationSupport(order = 15)
+    @PostMapping("/fluxgym/start-train/v2")
+    @RequireMember(value = "AI模型训练", newUserBenefit = {RequireMember.NewUserBenefitType.DRAW})
+    public R<String> starTrainV2(@RequestParam("images") MultipartFile[] images,
+                                 @RequestParam("loraName") String loraName,
+                                 @RequestParam List<String> captions,
+                                 @RequestParam(value = "modelTag",required = false) String modelTag,
+                                 @RequestParam(value = "isOpen",required = false) Integer isOpen,
+                                 @RequestParam(value = "modelDesc",required = false) String modelDesc) throws IOException {
+        return R.ok("操作成功",sdTrainService.startTrainTaskV2(images,loraName,captions,modelTag,isOpen,modelDesc));
     }
 
     /**

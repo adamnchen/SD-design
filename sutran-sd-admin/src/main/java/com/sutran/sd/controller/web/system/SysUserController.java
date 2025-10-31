@@ -18,7 +18,6 @@ import com.sutran.sd.common.core.domain.entity.PayMember;
 import com.sutran.sd.common.core.domain.entity.SysDept;
 import com.sutran.sd.common.core.domain.entity.SysRole;
 import com.sutran.sd.common.core.domain.entity.SysUser;
-import com.sutran.sd.common.core.domain.entity.SysAddress;
 import com.sutran.sd.common.core.page.TableDataInfo;
 import com.sutran.sd.common.enums.BusinessType;
 import com.sutran.sd.common.excel.ExcelResult;

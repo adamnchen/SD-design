@@ -535,7 +535,7 @@ public class SdWebuiApiServiceImpl implements SdWebuiApiService {
             }
         }
         sdUserModelService.publishModel(id,publishStatus,modelStrength);
-        if (publishStatus==1) {
+        if (publishStatus==1 && info.getInteger("publishStatus")!=null && info.getInteger("publishStatus")==1) {
             // 发送完成消息
             JSONObject wxMsg = new JSONObject();
             wxMsg.put("modelId",id);

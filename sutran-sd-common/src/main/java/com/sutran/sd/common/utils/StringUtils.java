@@ -9,6 +9,7 @@ import lombok.NoArgsConstructor;
 import org.springframework.util.AntPathMatcher;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -17,8 +18,11 @@ import java.util.stream.Collectors;
  *
  * @author Lion Li
  */
+@SuppressWarnings("AlibabaUndefineMagicConstant")
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class StringUtils extends org.apache.commons.lang3.StringUtils {
+
+    private static final AtomicLong COUNTER = new AtomicLong(0);
 
     public static final String SEPARATOR = ",";
 
@@ -320,6 +324,33 @@ public class StringUtils extends org.apache.commons.lang3.StringUtils {
             .filter(Objects::nonNull)
             .map(mapper)
             .collect(Collectors.toList());
+    }
+
+    /**
+     * 生成15位随机种子
+     * 基于时间戳 + 计数器 + 随机数
+     */
+    public static long generate15DigitSeed() {
+        // 获取当前时间戳（毫秒）
+        long timestamp = System.currentTimeMillis();
+        // 取时间戳的后几位，避免过大
+        // 取后6位
+        long timePart = timestamp % 1000000;
+        // 计数器部分（确保同一毫秒内的不同调用产生不同种子）
+        // 3位
+        long countPart = COUNTER.incrementAndGet() % 1000;
+        // 随机数部分
+        // 6位随机数
+        long randomPart = new Random().nextInt(1000000);
+        // 组合成15位数: timePart(6) + countPart(3) + randomPart(6)
+        long seed = timePart * 1000000000L + countPart * 1000000L + randomPart;
+
+        // 确保是15位数 (10^14 到 10^15-1 之间)
+        if (seed < 100000000000000L) {
+            seed += 100000000000000L;
+        }
+
+        return seed;
     }
 
 }

@@ -120,7 +120,10 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
         String flow = sdFlow.getFlow().replace("{{modelName}}",modelTaskBo.getModelName())
             .replace("\"{{modelStrength}}\"",modelTaskBo.getModelStrength())
             .replace("\"{{batchSize}}\"",modelTaskBo.getBatchSize())
-            .replace("{{fileNamePrefix}}",taskId);
+            .replace("{{fileNamePrefix}}",taskId)
+            .replace("\"{{seed}}\"",String.valueOf(StringUtils.generate15DigitSeed()))
+            .replace("\"{{seed1}}\"",String.valueOf(StringUtils.generate15DigitSeed()))
+            .replace("\"{{seed2}}\"",String.valueOf(StringUtils.generate15DigitSeed()));
         String prompt = StringUtils.isBlank(modelTaskBo.getPrompt())?sdFlow.getInitPrompt():modelTaskBo.getPrompt();
         String promptZh = StringUtils.isBlank(modelTaskBo.getPromptZh())?sdFlow.getInitPromptZh():modelTaskBo.getPromptZh();
         if (prompt!=null) {
@@ -175,7 +178,11 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
         final String taskId = IdUtil.getSnowflakeNextIdStr();
 
         // 处理工作流引导词
-        String flowStr = sdFlow.getFlow().replace("{{fileNamePrefix}}",taskId);
+        String flowStr = sdFlow.getFlow()
+            .replace("{{fileNamePrefix}}",taskId)
+            .replace("\"{{seed}}\"",String.valueOf(StringUtils.generate15DigitSeed()))
+            .replace("\"{{seed1}}\"",String.valueOf(StringUtils.generate15DigitSeed()))
+            .replace("\"{{seed2}}\"",String.valueOf(StringUtils.generate15DigitSeed()));
         // 只判断是否为null，空字符串还是需要替换的
         prompt = StringUtils.isBlank(prompt)?sdFlow.getInitPrompt():prompt;
         promptZh = StringUtils.isBlank(promptZh)?sdFlow.getInitPromptZh():promptZh;

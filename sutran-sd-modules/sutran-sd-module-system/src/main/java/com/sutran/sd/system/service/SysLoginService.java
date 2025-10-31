@@ -89,14 +89,14 @@ public class SysLoginService {
         // 框架登录不限制从什么表查询 只要最终构建出 LoginUser 即可
         // 如果登录名是手机号，则使用手机号登录，否则使用用户名登录
         SysUser user = PhoneUtil.isMobile(username) ? loadSysUserByPhonenumber(username) : loadUserByUsername(username);
-        checkLogin(LoginType.PASSWORD, username, user.getUserId(), user.getUserType(), () -> !BCrypt.checkpw(password, user.getPassword()));
+        checkLogin(LoginType.PASSWORD, user.getUserName(), user.getUserId(), user.getUserType(), () -> !BCrypt.checkpw(password, user.getPassword()));
         // 此处可根据登录用户的数据不同 自行创建 loginUser 属性不够用继承扩展就行了
         LoginUser loginUser = buildLoginUser(user);
         // 生成token
         LoginHelper.loginByDevice(loginUser, deviceType);
 
-        recordLogininfor(user.getUserId(),user.getUserType(),username, Constants.LOGIN_SUCCESS, MessageUtils.message("user.login.success"));
-        recordLoginIp(user.getUserId(), username);
+        recordLogininfor(user.getUserId(),user.getUserType(),user.getUserName(), Constants.LOGIN_SUCCESS, MessageUtils.message("user.login.success"));
+        recordLoginIp(user.getUserId(), user.getUserName());
 
         ajax.put(Constants.TOKEN, StpUtil.getTokenValue());
         ajax.put("isCloseGuide", user.getIsCloseGuide());
@@ -418,7 +418,7 @@ public class SysLoginService {
     /** 手机号登录系统后台 **/
     private SysUser loadSysUserByPhonenumber(String phonenumber) {
         SysUser user = userMapper.selectOne(new LambdaQueryWrapper<SysUser>()
-            .select(SysUser::getPhonenumber, SysUser::getStatus)
+            .select(SysUser::getPhonenumber,SysUser::getUserName, SysUser::getStatus)
             .eq(SysUser::getPhonenumber, phonenumber));
         if (ObjectUtil.isNull(user)) {
             log.info("登录用户：{} 不存在.", phonenumber);
@@ -433,7 +433,7 @@ public class SysLoginService {
     /** 邮箱登录系统后台 **/
     private SysUser loadSysUserByEmail(String email) {
         SysUser user = userMapper.selectOne(new LambdaQueryWrapper<SysUser>()
-            .select(SysUser::getPhonenumber, SysUser::getStatus)
+            .select(SysUser::getEmail,SysUser::getUserName, SysUser::getStatus)
             .eq(SysUser::getEmail, email));
         if (ObjectUtil.isNull(user)) {
             log.info("登录用户：{} 不存在.", email);

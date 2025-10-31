@@ -331,6 +331,12 @@ public class SdDrawNodeServiceImpl implements SdDrawNodeService {
     /** 轮询选择节点 **/
     private SdDrawNode roundRobin(List<SdDrawNode> nodes, String taskId) {
         int index = ROUND_ROBIN_INDEX.getAndUpdate(i -> (i + 1) % nodes.size());
+        // 确保索引在有效范围内
+        if (index >= nodes.size()) {
+            index = index % nodes.size();
+            // 重置原子索引
+            ROUND_ROBIN_INDEX.set(index);
+        }
         SdDrawNode sdDrawNode = nodes.get(index);
         if (sdDrawNode !=null) {
             RedisUtils.setCacheMapValue(DRAW_NODE_TASK_MAP, sdDrawNode.getId().toString(),taskId);
@@ -391,6 +397,12 @@ public class SdDrawNodeServiceImpl implements SdDrawNodeService {
                 return null;
             }
             int index = ROUND_ROBIN_INDEX.getAndUpdate(i -> (i + 1) % availableNodes.size());
+            // 确保索引在有效范围内
+            if (index >= availableNodes.size()) {
+                index = index % availableNodes.size();
+                // 重置原子索引
+                ROUND_ROBIN_INDEX.set(index);
+            }
             SdDrawNode sdDrawNode = availableNodes.get(index);
             RedisUtils.setCacheMapValue(TRAIN_NODE_TASK_MAP, sdDrawNode.getId().toString(),taskId);
             return sdDrawNode;

@@ -1828,6 +1828,7 @@ public class SdTrainServiceImpl implements SdTrainService {
         if (publishStatus==1) {
             String fileName = info.getString("fileName");
             if (StringUtils.isNotBlank(fileName)) {
+                fileName = fileName.trim();
                 if (fileName.contains("/stable-diffusion-webui/models/Lora") && !fileName.startsWith("/home")) {
                     // 补齐路径
                     fileName = "/home"+fileName;

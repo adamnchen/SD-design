@@ -95,7 +95,8 @@ public class PayMemberServiceImpl implements PayMemberService {
     @Override
     public TableDataInfo<PayMember> selectMemberPage(PayMember member, PageQuery pageQuery) {
         LambdaQueryWrapper<PayMember> lqw = new LambdaQueryWrapper<PayMember>()
-            .eq(PayMember::getStatus,member.getStatus()).eq(PayMember::getIsHide,member.getIsHide())
+            .eq(ObjectUtil.isNotNull(member.getStatus()), PayMember::getStatus,member.getStatus())
+            .eq(ObjectUtil.isNotNull(member.getIsHide()), PayMember::getIsHide,member.getIsHide())
             .eq(ObjectUtil.isNotNull(member.getId()), PayMember::getId, member.getId())
             .eq(ObjectUtil.isNotNull(member.getLevelName()), PayMember::getLevelName, member.getLevelName())
             .like(StringUtils.isNotBlank(member.getDescription()), PayMember::getDescription, member.getDescription())

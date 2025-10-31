@@ -489,6 +489,12 @@ public class SdWebuiApiServiceImpl implements SdWebuiApiService {
         if (publishStatus==1) {
             String fileName = info.getString("fileName");
             if (StringUtils.isNotBlank(fileName)) {
+                fileName = fileName.trim();
+                if (fileName.contains("/stable-diffusion-webui/models/Lora") && !fileName.startsWith("/home")) {
+                    // 补齐路径
+                    fileName = "/home"+fileName;
+                }
+
                 // 将发布的模型放入到云存储目录下/root/cloud/comfyui-lora/
                 Path source = Paths.get(fileName);
                 String originalFileName = source.getFileName().toString();
@@ -528,7 +534,6 @@ public class SdWebuiApiServiceImpl implements SdWebuiApiService {
                 }
             }
         }
-        // isUserDel目前其实并没有使用到
         sdUserModelService.publishModel(id,publishStatus,modelStrength);
         if (publishStatus==1) {
             // 发送完成消息

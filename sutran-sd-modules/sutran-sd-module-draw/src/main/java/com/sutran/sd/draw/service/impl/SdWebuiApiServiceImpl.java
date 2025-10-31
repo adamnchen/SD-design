@@ -494,7 +494,6 @@ public class SdWebuiApiServiceImpl implements SdWebuiApiService {
                     // 补齐路径
                     fileName = "/home"+fileName;
                 }
-
                 // 将发布的模型放入到云存储目录下/root/cloud/comfyui-lora/
                 Path source = Paths.get(fileName);
                 String originalFileName = source.getFileName().toString();

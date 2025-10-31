@@ -1535,7 +1535,7 @@ public class SdTrainServiceImpl implements SdTrainService {
             imgVo.setImageNames(imageNames);
             imgVo.setLoraName(loraName);
             // 将数据存入redis
-            RedisUtils.setCacheObject(FLUXGYM_IMG_TASK+taskId,imgVo,Duration.ofMinutes(5));
+            RedisUtils.setCacheObject(FLUXGYM_IMG_TASK+taskId,imgVo,Duration.ofMinutes(15));
             vo.setTaskId(taskId);
             return vo;
         }

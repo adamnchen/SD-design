@@ -128,6 +128,8 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
         String prompt = StringUtils.isBlank(modelTaskBo.getPrompt())?sdFlow.getInitPrompt():modelTaskBo.getPrompt();
         String promptZh = StringUtils.isBlank(modelTaskBo.getPromptZh())?sdFlow.getInitPromptZh():modelTaskBo.getPromptZh();
         if (prompt!=null) {
+            // prompt双引号替换为单引号
+            prompt = prompt.replace("\"","'");
             flow = flow.replace("{{prompt}}",prompt);
         }
 
@@ -201,6 +203,8 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
         prompt = StringUtils.isBlank(prompt)?sdFlow.getInitPrompt():prompt;
         promptZh = StringUtils.isBlank(promptZh)?sdFlow.getInitPromptZh():promptZh;
         if (prompt!=null) {
+            // prompt双引号替换为单引号
+            prompt = prompt.replace("\"","'");
             flowStr = flowStr.replace("{{prompt}}",prompt);
         }
 
@@ -396,13 +400,14 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
             }
             List<String> urlList = new ArrayList<>();
             OssClient storage = OssFactory.instance();
+            UrlBuilder builder = UrlBuilder.of(node.getBaseUrl()).addPath("/view");
             for (ComfyTaskImage image : historyInfo.getOutputs()) {
                 // 只保留任务输出图片
                 if (image.getFileName().startsWith(taskId)) {
                     continue;
                 }
                 try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-                    UrlBuilder builder = UrlBuilder.of(node.getBaseUrl()).addPath("/view").addQuery("filename", image.getFileName()).addQuery("type", image.getFolder()).addQuery("subfolder", image.getSubFolder());
+                    builder.addQuery("filename", image.getFileName()).addQuery("type", image.getFolder()).addQuery("subfolder", image.getSubFolder());
                     HttpUtil.download(builder.build(), out, false);
                     // 压缩图片大小
                     byte[] compressPic = FileUtils.compressPic(out.toByteArray(), 0.8);

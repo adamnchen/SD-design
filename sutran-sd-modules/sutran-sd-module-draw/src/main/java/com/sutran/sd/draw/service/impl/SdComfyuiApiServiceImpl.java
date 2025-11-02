@@ -18,6 +18,7 @@ import com.sutran.sd.common.exception.WorkFlowErrorException;
 import com.sutran.sd.common.helper.LoginHelper;
 import com.sutran.sd.common.utils.StringUtils;
 import com.sutran.sd.common.utils.file.FileUtils;
+import com.sutran.sd.common.utils.file.MimeTypeUtils;
 import com.sutran.sd.common.utils.redis.RedisUtils;
 import com.sutran.sd.draw.domain.SdDrawNode;
 import com.sutran.sd.draw.domain.SdFlow;
@@ -180,7 +181,7 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
             // 生成新的文件名,避免文件名重复
             String fileName = file.getOriginalFilename();
             if (StringUtils.isBlank(fileName) || !fileName.contains(".")) {
-                fileName = IdUtil.getSnowflakeNextIdStr()+"_"+index + FileUtils.getExtensionFromContentType(file.getContentType());
+                fileName = IdUtil.getSnowflakeNextIdStr()+"_"+index + MimeTypeUtils.getExtensionFromContentType(file.getContentType());
             }
             else {
                 String suffix = fileName.substring(fileName.lastIndexOf("."));
@@ -410,7 +411,7 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
                     builder.addQuery("filename", image.getFileName()).addQuery("type", image.getFolder()).addQuery("subfolder", image.getSubFolder());
                     HttpUtil.download(builder.build(), out, false);
                     // 压缩图片大小
-                    byte[] compressPic = FileUtils.compressPic(out.toByteArray(), 0.8);
+                    byte[] compressPic = FileUtils.compressPic(out.toByteArray(), 0.7);
                     UploadResult uploadResult = storage.uploadSuffix(compressPic,JPG,"image/jpeg");
                     sysOssService.insertOssData(SD + DateUtil.format(new Date(),"yyyyMMdd")+"_"+ IdUtil.getSnowflakeNextIdStr()+JPG,JPG,storage.getConfigKey(),uploadResult.getUrl(),uploadResult.getFilename(),task.getBelongUserName());
                     urlList.add(uploadResult.getUrl());
@@ -743,19 +744,17 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
             }
             List<String> urlList = new ArrayList<>();
             OssClient storage = OssFactory.instance();
+            UrlBuilder builder = UrlBuilder.of(node.getBaseUrl()).addPath("/view");
             for (ComfyTaskImage image : taskInfo.getOutputs()) {
                 // 只保留任务输出图片
                 if (image.getFileName().startsWith(taskId)) {
                     continue;
                 }
                 try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-                    UrlBuilder builder = UrlBuilder.of(node.getBaseUrl()).addPath("/view")
-                        .addQuery("filename", image.getFileName())
-                        .addQuery("type", image.getFolder())
-                        .addQuery("subfolder", image.getSubFolder());
+                    builder.addQuery("filename", image.getFileName()).addQuery("type", image.getFolder()).addQuery("subfolder", image.getSubFolder());
                     HttpUtil.download(builder.build(), out, false);
                     // 压缩图片大小
-                    byte[] compressPic = FileUtils.compressPic(out.toByteArray(), 0.8);
+                    byte[] compressPic = FileUtils.compressPic(out.toByteArray(), 0.7);
                     UploadResult uploadResult = storage.uploadSuffix(compressPic,JPG,"image/jpeg");
                     urlList.add(uploadResult.getUrl());
                     sysOssService.insertOssData(SD + DateUtil.format(new Date(),"yyyyMMdd")+"_"+ IdUtil.getSnowflakeNextIdStr()+JPG,JPG,storage.getConfigKey(),uploadResult.getUrl(),uploadResult.getFilename(),taskVo.getBelongUserName());
@@ -793,11 +792,10 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
      */
     private byte[] getImageFile(String imageName, String folder, SdDrawNode node) {
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-            UrlBuilder builder = UrlBuilder.of(node.getBaseUrl())
+            UrlBuilder builder = UrlBuilder.of(node.getBaseUrl()).addPath("/view")
                     .addQuery("filename", imageName)
                     .addQuery("type", "input")
-                    .addQuery("type", folder)
-                    .addPath("/view");
+                    .addQuery("type", folder);
             HttpUtil.download(builder.build(), out, false);
             return out.toByteArray();
         } catch (Exception e) {

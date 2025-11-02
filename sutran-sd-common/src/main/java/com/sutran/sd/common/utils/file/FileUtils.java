@@ -26,6 +26,8 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static com.sutran.sd.common.utils.file.MimeTypeUtils.IMAGE_EXTENSION;
+
 /**
  * 文件处理工具类
  *
@@ -34,9 +36,6 @@ import java.util.stream.Stream;
 @Slf4j
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class FileUtils extends FileUtil {
-    public static final String[] IMAGE_EXTENSIONS = {
-        "jpg","JPG","jpeg","JPEG","png","PNG","gif","GIF","bmp","BMP","webp","WEBP","tiff","TIFF","tif","TIF"
-    };
 
     /**
      * 下载文件名重新编码
@@ -75,6 +74,7 @@ public class FileUtils extends FileUtil {
      * @param inputStream   文件输入流
      * @param desFileSize   目标文件大小(单位b，例：300kb = 300 * 1024)
      * @param accuracy      压缩比(例：0.8)
+     * @return 压缩后的输入流
      **/
     public static InputStream compressPicCycle(InputStream inputStream, long desFileSize, double accuracy) {
         try{
@@ -82,7 +82,6 @@ public class FileUtils extends FileUtil {
             // 用于读取长度的原始数据流
             InputStream readStream = new ByteArrayInputStream(outputStream.toByteArray());
             long l = readFileInputStreamLength(readStream);
-            System.out.println(l);
             //如果小于指定大小不压缩；如果大于等于指定大小压缩
             if (l <= desFileSize) {
                 return new ByteArrayInputStream(outputStream.toByteArray());
@@ -110,7 +109,7 @@ public class FileUtils extends FileUtil {
      * 图片压缩(压缩大小，不改宽高)
      * @param oldInputStream    原始文件输入流
      * @param accuracy          图片质量(0-1之间，1为最好)
-     * @return
+     * @return 压缩后的输入流
      */
     public static InputStream compressPic(InputStream oldInputStream, double accuracy) {
         try{
@@ -144,7 +143,7 @@ public class FileUtils extends FileUtil {
      * 图片压缩(压缩大小，不改宽高)
      * @param imageBytes        原始文件字节数组
      * @param accuracy          图片质量(0-1之间，1为最好)
-     * @return
+     * @return 压缩后的字节数组
      */
     public static byte[] compressPic(byte[] imageBytes, double accuracy) {
         try{
@@ -335,47 +334,6 @@ public class FileUtils extends FileUtil {
                 }
             }
             return null;
-        }
-    }
-
-    /**
-     * 根据Content-Type获取文件扩展名
-     */
-    public static String getExtensionFromContentType(String contentType) {
-        if (contentType == null) {
-            return "";
-        }
-        switch (contentType.toLowerCase()) {
-            case "image/jpeg":
-            case "image/jpg":
-                return ".jpg";
-            case "image/png":
-                return ".png";
-            case "image/gif":
-                return ".gif";
-            case "image/webp":
-                return ".webp";
-            case "image/bmp":
-                return ".bmp";
-            case "image/svg+xml":
-                return ".svg";
-            case "application/pdf":
-                return ".pdf";
-            case "application/msword":
-                return ".doc";
-            case "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
-                return ".docx";
-            case "application/vnd.ms-excel":
-                return ".xls";
-            case "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
-                return ".xlsx";
-            case "application/zip":
-                return ".zip";
-            case "text/plain":
-                return ".txt";
-            default:
-                // 对于未知类型，可以返回空或者根据需要处理
-                return ".dat";
         }
     }
 
@@ -664,7 +622,7 @@ public class FileUtils extends FileUtil {
     /** 检查文件是否为图片文件 **/
     private static boolean isImageFile(Path file) {
         String fileName = file.getFileName().toString().toLowerCase();
-        for (String ext : IMAGE_EXTENSIONS) {
+        for (String ext : IMAGE_EXTENSION) {
             if (fileName.endsWith("." + ext)) {
                 return true;
             }

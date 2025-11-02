@@ -1,12 +1,14 @@
 package com.sutran.sd.controller.pay;
 
 import cn.hutool.extra.qrcode.QrCodeUtil;
+import com.alipay.api.response.AlipayTradeQueryResponse;
 import com.sutran.sd.common.core.controller.BaseController;
 import com.sutran.sd.common.core.domain.PageQuery;
 import com.sutran.sd.common.core.domain.R;
 import com.sutran.sd.common.core.page.TableDataInfo;
 import com.sutran.sd.common.helper.LoginHelper;
 import com.sutran.sd.pay.domain.PayOrder;
+import com.sutran.sd.pay.service.AliPayService;
 import com.sutran.sd.pay.service.PayOrderService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
@@ -30,6 +32,7 @@ import java.io.IOException;
 public class PayOrderController extends BaseController {
 
     private final PayOrderService payOrderService;
+    private final AliPayService aliPayService;
 
     /**
      * [用户]分页获取当前登录人的订单记录
@@ -59,5 +62,16 @@ public class PayOrderController extends BaseController {
     public void getQr(@RequestParam String outTradeNo, HttpServletResponse response) throws IOException {
         String qrCode = payOrderService.getPayQr(outTradeNo, LoginHelper.getUserId());
         QrCodeUtil.generate(qrCode, 300, 300, "png", response.getOutputStream());
+    }
+
+    /**
+     * [用户]查询支付宝支付状态
+     *
+     * @param outTradeNo 订单号
+     */
+    @GetMapping(value = "/pay-status")
+    public R<String> getPayStatus(@RequestParam String outTradeNo) {
+        AlipayTradeQueryResponse response = aliPayService.tradeQuery(outTradeNo, null);
+        return R.ok("操作成功",response.getTradeStatus());
     }
 }

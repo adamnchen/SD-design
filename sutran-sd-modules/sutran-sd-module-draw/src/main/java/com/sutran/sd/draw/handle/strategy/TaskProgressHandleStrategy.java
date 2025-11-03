@@ -26,7 +26,7 @@ public class TaskProgressHandleStrategy implements IComfyWebSocketTextHandleStra
     private final SdUserTaskService sdUserTaskService;
 
     /**
-     * 获取任务进度
+     * 获取任务进度(例如：采样器)
      * @param dataNode      消息内容
      */
     @Override

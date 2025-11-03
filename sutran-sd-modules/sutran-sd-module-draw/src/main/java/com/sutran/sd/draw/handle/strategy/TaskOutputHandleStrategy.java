@@ -66,11 +66,11 @@ public class TaskOutputHandleStrategy implements IComfyWebSocketTextHandleStrate
             if (CollectionUtil.isEmpty(currentOutputImages)) {
                 return;
             }
-            log.warn("[任务输出的图片]>>>>>>>>>节点: {}", dataNode);
             SdUserTaskVo task = sdUserTaskService.getDrawTaskInfoByTaskId(taskId);
             if (task == null || StringUtils.isBlank(task.getNodeUrl())) {
                 return;
             }
+            log.warn("[任务输出的图片]>>>>>>>>>节点: {}", dataNode);
             List<String> urlList = new ArrayList<>();
             OssClient storage = OssFactory.instance();
             for (ComfyTaskImage image : currentOutputImages) {

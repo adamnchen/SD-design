@@ -731,9 +731,15 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
             }
 
             // 3. 验证托管状态（确保资金还未释放）
-            if (project.getEscrowStatus() == null || project.getEscrowStatus() != 1) {
+            if (project.getEscrowStatus() == null || project.getEscrowStatus() != 0) {
                 log.error("[众筹资金释放] 资金状态不允许释放: 项目ID={}, 托管状态={}", projectId, project.getEscrowStatus());
                 throw new ServiceException("资金已释放或状态异常");
+            }
+
+            // 3.1 验证审核状态（必须审核通过才能释放资金）
+            if (project.getFundReleaseAuditStatus() == null || project.getFundReleaseAuditStatus() != 2) {
+                log.error("[众筹资金释放] 审核状态不允许释放: 项目ID={}, 审核状态={}", projectId, project.getFundReleaseAuditStatus());
+                throw new ServiceException("资金释放申请尚未审核通过，无法释放资金");
             }
 
             // 4. 验证是否上传了实物照片
@@ -785,7 +791,7 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
             );
 
             // 7. 更新项目托管状态为已释放
-            project.setEscrowStatus(2); // 2=已释放
+            project.setEscrowStatus(1); // 1=已释放给厂家
             project.setFundReleaseTime(new Date());
             int updateResult = crowdfundingProjectMapper.updateById(project);
 
@@ -803,6 +809,89 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
         } catch (Exception e) {
             log.error("[众筹资金释放] 系统异常: 项目ID={}, 异常=", projectId, e);
             throw new ServiceException("释放资金失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 审核资金释放申请
+     *
+     * @param projectId 众筹项目ID
+     * @param auditStatus 审核状态：2=审核通过，3=审核拒绝
+     * @param auditRemark 审核备注
+     * @return 是否成功
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean auditFundRelease(Long projectId, Integer auditStatus, String auditRemark) {
+        log.info("[资金释放审核] 开始审核: 项目ID={}, 审核状态={}, 审核备注={}", projectId, auditStatus, auditRemark);
+
+        try {
+            // 1. 查询众筹项目信息
+            SdCrowdfundingProject project = crowdfundingProjectMapper.selectSdCrowdfundingProjectById(projectId);
+            if (project == null) {
+                log.error("[资金释放审核] 项目不存在: 项目ID={}", projectId);
+                throw new ServiceException("众筹项目不存在");
+            }
+
+            // 2. 验证项目状态（只允许成功或已完成的项目进行审核）
+            if (project.getStatus() == null || project.getStatus() != CrowdfundingProjectStatus.SUCCESS.getCode()) {
+                log.error("[资金释放审核] 项目状态不允许审核: 项目ID={}, 状态={}", projectId, project.getStatus());
+                throw new ServiceException("只有众筹成功的项目才能审核资金释放申请");
+            }
+
+            // 3. 验证审核状态（必须是待审核状态）
+            if (project.getFundReleaseAuditStatus() == null || project.getFundReleaseAuditStatus() != 1) {
+                log.error("[资金释放审核] 审核状态不允许审核: 项目ID={}, 审核状态={}", projectId, project.getFundReleaseAuditStatus());
+                throw new ServiceException("当前状态不允许审核，只能审核待审核状态的申请");
+            }
+
+            // 4. 验证审核状态值
+            if (auditStatus == null || (auditStatus != 2 && auditStatus != 3)) {
+                log.error("[资金释放审核] 审核状态值不正确: 项目ID={}, 审核状态={}", projectId, auditStatus);
+                throw new ServiceException("审核状态值不正确，必须是2（审核通过）或3（审核拒绝）");
+            }
+
+            // 5. 获取当前登录用户（审核人）
+            Long auditUserId = LoginHelper.getUserId();
+            String auditUserName = LoginHelper.getUsername();
+
+            // 6. 更新审核状态
+            project.setFundReleaseAuditStatus(auditStatus);
+            project.setAuditRemark(auditRemark);
+            project.setAuditUserId(auditUserId);
+            project.setAuditTime(new Date());
+
+            int updateResult = crowdfundingProjectMapper.updateById(project);
+
+            if (updateResult > 0) {
+                if (auditStatus == 2) {
+                    log.info("[资金释放审核] 审核通过: 项目ID={}, 审核人={}, 审核备注={}", projectId, auditUserName, auditRemark);
+                    
+                    // 审核通过后，自动执行资金释放
+                    try {
+                        String transferOrderNo = releaseCrowdfundingFunds(projectId);
+                        log.info("[资金释放审核] 审核通过后自动释放资金成功: 项目ID={}, 转账订单号={}", projectId, transferOrderNo);
+                    } catch (Exception e) {
+                        log.error("[资金释放审核] 审核通过后自动释放资金失败: 项目ID={}", projectId, e);
+                        // 审核状态已经更新为通过，但资金释放失败，这里记录错误但不影响审核结果
+                        // 可以后续通过其他方式重新触发资金释放
+                        throw new ServiceException("审核通过，但资金释放失败: " + e.getMessage());
+                    }
+                } else {
+                    log.info("[资金释放审核] 审核拒绝: 项目ID={}, 审核人={}, 审核备注={}", projectId, auditUserName, auditRemark);
+                }
+                return true;
+            } else {
+                log.error("[资金释放审核] 更新项目状态失败: 项目ID={}", projectId);
+                throw new ServiceException("更新项目状态失败");
+            }
+
+        } catch (ServiceException e) {
+            log.error("[资金释放审核] 业务异常: 项目ID={}, 错误={}", projectId, e.getMessage());
+            throw e;
+        } catch (Exception e) {
+            log.error("[资金释放审核] 系统异常: 项目ID={}, 异常=", projectId, e);
+            throw new ServiceException("审核失败: " + e.getMessage());
         }
     }
 

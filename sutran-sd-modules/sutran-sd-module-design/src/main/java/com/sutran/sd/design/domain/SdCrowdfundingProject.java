@@ -252,6 +252,30 @@ public class SdCrowdfundingProject extends BaseEntity {
     private Integer escrowStatus;
 
     /**
+     * 资金释放审核状态：1=待审核，2=审核通过，3=审核拒绝
+     */
+    @TableField("fund_release_audit_status")
+    private Integer fundReleaseAuditStatus;
+
+    /**
+     * 审核备注
+     */
+    @TableField("audit_remark")
+    private String auditRemark;
+
+    /**
+     * 审核人ID
+     */
+    @TableField("audit_user_id")
+    private Long auditUserId;
+
+    /**
+     * 审核时间
+     */
+    @TableField("audit_time")
+    private Date auditTime;
+
+    /**
      * 资金释放时间
      */
     @TableField("fund_release_time")

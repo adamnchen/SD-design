@@ -40,6 +40,10 @@
         <result property="manufacturerPhotos" column="manufacturer_photos"/>
         <result property="manufacturerUploadTime" column="manufacturer_upload_time"/>
         <result property="escrowStatus" column="escrow_status"/>
+        <result property="fundReleaseAuditStatus" column="fund_release_audit_status"/>
+        <result property="auditRemark" column="audit_remark"/>
+        <result property="auditUserId" column="audit_user_id"/>
+        <result property="auditTime" column="audit_time"/>
         <result property="fundReleaseTime" column="fund_release_time"/>
         <result property="tieredPricing" column="tiered_pricing"/>
         <result property="profitShareRatio" column="profit_share_ratio"/>
@@ -58,7 +62,7 @@
                is_featured, is_hot, sort_order, risk_tips,
                draw_number, total_samples, draw_status, draw_time,
                manufacturer_photos, manufacturer_upload_time,
-               escrow_status, fund_release_time,
+               escrow_status, fund_release_audit_status, audit_remark, audit_user_id, audit_time, fund_release_time,
                create_by, create_time, update_by, update_time
         FROM sd_crowdfunding_project
     </sql>
@@ -358,6 +362,10 @@
             <if test="manufacturerPhotos != null">manufacturer_photos = #{manufacturerPhotos},</if>
             <if test="manufacturerUploadTime != null">manufacturer_upload_time = #{manufacturerUploadTime},</if>
             <if test="escrowStatus != null">escrow_status = #{escrowStatus},</if>
+            <if test="fundReleaseAuditStatus != null">fund_release_audit_status = #{fundReleaseAuditStatus},</if>
+            <if test="auditRemark != null">audit_remark = #{auditRemark},</if>
+            <if test="auditUserId != null">audit_user_id = #{auditUserId},</if>
+            <if test="auditTime != null">audit_time = #{auditTime},</if>
             <if test="fundReleaseTime != null">fund_release_time = #{fundReleaseTime},</if>
             <if test="tieredPricing != null">tiered_pricing = #{tieredPricing},</if>
             <if test="profitShareRatio != null">profit_share_ratio = #{profitShareRatio},</if>

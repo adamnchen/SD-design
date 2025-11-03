@@ -154,10 +154,20 @@ public interface ISdCrowdfundingProjectService {
     List<CrowdfundingProjectListVO> getManufacturerSuccessfulProjects();
 
     /**
-     * 释放众筹资金给商家（商家上传图片后调用）
+     * 释放众筹资金给商家（审核通过后调用）
      *
      * @param projectId 众筹项目ID
      * @return 转账订单号
      */
     String releaseCrowdfundingFunds(Long projectId);
+
+    /**
+     * 审核资金释放申请
+     *
+     * @param projectId 众筹项目ID
+     * @param auditStatus 审核状态：2=审核通过，3=审核拒绝
+     * @param auditRemark 审核备注
+     * @return 是否成功
+     */
+    boolean auditFundRelease(Long projectId, Integer auditStatus, String auditRemark);
 }

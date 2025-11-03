@@ -4,10 +4,12 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.sutran.sd.common.exception.ServiceException;
 import com.sutran.sd.design.config.CrowdfundingConfig;
 import com.sutran.sd.design.domain.SdCrowdfundingProject;
+import com.sutran.sd.design.domain.SdCrowdfundingSampleDelivery;
 import com.sutran.sd.design.domain.SdCrowdfundingSupport;
 import com.sutran.sd.design.enums.CrowdfundingProjectStatus;
 import com.sutran.sd.design.enums.CrowdfundingSupportStatus;
 import com.sutran.sd.design.mapper.SdCrowdfundingProjectMapper;
+import com.sutran.sd.design.mapper.SdCrowdfundingSampleDeliveryMapper;
 import com.sutran.sd.design.mapper.SdCrowdfundingSupportMapper;
 import com.sutran.sd.design.mapper.SdProofingInvitationMapper;
 import com.sutran.sd.common.core.domain.entity.SdProofingInvitation;
@@ -50,6 +52,7 @@ public class ProofCrowdfundPayNotifyServiceImpl extends BasePayNotifyService {
     private final SdProofingInvitationMapper proofingInvitationMapper;
     private final AliPayService aliPayService;
     private final PayOrderService payOrderService;
+    private final SdCrowdfundingSampleDeliveryMapper deliveryMapper;
 
     /**
      * 处理支付成功业务
@@ -194,9 +197,9 @@ public class ProofCrowdfundPayNotifyServiceImpl extends BasePayNotifyService {
             for (SdCrowdfundingSupport winner : winners) {
                 winner.setDrawStatus(2); // 中奖
                 winner.setIsWinner(1); // 是中奖者
-                winner.setPrizeInfo("恭喜中奖！奖品信息待定");
+                winner.setPrizeInfo("恭喜中奖！");
                 supportMapper.updateById(winner);
-                log.info("中奖者: 用户ID={}, 用户名={}", winner.getUserId(), winner.getUserName());
+                log.info("中奖者: 用户ID={}, 用户名={}, 订单号={}", winner.getUserId(), winner.getUserName(), winner.getOrderNo());
             }
 
             // 更新未中奖者状态
@@ -218,6 +221,15 @@ public class ProofCrowdfundPayNotifyServiceImpl extends BasePayNotifyService {
                 createInitiatorWinnerRecord(project, unallocatedSamples);
             }
 
+            // 查询所有中奖者（包括抽奖中奖的和发起人必得样品的）
+            LambdaQueryWrapper<SdCrowdfundingSupport> winnerQueryWrapper = new LambdaQueryWrapper<>();
+            winnerQueryWrapper.eq(SdCrowdfundingSupport::getProjectId, project.getId())
+                .eq(SdCrowdfundingSupport::getIsWinner, 1); // 所有中奖者
+            List<SdCrowdfundingSupport> allWinners = supportMapper.selectList(winnerQueryWrapper);
+
+            // 为所有中奖者创建样品配送记录（使用生成支付二维码时的真实订单号）
+            createSampleDeliveryRecords(project, allWinners);
+
             // 更新项目抽奖状态为已结束
             project.setDrawStatus(2);
             crowdfundingProjectMapper.updateSdCrowdfundingProject(project);
@@ -228,6 +240,74 @@ public class ProofCrowdfundPayNotifyServiceImpl extends BasePayNotifyService {
         } catch (Exception e) {
             log.error("自动执行抽奖异常: 项目ID={}", project.getId(), e);
             throw e;
+        }
+    }
+
+    /**
+     * 为中奖者创建样品配送记录
+     * @param project 众筹项目
+     * @param winners 中奖者列表
+     */
+    private void createSampleDeliveryRecords(SdCrowdfundingProject project, List<SdCrowdfundingSupport> winners) {
+        try {
+            if (winners == null || winners.isEmpty()) {
+                log.warn("没有中奖者，无需创建样品配送记录: 项目ID={}", project.getId());
+                return;
+            }
+
+            // 检查项目是否有关联的打样邀约
+            if (project.getProofingInvitationId() == null) {
+                log.warn("项目未关联打样邀约，无法创建样品配送记录: 项目ID={}", project.getId());
+                return;
+            }
+
+            for (SdCrowdfundingSupport winner : winners) {
+                try {
+                    // 检查是否已经存在配送记录（通过收货人用户ID和项目ID）
+                    LambdaQueryWrapper<SdCrowdfundingSampleDelivery> deliveryQueryWrapper = new LambdaQueryWrapper<>();
+                    deliveryQueryWrapper.eq(SdCrowdfundingSampleDelivery::getCrowdfundingProjectId, project.getId())
+                        .eq(SdCrowdfundingSampleDelivery::getRecipientUserId, winner.getUserId())
+                        .eq(SdCrowdfundingSampleDelivery::getStatus, 1); // 待发货状态
+
+                    Long existingCount = deliveryMapper.selectCount(deliveryQueryWrapper);
+                    if (existingCount > 0) {
+                        log.info("样品配送记录已存在，跳过创建: 项目ID={}, 用户ID={}, 订单号={}",
+                            project.getId(), winner.getUserId(), winner.getOrderNo());
+                        continue;
+                    }
+
+                    // 创建样品配送记录
+                    SdCrowdfundingSampleDelivery delivery = new SdCrowdfundingSampleDelivery();
+                    delivery.setCrowdfundingProjectId(project.getId());
+                    delivery.setProofingInvitationId(project.getProofingInvitationId());
+                    delivery.setRecipientUserId(winner.getUserId());
+                    delivery.setRecipientName(winner.getReceiverName() != null ? winner.getReceiverName() : winner.getUserName());
+                    delivery.setRecipientPhone(winner.getReceiverPhone() != null ? winner.getReceiverPhone() : "");
+                    delivery.setDeliveryAddress(winner.getReceiverAddress() != null ? winner.getReceiverAddress() : "");
+                    delivery.setStatus(1); // 待发货
+                    delivery.setRemark(winner.getPrizeInfo() != null ? winner.getPrizeInfo() : "中奖样品");
+                    delivery.setOrderStatus(1); // 待处理
+
+                    // 发货人信息（厂家）
+                    delivery.setSenderUserId(project.getManufacturerUserId());
+                    delivery.setSenderName(project.getManufacturerName() != null ? project.getManufacturerName() : "");
+
+                    deliveryMapper.insert(delivery);
+
+                    log.info("样品配送记录创建成功: 项目ID={}, 用户ID={}, 用户名={}, 订单号={}, 收货人={}",
+                        project.getId(), winner.getUserId(), winner.getUserName(), winner.getOrderNo(),
+                        delivery.getRecipientName());
+
+                } catch (Exception e) {
+                    log.error("创建样品配送记录失败: 项目ID={}, 用户ID={}, 订单号={}",
+                        project.getId(), winner.getUserId(), winner.getOrderNo(), e);
+                }
+            }
+
+            log.info("样品配送记录创建完成: 项目ID={}, 中奖人数={}", project.getId(), winners.size());
+
+        } catch (Exception e) {
+            log.error("批量创建样品配送记录失败: 项目ID={}", project.getId(), e);
         }
     }
 
@@ -292,6 +372,8 @@ public class ProofCrowdfundPayNotifyServiceImpl extends BasePayNotifyService {
                 }
 
                 supportMapper.insert(initiatorSupport);
+             
+
 
                 log.info("发起人必得样品记录创建成功: 项目ID={}, 发起人ID={}, 样品数量={}",
                     project.getId(), project.getCreatorUserId(), sampleCount);

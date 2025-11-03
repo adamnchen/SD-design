@@ -197,6 +197,8 @@ public class CrowdfundingController extends BaseController {
             // 更新厂家照片
             project.setManufacturerPhotos(photosJson);
             project.setManufacturerUploadTime(new java.util.Date());
+            // 厂家上传照片后，设置资金释放审核状态为待审核
+            project.setFundReleaseAuditStatus(1); // 1=待审核
             crowdfundingProjectMapper.updateSdCrowdfundingProject(project);
             
             log.info("[众筹项目] 厂家上传照片成功: 项目ID={}, 厂家ID={}, 照片数量={}", 

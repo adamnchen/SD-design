@@ -4,7 +4,6 @@ import com.alibaba.fastjson.JSONObject;
 import com.sutran.sd.common.core.domain.PageQuery;
 import com.sutran.sd.common.core.page.TableDataInfo;
 import com.sutran.sd.draw.domain.SdGpuPool;
-import com.sutran.sd.draw.domain.bo.TrainCaptionBo;
 import com.sutran.sd.draw.domain.dto.model.SdTrainTaskDto;
 import com.sutran.sd.draw.domain.dto.train.SdTrainAdditionTagDto;
 import com.sutran.sd.draw.domain.dto.train.SdTrainLoraDto;
@@ -186,7 +185,7 @@ public interface SdTrainService {
     String startTrainTaskV2(MultipartFile[] images, String loraName, List<String> captions, String modelTag, Integer isOpen, String modelDesc) throws IOException;
 
      /**
-      * [FluxGym]SD训练-查询训练进度
+      * [FluxGym]查询训练进度
       *
       * @param taskId 任务id
       * @param nodeId 节点id
@@ -196,57 +195,67 @@ public interface SdTrainService {
      FluxgymTrainProgressVo getFluxgymProgress(String taskId, String nodeId,boolean isSchedule);
 
     /**
-     * [FluxGym]SD训练-查询训练任务状态
+     * [FluxGym]查询训练任务状态
      * @param taskId 任务ID
      * @return 任务状态
      */
      FluxgymTaskStatusVo getFluxgymTaskStatus(String taskId);
 
      /**
-      * [FluxGym]SD训练-处理训练完成后的模型文件
+      * [FluxGym]处理训练完成后的模型文件
       *
       * @param taskId     任务id
       */
      void dealFluxgymTrainModelFile(String taskId);
 
     /**
-     * [FluxGym]SD训练-查询训练任务列表
+     * [FluxGym]查询训练任务列表
      * @param dto 查询参数实体
      * @return 训练任务列表
      */
      TableDataInfo<TrainTaskVo> listTrainTaskOfFluxgym(SdTrainTaskDto dto);
 
      /**
-      * [FluxGym]SD训练-根据任务ID查询模型名称列表
+      * [FluxGym]根据任务ID查询模型名称列表
       * @param taskId 训练任务id
       * @return 模型名称列表
       */
     List<FluxgymModelListVo> listModelNameOfFluxgym(String taskId);
 
      /**
-      * [FluxGym]SD训练-根据任务ID查询模型素材原图、提示词和缩略图
+      * [FluxGym]根据任务ID查询模型素材原图、提示词和缩略图
       * @param taskId 训练任务id
       * @return 模型名称列表
       */
     FluxgymModelPreviewVo listModelPreviewOfFluxgym(String taskId);
 
      /**
-      * [FluxGym]SD训练-发布/取消发布模型
+      * [FluxGym]发布/取消发布模型
       * @param id 模型id
       * @param publishStatus 发布状态[0-取消发布,1-发布]
       */
     void publishModelOfFluxgym(String id, Integer publishStatus);
 
      /**
-      * [FluxGym]SD训练-删除当前任务未发布模型
+      * [FluxGym]删除当前任务未发布模型
       * @param taskId 任务id
       */
     void removeUnpublishedModelOfFluxgym(String taskId);
 
     /**
-     * FluxGym]SD训练-当前用户正在训练的任务ID
+     * [FluxGym]当前用户正在训练的任务ID
      * @param userId 用户ID
      * @return 进行中的任务ID
      */
     String getDoingFluxgymTask(Long userId);
+
+    /**
+     * [FluxGym]获取当前登录人已发起的训练任务V2
+     *
+     * @param pageQuery 分页参数
+     * @param newStatus 任务状态[0-预处理队列中,1-预处理中,2-未训练,3-训练队列中,4-训练中,5-训练完成,6-训练失败]
+     * @param userId    登录人id
+     * @return 任务集合
+     */
+    TableDataInfo<TrainTaskVo> getFluxgymTrainTasks(PageQuery pageQuery, Integer newStatus, Long userId);
 }

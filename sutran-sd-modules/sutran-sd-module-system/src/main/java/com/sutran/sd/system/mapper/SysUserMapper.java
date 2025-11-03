@@ -5,9 +5,9 @@ import com.baomidou.mybatisplus.core.toolkit.Constants;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.sutran.sd.common.annotation.DataColumn;
 import com.sutran.sd.common.annotation.DataPermission;
-import com.sutran.sd.common.core.domain.entity.SysAddress;
 import com.sutran.sd.common.core.domain.entity.SysUser;
 import com.sutran.sd.common.core.mapper.BaseMapperPlus;
+import com.sutran.sd.system.domain.vo.UserBaseVo;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
@@ -168,4 +168,13 @@ public interface SysUserMapper extends BaseMapperPlus<SysUserMapper, SysUser, Sy
      */
     @Select("SELECT limit_train_times FROM sys_user WHERE user_id=#{userId}")
     Integer selectTrainTimesById(@Param("userId") Long userId);
+
+    /**
+     * 查询可分享人员信息列表
+     * @param phoneNumber   手机好
+     * @param nickName      昵称
+     * @return 人员列表
+     */
+    @Select("SELECT user_id AS userId,nick_name AS nickName FROM sys_user WHERE phonenumber LIKE CONCAT(#{phoneNumber},'%') OR nick_name LIKE CONCAT(#{nickName},'%')")
+    List<UserBaseVo> selectShareUserListByPhoneNumberOrNickName(@Param("phoneNumber") String phoneNumber, @Param("nickName") String nickName);
 }

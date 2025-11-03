@@ -34,6 +34,7 @@ import com.sutran.sd.system.domain.SysUserForgetPwd;
 import com.sutran.sd.system.domain.bo.SysUserMemberBo;
 import com.sutran.sd.system.domain.vo.SysUserExportVo;
 import com.sutran.sd.system.domain.vo.SysUserImportVo;
+import com.sutran.sd.system.domain.vo.UserBaseVo;
 import com.sutran.sd.system.listener.SysUserImportListener;
 import com.sutran.sd.system.service.ISysDeptService;
 import com.sutran.sd.system.service.ISysPostService;
@@ -59,7 +60,7 @@ import java.util.*;
 @RequestMapping("/system/user")
 public class SysUserController extends BaseController {
 
-    private final ISysUserService userService;
+    private final ISysUserService sysUserService;
     private final ISysRoleService roleService;
     private final ISysPostService postService;
     private final ISysDeptService deptService;
@@ -71,7 +72,7 @@ public class SysUserController extends BaseController {
     @SaCheckPermission("system:user:list")
     @GetMapping("/list")
     public TableDataInfo<SysUser> list(SysUser user, PageQuery pageQuery) {
-        return userService.selectPageUserList(user, pageQuery);
+        return sysUserService.selectPageUserList(user, pageQuery);
     }
 
     /**
@@ -81,7 +82,7 @@ public class SysUserController extends BaseController {
     @SaCheckPermission("system:user:export")
     @PostMapping("/export")
     public void export(SysUser user, HttpServletResponse response) {
-        List<SysUser> list = userService.selectUserList(user);
+        List<SysUser> list = sysUserService.selectUserList(user);
         List<SysUserExportVo> listVo = BeanUtil.copyToList(list, SysUserExportVo.class);
         for (int i = 0; i < list.size(); i++) {
             SysDept dept = list.get(i).getDept();
@@ -124,7 +125,7 @@ public class SysUserController extends BaseController {
     @SaCheckPermission("system:user:query")
     @GetMapping(value = {"/", "/{userId}"})
     public R<Map<String, Object>> getInfo(@PathVariable(value = "userId", required = false) Long userId) {
-        userService.checkUserDataScope(userId);
+        sysUserService.checkUserDataScope(userId);
         Map<String, Object> ajax = new HashMap<>(8);
         SysRole role = new SysRole();
         role.setStatus(UserConstants.ROLE_NORMAL);
@@ -134,7 +135,7 @@ public class SysUserController extends BaseController {
         ajax.put("roles", LoginHelper.isAdmin(userId) ? roles : StreamUtils.filter(roles, r -> !r.isAdmin()));
         ajax.put("posts", postService.selectPostList(post));
         if (ObjectUtil.isNotNull(userId)) {
-            SysUser sysUser = userService.selectUserById(userId);
+            SysUser sysUser = sysUserService.selectUserById(userId);
             ajax.put("user", sysUser);
             ajax.put("postIds", postService.selectPostListByUserId(userId));
             ajax.put("roleIds", StreamUtils.toList(sysUser.getRoles(), SysRole::getRoleId));
@@ -150,15 +151,15 @@ public class SysUserController extends BaseController {
     @PostMapping
     public R<Void> add(@Validated @RequestBody SysUser user) {
         deptService.checkDeptDataScope(user.getDeptId());
-        if (!userService.checkUserNameUnique(user)) {
+        if (!sysUserService.checkUserNameUnique(user)) {
             return R.fail("新增用户'" + user.getUserName() + "'失败，登录账号已存在");
-        } else if (StringUtils.isNotEmpty(user.getPhonenumber()) && !userService.checkPhoneUnique(user)) {
+        } else if (StringUtils.isNotEmpty(user.getPhonenumber()) && !sysUserService.checkPhoneUnique(user)) {
             return R.fail("新增用户'" + user.getUserName() + "'失败，手机号码已存在");
-        } else if (StringUtils.isNotEmpty(user.getEmail()) && !userService.checkEmailUnique(user)) {
+        } else if (StringUtils.isNotEmpty(user.getEmail()) && !sysUserService.checkEmailUnique(user)) {
             return R.fail("新增用户'" + user.getUserName() + "'失败，邮箱账号已存在");
         }
         user.setPassword(BCrypt.hashpw(user.getPassword()));
-        return toAjax(userService.insertUser(user));
+        return toAjax(sysUserService.insertUser(user));
     }
 
     /**
@@ -168,17 +169,17 @@ public class SysUserController extends BaseController {
     @Log(title = "用户管理", businessType = BusinessType.UPDATE)
     @PutMapping
     public R<Void> edit(@Validated @RequestBody SysUser user) {
-        userService.checkUserAllowed(user);
-        userService.checkUserDataScope(user.getUserId());
+        sysUserService.checkUserAllowed(user);
+        sysUserService.checkUserDataScope(user.getUserId());
         deptService.checkDeptDataScope(user.getDeptId());
-        if (!userService.checkUserNameUnique(user)) {
+        if (!sysUserService.checkUserNameUnique(user)) {
             return R.fail("修改用户'" + user.getUserName() + "'失败，登录账号已存在");
-        } else if (StringUtils.isNotEmpty(user.getPhonenumber()) && !userService.checkPhoneUnique(user)) {
+        } else if (StringUtils.isNotEmpty(user.getPhonenumber()) && !sysUserService.checkPhoneUnique(user)) {
             return R.fail("修改用户'" + user.getUserName() + "'失败，手机号码已存在");
-        } else if (StringUtils.isNotEmpty(user.getEmail()) && !userService.checkEmailUnique(user)) {
+        } else if (StringUtils.isNotEmpty(user.getEmail()) && !sysUserService.checkEmailUnique(user)) {
             return R.fail("修改用户'" + user.getUserName() + "'失败，邮箱账号已存在");
         }
-        return toAjax(userService.updateUser(user));
+        return toAjax(sysUserService.updateUser(user));
     }
 
     /**
@@ -193,7 +194,7 @@ public class SysUserController extends BaseController {
         if (ArrayUtil.contains(userIds, getUserId())) {
             return R.fail("当前用户不能删除");
         }
-        return toAjax(userService.deleteUserByIds(userIds));
+        return toAjax(sysUserService.deleteUserByIds(userIds));
     }
 
     /**
@@ -203,10 +204,10 @@ public class SysUserController extends BaseController {
     @Log(title = "用户管理", businessType = BusinessType.UPDATE)
     @PutMapping("/resetPwd")
     public R<Void> resetPwd(@RequestBody SysUser user) {
-        userService.checkUserAllowed(user);
-        userService.checkUserDataScope(user.getUserId());
+        sysUserService.checkUserAllowed(user);
+        sysUserService.checkUserDataScope(user.getUserId());
         user.setPassword(BCrypt.hashpw(user.getPassword()));
-        return toAjax(userService.resetPwd(user));
+        return toAjax(sysUserService.resetPwd(user));
     }
 
     /**
@@ -219,7 +220,7 @@ public class SysUserController extends BaseController {
             throw new CaptchaException();
         }
         forgetPwd.setNewPwd(BCrypt.hashpw(forgetPwd.getNewPwd()));
-        return toAjax(userService.forgetPwd(forgetPwd.getPhone(),forgetPwd.getNewPwd()));
+        return toAjax(sysUserService.forgetPwd(forgetPwd.getPhone(),forgetPwd.getNewPwd()));
     }
 
     /**
@@ -240,9 +241,9 @@ public class SysUserController extends BaseController {
     @Log(title = "用户管理", businessType = BusinessType.UPDATE)
     @PutMapping("/changeStatus")
     public R<Void> changeStatus(@RequestBody SysUser user) {
-        userService.checkUserAllowed(user);
-        userService.checkUserDataScope(user.getUserId());
-        return toAjax(userService.updateUserStatus(user));
+        sysUserService.checkUserAllowed(user);
+        sysUserService.checkUserDataScope(user.getUserId());
+        return toAjax(sysUserService.updateUserStatus(user));
     }
 
     /**
@@ -252,8 +253,8 @@ public class SysUserController extends BaseController {
     @Log(title = "用户管理", businessType = BusinessType.UPDATE)
     @PutMapping("/recoverDel")
     public R<Void> recoverDel(@RequestBody SysUser user) {
-        userService.checkUserAllowed(user);
-        return toAjax(userService.recoverDel(user.getUserId(),user.getDelFlag()));
+        sysUserService.checkUserAllowed(user);
+        return toAjax(sysUserService.recoverDel(user.getUserId(),user.getDelFlag()));
     }
 
     /**
@@ -264,7 +265,7 @@ public class SysUserController extends BaseController {
     @SaCheckPermission("system:user:query")
     @GetMapping("/authRole/{userId}")
     public R<Map<String, Object>> authRole(@PathVariable Long userId) {
-        SysUser user = userService.selectUserById(userId);
+        SysUser user = sysUserService.selectUserById(userId);
         List<SysRole> roles = roleService.selectRolesByUserId(userId);
         Map<String, Object> ajax = new HashMap<>(2);
         ajax.put("user", user);
@@ -282,8 +283,8 @@ public class SysUserController extends BaseController {
     @Log(title = "用户管理", businessType = BusinessType.GRANT)
     @PutMapping("/authRole")
     public R<Void> insertAuthRole(Long userId, Long[] roleIds) {
-        userService.checkUserDataScope(userId);
-        userService.insertUserAuth(userId, roleIds);
+        sysUserService.checkUserDataScope(userId);
+        sysUserService.insertUserAuth(userId, roleIds);
         return R.ok();
     }
 
@@ -307,8 +308,20 @@ public class SysUserController extends BaseController {
             return R.fail("参数错误");
         }
         PayMember payMember = payMemberService.detailById(bo.getMemberId().toString());
-        userService.insertAuthMember(bo,payMember,new Date());
+        sysUserService.insertAuthMember(bo,payMember,new Date());
         return R.ok();
+    }
+
+    /**
+     * [分享]查询可分享人员信息列表
+     */
+    @GetMapping("/share-list")
+    public R<List<UserBaseVo>> shareUserList(@RequestParam(required = false) String phoneNumber, @RequestParam(required = false) String nickName) {
+        if (StringUtils.isBlank(phoneNumber) && StringUtils.isBlank(nickName)) {
+            return R.ok(Collections.emptyList());
+        }
+        List<UserBaseVo> vos = sysUserService.selectShareUserListByPhoneNumberOrNickName(phoneNumber,nickName);
+        return R.ok(vos);
     }
 
 }

@@ -44,7 +44,7 @@ public class ComfyWebsocketClient {
             webSocketClient = new WebSocketClient(new URI(wsUrl)) {
                 @Override
                 public void onOpen(ServerHandshake handshake) {
-                    log.warn("连接到任务：{}，内部任务ID：{}",taskId,promptId);
+                    log.warn("[ComfUI][Websocket]>>>>>>>>>连接到任务：{}，内部任务ID：{}",taskId,promptId);
                 }
                 @Override
                 public void onMessage(String message) {

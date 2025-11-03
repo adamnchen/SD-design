@@ -8,7 +8,6 @@ import com.sutran.sd.common.core.domain.R;
 import com.sutran.sd.common.core.domain.dto.WxMsgDto;
 import com.sutran.sd.common.core.page.TableDataInfo;
 import com.sutran.sd.common.helper.LoginHelper;
-import com.sutran.sd.draw.domain.bo.TrainCaptionBo;
 import com.sutran.sd.draw.domain.dto.train.SdTrainAdditionTagDto;
 import com.sutran.sd.draw.domain.dto.train.SdTrainLoraDto;
 import com.sutran.sd.draw.domain.dto.train.SdTrainPreImgDto;
@@ -212,7 +211,7 @@ public class SdTrainController {
 
 
     /**
-     * [FluxGym]SD训练-提交预处理(图片识别)
+     * [FluxGym]提交预处理(图片识别)
      * @param images        图片集合
      * @param loraName      训练模型名称(用于触发词)
      * @return 识别结果
@@ -224,7 +223,7 @@ public class SdTrainController {
     }
 
     /**
-     * [FluxGym]SD训练-提交训练
+     * [FluxGym]提交训练
      * @param taskId  任务id
      * @param modelTag 模型标签(多个用逗号隔开)
      * @param isOpen   是否公开[0-否,1-是]
@@ -243,7 +242,7 @@ public class SdTrainController {
     }
 
     /**
-     * [FluxGym][V2]SD训练-提交训练
+     * [FluxGym][V2]提交训练
      * @param images        图片集合
      * @param loraName      训练模型名称(用于触发词)
      * @param captions      图片英文描述词
@@ -266,7 +265,7 @@ public class SdTrainController {
     }
 
     /**
-     * [FluxGym]SD训练-查询训练进度
+     * [FluxGym]查询训练进度
      * @param taskId 任务ID
      */
     @ApiOperationSupport(order = 16)
@@ -276,7 +275,7 @@ public class SdTrainController {
     }
 
     /**
-     * [FluxGym]SD训练-查询训练任务状态
+     * [FluxGym]查询训练任务状态
      * @param taskId 任务ID
      */
     @ApiOperationSupport(order = 16)
@@ -286,12 +285,28 @@ public class SdTrainController {
     }
 
     /**
-     * [FluxGym]SD训练-当前用户正在训练的任务ID
+     * [FluxGym]当前用户正在训练的任务ID
      */
     @ApiOperationSupport(order = 16)
     @GetMapping("/fluxgym/doing-task")
     public R<String> getDoingTask(){
         return R.ok("操作成功",sdTrainService.getDoingFluxgymTask(LoginHelper.getUserId()));
+    }
+
+    /**
+     * [FluxGym]分页获取当前用户的训练任务
+     * @param newStatus 任务状态[0-预处理队列中,1-预处理中,2-未训练,3-训练队列中,4-训练中,5-训练完成,6-训练失败]
+     * @return 任务集合
+     */
+    @ApiOperationSupport(order = 1)
+    @GetMapping("/fluxgym/my-task/page")
+    public TableDataInfo<TrainTaskVo> getFluxgymTrainTasks(@RequestParam(required = false) Integer newStatus,
+                                                           @RequestParam(defaultValue = "1") int pageNum,
+                                                           @RequestParam(defaultValue = "20") int pageSize){
+        PageQuery pageQuery = new PageQuery();
+        pageQuery.setPageNum(pageNum);
+        pageQuery.setPageSize(pageSize);
+        return sdTrainService.getFluxgymTrainTasks(pageQuery, newStatus, LoginHelper.getUserId());
     }
 
     /**

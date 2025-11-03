@@ -30,7 +30,6 @@ import com.sutran.sd.common.utils.file.FileUtils;
 import com.sutran.sd.common.utils.redis.RedisUtils;
 import com.sutran.sd.draw.domain.*;
 import com.sutran.sd.draw.domain.bo.ImageInfoBo;
-import com.sutran.sd.draw.domain.bo.TrainCaptionBo;
 import com.sutran.sd.draw.domain.bo.TrainTaskInfo;
 import com.sutran.sd.draw.domain.dto.model.SdTrainTaskDto;
 import com.sutran.sd.draw.domain.dto.train.*;
@@ -1801,7 +1800,9 @@ public class SdTrainServiceImpl implements SdTrainService {
         if (CollectionUtil.isEmpty(list)) {
             return TableDataInfo.build(Collections.emptyList());
         }
-
+        // 获取昵称
+        List<Long> userIds = list.stream().map(e -> e.getCrtUserId()).filter(e -> e != null).distinct().collect(Collectors.toList());
+        Map<Long,String> nickNameMap = userService.selectNickNameMap(userIds);
         List<TrainTaskVo> records = list.stream().map(e -> {
             TrainTaskVo vo = new TrainTaskVo();
             BeanUtils.copyProperties(e, vo);
@@ -1822,6 +1823,7 @@ public class SdTrainServiceImpl implements SdTrainService {
                 List<String> additionTag = JSON.parseArray(e.getAdditionTag(), String.class);
                 vo.setAdditionTag(additionTag);
             }
+            vo.setNickName(nickNameMap.get(e.getCrtUserId()));
             return vo;
         }).collect(Collectors.toList());
         return new TableDataInfo<>(records,page.getTotal());
@@ -1980,6 +1982,43 @@ public class SdTrainServiceImpl implements SdTrainService {
     @Override
     public String getDoingFluxgymTask(Long userId) {
         return sdTrainTaskService.getDoingFluxgymTask(userId);
+    }
+
+    /**
+     * [FluxGym]分页获取当前用户的训练任务
+     * @param pageQuery 分页参数
+     * @param newStatus 任务状态[0-预处理队列中,1-预处理中,2-未训练,3-训练队列中,4-训练中,5-训练完成,6-训练失败]
+     * @param userId    登录人id
+     * @return 任务集合
+     */
+    @Override
+    public TableDataInfo<TrainTaskVo> getFluxgymTrainTasks(PageQuery pageQuery, Integer newStatus, Long userId) {
+        // 根据当前用户和任务状态获取任务列表
+        Page<SdTrainTask> page = sdTrainTaskService.selectListByUserIdAndNewStatus(userId,newStatus,pageQuery);
+        List<SdTrainTask> list = page.getRecords();
+        if (CollectionUtil.isEmpty(list)) {
+            return TableDataInfo.build(Collections.emptyList());
+        }
+        List<TrainTaskVo> records = list.stream().map(e -> {
+            TrainTaskVo vo = new TrainTaskVo();
+            BeanUtils.copyProperties(e, vo);
+            vo.setPreTaskId(String.valueOf(e.getId()));
+            vo.setId(String.valueOf(e.getId()));
+            if (StringUtils.isNotBlank(e.getPreParams())) {
+                JSONObject preParams = JSONObject.parseObject(e.getPreParams());
+                vo.setPreTaskParams(preParams);
+            }
+            if (StringUtils.isNotBlank(e.getTrainParams())) {
+                JSONObject trainParams = JSONObject.parseObject(e.getTrainParams());
+                vo.setTrainTaskParams(trainParams);
+            }
+            if (StringUtils.isNotBlank(e.getAdditionTag())) {
+                List<String> additionTag = JSON.parseArray(e.getAdditionTag(), String.class);
+                vo.setAdditionTag(additionTag);
+            }
+            return vo;
+        }).collect(Collectors.toList());
+        return new TableDataInfo<>(records,page.getTotal());
     }
 
     /**
@@ -2260,7 +2299,7 @@ public class SdTrainServiceImpl implements SdTrainService {
                     SdUserModel model = new SdUserModel()
                         .setId(IdUtil.getSnowflakeNextId()).setTitle(title).setTaskId(Long.parseLong(taskId))
                         .setModelName(modelName).setModelNameZh(loraNameZh+prefix).setFileName(destModelFile.getAbsolutePath())
-                        .setCrtTime(new Date()).setIsOpen(isOpen).setType(1).setPublishStatus(0).setBelongUserId(userId)
+                        .setCrtTime(new Date()).setIsOpen(isOpen).setType(1).setPublishStatus(0).setBelongUserId(userId).setModelStrength("1.4")
                         .setModelTag(modelTag).setRemark(modelDesc).setModelType("FLUX");
                     // 移动对应的图片文件
                     if (modelImgs != null && i < modelImgs.length) {

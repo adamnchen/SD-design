@@ -5,6 +5,7 @@ import com.sutran.sd.common.core.domain.entity.PayMember;
 import com.sutran.sd.common.core.domain.entity.SysUser;
 import com.sutran.sd.common.core.page.TableDataInfo;
 import com.sutran.sd.system.domain.bo.SysUserMemberBo;
+import com.sutran.sd.system.domain.vo.UserBaseVo;
 
 import java.util.Date;
 import java.util.List;
@@ -259,4 +260,12 @@ public interface ISysUserService {
      * @param now           当前时间
      */
     void insertAuthMember(SysUserMemberBo bo, PayMember payMember, Date now);
+
+    /**
+     * 查询可分享人员信息列表
+     * @param phoneNumber   手机好
+     * @param nickName      昵称
+     * @return 人员列表
+     */
+    List<UserBaseVo> selectShareUserListByPhoneNumberOrNickName(String phoneNumber, String nickName);
 }

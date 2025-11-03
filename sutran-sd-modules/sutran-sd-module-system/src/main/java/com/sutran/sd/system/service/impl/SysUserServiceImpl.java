@@ -30,6 +30,7 @@ import com.sutran.sd.system.domain.SysPost;
 import com.sutran.sd.system.domain.SysUserPost;
 import com.sutran.sd.system.domain.SysUserRole;
 import com.sutran.sd.system.domain.bo.SysUserMemberBo;
+import com.sutran.sd.system.domain.vo.UserBaseVo;
 import com.sutran.sd.system.mapper.*;
 import com.sutran.sd.system.service.ISysUserService;
 import com.sutran.sd.system.service.ISysUserTagService;
@@ -193,6 +194,17 @@ public class SysUserServiceImpl implements ISysUserService, UserService {
     @Override
     public SysUser selectUserInfoById(Long userId) {
         return baseMapper.selectUserById(userId);
+    }
+
+    /**
+     * 根据用户ID列表查询用户昵称映射
+     * @param userIds 用户ID列表
+     * @return 用户昵称映射
+     */
+    @Override
+    public Map<Long, String> selectNickNameMap(List<Long> userIds) {
+        List<SysUser> list = baseMapper.selectList(new LambdaQueryWrapper<SysUser>().select(SysUser::getUserId, SysUser::getNickName).in(SysUser::getUserId, userIds));
+        return CollectionUtil.isEmpty(list)?Collections.emptyMap():list.stream().collect(Collectors.toMap(SysUser::getUserId, SysUser::getNickName));
     }
 
     /**
@@ -655,6 +667,17 @@ public class SysUserServiceImpl implements ISysUserService, UserService {
                 .setCreateTime(now);
             userMemberMapper.insert(sysUserMember);
         }
+    }
+
+    /**
+     * 查询可分享人员信息列表
+     * @param phoneNumber   手机好
+     * @param nickName      昵称
+     * @return 人员列表
+     */
+    @Override
+    public List<UserBaseVo> selectShareUserListByPhoneNumberOrNickName(String phoneNumber, String nickName) {
+        return baseMapper.selectShareUserListByPhoneNumberOrNickName(phoneNumber,nickName);
     }
 
     /**

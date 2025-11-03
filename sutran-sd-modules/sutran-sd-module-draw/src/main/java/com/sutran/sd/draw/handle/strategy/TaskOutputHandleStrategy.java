@@ -1,9 +1,7 @@
 package com.sutran.sd.draw.handle.strategy;
 
 import cn.hutool.core.collection.CollectionUtil;
-import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.net.url.UrlBuilder;
-import cn.hutool.core.util.IdUtil;
 import cn.hutool.http.HttpUtil;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.sutran.sd.common.utils.StringUtils;
@@ -24,7 +22,6 @@ import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 import static com.sutran.sd.common.constant.CacheConstants.DRAW_TASK_PROGRESS;
@@ -76,16 +73,17 @@ public class TaskOutputHandleStrategy implements IComfyWebSocketTextHandleStrate
             }
             List<String> urlList = new ArrayList<>();
             OssClient storage = OssFactory.instance();
-            UrlBuilder builder = UrlBuilder.of(task.getNodeUrl()).addPath("/view");
             for (ComfyTaskImage image : currentOutputImages) {
+                UrlBuilder builder = UrlBuilder.of(task.getNodeUrl()).addPath("/view");
+                String fileName = image.getFileName();
                 try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-                    builder.addQuery("filename", image.getFileName()).addQuery("type", image.getFolder()).addQuery("subfolder", image.getSubFolder());
+                    builder.addQuery("filename", fileName).addQuery("type", image.getFolder()).addQuery("subfolder", image.getSubFolder());
                     HttpUtil.download(builder.build(), out, false);
                     // 压缩图片大小
                     byte[] compressPic = FileUtils.compressPic(out.toByteArray(), 0.7);
                     UploadResult uploadResult = storage.uploadSuffix(compressPic,JPG,"image/jpeg");
                     urlList.add(uploadResult.getUrl());
-                    sysOssService.insertOssData(SD + DateUtil.format(new Date(),"yyyyMMdd")+"_"+ IdUtil.getSnowflakeNextIdStr()+JPG,JPG,storage.getConfigKey(),uploadResult.getUrl(),uploadResult.getFilename(),task.getBelongUserName());
+                    sysOssService.insertOssData(String.format("%s%s%s", SD, fileName.split("\\.")[0], JPG),JPG,storage.getConfigKey(),uploadResult.getUrl(),uploadResult.getFilename(),task.getBelongUserName());
                 } catch (Exception e) {
                     log.error("[任务输出图片][上传失败]>>>>>>>>>任务id: {},comfyui内部任务id: {},异常原因: ", taskId, promptId,e);
                 }

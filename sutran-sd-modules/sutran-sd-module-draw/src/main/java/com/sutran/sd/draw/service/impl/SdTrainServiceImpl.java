@@ -30,6 +30,7 @@ import com.sutran.sd.common.utils.file.FileUtils;
 import com.sutran.sd.common.utils.redis.RedisUtils;
 import com.sutran.sd.draw.domain.*;
 import com.sutran.sd.draw.domain.bo.ImageInfoBo;
+import com.sutran.sd.draw.domain.bo.TrainCaptionBo;
 import com.sutran.sd.draw.domain.bo.TrainTaskInfo;
 import com.sutran.sd.draw.domain.dto.model.SdTrainTaskDto;
 import com.sutran.sd.draw.domain.dto.train.*;
@@ -1501,7 +1502,8 @@ public class SdTrainServiceImpl implements SdTrainService {
             String resp = execHttpRequest(request);
             FluxgymImgDealResultVo vo = JsonUtils.toObject(resp, FluxgymImgDealResultVo.class);
             if (vo==null || vo.getSuccess()==null || !vo.getSuccess() || CollectionUtil.isEmpty(vo.getResults())) {
-                throw new ServiceException("图片识别失败!");
+                log.error("[FLuxGym]>>>>>>>>>图片识别失败!taskId={},node={},vo={}",taskId,node,vo);
+                throw new ServiceException("任务ID["+taskId+"],节点["+node.getCode()+"],识别结果："+vo);
             }
             // 存储list到redis
             FluxgymImgVo imgVo = new FluxgymImgVo();
@@ -1525,7 +1527,7 @@ public class SdTrainServiceImpl implements SdTrainService {
                 byte[] imgBytes = imageMap.get(result.getImageName());
                 imageBytes.add(imgBytes);
                 captions.add(en);
-                // 获取图片的后缀包含点
+                // 获取图片的后缀(包含点)
                 String suffix = result.getImageName().substring(result.getImageName().lastIndexOf("."));
                 // 图片名称最后一个_后的字符串去掉，作为图片名称 8A5F4B93-F7FB-4B2E-A70C-3232A76D68D6_20 - 副本_4840895057701420330.jpeg -> 8A5F4B93-F7FB-4B2E-A70C-3232A76D68D6_20 - 副本.jpeg
                 imageNames.add(result.getImageName().substring(0,result.getImageName().lastIndexOf("_"))+suffix);
@@ -1578,7 +1580,6 @@ public class SdTrainServiceImpl implements SdTrainService {
         if (imgVo==null) {
             throw new ServiceException("训练任务预处理数据已存储超时,请重新提交图片进行预处理!");
         }
-        //
         final Long userId = LoginHelper.getUserId();
         final String userName = LoginHelper.getUsername();
         // 校验训练次数,并扣除本次训练次数
@@ -1596,6 +1597,64 @@ public class SdTrainServiceImpl implements SdTrainService {
         }
         // 创建任务实体
         TrainTaskInfo taskInfo = new TrainTaskInfo(taskId, imageList, userId, userName, imgVo.getLoraName(), imgVo.getCaptions());
+        // 保存任务训练任务
+        insertTrainTask(taskInfo,parentFileUrl,modelTag,isOpen,modelDesc);
+        // 投递任务到MQ队列
+        try {
+            rabbitTemplate.convertAndSend(SD_FLUXGYM_TRAIN_EXCHANGE,SD_FLUXGYM_TRAIN_ROUTING_KEY,taskInfo,new CorrelationData(taskInfo.getTaskId()));
+            RedisUtils.deleteKey(FLUXGYM_IMG_TASK+taskId);
+        }
+        catch (Exception e) {
+            //重试次数
+            int retryCount = 5;
+            for (int i = 0; i < retryCount; i++) {
+                try {
+                    rabbitTemplate.convertAndSend(SD_FLUXGYM_TRAIN_EXCHANGE,SD_FLUXGYM_TRAIN_ROUTING_KEY,taskInfo,new CorrelationData(taskInfo.getTaskId()));
+                }
+                catch (Exception ignored) {}
+            }
+        }
+        return taskId;
+    }
+
+    /**
+     * [FluxGym]SD训练-提交训练V2
+     *
+     * @param images    图片文件
+     * @param loraName  模型名称
+     * @param captions  图片描述词
+     * @param modelTag  模型标签
+     * @param isOpen    是否公开[0-否,1-是]
+     * @param modelDesc 模型描述
+     * @return 任务id
+     * @throws IOException 图片IO异常
+     */
+    @Override
+    public String startTrainTaskV2(MultipartFile[] images, String loraName, List<String> captions, String modelTag, Integer isOpen, String modelDesc) throws IOException {
+        final String taskId = IdUtil.getSnowflakeNextIdStr();
+        final Long userId = LoginHelper.getUserId();
+        final String userName = LoginHelper.getUsername();
+        // 校验训练次数,并扣除本次训练次数
+        userService.checkTrainTimesOfMember(userId);
+        // 预先扣除训练次数
+        userService.deductedTrainTimes(userId);
+
+        String parentFileUrl = String.format("/home/lora-scripts/train-data/%s/%s/%s",DateUtil.formatDate(new Date()),userId,taskId);
+//        String parentFileUrl = String.format("D:\\project\\ai_project\\train-data\\%s\\%s\\%s",DateUtil.formatDate(new Date()),userId,taskId);
+        // 处理图片
+        List<ImageInfoBo> imageList = new ArrayList<>();
+        int index = 1;
+        for (MultipartFile image : images) {
+            byte[] imgBytes = image.getBytes();
+            // 生成新的文件名,避免文件名重复
+            String fileName = image.getOriginalFilename();
+            String suffix = fileName.substring(fileName.lastIndexOf("."));
+            fileName = fileName.substring(0, fileName.lastIndexOf("."))+"_"+index+suffix;
+            imageList.add(new ImageInfoBo().setImageName(fileName).setContentType("image/jpeg").setFileData(imgBytes));
+            index++;
+        }
+        // 创建任务实体
+        TrainTaskInfo taskInfo = new TrainTaskInfo(taskId, imageList, userId, userName, loraName, captions);
         // 保存任务训练任务
         insertTrainTask(taskInfo,parentFileUrl,modelTag,isOpen,modelDesc);
         // 投递任务到MQ队列

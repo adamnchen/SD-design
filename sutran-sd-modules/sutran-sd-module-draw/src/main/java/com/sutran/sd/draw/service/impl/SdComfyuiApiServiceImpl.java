@@ -12,11 +12,13 @@ import com.alibaba.fastjson.JSONObject;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.rabbitmq.client.Channel;
 import com.sutran.sd.common.core.service.UserService;
+import com.sutran.sd.common.exception.ServiceException;
 import com.sutran.sd.common.exception.TaskErrorException;
 import com.sutran.sd.common.exception.WorkFlowErrorException;
 import com.sutran.sd.common.helper.LoginHelper;
 import com.sutran.sd.common.utils.StringUtils;
 import com.sutran.sd.common.utils.file.FileUtils;
+import com.sutran.sd.common.utils.file.MimeTypeUtils;
 import com.sutran.sd.common.utils.redis.RedisUtils;
 import com.sutran.sd.draw.domain.SdDrawNode;
 import com.sutran.sd.draw.domain.SdFlow;
@@ -127,6 +129,8 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
         String prompt = StringUtils.isBlank(modelTaskBo.getPrompt())?sdFlow.getInitPrompt():modelTaskBo.getPrompt();
         String promptZh = StringUtils.isBlank(modelTaskBo.getPromptZh())?sdFlow.getInitPromptZh():modelTaskBo.getPromptZh();
         if (prompt!=null) {
+            // prompt双引号替换为单引号
+            prompt = prompt.replace("\"","'");
             flow = flow.replace("{{prompt}}",prompt);
         }
 
@@ -166,13 +170,26 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
         // 处理参考图片
         List<String> imageUrls = new ArrayList<>();
         List<ImageInfoBo> images = new ArrayList<>();
+        int index = 0;
         for (MultipartFile file : imageList) {
             if (file==null || file.isEmpty()) {
                 continue;
             }
             SysOssVo ossVo = sysOssService.upload(file);
             imageUrls.add(ossVo.getUrl());
-            images.add(new ImageInfoBo().setImageName(file.getOriginalFilename()).setContentType(file.getContentType()).setFileData(file.getBytes()));
+
+            // 生成新的文件名,避免文件名重复
+            String fileName = file.getOriginalFilename();
+            if (StringUtils.isBlank(fileName) || !fileName.contains(".")) {
+                fileName = IdUtil.getSnowflakeNextIdStr()+"_"+index + MimeTypeUtils.getExtensionFromContentType(file.getContentType());
+            }
+            else {
+                String suffix = fileName.substring(fileName.lastIndexOf("."));
+                fileName = fileName.substring(0, fileName.lastIndexOf("."))+"_"+index+suffix;
+            }
+
+            images.add(new ImageInfoBo().setImageName(fileName).setContentType(file.getContentType()).setFileData(file.getBytes()));
+            index++;
         }
         // 生图任务落库
         final String taskId = IdUtil.getSnowflakeNextIdStr();
@@ -187,6 +204,8 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
         prompt = StringUtils.isBlank(prompt)?sdFlow.getInitPrompt():prompt;
         promptZh = StringUtils.isBlank(promptZh)?sdFlow.getInitPromptZh():promptZh;
         if (prompt!=null) {
+            // prompt双引号替换为单引号
+            prompt = prompt.replace("\"","'");
             flowStr = flowStr.replace("{{prompt}}",prompt);
         }
 
@@ -237,6 +256,10 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
                 }
             }
             return progress!=null?progress:0;
+        }
+        // 执行失败
+        else if (status==3) {
+            throw new ServiceException("生图失败!");
         }
         else {
             // 查询是否已生成图片
@@ -313,6 +336,7 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
                     }
                 }
                 catch (Exception e){
+                    log.error("[ComfyUI绘图MQ]>>>>>>>>>初始图片上传到comfyui失败!,任务ID: {},异常信息: {}", taskId,e.getMessage(), e);
                     sdUserTaskService.failComfyTask(taskId,"初始图片上传到comfyui失败!",new Date());
                     // 归还绘图次数
                     userService.returnedDrawNum(taskInfo.getUserId(), taskInfo.getDrawNum());
@@ -325,8 +349,8 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
                 // 提交任务，返回ComfyUI内部任务ID
                 String promptId = submitDrawTask(taskId, JSONObject.parseObject(flowStr), node);
                 if (StringUtils.isNotBlank(promptId)) {
-                    RedisUtils.setCacheObject(COMFY_TASK+taskId,promptId, Duration.ofMinutes(1));
-                    RedisUtils.setCacheObject(COMFY_TASK+promptId,taskId, Duration.ofMinutes(1));
+                    RedisUtils.setCacheObject(COMFY_TASK+taskId,promptId, Duration.ofMinutes(5));
+                    RedisUtils.setCacheObject(COMFY_TASK+promptId,taskId, Duration.ofMinutes(5));
                 }
                 // 检查任务是否有缓存
                 checkCacheTask(promptId,taskId,node,taskInfo,task);
@@ -377,16 +401,17 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
             }
             List<String> urlList = new ArrayList<>();
             OssClient storage = OssFactory.instance();
+            UrlBuilder builder = UrlBuilder.of(node.getBaseUrl()).addPath("/view");
             for (ComfyTaskImage image : historyInfo.getOutputs()) {
                 // 只保留任务输出图片
                 if (image.getFileName().startsWith(taskId)) {
                     continue;
                 }
                 try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-                    UrlBuilder builder = UrlBuilder.of(node.getBaseUrl()).addPath("/view").addQuery("filename", image.getFileName()).addQuery("type", image.getFolder()).addQuery("subfolder", image.getSubFolder());
+                    builder.addQuery("filename", image.getFileName()).addQuery("type", image.getFolder()).addQuery("subfolder", image.getSubFolder());
                     HttpUtil.download(builder.build(), out, false);
                     // 压缩图片大小
-                    byte[] compressPic = FileUtils.compressPic(out.toByteArray(), 0.8);
+                    byte[] compressPic = FileUtils.compressPic(out.toByteArray(), 0.7);
                     UploadResult uploadResult = storage.uploadSuffix(compressPic,JPG,"image/jpeg");
                     sysOssService.insertOssData(SD + DateUtil.format(new Date(),"yyyyMMdd")+"_"+ IdUtil.getSnowflakeNextIdStr()+JPG,JPG,storage.getConfigKey(),uploadResult.getUrl(),uploadResult.getFilename(),task.getBelongUserName());
                     urlList.add(uploadResult.getUrl());
@@ -719,19 +744,17 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
             }
             List<String> urlList = new ArrayList<>();
             OssClient storage = OssFactory.instance();
+            UrlBuilder builder = UrlBuilder.of(node.getBaseUrl()).addPath("/view");
             for (ComfyTaskImage image : taskInfo.getOutputs()) {
                 // 只保留任务输出图片
                 if (image.getFileName().startsWith(taskId)) {
                     continue;
                 }
                 try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-                    UrlBuilder builder = UrlBuilder.of(node.getBaseUrl()).addPath("/view")
-                        .addQuery("filename", image.getFileName())
-                        .addQuery("type", image.getFolder())
-                        .addQuery("subfolder", image.getSubFolder());
+                    builder.addQuery("filename", image.getFileName()).addQuery("type", image.getFolder()).addQuery("subfolder", image.getSubFolder());
                     HttpUtil.download(builder.build(), out, false);
                     // 压缩图片大小
-                    byte[] compressPic = FileUtils.compressPic(out.toByteArray(), 0.8);
+                    byte[] compressPic = FileUtils.compressPic(out.toByteArray(), 0.7);
                     UploadResult uploadResult = storage.uploadSuffix(compressPic,JPG,"image/jpeg");
                     urlList.add(uploadResult.getUrl());
                     sysOssService.insertOssData(SD + DateUtil.format(new Date(),"yyyyMMdd")+"_"+ IdUtil.getSnowflakeNextIdStr()+JPG,JPG,storage.getConfigKey(),uploadResult.getUrl(),uploadResult.getFilename(),taskVo.getBelongUserName());
@@ -769,11 +792,10 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
      */
     private byte[] getImageFile(String imageName, String folder, SdDrawNode node) {
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-            UrlBuilder builder = UrlBuilder.of(node.getBaseUrl())
+            UrlBuilder builder = UrlBuilder.of(node.getBaseUrl()).addPath("/view")
                     .addQuery("filename", imageName)
                     .addQuery("type", "input")
-                    .addQuery("type", folder)
-                    .addPath("/view");
+                    .addQuery("type", folder);
             HttpUtil.download(builder.build(), out, false);
             return out.toByteArray();
         } catch (Exception e) {

@@ -76,15 +76,13 @@ public class TaskOutputHandleStrategy implements IComfyWebSocketTextHandleStrate
             }
             List<String> urlList = new ArrayList<>();
             OssClient storage = OssFactory.instance();
+            UrlBuilder builder = UrlBuilder.of(task.getNodeUrl()).addPath("/view");
             for (ComfyTaskImage image : currentOutputImages) {
                 try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-                    UrlBuilder builder = UrlBuilder.of(task.getNodeUrl()).addPath("/view")
-                        .addQuery("filename", image.getFileName())
-                        .addQuery("type", image.getFolder())
-                        .addQuery("subfolder", image.getSubFolder());
+                    builder.addQuery("filename", image.getFileName()).addQuery("type", image.getFolder()).addQuery("subfolder", image.getSubFolder());
                     HttpUtil.download(builder.build(), out, false);
                     // 压缩图片大小
-                    byte[] compressPic = FileUtils.compressPic(out.toByteArray(), 0.8);
+                    byte[] compressPic = FileUtils.compressPic(out.toByteArray(), 0.7);
                     UploadResult uploadResult = storage.uploadSuffix(compressPic,JPG,"image/jpeg");
                     urlList.add(uploadResult.getUrl());
                     sysOssService.insertOssData(SD + DateUtil.format(new Date(),"yyyyMMdd")+"_"+ IdUtil.getSnowflakeNextIdStr()+JPG,JPG,storage.getConfigKey(),uploadResult.getUrl(),uploadResult.getFilename(),task.getBelongUserName());

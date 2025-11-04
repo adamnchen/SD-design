@@ -1506,38 +1506,36 @@ public class SdTrainServiceImpl implements SdTrainService {
                 throw new ServiceException("任务ID["+taskId+"],节点["+node.getCode()+"],识别结果："+vo);
             }
             // 存储list到redis
-            FluxgymImgVo imgVo = new FluxgymImgVo();
-            List<String> captions = new ArrayList<>(vo.getResults().size());
-            List<byte[]> imageBytes = new ArrayList<>(vo.getResults().size());
-            List<String> imageNames = new ArrayList<>(vo.getResults().size());
+//            FluxgymImgVo imgVo = new FluxgymImgVo();
+//            List<String> captions = new ArrayList<>(vo.getResults().size());
+//            List<byte[]> imageBytes = new ArrayList<>(vo.getResults().size());
+//            List<String> imageNames = new ArrayList<>(vo.getResults().size());
             for (FluxgymImgDealResultVo.ImageInfoVo result : vo.getResults()) {
-                final String caption = result.getCaption();
-                final String en = instancePrompt + "," + caption;
+                String en = result.getCaption();
                 // 翻译图片描述词
-                String zh = RedisUtils.getCacheMapValue(TRANSLATE_EN_TO_ZH_MAP, en);
+                String zh = RedisUtils.getCacheMapValue(TRANSLATE_EN_TO_ZH_MAP, en+","+instancePrompt);
                 if (StringUtils.isEmpty(zh)) {
-                    zh = sysTranslateService.enToZh(caption, TranslateType.BAIDU);
-                    if (StringUtils.isNotBlank(zh) && !zh.equals(caption)) {
-                        zh = loraName+"，"+zh;
-                        RedisUtils.setCacheMapValue(TRANSLATE_EN_TO_ZH_MAP,en,zh);
+                    zh = sysTranslateService.enToZh(en, TranslateType.BAIDU);
+                    if (StringUtils.isNotBlank(zh) && !zh.equals(en)) {
+                        RedisUtils.setCacheMapValue(TRANSLATE_EN_TO_ZH_MAP,en+","+instancePrompt,zh+"，"+loraName);
                     }
                 }
                 result.setCaptionZh(zh);
                 result.setCaption(en);
-                byte[] imgBytes = imageMap.get(result.getImageName());
-                imageBytes.add(imgBytes);
-                captions.add(en);
+//                byte[] imgBytes = imageMap.get(result.getImageName());
+//                imageBytes.add(imgBytes);
+//                captions.add(en);
                 // 获取图片的后缀(包含点)
-                String suffix = result.getImageName().substring(result.getImageName().lastIndexOf("."));
+//                String suffix = result.getImageName().substring(result.getImageName().lastIndexOf("."));
                 // 图片名称最后一个_后的字符串去掉，作为图片名称 8A5F4B93-F7FB-4B2E-A70C-3232A76D68D6_20 - 副本_4840895057701420330.jpeg -> 8A5F4B93-F7FB-4B2E-A70C-3232A76D68D6_20 - 副本.jpeg
-                imageNames.add(result.getImageName().substring(0,result.getImageName().lastIndexOf("_"))+suffix);
+//                imageNames.add(result.getImageName().substring(0,result.getImageName().lastIndexOf("_"))+suffix);
             }
-            imgVo.setCaptions(captions);
-            imgVo.setImageBytes(imageBytes);
-            imgVo.setImageNames(imageNames);
-            imgVo.setLoraName(loraName);
+//            imgVo.setCaptions(captions);
+//            imgVo.setImageBytes(imageBytes);
+//            imgVo.setImageNames(imageNames);
+//            imgVo.setLoraName(loraName);
             // 将数据存入redis
-            RedisUtils.setCacheObject(FLUXGYM_IMG_TASK+taskId,imgVo,Duration.ofMinutes(15));
+//            RedisUtils.setCacheObject(FLUXGYM_IMG_TASK+taskId,imgVo,Duration.ofMinutes(15));
             vo.setTaskId(taskId);
             return vo;
         }
@@ -1654,10 +1652,20 @@ public class SdTrainServiceImpl implements SdTrainService {
             index++;
         }
         // 缓存提示词中英文
+        String instancePrompt = PinyinConverterUtils.getPinyin(loraName);
         List<String> captionList = captions.stream().map(caption -> {
-            final String captionEn = caption.getCaption();
-            final String captionZh = caption.getCaptionZh();
-            RedisUtils.setCacheMapValue(TRANSLATE_EN_TO_ZH_MAP, captionEn, captionZh);
+            String captionEn = caption.getCaption().startsWith(instancePrompt)?caption.getCaption():instancePrompt+","+caption.getCaption();
+            String captionZh = caption.getCaptionZh();
+            if (StringUtils.isBlank(caption.getCaptionZh())) {
+                captionZh = RedisUtils.getCacheMapValue(TRANSLATE_EN_TO_ZH_MAP,captionEn);
+                if (StringUtils.isNotBlank(captionZh)) {
+                    captionZh = captionZh.startsWith(loraName)?caption.getCaptionZh():loraName+"，"+caption.getCaptionZh();
+                }
+            }
+            else {
+                captionZh = captionZh.startsWith(loraName)?caption.getCaptionZh():loraName+"，"+caption.getCaptionZh();
+                RedisUtils.setCacheMapValue(TRANSLATE_EN_TO_ZH_MAP, captionEn, captionZh);
+            }
             return captionEn;
         }).collect(Collectors.toList());
         // 创建任务实体

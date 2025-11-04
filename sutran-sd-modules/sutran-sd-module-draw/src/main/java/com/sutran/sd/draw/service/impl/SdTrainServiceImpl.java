@@ -1830,9 +1830,7 @@ public class SdTrainServiceImpl implements SdTrainService {
                             vo.setOriginalImgUrl(originalPath + CommonUtil.suggestNumRepeat() + "/" + imageName);
                         }
                     }
-                    catch (Exception e1) {
-                        log.error("[FLuxGym]>>>>>>>>>获取训练任务预处理图片失败!原因：", e1.getMessage());
-                    }
+                    catch (Exception ignore) {}
                 }
             }
             if (StringUtils.isNotBlank(e.getTrainParams())) {

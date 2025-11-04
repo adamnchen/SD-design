@@ -1513,11 +1513,11 @@ public class SdTrainServiceImpl implements SdTrainService {
             for (FluxgymImgDealResultVo.ImageInfoVo result : vo.getResults()) {
                 String en = result.getCaption();
                 // 翻译图片描述词
-                String zh = RedisUtils.getCacheMapValue(TRANSLATE_EN_TO_ZH_MAP, en+","+instancePrompt);
+                String zh = RedisUtils.getCacheMapValue(TRANSLATE_EN_TO_ZH_MAP, instancePrompt+","+en);
                 if (StringUtils.isEmpty(zh)) {
                     zh = sysTranslateService.enToZh(en, TranslateType.BAIDU);
                     if (StringUtils.isNotBlank(zh) && !zh.equals(en)) {
-                        RedisUtils.setCacheMapValue(TRANSLATE_EN_TO_ZH_MAP,en+","+instancePrompt,zh+"，"+loraName);
+                        RedisUtils.setCacheMapValue(TRANSLATE_EN_TO_ZH_MAP,instancePrompt+","+en,loraName+"，"+zh);
                     }
                 }
                 result.setCaptionZh(zh);

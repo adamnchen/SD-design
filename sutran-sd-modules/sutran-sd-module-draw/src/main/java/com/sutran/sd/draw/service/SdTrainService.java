@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.sutran.sd.common.core.domain.PageQuery;
 import com.sutran.sd.common.core.page.TableDataInfo;
 import com.sutran.sd.draw.domain.SdGpuPool;
+import com.sutran.sd.draw.domain.bo.TrainCaptionBo;
 import com.sutran.sd.draw.domain.dto.model.SdTrainTaskDto;
 import com.sutran.sd.draw.domain.dto.train.SdTrainAdditionTagDto;
 import com.sutran.sd.draw.domain.dto.train.SdTrainLoraDto;
@@ -182,7 +183,7 @@ public interface SdTrainService {
       * @return 任务id
       * @throws IOException 图片IO异常
       */
-    String startTrainTaskV2(MultipartFile[] images, String loraName, List<String> captions, String modelTag, Integer isOpen, String modelDesc) throws IOException;
+    String startTrainTaskV2(MultipartFile[] images, String loraName, List<TrainCaptionBo> captions, String modelTag, Integer isOpen, String modelDesc) throws IOException;
 
      /**
       * [FluxGym]查询训练进度

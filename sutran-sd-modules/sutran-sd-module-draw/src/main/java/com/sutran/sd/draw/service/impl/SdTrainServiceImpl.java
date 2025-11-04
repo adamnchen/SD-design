@@ -30,6 +30,7 @@ import com.sutran.sd.common.utils.file.FileUtils;
 import com.sutran.sd.common.utils.redis.RedisUtils;
 import com.sutran.sd.draw.domain.*;
 import com.sutran.sd.draw.domain.bo.ImageInfoBo;
+import com.sutran.sd.draw.domain.bo.TrainCaptionBo;
 import com.sutran.sd.draw.domain.bo.TrainTaskInfo;
 import com.sutran.sd.draw.domain.dto.model.SdTrainTaskDto;
 import com.sutran.sd.draw.domain.dto.train.*;
@@ -1629,7 +1630,7 @@ public class SdTrainServiceImpl implements SdTrainService {
      * @throws IOException 图片IO异常
      */
     @Override
-    public String startTrainTaskV2(MultipartFile[] images, String loraName, List<String> captions, String modelTag, Integer isOpen, String modelDesc) throws IOException {
+    public String startTrainTaskV2(MultipartFile[] images, String loraName, List<TrainCaptionBo> captions, String modelTag, Integer isOpen, String modelDesc) throws IOException {
         final String taskId = IdUtil.getSnowflakeNextIdStr();
         final Long userId = LoginHelper.getUserId();
         final String userName = LoginHelper.getUsername();
@@ -1652,8 +1653,15 @@ public class SdTrainServiceImpl implements SdTrainService {
             imageList.add(new ImageInfoBo().setImageName(fileName).setContentType("image/jpeg").setFileData(imgBytes));
             index++;
         }
+        // 缓存提示词中英文
+        List<String> captionList = captions.stream().map(caption -> {
+            final String captionEn = caption.getCaption();
+            final String captionZh = caption.getCaptionZh();
+            RedisUtils.setCacheObject(TRANSLATE_EN_TO_ZH_MAP + captionEn, captionZh);
+            return captionEn;
+        }).collect(Collectors.toList());
         // 创建任务实体
-        TrainTaskInfo taskInfo = new TrainTaskInfo(taskId, imageList, userId, userName, loraName, captions);
+        TrainTaskInfo taskInfo = new TrainTaskInfo(taskId, imageList, userId, userName, loraName, captionList);
         // 保存任务训练任务
         insertTrainTask(taskInfo,parentFileUrl,modelTag,isOpen,modelDesc);
         // 投递任务到MQ队列

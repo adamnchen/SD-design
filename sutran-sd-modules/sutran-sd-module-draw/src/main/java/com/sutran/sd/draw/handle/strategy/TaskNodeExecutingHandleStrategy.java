@@ -21,6 +21,6 @@ public class TaskNodeExecutingHandleStrategy implements IComfyWebSocketTextHandl
      */
     @Override
     public void handleMessage(JsonNode dataNode) {
-        log.info("[ComfUI][任务节点更新]>>>>>>>>>当前节点：{}",dataNode);
+        log.warn("[ComfUI][任务节点执行中]>>>>>>>>>当前节点：{}",dataNode);
     }
 }

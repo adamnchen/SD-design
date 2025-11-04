@@ -127,4 +127,10 @@ public class TrainTaskVo implements Serializable {
      */
     @Schema(name = "crtUserId", description = "任务创建人id")
     private String crtUserId;
+
+    /**
+     * 原图地址
+     */
+    @Schema(name = "originalImgUrl", description = "原图地址")
+    private String originalImgUrl;
 }

@@ -1819,6 +1819,16 @@ public class SdTrainServiceImpl implements SdTrainService {
             if (StringUtils.isNotBlank(e.getPreParams())) {
                 JSONObject preParams = JSONObject.parseObject(e.getPreParams());
                 vo.setPreTaskParams(preParams);
+                String captions = preParams.getString("captions");
+                String path = preParams.getString("path");
+                if (StringUtils.isNotBlank(path)) {
+                    // 获取 path+/20_zkz目录下匹配提示词的图片文件名称（不包含后缀）
+                    String imageName = FileUtils.getImageNameByPrompt(path + CommonUtil.suggestNumRepeat(), JSONArray.parseArray(captions, String.class).get(0));
+                    if (StringUtils.isNotBlank(imageName)) {
+                        String originalPath = path.replace("/home/lora-scripts","").replace("/lora-scripts/","");
+                        vo.setOriginalImgUrl(originalPath + CommonUtil.suggestNumRepeat() + "/" + imageName);
+                    }
+                }
             }
             if (StringUtils.isNotBlank(e.getTrainParams())) {
                 JSONObject trainParams = JSONObject.parseObject(e.getTrainParams());

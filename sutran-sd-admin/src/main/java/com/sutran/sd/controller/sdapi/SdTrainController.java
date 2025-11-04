@@ -1,6 +1,7 @@
 package com.sutran.sd.controller.sdapi;
 
 import cn.dev33.satoken.annotation.SaIgnore;
+import com.alibaba.fastjson.JSONArray;
 import com.github.xiaoymin.knife4j.annotations.ApiOperationSupport;
 import com.sutran.sd.common.annotation.RequireMember;
 import com.sutran.sd.common.core.domain.PageQuery;
@@ -246,7 +247,7 @@ public class SdTrainController {
      * [FluxGym][V2]提交训练
      * @param images        图片集合
      * @param loraName      训练模型名称(用于触发词)
-     * @param captions      图片述词
+     * @param captions      图片述词[{"caption":"描述词英文","captionZh":"描述词中文"}]
      * @param modelTag      模型标签(多个用逗号隔开)
      * @param isOpen        是否公开[0-否,1-是]
      * @param modelDesc     模型描述
@@ -258,11 +259,12 @@ public class SdTrainController {
     @RequireMember(value = "AI模型训练", newUserBenefit = {RequireMember.NewUserBenefitType.DRAW})
     public R<String> starTrainV2(@RequestParam("images") MultipartFile[] images,
                                  @RequestParam("loraName") String loraName,
-                                 @RequestParam List<TrainCaptionBo> captions,
+                                 @RequestParam("captions") String captions,
                                  @RequestParam(value = "modelTag",required = false) String modelTag,
                                  @RequestParam(value = "isOpen",required = false) Integer isOpen,
                                  @RequestParam(value = "modelDesc",required = false) String modelDesc) throws IOException {
-        return R.ok("操作成功",sdTrainService.startTrainTaskV2(images,loraName,captions,modelTag,isOpen,modelDesc));
+        List<TrainCaptionBo> captionList = JSONArray.parseArray(captions, TrainCaptionBo.class);
+        return R.ok("操作成功",sdTrainService.startTrainTaskV2(images,loraName,captionList,modelTag,isOpen,modelDesc));
     }
 
     /**

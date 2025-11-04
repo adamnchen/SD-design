@@ -1657,7 +1657,7 @@ public class SdTrainServiceImpl implements SdTrainService {
         List<String> captionList = captions.stream().map(caption -> {
             final String captionEn = caption.getCaption();
             final String captionZh = caption.getCaptionZh();
-            RedisUtils.setCacheObject(TRANSLATE_EN_TO_ZH_MAP + captionEn, captionZh);
+            RedisUtils.setCacheMapValue(TRANSLATE_EN_TO_ZH_MAP, captionEn, captionZh);
             return captionEn;
         }).collect(Collectors.toList());
         // 创建任务实体
@@ -1822,11 +1822,16 @@ public class SdTrainServiceImpl implements SdTrainService {
                 String captions = preParams.getString("captions");
                 String path = preParams.getString("path");
                 if (StringUtils.isNotBlank(path)) {
-                    // 获取 path+/20_zkz目录下匹配提示词的图片文件名称（不包含后缀）
-                    String imageName = FileUtils.getImageNameByPrompt(path + CommonUtil.suggestNumRepeat(), JSONArray.parseArray(captions, String.class).get(0));
-                    if (StringUtils.isNotBlank(imageName)) {
-                        String originalPath = path.replace("/home/lora-scripts","").replace("/lora-scripts/","");
-                        vo.setOriginalImgUrl(originalPath + CommonUtil.suggestNumRepeat() + "/" + imageName);
+                    try {
+                        // 获取 path+/20_zkz目录下匹配提示词的图片文件名称（不包含后缀）
+                        String imageName = FileUtils.getImageNameByPrompt(path + CommonUtil.suggestNumRepeat(), JSONArray.parseArray(captions, String.class).get(0));
+                        if (StringUtils.isNotBlank(imageName)) {
+                            String originalPath = path.replace("/home/lora-scripts","").replace("/lora-scripts/","");
+                            vo.setOriginalImgUrl(originalPath + CommonUtil.suggestNumRepeat() + "/" + imageName);
+                        }
+                    }
+                    catch (Exception e1) {
+                        log.error("[FLuxGym]>>>>>>>>>获取训练任务预处理图片失败!原因：", e1.getMessage());
                     }
                 }
             }

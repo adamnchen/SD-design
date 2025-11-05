@@ -120,6 +120,15 @@ public class UserProfileServiceImpl implements IUserProfileService {
     public boolean bindAlipayAccount(Long userId, AlipayAccountBindDTO bindDTO) {
         log.info("[绑定支付宝账号] 用户ID: {}, 账号: {}", userId, bindDTO.getAlipayAccount());
 
+        // 0. 若已绑定，需先解绑再绑定
+        SysUser existUser = userService.selectUserById(userId);
+        if (existUser == null) {
+            throw new ServiceException("用户不存在");
+        }
+        if (StrUtil.isNotBlank(existUser.getAlipayAccount()) || "1".equals(existUser.getAlipayBindStatus())) {
+            throw new ServiceException("已绑定支付宝账号，请先解绑后再绑定");
+        }
+
         // 1. 验证支付宝账号格式
         if (!isValidAlipayAccount(bindDTO.getAlipayAccount())) {
             throw new ServiceException("支付宝账号格式不正确，请输入手机号或邮箱");

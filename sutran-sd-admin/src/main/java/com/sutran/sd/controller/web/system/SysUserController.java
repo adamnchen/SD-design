@@ -5,6 +5,7 @@ import cn.dev33.satoken.annotation.SaIgnore;
 import cn.dev33.satoken.secure.BCrypt;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.lang.tree.Tree;
 import cn.hutool.core.util.ArrayUtil;
 import cn.hutool.core.util.ObjectUtil;
@@ -48,6 +49,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletResponse;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * 用户信息
@@ -313,14 +315,18 @@ public class SysUserController extends BaseController {
     }
 
     /**
-     * [分享]查询可分享人员信息列表
+     * [分享]查询可分享人员信息列表(排除自己)
      */
     @GetMapping("/share-list")
     public R<List<UserBaseVo>> shareUserList(@RequestParam(required = false) String phoneNumber, @RequestParam(required = false) String nickName) {
         if (StringUtils.isBlank(phoneNumber) && StringUtils.isBlank(nickName)) {
             return R.ok(Collections.emptyList());
         }
+        Long userId = LoginHelper.getUserId();
         List<UserBaseVo> vos = sysUserService.selectShareUserListByPhoneNumberOrNickName(phoneNumber,nickName);
+        if (CollectionUtil.isNotEmpty(vos)) {
+            vos = vos.stream().filter(e->e.getUserId()!=null && !userId.equals(e.getUserId())).collect(Collectors.toList());
+        }
         return R.ok(vos);
     }
 

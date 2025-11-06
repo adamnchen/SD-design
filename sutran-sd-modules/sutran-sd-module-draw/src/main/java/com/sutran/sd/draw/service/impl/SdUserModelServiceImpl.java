@@ -9,7 +9,6 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.sutran.sd.common.core.domain.PageQuery;
 import com.sutran.sd.common.core.page.TableDataInfo;
-import com.sutran.sd.common.core.service.UserService;
 import com.sutran.sd.common.enums.TranslateType;
 import com.sutran.sd.common.exception.ServiceException;
 import com.sutran.sd.common.helper.LoginHelper;
@@ -58,7 +57,6 @@ public class SdUserModelServiceImpl implements SdUserModelService {
     private final SdUserModelMapper baseMapper;
     private final SdUserModelClassifyMapper classifyMapper;
     private final SysTranslateService sysTranslateService;
-    private final UserService userService;
 
     @Resource(name = "threadPoolTaskExecutor")
     private Executor executor;
@@ -375,39 +373,24 @@ public class SdUserModelServiceImpl implements SdUserModelService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void shareUserModel(SdUserModelShareDto dto, Long userId) {
-        if (StringUtils.isBlank(dto.getToShareUserId())) {
-            String shareUserId = userService.selectUserIdByPhone(dto.getToSharePhone());
-            if (StringUtils.isBlank(shareUserId)) {
-                throw new ServiceException("手机号["+dto.getToSharePhone()+"]不存在!");
-            }
-            dto.setToShareUserId(shareUserId);
-        }
-
-        List<SdUserModel> list = baseMapper.selectList(new LambdaQueryWrapper<SdUserModel>().in(SdUserModel::getId, dto.getModelIds()));
-        if (CollectionUtil.isEmpty(list)) {
+        SdUserModel model = baseMapper.selectOne(new LambdaQueryWrapper<SdUserModel>().eq(SdUserModel::getId, dto.getModelId()));
+        if (model==null) {
             throw new ServiceException("分享模型不存在或已被删除!");
         }
-        List<String> errMsg = new ArrayList<>();
-        for (SdUserModel model : list) {
-            // 判断模型是否系统模型
-            if (model.getType()==0) {
-                errMsg.add("["+model.getModelNameZh()+"]为系统模型，不用分享!");
-                continue;
-            }
-            // 判断模型是否公开
-            if (model.getIsOpen()==1) {
-                errMsg.add("["+model.getModelNameZh()+"]模型已公开，不用分享!");
-                continue;
-            }
-            // 判断模型归属人是否是当前用户
-            if (!Objects.equals(userId, model.getBelongUserId())) {
-                errMsg.add("["+model.getModelNameZh()+"]非模型拥有者，无法分享!");
-                continue;
-            }
-            baseMapper.shareModel(dto,userId, new Date());
+        // 判断模型是否系统模型
+        if (model.getType()==0) {
+            throw new ServiceException("["+model.getModelNameZh()+"]为系统模型，不用分享!");
         }
-        if (CollectionUtil.isNotEmpty(errMsg)) {
-            throw new ServiceException(String.join(",",errMsg));
+        // 判断模型是否公开
+        if (model.getIsOpen()==1) {
+            throw new ServiceException("["+model.getModelNameZh()+"]模型已公开，不用分享!");
+        }
+        // 判断模型归属人是否是当前用户
+        if (!Objects.equals(userId, model.getBelongUserId())) {
+            throw new ServiceException("["+model.getModelNameZh()+"]非模型拥有者，无法分享!");
+        }
+        for (String toShareUserId : dto.getToShareUserIds()) {
+            baseMapper.shareModel(dto.getModelId(),toShareUserId,userId,new Date());
         }
     }
 
@@ -429,7 +412,6 @@ public class SdUserModelServiceImpl implements SdUserModelService {
         else if (model.getType()==1 && !Objects.requireNonNull(userId).equals(model.getBelongUserId())) {
             // 删除分享给我的模型，只删除分享关联数据
             baseMapper.removeShareModelById(modelId,userId);
-            return;
         }
         // 个人模型，模型归属人是当前登录人，做逻辑删除
         else {

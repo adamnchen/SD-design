@@ -6,7 +6,6 @@ import com.sutran.sd.common.core.domain.entity.SysUser;
 import com.sutran.sd.common.core.mapper.BaseMapperPlus;
 import com.sutran.sd.draw.domain.dto.model.SdUserModelDto;
 import com.sutran.sd.draw.domain.dto.model.SdUserModelPageDto;
-import com.sutran.sd.draw.domain.dto.model.SdUserModelShareDto;
 import com.sutran.sd.draw.domain.SdUserModel;
 import com.sutran.sd.draw.domain.vo.ComfyUserModelVo;
 import com.sutran.sd.draw.domain.vo.FluxgymModelListVo;
@@ -120,12 +119,13 @@ public interface SdUserModelMapper extends BaseMapperPlus<SdUserModelMapper, SdU
 
     /**
      * 分享模型
-     * @param dto       分享参数实体
-     * @param userId    模型拥有者userId
-     * @param crtTime   分享时间
+     * @param modelId       模型Id
+     * @param toShareUserId 被分享userId
+     * @param userId        模型拥有者userId
+     * @param date          分享时间
      */
-    @Insert("INSERT IGNORE INTO sd_user_model_share (model_id, user_id, crt_user_id, crt_time) VALUES (#{dto.modelId},#{dto.toShareUserId},#{userId},#{crtTime})")
-    void shareModel(@Param("dto") SdUserModelShareDto dto, @Param("userId") Long userId, @Param("crtTime") Date crtTime);
+    @Insert("INSERT IGNORE INTO sd_user_model_share (model_id, user_id, crt_user_id, crt_time) VALUES (#{modelId},#{toShareUserId},#{userId},#{date})")
+    void shareModel(@Param("modelId") String modelId, @Param("toShareUserId") String toShareUserId, @Param("userId") Long userId, @Param("date") Date date);
 
     /**
      * 获取ComfyUI最近使用的n个模型列表

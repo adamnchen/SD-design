@@ -20,18 +20,13 @@ public class SdUserModelShareDto implements Serializable {
     /**
      * 模型ID集合
      */
-    @Schema(name = "modelIds", description = "模型ID集合")
-    private List<String> modelIds;
+    @Schema(name = "modelId", description = "模型ID集合")
+    private String modelId;
     /**
-     * 被分享人userId(和toSharePhone二选一)
+     * 被分享人userId集合
      */
-    @Schema(name = "toShareUserId", description = "被分享人userId(和toSharePhone二选一)")
-    private String toShareUserId;
-    /**
-     * 被分享人手机号(和toShareUserId二选一)
-     */
-    @Schema(name = "toSharePhone", description = "被分享人手机号(和toShareUserId二选一)")
-    private String toSharePhone;
+    @Schema(name = "toShareUserIds", description = "被分享人userId(和toSharePhone二选一)")
+    private List<String> toShareUserIds;
     /**
      * 模型分享时长(不填，默认为永久)
      */

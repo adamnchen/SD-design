@@ -1,12 +1,12 @@
 package com.sutran.sd.controller.sdapi;
 
 import cn.hutool.core.collection.CollectionUtil;
-import cn.hutool.core.util.StrUtil;
 import com.sutran.sd.common.core.domain.PageQuery;
 import com.sutran.sd.common.core.domain.R;
 import com.sutran.sd.common.core.page.TableDataInfo;
 import com.sutran.sd.common.exception.ServiceException;
 import com.sutran.sd.common.helper.LoginHelper;
+import com.sutran.sd.common.utils.StringUtils;
 import com.sutran.sd.draw.domain.dto.model.SdUserModelClassifyDto;
 import com.sutran.sd.draw.domain.dto.model.SdUserModelModifyDto;
 import com.sutran.sd.draw.domain.dto.model.SdUserModelPageDto;
@@ -130,13 +130,18 @@ public class SdModelController {
      */
     @PostMapping("/user-lora/share")
     public R<Void> shareModel(@RequestBody SdUserModelShareDto dto) {
-        if (CollectionUtil.isEmpty(dto.getModelIds())) {
+        if (StringUtils.isBlank(dto.getModelId())) {
             throw new ServiceException("请选择要分享的模型!");
         }
-        if (StrUtil.isBlankIfStr(dto.getToShareUserId()) && StrUtil.isBlankIfStr(dto.getToSharePhone())){
-            throw new ServiceException("请选择要分享的用户或者手机号!");
+        if (CollectionUtil.isEmpty(dto.getToShareUserIds())){
+            throw new ServiceException("请选择要分享的用户!");
         }
-        sdUserModelService.shareUserModel(dto,LoginHelper.getUserId());
+        Long userId = LoginHelper.getUserId();
+        dto.getToShareUserIds().remove(userId.toString());
+        if (CollectionUtil.isEmpty(dto.getToShareUserIds())){
+            throw new ServiceException("请选择要分享的用户(自己除外)!");
+        }
+        sdUserModelService.shareUserModel(dto, userId);
         return R.ok();
     }
 

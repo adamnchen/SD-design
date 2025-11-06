@@ -3,42 +3,38 @@ package com.sutran.sd.design.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sutran.sd.common.core.domain.PageQuery;
+import com.sutran.sd.common.core.domain.entity.SysUser;
 import com.sutran.sd.common.core.page.TableDataInfo;
+import com.sutran.sd.common.exception.ServiceException;
+import com.sutran.sd.common.helper.LoginHelper;
+import com.sutran.sd.common.utils.OrderNumUtils;
+import com.sutran.sd.design.config.CrowdfundingConfig;
 import com.sutran.sd.design.domain.SdCrowdfundingProject;
 import com.sutran.sd.design.domain.SdCrowdfundingSupport;
-import com.sutran.sd.design.enums.CrowdfundingProjectStatus;
 import com.sutran.sd.design.dto.CrowdfundingProjectSimpleCreateDTO;
 import com.sutran.sd.design.dto.CrowdfundingSupportDTO;
-import com.sutran.sd.design.vo.CrowdfundingProjectDetailVO;
-import com.sutran.sd.design.vo.CrowdfundingProjectListVO;
-import com.sutran.sd.design.vo.CrowdfundingSupportVO;
-import com.sutran.sd.design.vo.CrowdfundingDrawVO;
-import com.sutran.sd.design.vo.TieredPricingItem;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.commons.lang3.StringUtils;
+import com.sutran.sd.design.enums.CrowdfundingProjectStatus;
 import com.sutran.sd.design.mapper.SdCrowdfundingProjectMapper;
 import com.sutran.sd.design.mapper.SdCrowdfundingSupportMapper;
-import com.sutran.sd.design.service.ISdCrowdfundingProjectService;
-import com.sutran.sd.design.service.CrowdfundingRedisService;
-import com.sutran.sd.design.service.CrowdfundingMqService;
-import com.sutran.sd.common.helper.LoginHelper;
-import com.sutran.sd.design.config.CrowdfundingConfig;
-import com.sutran.sd.common.utils.OrderNumUtils;
-import com.sutran.sd.common.exception.ServiceException;
 import com.sutran.sd.design.mapper.SdProofingInvitationMapper;
-import com.sutran.sd.pay.domain.PayOrder;
+import com.sutran.sd.design.service.CrowdfundingMqService;
+import com.sutran.sd.design.service.CrowdfundingRedisService;
+import com.sutran.sd.design.service.ISdCrowdfundingProjectService;
+import com.sutran.sd.design.vo.*;
 import com.sutran.sd.pay.service.AliPayService;
 import com.sutran.sd.system.service.ISysUserService;
-import com.sutran.sd.common.core.domain.entity.SysUser;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -286,12 +282,12 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
 
         // 使用分页查询进行中的众筹项目
         com.baomidou.mybatisplus.extension.plugins.pagination.Page<SdCrowdfundingProject> page = pageQuery.build();
-        com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<SdCrowdfundingProject> queryWrapper = 
+        com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<SdCrowdfundingProject> queryWrapper =
             new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<>();
         queryWrapper.eq(SdCrowdfundingProject::getStatus, 1) // 进行中
                    .orderByDesc(SdCrowdfundingProject::getCreateTime);
 
-        com.baomidou.mybatisplus.core.metadata.IPage<SdCrowdfundingProject> result = 
+        com.baomidou.mybatisplus.core.metadata.IPage<SdCrowdfundingProject> result =
             crowdfundingProjectMapper.selectPage(page, queryWrapper);
 
         // 转换为VO
@@ -302,7 +298,7 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
             // 计算进度百分比
             if (project.getTargetAmount() != null && project.getTargetAmount().compareTo(BigDecimal.ZERO) > 0) {
                 BigDecimal progress = project.getCurrentAmount()
-                    .divide(project.getTargetAmount(), 4, BigDecimal.ROUND_HALF_UP)
+                    .divide(project.getTargetAmount(), 4, RoundingMode.HALF_UP)
                     .multiply(new BigDecimal("100"));
                 vo.setProgressPercentage(progress);
             } else {
@@ -346,7 +342,7 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
         // 计算进度百分比
         if (project.getTargetAmount() != null && project.getTargetAmount().compareTo(BigDecimal.ZERO) > 0) {
             BigDecimal progress = project.getCurrentAmount()
-                .divide(project.getTargetAmount(), 4, BigDecimal.ROUND_HALF_UP)
+                .divide(project.getTargetAmount(), 4, RoundingMode.HALF_UP)
                 .multiply(new BigDecimal("100"));
             vo.setProgressPercentage(progress);
         } else {
@@ -427,18 +423,18 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
     @Override
     @Transactional(rollbackFor = Exception.class)
     public String createSupportOrder(CrowdfundingSupportDTO supportDTO) {
-        String orderNo = null;
+        String orderNo;
         try {
             // 1. 检查用户是否已经参与过该众筹项目
             LambdaQueryWrapper<SdCrowdfundingSupport> queryWrapper = new LambdaQueryWrapper<>();
             queryWrapper.eq(SdCrowdfundingSupport::getProjectId, supportDTO.getProjectId())
                        .eq(SdCrowdfundingSupport::getUserId, supportDTO.getUserId());
-            
+
             SdCrowdfundingSupport existingSupport = supportMapper.selectOne(queryWrapper);
             if (existingSupport != null) {
                 throw new RuntimeException("您已经参与过该众筹项目，每个用户只能参与一次打样众筹");
             }
-            
+
             // 2. 创建订单号
             orderNo = OrderNumUtils.getOrderNum(new Date());
             log.info("创建众筹支持订单: 订单号={}, 项目ID={}, 金额={}", orderNo, supportDTO.getProjectId(), supportDTO.getSupportAmount());
@@ -565,7 +561,7 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
             // 计算进度百分比
             if (project.getTargetAmount() != null && project.getTargetAmount().compareTo(BigDecimal.ZERO) > 0) {
                 BigDecimal progress = project.getCurrentAmount()
-                    .divide(project.getTargetAmount(), 4, BigDecimal.ROUND_HALF_UP)
+                    .divide(project.getTargetAmount(), 4, RoundingMode.HALF_UP)
                     .multiply(new BigDecimal("100"));
                 vo.setProgressPercentage(progress);
             } else {
@@ -666,7 +662,7 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
         }
 
         // 按数量节点排序
-        tieredPricingList.sort((a, b) -> Integer.compare(a.getNode(), b.getNode()));
+        tieredPricingList.sort(Comparator.comparingInt(TieredPricingItem::getNode));
 
         // 找到对应的价格区间
         for (int i = tieredPricingList.size() - 1; i >= 0; i--) {
@@ -689,7 +685,7 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
         }
 
         // 按数量节点排序
-        tieredPricingList.sort((a, b) -> Integer.compare(a.getNode(), b.getNode()));
+        tieredPricingList.sort(Comparator.comparingInt(TieredPricingItem::getNode));
 
         // 找到下一个价格阈值
         for (com.sutran.sd.design.vo.TieredPricingItem tier : tieredPricingList) {
@@ -725,7 +721,7 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
             }
 
             // 2. 验证项目状态（只允许成功或已完成的项目释放资金）
-            if (project.getStatus() == null || project.getStatus() != CrowdfundingProjectStatus.SUCCESS.getCode()) {
+            if (project.getStatus() == null || !project.getStatus().equals(CrowdfundingProjectStatus.SUCCESS.getCode())) {
                 log.error("[众筹资金释放] 项目状态不允许释放资金: 项目ID={}, 状态={}", projectId, project.getStatus());
                 throw new ServiceException("只有众筹成功的项目才能释放资金");
             }
@@ -750,7 +746,7 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
 
             // 5. 获取商家用户信息（需要支付宝账号）
             Long manufacturerUserId = project.getManufacturerUserId();
-            
+
             // 查询商家用户信息
             SysUser manufacturer = userService.selectUserById(manufacturerUserId);
             if (manufacturer == null) {
@@ -774,14 +770,14 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
             String projectNo = project.getProjectNo();
             String payeeName = project.getManufacturerName();
             BigDecimal releaseAmount = project.getCurrentAmount(); // 释放已筹集的全部金额
-            
-            log.info("[众筹资金释放] 准备转账: 项目ID={}, 收款方={}, 金额={}", 
+
+            log.info("[众筹资金释放] 准备转账: 项目ID={}, 收款方={}, 金额={}",
                 projectId, payeeName, releaseAmount);
 
             // 使用商家真实的支付宝账号
             String payeeAccount = manufacturer.getAlipayAccount();
             String payeeRealName = manufacturer.getAlipayRealName();
-            
+
             String transferOrderNo = aliPayService.releaseCrowdfundingFunds(
                 projectNo,           // 业务订单号（使用项目编号）
                 payeeAccount,        // 商家支付宝账号（真实账号）
@@ -834,7 +830,7 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
             }
 
             // 2. 验证项目状态（只允许成功或已完成的项目进行审核）
-            if (project.getStatus() == null || project.getStatus() != CrowdfundingProjectStatus.SUCCESS.getCode()) {
+            if (project.getStatus() == null || !project.getStatus().equals(CrowdfundingProjectStatus.SUCCESS.getCode())) {
                 log.error("[资金释放审核] 项目状态不允许审核: 项目ID={}, 状态={}", projectId, project.getStatus());
                 throw new ServiceException("只有众筹成功的项目才能审核资金释放申请");
             }
@@ -866,7 +862,7 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
             if (updateResult > 0) {
                 if (auditStatus == 2) {
                     log.info("[资金释放审核] 审核通过: 项目ID={}, 审核人={}, 审核备注={}", projectId, auditUserName, auditRemark);
-                    
+
                     // 审核通过后，自动执行资金释放
                     try {
                         String transferOrderNo = releaseCrowdfundingFunds(projectId);

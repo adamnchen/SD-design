@@ -698,10 +698,8 @@ public class SdUserModelServiceImpl implements SdUserModelService {
                     promptZh = prompt;
                 }
             }
-            else {
-                // value移除第一个逗号前的数据包括第一个逗号，示例：测试FLUX模型，五瓶Loveb布丁，粉红色表面。瓶子有不同的颜色，上面写着文字。在图像的底部，有额外的文本。
-                promptZh = promptZh.substring(promptZh.indexOf("，")+1);
-            }
+            // value移除第一个逗号前的数据包括第一个逗号，示例：测试FLUX模型，五瓶Loveb布丁，粉红色表面。瓶子有不同的颜色，上面写着文字。在图像的底部，有额外的文本。
+            promptZh = promptZh.replace(loraName+"，","");
             return new ComfyUserModelVo.PromptVo().setPrompt(prompt).setPromptZh(promptZh);
         }).collect(Collectors.toList());
         vo.setPromptList(captionList);

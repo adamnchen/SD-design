@@ -14,6 +14,9 @@
         <result property="bizType" column="biz_type"/>
         <result property="email" column="email"/>
         <result property="phonenumber" column="phonenumber"/>
+    <result property="alipayAccount" column="alipay_account"/>
+    <result property="alipayRealName" column="alipay_real_name"/>
+    <result property="alipayBindStatus" column="alipay_bind_status"/>
         <result property="channel" column="channel"/>
         <result property="channelId" column="channel_id"/>
         <result property="channelUserId" column="channel_user_id"/>
@@ -68,6 +71,9 @@
                u.email,
                u.avatar,
                u.phonenumber,
+               u.alipay_account,
+               u.alipay_real_name,
+               u.alipay_bind_status,
                u.password,
                u.sex,
                u.status,

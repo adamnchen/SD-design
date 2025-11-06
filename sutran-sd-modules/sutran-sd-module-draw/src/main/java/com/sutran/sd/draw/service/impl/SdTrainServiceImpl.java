@@ -1714,8 +1714,12 @@ public class SdTrainServiceImpl implements SdTrainService {
             return new FluxgymTrainProgressVo().setProgress(0).setStatus("queue");
         }
         // 成功或失败都算完成
-        if (taskNode.getIntValue("status")>4) {
+        if (taskNode.getIntValue("status")==5) {
             return new FluxgymTrainProgressVo().setProgress(100).setStatus("completed");
+        }
+        // 失败都算
+        if (taskNode.getIntValue("status")==6) {
+            return new FluxgymTrainProgressVo().setProgress(100).setStatus("failed").setDetail(taskNode.getString("reason"));
         }
         if (StringUtils.isBlank(nodeId)) {
             nodeId = taskNode.getString("nodeId");

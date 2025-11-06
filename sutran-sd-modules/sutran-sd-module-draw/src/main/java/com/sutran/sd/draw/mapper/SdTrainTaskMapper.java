@@ -199,7 +199,7 @@ public interface SdTrainTaskMapper extends BaseMapperPlus<SdTrainTaskMapper, SdT
       * @param taskId 训练任务ID
       * @return 节点URL
       */
-    @Select("SELECT B.base_url AS baseUrl,A.node_id AS nodeId,A.pre_params AS preParams,A.new_status AS status,A.crt_user_id AS crtUserId,A.crt_user_name AS crtUserName,DATE_FORMAT(A.start_time,'%Y-%m-%d %H:%i:%s') AS startTime,DATE_FORMAT(A.end_time,'%Y-%m-%d %H:%i:%s') AS endTime " +
+    @Select("SELECT B.base_url AS baseUrl,A.node_id AS nodeId,A.pre_params AS preParams,A.new_status AS status,A.reason,A.crt_user_id AS crtUserId,A.crt_user_name AS crtUserName,DATE_FORMAT(A.start_time,'%Y-%m-%d %H:%i:%s') AS startTime,DATE_FORMAT(A.end_time,'%Y-%m-%d %H:%i:%s') AS endTime " +
         "FROM sd_train_task AS A INNER JOIN sd_draw_node AS B ON A.node_id=B.id WHERE A.id=#{taskId}")
     JSONObject selectNodeBaseUrlAndStatusByTaskId(@Param("taskId") String taskId);
 

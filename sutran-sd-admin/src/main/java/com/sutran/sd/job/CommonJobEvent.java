@@ -102,7 +102,7 @@ public class CommonJobEvent {
      * 定时拉取lora模型
      * 每10分钟执行一次
      */
-    @Scheduled(cron="0 0/10 * * * ?")
+//    @Scheduled(cron="0 0/10 * * * ?")
     public void executeRefreshLora(){
         sdWebuiApiService.refreshLoraModels();
     }
@@ -174,7 +174,7 @@ public class CommonJobEvent {
      * 定时处理绘图节点健康检查
      * 每10秒执行一次
      */
-    @Scheduled(cron="0/10 * * * * ?")
+    @Scheduled(cron="0/20 * * * * ?")
     public void executeDrawNodeHealthCheck(){
         sdDrawNodeService.drawNodeHealthCheck();
     }
@@ -183,7 +183,7 @@ public class CommonJobEvent {
      * 定时处理训练节点健康检查
      * 每10秒执行一次
      */
-    @Scheduled(cron="0/10 * * * * ?")
+    @Scheduled(cron="0/20 * * * * ?")
     public void executeTrainNodeHealthCheck(){
         sdDrawNodeService.trainNodeHealthCheck();
     }
@@ -192,7 +192,7 @@ public class CommonJobEvent {
      * 定时处理节点任务
      * 每10秒执行一次
      */
-    @Scheduled(cron="0/10 * * * * ?")
+    @Scheduled(cron="0/20 * * * * ?")
     public void executeComfyDrawTask(){
         Map<String, String> cacheMap = RedisUtils.getCacheMap(DRAW_NODE_TASK_MAP);
         if (CollectionUtil.isEmpty(cacheMap)) {
@@ -212,7 +212,7 @@ public class CommonJobEvent {
      * 定时处理节点任务
      * 每10秒执行一次
      */
-    @Scheduled(cron="0/10 * * * * ?")
+    @Scheduled(cron="0/20 * * * * ?")
     public void executeFluxgymTrainTask(){
         Map<String, String> cacheMap = RedisUtils.getCacheMap(TRAIN_NODE_TASK_MAP);
         if (CollectionUtil.isEmpty(cacheMap)) {

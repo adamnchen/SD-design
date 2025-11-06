@@ -101,17 +101,17 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public String submitComfyModelTask(ComfyModelTaskSubmitBo modelTaskBo) {
-        final Long userId = LoginHelper.getUserId();
-        final String userName = LoginHelper.getUsername();
         if (StringUtils.isBlank(modelTaskBo.getBatchSize()) || Integer.parseInt(modelTaskBo.getBatchSize())<=0) {
             throw new TaskErrorException("生图数量至少1张");
         }
-        final int batchSize = Integer.parseInt(modelTaskBo.getBatchSize());
         // 根据模型类型获取工作流
         SdFlow sdFlow = sdFlowService.getNoFixedFlow(modelTaskBo.getModelType());
         if (sdFlow == null || StringUtils.isBlank(sdFlow.getFlow())) {
             throw new TaskErrorException(String.format("未找到模型类型为[%s]的工作流", modelTaskBo.getModelType()));
         }
+        final Long userId = LoginHelper.getUserId();
+        final String userName = LoginHelper.getUsername();
+        final int batchSize = Integer.parseInt(modelTaskBo.getBatchSize());
         // 校验生图数量,获取当前用户对应的会员的剩余数量并扣除本次绘图数量
         userService.checkDrawNumOfMember(userId,batchSize);
 

@@ -171,13 +171,14 @@
         ORDER BY A.id DESC
     </select>
 
-    <!-- 获取归属当前用户的comfyui lora模型列表 -->
+    <!-- 获取归属以及分享给当前用户的comfyui lora模型列表 -->
     <select id="selectUserAllListOfComfyui" resultMap="BaseComfyuiModelVo">
         SELECT DISTINCT A.id, A.task_id, A.classify_id, A.title, A.model_name, A.model_name_zh, A.model_strength, A.model_tag, A.file_name, A.url, A.remark, A.type, A.is_open, A.belong_user_id, A.publish_status, A.crt_time, A.is_user_del,B.user_name AS belong_user_name,B.nick_name AS belong_nick_name,B.avatar AS belong_avater
         FROM sd_user_model AS A
-        LEFT JOIN sys_user AS B ON A.belong_user_id=B.user_id
+            LEFT JOIN sys_user AS B ON A.belong_user_id=B.user_id
+            LEFT JOIN sd_user_model_share AS C ON A.id=C.model_id
         <if test="dto.classifyId!=null and dto.classifyId!='' and dto.classifyId!=1">LEFT JOIN sd_user_model_classify_tmp AS C ON A.id=C.model_id</if>
-        WHERE A.publish_status=1 AND A.type=1 AND A.belong_user_id=#{userId} AND is_user_del=0
+        WHERE A.publish_status=1 AND ( (A.type=1 AND A.belong_user_id=#{userId} AND A.is_user_del=0) OR D.user_id=#{userId} )
         <if test="dto.classifyId!=null and dto.classifyId!=''">
             <choose>
                 <when test="dto.classifyId==1">AND A.classify_id=1</when>

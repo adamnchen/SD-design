@@ -178,7 +178,7 @@ public class SdModelController {
     }
 
     /**
-     * [comfyui]获取所属当前用户的lora模型列表
+     * [comfyui]获取所属以及分享给当前用户的lora模型列表
      * @param dto 分页查询参数
      */
     @GetMapping("/comfyui/user-lora/list")

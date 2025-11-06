@@ -893,6 +893,20 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
             log.error("[资金释放审核] 系统异常: 项目ID={}, 异常=", projectId, e);
             throw new ServiceException("审核失败: " + e.getMessage());
         }
+
+    }
+
+    @Override
+    public TableDataInfo<SdCrowdfundingProject> getPendingFundReleasePage(PageQuery pageQuery) {
+        Page<SdCrowdfundingProject> page = pageQuery.build();
+        LambdaQueryWrapper<SdCrowdfundingProject> lqw = new LambdaQueryWrapper<>();
+        lqw.eq(SdCrowdfundingProject::getStatus, CrowdfundingProjectStatus.SUCCESS.getCode()) // 众筹成功
+           .eq(SdCrowdfundingProject::getEscrowStatus, 0) // 托管中
+           .eq(SdCrowdfundingProject::getFundReleaseAuditStatus, 1) // 待审核
+           .orderByDesc(SdCrowdfundingProject::getCreateTime);
+
+        Page<SdCrowdfundingProject> result = crowdfundingProjectMapper.selectPage(page, lqw);
+        return TableDataInfo.build(result);
     }
 
 }

@@ -152,7 +152,7 @@ public interface SdUserModelMapper extends BaseMapperPlus<SdUserModelMapper, SdU
     Page<ComfyUserModelVo> selectAllListOfComfyui(@Param("dto") SdUserModelPageDto dto, @Param("userId") Long userId, @Param("page") Page<SysUser> page);
 
     /**
-     * 获取归属当前用户的comfyui lora模型列表
+     * 获取归属以及分享给当前用户的comfyui lora模型列表
      * @param dto       SdUserModelPageDto
      * @param userId    用户ID
      * @param page      分页查询参数

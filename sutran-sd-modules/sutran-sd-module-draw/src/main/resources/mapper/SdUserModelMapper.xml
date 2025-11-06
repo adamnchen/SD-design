@@ -178,7 +178,7 @@
             LEFT JOIN sys_user AS B ON A.belong_user_id=B.user_id
             LEFT JOIN sd_user_model_share AS C ON A.id=C.model_id
         <if test="dto.classifyId!=null and dto.classifyId!='' and dto.classifyId!=1">LEFT JOIN sd_user_model_classify_tmp AS C ON A.id=C.model_id</if>
-        WHERE A.publish_status=1 AND ( (A.type=1 AND A.belong_user_id=#{userId} AND A.is_user_del=0) OR D.user_id=#{userId} )
+        WHERE A.publish_status=1 AND ( (A.type=1 AND A.belong_user_id=#{userId} AND A.is_user_del=0) OR C.user_id=#{userId} )
         <if test="dto.classifyId!=null and dto.classifyId!=''">
             <choose>
                 <when test="dto.classifyId==1">AND A.classify_id=1</when>

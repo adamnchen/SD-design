@@ -61,6 +61,7 @@ public class PayOrderServiceImpl implements PayOrderService {
     public TableDataInfo<PayOrder> selectPageOrderList(PayOrder order, PageQuery pageQuery) {
         Map<String, Object> params = order.getParams();
         LambdaQueryWrapper<PayOrder> lqw = new LambdaQueryWrapper<PayOrder>()
+            .eq(PayOrder::getUserId,order.getUserId())
             .eq(StringUtils.isNotBlank(order.getOutTradeNo()), PayOrder::getOutTradeNo, order.getOutTradeNo())
             .eq(StringUtils.isNotBlank(order.getTradeNo()), PayOrder::getTradeNo, order.getTradeNo())
             .like(StringUtils.isNotBlank(order.getSubject()), PayOrder::getSubject, order.getSubject())

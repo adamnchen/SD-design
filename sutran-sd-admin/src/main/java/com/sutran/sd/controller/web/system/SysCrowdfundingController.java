@@ -2,7 +2,10 @@ package com.sutran.sd.controller.web.system;
 
 import com.sutran.sd.common.core.controller.BaseController;
 import com.sutran.sd.common.core.domain.R;
+import com.sutran.sd.common.core.domain.PageQuery;
+import com.sutran.sd.common.core.page.TableDataInfo;
 import com.sutran.sd.common.helper.LoginHelper;
+import com.sutran.sd.design.domain.SdCrowdfundingProject;
 import com.sutran.sd.design.service.ISdCrowdfundingProjectService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -88,6 +91,15 @@ public class SysCrowdfundingController extends BaseController {
             log.error("[资金释放审核] 审核拒绝失败: 项目ID={}", projectId, e);
             return R.fail("审核拒绝失败: " + e.getMessage());
         }
+    }
+
+    /**
+     * 待审核资金释放申请列表（后台）
+     */
+    @GetMapping("/fund-release/pending")
+    @Operation(summary = "待审核资金释放申请列表", description = "查询众筹成功且托管中、审核待审的项目列表")
+    public TableDataInfo<SdCrowdfundingProject> pendingFundRelease(PageQuery pageQuery) {
+        return crowdfundingProjectService.getPendingFundReleasePage(pageQuery);
     }
 
 }

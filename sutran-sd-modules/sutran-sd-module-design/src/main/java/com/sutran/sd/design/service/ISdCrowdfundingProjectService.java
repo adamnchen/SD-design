@@ -170,4 +170,11 @@ public interface ISdCrowdfundingProjectService {
      * @return 是否成功
      */
     boolean auditFundRelease(Long projectId, Integer auditStatus, String auditRemark);
+
+    /**
+     * 分页查询待审核资金释放申请列表（状态=成功，托管中，审核待审）
+     * @param pageQuery 分页查询
+     * @return 分页数据
+     */
+    TableDataInfo<SdCrowdfundingProject> getPendingFundReleasePage(PageQuery pageQuery);
 }

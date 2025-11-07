@@ -95,12 +95,14 @@
                 <when test="type == 'published'">
                     AND cf.creator_user_id = #{userId}
                 </when>
-                <!-- 我购买的：通过子查询关联支持记录表 -->
+                <!-- 我购买的：通过子查询关联支持记录表，只查询已支付成功的记录 -->
                 <when test="type == 'supported'">
                     AND cf.id IN (
                         SELECT DISTINCT project_id
                         FROM sd_crowdfunding_support
                         WHERE user_id = #{userId}
+                        AND order_no IS NOT NULL
+                        AND (status IS NULL OR status = 0)
                     )
                 </when>
                 <!-- 我承接的：manufacturer_user_id = 当前用户ID -->

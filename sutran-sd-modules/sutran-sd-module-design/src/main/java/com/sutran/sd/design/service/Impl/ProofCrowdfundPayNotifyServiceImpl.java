@@ -22,6 +22,8 @@ import com.sutran.sd.pay.service.AliPayService;
 import com.sutran.sd.pay.service.BasePayNotifyService;
 import com.sutran.sd.pay.service.PayOrderService;
 import com.sutran.sd.common.utils.StringUtils;
+import com.sutran.sd.system.service.ISysUserAddressService;
+import com.sutran.sd.common.core.domain.entity.SysAddress;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Lazy;
@@ -53,6 +55,7 @@ public class ProofCrowdfundPayNotifyServiceImpl extends BasePayNotifyService {
     private final AliPayService aliPayService;
     private final PayOrderService payOrderService;
     private final SdCrowdfundingSampleDeliveryMapper deliveryMapper;
+    private final ISysUserAddressService userAddressService;
 
     /**
      * 处理支付成功业务
@@ -109,57 +112,97 @@ public class ProofCrowdfundPayNotifyServiceImpl extends BasePayNotifyService {
      */
     @Override
     public void handleFailedBusiness(String tradeStatus, String outTradeNo, String tradeNo, String totalAmount, String gmtPayment) {
-        SdCrowdfundingSupport support= supportMapper.selectByOrderNo(outTradeNo);
-        Long projectId = support.getProjectId();
-        BigDecimal amount = new BigDecimal(totalAmount);
-        // 支付失败回滚金额
-        handleRollback(outTradeNo,projectId,amount);
+        try {
+            log.info("[众筹支付失败] 开始处理: 订单号={}, 交易状态={}", outTradeNo, tradeStatus);
+            
+            SdCrowdfundingSupport support = supportMapper.selectByOrderNo(outTradeNo);
+            if (support == null) {
+                log.warn("[众筹支付失败] 未找到支持记录: 订单号={}", outTradeNo);
+                return;
+            }
+            
+            Long projectId = support.getProjectId();
+            BigDecimal amount = support.getSupportAmount(); // 使用支持记录中的金额，而不是回调中的金额
+            
+            // 支付失败回滚金额
+            handleRollback(outTradeNo, projectId, amount);
+            
+            log.info("[众筹支付失败] 处理完成: 订单号={}, 项目ID={}, 金额={}", outTradeNo, projectId, amount);
+        } catch (Exception e) {
+            log.error("[众筹支付失败] 处理异常: 订单号={}", outTradeNo, e);
+        }
     }
 
     @Override
     public void dealPayTimeoutData(PayTimeoutStatusVo vo) {
         try {
-
-
-            handleRollback(vo.getOutTradeNo(),vo.getProjectid(),vo.getAmount());
-            // 支付成功 或 完成
-            if (AliPayTradeStatus.TRADE_SUCCESS.name().equals(vo.getTradeStatus()) || AliPayTradeStatus.TRADE_FINISHED.name().equals(vo.getTradeStatus())) {
+            log.info("[众筹支付超时] 开始处理: 订单号={}, 交易状态={}, 项目ID={}, 金额={}", 
+                vo.getOutTradeNo(), vo.getTradeStatus(), vo.getProjectid(), vo.getAmount());
+            
+            // 如果支付成功或完成，不需要回滚
+            if (AliPayTradeStatus.TRADE_SUCCESS.name().equals(vo.getTradeStatus()) 
+                || AliPayTradeStatus.TRADE_FINISHED.name().equals(vo.getTradeStatus())) {
+                log.info("[众筹支付超时] 订单已支付成功，无需回滚: 订单号={}, 交易状态={}", 
+                    vo.getOutTradeNo(), vo.getTradeStatus());
                 return;
-
             }
-
-        }
-        catch (Exception e) {
-            log.error("[众筹打样支付超时]>>>>>>>>>超时业务逻辑处理异常,异常信息: ", e);
-
+            
+            // 支付超时或失败，需要回滚
+            handleRollback(vo.getOutTradeNo(), vo.getProjectid(), vo.getAmount());
+            
+            log.info("[众筹支付超时] 处理完成: 订单号={}, 项目ID={}, 金额={}", 
+                vo.getOutTradeNo(), vo.getProjectid(), vo.getAmount());
+        } catch (Exception e) {
+            log.error("[众筹支付超时] 处理异常: 订单号={}, 项目ID={}", 
+                vo.getOutTradeNo(), vo.getProjectid(), e);
         }
     }
 
 
     private void handleRollback(String orderNo, Long projectId, BigDecimal amount) {
         try {
-            // 1. 删除参与者记录（根据订单号查询）
+            log.info("[回滚处理] 开始: 订单号={}, 项目ID={}, 金额={}", orderNo, projectId, amount);
+            
+            // 1. 查询支持记录（根据订单号查询）
             LambdaQueryWrapper<SdCrowdfundingSupport> queryWrapper = new LambdaQueryWrapper<>();
             queryWrapper.eq(SdCrowdfundingSupport::getOrderNo, orderNo);
 
             SdCrowdfundingSupport support = supportMapper.selectOne(queryWrapper);
-            if (support != null) {
+            if (support == null) {
+                log.warn("[回滚处理] 未找到支持记录，可能已删除: 订单号={}", orderNo);
+            } else {
+                // 如果支持记录存在，删除它
                 supportMapper.deleteById(support.getId());
-                log.info("回滚参与者记录: 订单号={}, 支持记录ID={}", orderNo, support.getId());
-            } else {
-                log.warn("未找到需要回滚的支持记录: 订单号={}", orderNo);
+                log.info("[回滚处理] 删除支持记录: 订单号={}, 支持记录ID={}", orderNo, support.getId());
+                
+                // 如果传入的金额为空，使用支持记录中的金额
+                if (amount == null) {
+                    amount = support.getSupportAmount();
+                    log.info("[回滚处理] 使用支持记录中的金额: 订单号={}, 金额={}", orderNo, amount);
+                }
+                
+                // 如果传入的项目ID为空，使用支持记录中的项目ID
+                if (projectId == null) {
+                    projectId = support.getProjectId();
+                    log.info("[回滚处理] 使用支持记录中的项目ID: 订单号={}, 项目ID={}", orderNo, projectId);
+                }
             }
 
-            // 2. 回退Redis金额
-            boolean refunded = crowdfundingRedisService.refundAmount(projectId, amount);
-            if (refunded) {
-                log.info("回退Redis金额: 订单号={}, 金额={}", orderNo, amount);
+            // 2. 回退Redis金额（必须执行，即使支持记录不存在）
+            if (projectId != null && amount != null && amount.compareTo(BigDecimal.ZERO) > 0) {
+                boolean refunded = crowdfundingRedisService.refundAmount(projectId, amount);
+                if (refunded) {
+                    log.info("[回滚处理] Redis金额回退成功: 订单号={}, 项目ID={}, 金额={}", orderNo, projectId, amount);
+                } else {
+                    log.error("[回滚处理] Redis金额回退失败: 订单号={}, 项目ID={}, 金额={}", orderNo, projectId, amount);
+                }
             } else {
-                log.error("回退Redis金额失败: 订单号={}, 金额={}", orderNo, amount);
+                log.warn("[回滚处理] 无法回退Redis金额，参数无效: 订单号={}, 项目ID={}, 金额={}", orderNo, projectId, amount);
             }
 
+            log.info("[回滚处理] 完成: 订单号={}, 项目ID={}, 金额={}", orderNo, projectId, amount);
         } catch (Exception e) {
-            log.error("回滚处理失败: 订单号={}, 项目ID={}, 金额={}", orderNo, projectId, amount, e);
+            log.error("[回滚处理] 异常: 订单号={}, 项目ID={}, 金额={}", orderNo, projectId, amount, e);
         }
     }
 
@@ -261,6 +304,9 @@ public class ProofCrowdfundPayNotifyServiceImpl extends BasePayNotifyService {
                 return;
             }
 
+            int successCount = 0;
+            int failCount = 0;
+
             for (SdCrowdfundingSupport winner : winners) {
                 try {
                     // 检查是否已经存在配送记录（通过收货人用户ID和项目ID）
@@ -273,7 +319,89 @@ public class ProofCrowdfundPayNotifyServiceImpl extends BasePayNotifyService {
                     if (existingCount > 0) {
                         log.info("样品配送记录已存在，跳过创建: 项目ID={}, 用户ID={}, 订单号={}",
                             project.getId(), winner.getUserId(), winner.getOrderNo());
+                        successCount++;
                         continue;
+                    }
+
+                    // 准备收货人信息
+                    String recipientName = winner.getReceiverName();
+                    if (StringUtils.isBlank(recipientName)) {
+                        recipientName = winner.getUserName();
+                    }
+                    if (StringUtils.isBlank(recipientName)) {
+                        recipientName = "用户" + winner.getUserId();
+                    }
+
+                    String recipientPhone = winner.getReceiverPhone();
+                    if (StringUtils.isBlank(recipientPhone)) {
+                        recipientPhone = "";
+                    }
+
+                    // 获取收货地址（必填字段）- 优先使用支持记录中的地址
+                    String deliveryAddress = winner.getReceiverAddress();
+                    String receiverArea = winner.getReceiverArea();
+                    
+                    // 如果地址不为空，将地区信息拼接到地址中
+                    if (StringUtils.isNotBlank(deliveryAddress)) {
+                        if (StringUtils.isNotBlank(receiverArea)) {
+                            deliveryAddress = receiverArea + " " + deliveryAddress;
+                        }
+                    }
+                    
+                    // 如果支持记录中没有地址（可能是发起人记录或旧数据），尝试从用户地址表获取
+                    if (StringUtils.isBlank(deliveryAddress)) {
+                        log.warn("支持记录中地址为空，尝试从用户地址表获取: 项目ID={}, 用户ID={}, 订单号={}",
+                            project.getId(), winner.getUserId(), winner.getOrderNo());
+                        
+                        try {
+                            List<SysAddress> addressList = userAddressService.selectAddressList(winner.getUserId());
+                            if (addressList != null && !addressList.isEmpty()) {
+                                // 优先使用默认地址，否则使用第一个地址
+                                SysAddress defaultAddress = addressList.stream()
+                                    .filter(addr -> addr.getIsDefault() != null && addr.getIsDefault() == 1)
+                                    .findFirst()
+                                    .orElse(addressList.get(0));
+
+                                // 拼接完整地址
+                                StringBuilder addressBuilder = new StringBuilder();
+                                if (StringUtils.isNotBlank(defaultAddress.getProvince())) {
+                                    addressBuilder.append(defaultAddress.getProvince());
+                                }
+                                if (StringUtils.isNotBlank(defaultAddress.getCity())) {
+                                    addressBuilder.append(defaultAddress.getCity());
+                                }
+                                if (StringUtils.isNotBlank(defaultAddress.getCounty())) {
+                                    addressBuilder.append(defaultAddress.getCounty());
+                                }
+                                if (StringUtils.isNotBlank(defaultAddress.getAddress())) {
+                                    addressBuilder.append(defaultAddress.getAddress());
+                                }
+                                if (StringUtils.isNotBlank(defaultAddress.getHome())) {
+                                    addressBuilder.append(defaultAddress.getHome());
+                                }
+                                deliveryAddress = addressBuilder.toString();
+
+                                // 如果收货人信息为空，使用地址中的信息
+                                if (StringUtils.isBlank(recipientName)) {
+                                    recipientName = defaultAddress.getName();
+                                }
+                                if (StringUtils.isBlank(recipientPhone)) {
+                                    recipientPhone = defaultAddress.getPhonenumber();
+                                }
+
+                                log.info("从用户地址表获取地址成功: 项目ID={}, 用户ID={}, 地址={}",
+                                    project.getId(), winner.getUserId(), deliveryAddress);
+                            }
+                        } catch (Exception e) {
+                            log.error("从用户地址表获取地址失败: 项目ID={}, 用户ID={}", project.getId(), winner.getUserId(), e);
+                        }
+                    }
+
+                    // 如果地址仍然为空，抛出异常
+                    if (StringUtils.isBlank(deliveryAddress)) {
+                        throw new ServiceException(
+                            String.format("用户ID=%d 的收货地址为空，无法创建发货记录。支持记录中没有地址，且用户地址表中也没有可用地址。",
+                                winner.getUserId()));
                     }
 
                     // 创建样品配送记录
@@ -281,9 +409,9 @@ public class ProofCrowdfundPayNotifyServiceImpl extends BasePayNotifyService {
                     delivery.setCrowdfundingProjectId(project.getId());
                     delivery.setProofingInvitationId(project.getProofingInvitationId());
                     delivery.setRecipientUserId(winner.getUserId());
-                    delivery.setRecipientName(winner.getReceiverName() != null ? winner.getReceiverName() : winner.getUserName());
-                    delivery.setRecipientPhone(winner.getReceiverPhone() != null ? winner.getReceiverPhone() : "");
-                    delivery.setDeliveryAddress(winner.getReceiverAddress() != null ? winner.getReceiverAddress() : "");
+                    delivery.setRecipientName(recipientName);
+                    delivery.setRecipientPhone(recipientPhone);
+                    delivery.setDeliveryAddress(deliveryAddress);
                     delivery.setStatus(1); // 待发货
                     delivery.setRemark(winner.getPrizeInfo() != null ? winner.getPrizeInfo() : "中奖样品");
                     delivery.setOrderStatus(1); // 待处理
@@ -292,19 +420,31 @@ public class ProofCrowdfundPayNotifyServiceImpl extends BasePayNotifyService {
                     delivery.setSenderUserId(project.getManufacturerUserId());
                     delivery.setSenderName(project.getManufacturerName() != null ? project.getManufacturerName() : "");
 
-                    deliveryMapper.insert(delivery);
-
-                    log.info("样品配送记录创建成功: 项目ID={}, 用户ID={}, 用户名={}, 订单号={}, 收货人={}",
-                        project.getId(), winner.getUserId(), winner.getUserName(), winner.getOrderNo(),
-                        delivery.getRecipientName());
+                    int insertResult = deliveryMapper.insert(delivery);
+                    if (insertResult > 0) {
+                        successCount++;
+                        log.info("样品配送记录创建成功: 项目ID={}, 用户ID={}, 用户名={}, 订单号={}, 收货人={}, 地址={}",
+                            project.getId(), winner.getUserId(), winner.getUserName(), winner.getOrderNo(),
+                            delivery.getRecipientName(), delivery.getDeliveryAddress());
+                    } else {
+                        failCount++;
+                        log.error("样品配送记录插入失败（返回0）: 项目ID={}, 用户ID={}, 订单号={}",
+                            project.getId(), winner.getUserId(), winner.getOrderNo());
+                    }
 
                 } catch (Exception e) {
-                    log.error("创建样品配送记录失败: 项目ID={}, 用户ID={}, 订单号={}",
-                        project.getId(), winner.getUserId(), winner.getOrderNo(), e);
+                    failCount++;
+                    log.error("创建样品配送记录失败: 项目ID={}, 用户ID={}, 用户名={}, 订单号={}, 错误信息={}",
+                        project.getId(), winner.getUserId(), winner.getUserName(), winner.getOrderNo(), e.getMessage(), e);
                 }
             }
 
-            log.info("样品配送记录创建完成: 项目ID={}, 中奖人数={}", project.getId(), winners.size());
+            log.info("样品配送记录创建完成: 项目ID={}, 总中奖人数={}, 成功={}, 失败={}",
+                project.getId(), winners.size(), successCount, failCount);
+
+            if (failCount > 0) {
+                log.error("警告：部分样品配送记录创建失败，请检查日志: 项目ID={}, 失败数量={}", project.getId(), failCount);
+            }
 
         } catch (Exception e) {
             log.error("批量创建样品配送记录失败: 项目ID={}", project.getId(), e);
@@ -372,7 +512,7 @@ public class ProofCrowdfundPayNotifyServiceImpl extends BasePayNotifyService {
                 }
 
                 supportMapper.insert(initiatorSupport);
-             
+
 
 
                 log.info("发起人必得样品记录创建成功: 项目ID={}, 发起人ID={}, 样品数量={}",

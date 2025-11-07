@@ -1,5 +1,6 @@
 package com.sutran.sd.controller.web.system;
 
+import ch.qos.logback.core.util.TimeUtil;
 import cn.dev33.satoken.annotation.SaCheckPermission;
 import cn.dev33.satoken.annotation.SaIgnore;
 import cn.dev33.satoken.secure.BCrypt;
@@ -48,7 +49,10 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletResponse;
+import java.sql.Time;
+import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
@@ -161,6 +165,8 @@ public class SysUserController extends BaseController {
             return R.fail("新增用户'" + user.getUserName() + "'失败，邮箱账号已存在");
         }
         user.setPassword(BCrypt.hashpw(user.getPassword()));
+        user.setAvatar("http://img.zeinai.net/sutran/2025/11/07/baa19046cf804b15a471ec8bdc37f748.jpg");
+        user.setNickName("用户"+ LocalDateTime.now());
         return toAjax(sysUserService.insertUser(user));
     }
 

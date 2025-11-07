@@ -93,7 +93,7 @@ public class SdCrowdfundingSampleDelivery extends BaseEntity {
     /**
      * 状态：1=待发货，2=已发货
      */
-    @TableField("status")
+    @TableField("delivery_status")
     @NotNull(message = "状态不能为空")
     private Integer status;
 

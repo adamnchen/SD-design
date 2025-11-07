@@ -12,13 +12,16 @@ import com.sutran.sd.common.utils.OrderNumUtils;
 import com.sutran.sd.common.utils.StringUtils;
 import com.sutran.sd.design.domain.SdPresaleOrder;
 import com.sutran.sd.design.domain.SdPresaleProject;
+import com.sutran.sd.design.domain.SdCrowdfundingProject;
 import com.sutran.sd.design.enums.PresaleOrderStatus;
 import com.sutran.sd.design.enums.PresaleProjectStatus;
+import com.sutran.sd.design.enums.CrowdfundingProjectStatus;
 import com.sutran.sd.design.dto.PresaleOrderCreateDTO;
 import com.sutran.sd.design.dto.PresaleProjectPublishDTO;
 import com.sutran.sd.design.mapper.SdPresaleOrderMapper;
 import com.sutran.sd.design.mapper.SdPresaleProjectMapper;
 import com.sutran.sd.design.mapper.SdProofingInvitationMapper;
+import com.sutran.sd.design.mapper.SdCrowdfundingProjectMapper;
 import com.sutran.sd.design.service.ISdPresaleProjectService;
 import com.sutran.sd.design.vo.PresaleOrderDetailVO;
 import com.sutran.sd.design.vo.PresaleOrderListVO;
@@ -60,6 +63,7 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
     private final PayOrderServiceImpl payOrderService;
     private final AliPayService aliPayService;
     private final SdProofingInvitationMapper proofingInvitationMapper;
+    private final SdCrowdfundingProjectMapper crowdfundingProjectMapper;
     private final ISysOssService sysOssService;
     private final ISysUserService userService;
 
@@ -568,6 +572,82 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
             // 3. 验证用户权限（只有被邀约人才能发布预售）
             if (!invitationDetail.getInviteeUserId().equals(currentUserId)) {
                 return R.fail("无权限发布此项目的预售");
+            }
+
+            // 3.1 检查是否上传了实物照片
+            if (StringUtils.isBlank(publishDTO.getManufacturerPhotos())) {
+                log.warn("[发布预售项目] 未上传实物照片: 打样邀约ID={}", publishDTO.getProofingInvitationId());
+                return R.fail("发布预售项目前必须先上传实物照片");
+            }
+
+            // 3.2 检查是否同时存在完成众筹的项目和处于有效期内的预售项目
+            // 检查是否有完成众筹的项目（状态为SUCCESS）
+            LambdaQueryWrapper<SdCrowdfundingProject> crowdfundingQuery = new LambdaQueryWrapper<>();
+            crowdfundingQuery.eq(SdCrowdfundingProject::getProofingInvitationId, publishDTO.getProofingInvitationId())
+                           .eq(SdCrowdfundingProject::getStatus, CrowdfundingProjectStatus.SUCCESS.getCode()); // 众筹成功
+            
+            List<SdCrowdfundingProject> successfulCrowdfundingProjects = crowdfundingProjectMapper.selectList(crowdfundingQuery);
+            
+            // 检查是否有处于有效期内的预售项目
+            LambdaQueryWrapper<SdPresaleProject> validPresaleQuery = new LambdaQueryWrapper<>();
+            validPresaleQuery.eq(SdPresaleProject::getProofingInvitationId, publishDTO.getProofingInvitationId())
+                           .eq(SdPresaleProject::getStatus, PresaleProjectStatus.ON_SALE.getCode()); // 销售中
+            
+            List<SdPresaleProject> validPresaleProjects = presaleProjectMapper.selectList(validPresaleQuery);
+            
+            // 过滤出处于有效期内的预售项目
+            long currentTime = System.currentTimeMillis();
+            List<SdPresaleProject> activePresaleProjects = validPresaleProjects.stream()
+                .filter(project -> {
+                    if (project.getValidityDays() == null || project.getCreateTime() == null) {
+                        return false;
+                    }
+                    long expireTime = project.getCreateTime().getTime() + (project.getValidityDays() * 24L * 60L * 60L * 1000L);
+                    return currentTime <= expireTime; // 未过期
+                })
+                .collect(Collectors.toList());
+            
+            // 如果同时存在完成众筹的项目和处于有效期内的预售项目，则不允许发布
+            if (!successfulCrowdfundingProjects.isEmpty() && !activePresaleProjects.isEmpty()) {
+                log.warn("[发布预售项目] 同时存在完成众筹项目和有效期内预售项目: 打样邀约ID={}, 众筹项目数={}, 预售项目数={}", 
+                    publishDTO.getProofingInvitationId(), successfulCrowdfundingProjects.size(), activePresaleProjects.size());
+                return R.fail("该打样邀约已存在完成众筹的项目和处于有效期内的预售项目，不能同时发布新的预售项目");
+            }
+
+            // 3.3 检查与该打样邀约相关的所有已发布项目的订单是否都已填写物流单号
+            // 查询与该打样邀约相关的所有已发布的预售项目
+            LambdaQueryWrapper<SdPresaleProject> projectQuery = new LambdaQueryWrapper<>();
+            projectQuery.eq(SdPresaleProject::getProofingInvitationId, publishDTO.getProofingInvitationId())
+                       .eq(SdPresaleProject::getStatus, PresaleProjectStatus.ON_SALE.getCode()); // 销售中
+            
+            List<SdPresaleProject> relatedProjects = presaleProjectMapper.selectList(projectQuery);
+            
+            if (!relatedProjects.isEmpty()) {
+                // 获取所有相关项目的ID
+                List<Long> projectIds = relatedProjects.stream()
+                    .map(SdPresaleProject::getId)
+                    .collect(Collectors.toList());
+                
+                // 查询这些项目的所有已支付但未发货的订单（订单状态>=2已支付，但发货状态=0未开始，且快递单号为空）
+                LambdaQueryWrapper<SdPresaleOrder> orderQuery = new LambdaQueryWrapper<>();
+                orderQuery.in(SdPresaleOrder::getProjectId, projectIds)
+                         .ge(SdPresaleOrder::getOrderStatus, 2) // 已支付及以上状态
+                         .and(wrapper -> wrapper
+                             .eq(SdPresaleOrder::getDeliveryStatus, 0) // 未开始发货
+                             .or()
+                             .isNull(SdPresaleOrder::getDeliveryStatus)) // 或者发货状态为空
+                         .and(wrapper -> wrapper
+                             .isNull(SdPresaleOrder::getExpressNo) // 快递单号为空
+                             .or()
+                             .eq(SdPresaleOrder::getExpressNo, "")); // 或者快递单号为空字符串
+                
+                List<SdPresaleOrder> undeliveredOrders = presaleOrderMapper.selectList(orderQuery);
+                
+                if (!undeliveredOrders.isEmpty()) {
+                    log.warn("[发布预售项目] 存在未填写物流单号的订单: 打样邀约ID={}, 未发货订单数={}", 
+                        publishDTO.getProofingInvitationId(), undeliveredOrders.size());
+                    return R.fail(String.format("发布预售项目前，订单管理中的所有待发货订单必须填写物流单号。当前还有 %d 个订单未填写物流单号", undeliveredOrders.size()));
+                }
             }
 
             // 4. 创建预售项目，从打样邀约继承默认数据

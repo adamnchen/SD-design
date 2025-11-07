@@ -12,6 +12,7 @@ import com.sutran.sd.common.core.domain.entity.SysAddressArea;
 import com.sutran.sd.common.core.domain.dto.TagUpdateDTO;
 import com.sutran.sd.common.core.domain.dto.UserTagDTO;
 import com.sutran.sd.common.core.domain.vo.TagDetailVO;
+import com.sutran.sd.common.core.domain.vo.UserPublicInfoVO;
 import com.sutran.sd.common.enums.BusinessType;
 import com.sutran.sd.common.helper.LoginHelper;
 import com.sutran.sd.common.utils.StringUtils;
@@ -21,6 +22,8 @@ import com.sutran.sd.system.service.ISysOssService;
 import com.sutran.sd.system.service.ISysUserService;
 import com.sutran.sd.user.service.IUserAddressService;
 import com.sutran.sd.user.service.IUserTagService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.validation.annotation.Validated;
@@ -28,6 +31,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.validation.Valid;
+import javax.validation.constraints.NotNull;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -136,5 +140,21 @@ public class SysProfileController extends BaseController {
             }
         }
         return R.fail("上传图片异常，请联系管理员");
+    }
+
+    /**
+     * 根据用户ID查询用户公开信息（不包含敏感信息）
+     *
+     * @param userId 用户ID
+     * @return 用户公开信息
+     */
+    @GetMapping("/public/{userId}")
+    @Operation(summary = "查询用户公开信息", description = "根据用户ID查询用户公开信息，不包含敏感信息（密码、手机号、邮箱、支付宝账号等）")
+    public R<UserPublicInfoVO> getUserPublicInfo(
+            @Parameter(description = "用户ID", required = true)
+            @NotNull(message = "用户ID不能为空")
+            @PathVariable Long userId) {
+        UserPublicInfoVO userPublicInfo = userService.getUserPublicInfo(userId);
+        return R.ok(userPublicInfo);
     }
 }

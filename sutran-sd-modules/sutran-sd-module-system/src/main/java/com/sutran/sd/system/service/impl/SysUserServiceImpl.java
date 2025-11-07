@@ -18,6 +18,7 @@ import com.sutran.sd.common.constant.UserConstants;
 import com.sutran.sd.common.core.domain.PageQuery;
 import com.sutran.sd.common.core.domain.dto.UserTagDTO;
 import com.sutran.sd.common.core.domain.entity.*;
+import com.sutran.sd.common.core.domain.vo.UserPublicInfoVO;
 import com.sutran.sd.common.core.page.TableDataInfo;
 import com.sutran.sd.common.core.service.UserService;
 import com.sutran.sd.common.exception.ServiceException;
@@ -678,6 +679,38 @@ public class SysUserServiceImpl implements ISysUserService, UserService {
     @Override
     public List<UserBaseVo> selectShareUserListByPhoneNumberOrNickName(String phoneNumber, String nickName) {
         return baseMapper.selectShareUserListByPhoneNumberOrNickName(phoneNumber,nickName);
+    }
+
+    /**
+     * 根据用户ID查询用户公开信息（不包含敏感信息）
+     *
+     * @param userId 用户ID
+     * @return 用户公开信息
+     */
+    @Override
+    public UserPublicInfoVO getUserPublicInfo(Long userId) {
+        if (userId == null) {
+            throw new ServiceException("用户ID不能为空");
+        }
+        SysUser user = baseMapper.selectUserById(userId);
+        if (user == null) {
+            throw new ServiceException("用户不存在");
+        }
+        // 转换为VO对象，只复制非敏感字段
+        UserPublicInfoVO vo = new UserPublicInfoVO();
+        vo.setUserId(user.getUserId());
+        vo.setUserName(user.getUserName());
+        vo.setNickName(user.getNickName());
+        vo.setUserType(user.getUserType());
+        vo.setBizType(user.getBizType());
+        vo.setSex(user.getSex());
+        vo.setAvatar(user.getAvatar());
+        vo.setStatus(user.getStatus());
+        vo.setDescription(user.getDescription());
+        vo.setRemark(user.getRemark());
+        vo.setCreateTime(user.getCreateTime());
+        vo.setLoginDate(user.getLoginDate());
+        return vo;
     }
 
     /**

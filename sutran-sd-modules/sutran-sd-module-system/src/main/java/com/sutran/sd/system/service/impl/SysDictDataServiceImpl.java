@@ -1,8 +1,10 @@
 package com.sutran.sd.system.service.impl;
 
-import cn.hutool.core.collection.CollectionUtil;
+import cn.dev33.satoken.context.SaHolder;
+import cn.hutool.core.collection.CollUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.sutran.sd.common.constant.CacheConstants;
 import com.sutran.sd.common.constant.CacheNames;
 import com.sutran.sd.common.core.domain.PageQuery;
 import com.sutran.sd.common.core.domain.entity.SysDictData;
@@ -18,12 +20,14 @@ import org.springframework.stereotype.Service;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * 字典 业务层处理
  *
  * @author Lion Li
  */
+@SuppressWarnings("unchecked")
 @RequiredArgsConstructor
 @Service
 public class SysDictDataServiceImpl implements ISysDictDataService {
@@ -58,8 +62,19 @@ public class SysDictDataServiceImpl implements ISysDictDataService {
 
     @Override
     public List<String> selectDictValueListByDictType(String dictType) {
-        List<String> list = baseMapper.selectDictValueListByDictType(dictType);
-        return CollectionUtil.isEmpty(list)? Collections.emptyList():list;
+        // 优先从本地缓存获取
+        List<SysDictData> datas = (List<SysDictData>) SaHolder.getStorage().get(CacheConstants.SYS_DICT_KEY + dictType);
+        if (CollUtil.isEmpty(datas)) {
+            // 缓存中没有，则从数据库查询
+            datas = baseMapper.selectDictDataByType(dictType);
+            if (CollUtil.isNotEmpty(datas)) {
+                SaHolder.getStorage().set(CacheConstants.SYS_DICT_KEY + dictType, datas);
+            }
+        }
+        if (CollUtil.isNotEmpty(datas)) {
+            return datas.stream().map(SysDictData::getDictValue).collect(Collectors.toList());
+        }
+        return Collections.emptyList();
     }
 
     /**

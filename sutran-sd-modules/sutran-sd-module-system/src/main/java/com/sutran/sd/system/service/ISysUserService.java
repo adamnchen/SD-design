@@ -3,6 +3,7 @@ package com.sutran.sd.system.service;
 import com.sutran.sd.common.core.domain.PageQuery;
 import com.sutran.sd.common.core.domain.entity.PayMember;
 import com.sutran.sd.common.core.domain.entity.SysUser;
+import com.sutran.sd.common.core.domain.vo.UserPublicInfoVO;
 import com.sutran.sd.common.core.page.TableDataInfo;
 import com.sutran.sd.system.domain.bo.SysUserMemberBo;
 import com.sutran.sd.system.domain.vo.UserBaseVo;
@@ -268,4 +269,12 @@ public interface ISysUserService {
      * @return 人员列表
      */
     List<UserBaseVo> selectShareUserListByPhoneNumberOrNickName(String phoneNumber, String nickName);
+
+    /**
+     * 根据用户ID查询用户公开信息（不包含敏感信息）
+     *
+     * @param userId 用户ID
+     * @return 用户公开信息
+     */
+    UserPublicInfoVO getUserPublicInfo(Long userId);
 }

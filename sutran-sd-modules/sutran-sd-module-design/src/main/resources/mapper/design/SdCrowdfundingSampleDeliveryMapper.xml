@@ -15,7 +15,7 @@
         <result property="deliveryAddress" column="delivery_address"/>
         <result property="trackingNumber" column="tracking_number"/>
         <result property="deliveryCompany" column="delivery_company"/>
-        <result property="status" column="status"/>
+        <result property="status" column="delivery_status"/>
         <result property="remark" column="remark"/>
         <result property="senderUserId" column="sender_user_id"/>
         <result property="senderName" column="sender_name"/>
@@ -30,7 +30,7 @@
     <sql id="selectSdCrowdfundingSampleDeliveryVo">
         select id, crowdfunding_project_id, proofing_invitation_id, sample_image_url,
                recipient_user_id, recipient_name, recipient_phone, delivery_address,
-               tracking_number, delivery_company, status, remark, sender_user_id, sender_name,
+               tracking_number, delivery_company, delivery_status, remark, sender_user_id, sender_name,
                delivery_time, confirm_time, create_by, create_time, update_by, update_time
         from sd_crowdfunding_sample_delivery
     </sql>
@@ -56,7 +56,7 @@
                 AND sender_user_id = #{senderUserId}
             </if>
             <if test="status != null">
-                AND status = #{status}
+                AND delivery_status = #{status}
             </if>
             <if test="trackingNumber != null and trackingNumber != ''">
                 AND tracking_number = #{trackingNumber}

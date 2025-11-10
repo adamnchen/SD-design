@@ -79,7 +79,7 @@ public class UserFavoriteController extends BaseController {
     @Log(title = "用户收藏管理", businessType = BusinessType.DELETE)
     @DeleteMapping("/target")
     public R<Void> deleteFavoriteByTarget(@RequestParam Integer favoriteType,
-                                          @RequestParam Long targetId) {
+                                          @RequestParam String targetId) {
         Long userId = LoginHelper.getUserId();
         if (userId == null) {
             return R.fail("用户未登录或Token无效");

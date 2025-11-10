@@ -98,7 +98,7 @@ public class UserFavoriteServiceImpl implements IUserFavoriteService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public boolean deleteFavoriteByTarget(Long userId, Integer favoriteType, Long targetId) {
+    public boolean deleteFavoriteByTarget(Long userId, Integer favoriteType, String targetId) {
         if (userId == null) {
             throw new ServiceException("用户未登录，操作失败");
         }
@@ -144,7 +144,7 @@ public class UserFavoriteServiceImpl implements IUserFavoriteService {
                 .map(this::convertToVO)
                 .collect(Collectors.toList());
 
-    
+
         List<Long> modelIds = favoritePage.getRecords().stream()
             .filter(f -> f.getFavoriteType() != null && f.getFavoriteType() == SdUserFavorite.FavoriteType.MODEL)
             .map(SdUserFavorite::getTargetId).distinct().collect(Collectors.toList());

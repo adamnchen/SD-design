@@ -713,6 +713,17 @@ public class SysUserServiceImpl implements ISysUserService, UserService {
         return vo;
     }
 
+    @Override
+    public String selectOpenIdByUserId(Long userId) {
+        SysUser sysUser = baseMapper.selectOne(new LambdaQueryWrapper<SysUser>().select(SysUser::getWxOpenId).eq(SysUser::getUserId, userId));
+        return ObjectUtil.isNull(sysUser) ? null : sysUser.getWxOpenId();
+    }
+
+    @Override
+    public List<Map<String, String>> selectAdminUserOpenId() {
+        return userRoleMapper.selectAdminUserOpenId();
+    }
+
     /**
      * 根据用户ID查询用户当前有效会员信息
      * @param userId 用户ID

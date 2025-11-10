@@ -160,18 +160,6 @@ public interface SdTrainService {
      FluxgymImgDealResultVo imgIdentifyTask(MultipartFile[] images, String loraName);
 
      /**
-      * [FluxGym]SD训练-提交训练
-      *
-      * @param taskId      训练任务id
-      * @param modelTag      模型标签
-      * @param isOpen        是否公开[0-否,1-是]
-      * @param modelDesc     模型描述
-      * @return 任务id
-      * @throws IOException 图片IO异常
-      */
-    String startTrainTask(String taskId, String modelTag, Integer isOpen, String modelDesc) throws IOException;
-
-     /**
       * [V2]SD训练-提交训练
       *
       * @param images        图片集合

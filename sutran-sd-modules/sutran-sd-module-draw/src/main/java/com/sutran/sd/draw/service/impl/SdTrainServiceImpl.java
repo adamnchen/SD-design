@@ -1507,38 +1507,22 @@ public class SdTrainServiceImpl implements SdTrainService {
                 log.error("[FLuxGym]>>>>>>>>>图片识别失败!taskId={},node={},vo={}",taskId,node,vo);
                 throw new ServiceException("任务ID["+taskId+"],节点["+node.getCode()+"],识别结果："+vo);
             }
-            // 存储list到redis
-//            FluxgymImgVo imgVo = new FluxgymImgVo();
-//            List<String> captions = new ArrayList<>(vo.getResults().size());
-//            List<byte[]> imageBytes = new ArrayList<>(vo.getResults().size());
-//            List<String> imageNames = new ArrayList<>(vo.getResults().size());
             for (FluxgymImgDealResultVo.ImageInfoVo result : vo.getResults()) {
-                String en = instancePrompt+","+result.getCaption();
                 // 翻译图片描述词
-                String zh = RedisUtils.getCacheMapValue(TRANSLATE_EN_TO_ZH_MAP, result.getCaption());
-                if (StringUtils.isEmpty(zh)) {
-                    zh = sysTranslateService.enToZh(result.getCaption(), TranslateType.BAIDU);
-                    if (StringUtils.isNotBlank(zh) && !zh.equals(result.getCaption())) {
-                        zh = loraName+"，"+zh;
-                        RedisUtils.setCacheMapValue(TRANSLATE_EN_TO_ZH_MAP,en,zh);
+                String zhWord = RedisUtils.getCacheMapValue(TRANSLATE_EN_TO_ZH_MAP, result.getCaption());
+                if (StringUtils.isBlank(zhWord)) {
+                    // 没有翻译缓存，调用翻译接口
+                    zhWord = sysTranslateService.enToZh(result.getCaption(), TranslateType.BAIDU);
+                    if (StringUtils.isNotBlank(zhWord) && !zhWord.equals(result.getCaption())) {
+                        // 存储没有模型名称的英文和中文
+                        RedisUtils.setCacheMapValue(TRANSLATE_EN_TO_ZH_MAP,result.getCaption(),zhWord);
                     }
                 }
+                String en = instancePrompt+","+result.getCaption();
+                String zh = loraName+"，"+zhWord;
                 result.setCaptionZh(zh);
                 result.setCaption(en);
-//                byte[] imgBytes = imageMap.get(result.getImageName());
-//                imageBytes.add(imgBytes);
-//                captions.add(en);
-                // 获取图片的后缀(包含点)
-//                String suffix = result.getImageName().substring(result.getImageName().lastIndexOf("."));
-                // 图片名称最后一个_后的字符串去掉，作为图片名称 8A5F4B93-F7FB-4B2E-A70C-3232A76D68D6_20 - 副本_4840895057701420330.jpeg -> 8A5F4B93-F7FB-4B2E-A70C-3232A76D68D6_20 - 副本.jpeg
-//                imageNames.add(result.getImageName().substring(0,result.getImageName().lastIndexOf("_"))+suffix);
             }
-//            imgVo.setCaptions(captions);
-//            imgVo.setImageBytes(imageBytes);
-//            imgVo.setImageNames(imageNames);
-//            imgVo.setLoraName(loraName);
-            // 将数据存入redis
-//            RedisUtils.setCacheObject(FLUXGYM_IMG_TASK+taskId,imgVo,Duration.ofMinutes(15));
             vo.setTaskId(taskId);
             return vo;
         }
@@ -1558,73 +1542,6 @@ public class SdTrainServiceImpl implements SdTrainService {
             // 归还节点
             RedisUtils.delCacheMapValue(TRAIN_NODE_TASK_MAP, node.getId().toString());
         }
-    }
-
-     /**
-      * [FluxGym]SD训练-提交训练
-      *
-      * @param taskId      训练任务id
-      * @param modelTag      模型标签
-      * @param isOpen        是否公开[0-否,1-是]
-      * @param modelDesc     模型描述
-      * @param samplePrompts 样本提示词
-      * @return 任务id
-      * @throws IOException 图片IO异常
-      */
-    @Override
-    @Transactional(rollbackFor = Exception.class)
-    @Deprecated
-    public String startTrainTask(String taskId, String modelTag, Integer isOpen, String modelDesc) throws IOException {
-        if (StringUtils.isEmpty(taskId)) {
-            throw new ServiceException("请输入训练任务ID!");
-        }
-        FluxgymImgVo imgVo = RedisUtils.getCacheObject(FLUXGYM_IMG_TASK+taskId);
-        if (imgVo==null) {
-            throw new ServiceException("训练任务预处理数据已存储超时,请重新提交图片进行预处理!");
-        }
-        final Long userId = LoginHelper.getUserId();
-        final String userName = LoginHelper.getUsername();
-        // 校验训练次数,并扣除本次训练次数
-        userService.checkTrainTimesOfMember(userId);
-        userService.deductedTrainTimes(userId);
-
-        // 违禁词校验
-        if (StringUtils.isNotBlank(modelTag)) {
-            forbiddenWordService.validateForbiddenWord(modelTag, "模型标签");
-        }
-        if (StringUtils.isNotBlank(modelDesc)) {
-            forbiddenWordService.validateForbiddenWord(modelDesc, "模型描述");
-        }
-
-        String parentFileUrl = String.format("/home/lora-scripts/train-data/%s/%s/%s",DateUtil.formatDate(new Date()),userId,taskId);
-//        String parentFileUrl = String.format("D:\\project\\ai_project\\train-data\\%s\\%s\\%s",DateUtil.formatDate(new Date()),userId,taskId);
-        // 处理图片
-        List<ImageInfoBo> imageList = new ArrayList<>();
-        for (int i = 0; i < imgVo.getImageBytes().size(); i++) {
-            byte[] imgBytes = imgVo.getImageBytes().get(i);
-            String fileName = imgVo.getImageNames().get(i);
-            imageList.add(new ImageInfoBo().setImageName(fileName).setContentType("image/jpeg").setFileData(imgBytes));
-        }
-        // 创建任务实体
-        TrainTaskInfo taskInfo = new TrainTaskInfo(taskId, imageList, userId, userName, imgVo.getLoraName(), imgVo.getCaptions());
-        // 保存任务训练任务
-        insertTrainTask(taskInfo,parentFileUrl,modelTag,isOpen,modelDesc);
-        // 投递任务到MQ队列
-        try {
-            rabbitTemplate.convertAndSend(SD_FLUXGYM_TRAIN_EXCHANGE,SD_FLUXGYM_TRAIN_ROUTING_KEY,taskInfo,new CorrelationData(taskInfo.getTaskId()));
-            RedisUtils.deleteKey(FLUXGYM_IMG_TASK+taskId);
-        }
-        catch (Exception e) {
-            //重试次数
-            int retryCount = 5;
-            for (int i = 0; i < retryCount; i++) {
-                try {
-                    rabbitTemplate.convertAndSend(SD_FLUXGYM_TRAIN_EXCHANGE,SD_FLUXGYM_TRAIN_ROUTING_KEY,taskInfo,new CorrelationData(taskInfo.getTaskId()));
-                }
-                catch (Exception ignored) {}
-            }
-        }
-        return taskId;
     }
 
     /**
@@ -1686,19 +1603,19 @@ public class SdTrainServiceImpl implements SdTrainService {
             index++;
         }
         // 缓存提示词中英文
-        String instancePrompt = PinyinConverterUtils.getPinyin(loraName);
+        String pinyinLoraName = PinyinConverterUtils.getPinyin(loraName);
         List<String> captionList = captions.stream().map(caption -> {
-            String captionEn = caption.getCaption().startsWith(instancePrompt)?caption.getCaption():instancePrompt+","+caption.getCaption();
-            String captionZh = caption.getCaptionZh();
+            String en = caption.getCaption().startsWith(pinyinLoraName+",")?caption.getCaption().replace(pinyinLoraName+",",""):caption.getCaption();
+            String captionEn = caption.getCaption().startsWith(pinyinLoraName+",")?caption.getCaption():pinyinLoraName+","+caption.getCaption();
             if (StringUtils.isBlank(caption.getCaptionZh())) {
-                captionZh = RedisUtils.getCacheMapValue(TRANSLATE_EN_TO_ZH_MAP,captionEn);
-                if (StringUtils.isNotBlank(captionZh)) {
-                    captionZh = captionZh.startsWith(loraName)?caption.getCaptionZh():loraName+"，"+caption.getCaptionZh();
+                String zh = RedisUtils.getCacheMapValue(TRANSLATE_EN_TO_ZH_MAP,en);
+                if (StringUtils.isNotBlank(zh)) {
+                    RedisUtils.setCacheMapValue(TRANSLATE_EN_TO_ZH_MAP, en, zh);
                 }
             }
             else {
-                captionZh = captionZh.startsWith(loraName)?caption.getCaptionZh():loraName+"，"+caption.getCaptionZh();
-                RedisUtils.setCacheMapValue(TRANSLATE_EN_TO_ZH_MAP, captionEn, captionZh);
+                String zh = caption.getCaptionZh().startsWith(loraName+"，")?caption.getCaptionZh().replace(loraName+"，",""):caption.getCaptionZh();
+                RedisUtils.setCacheMapValue(TRANSLATE_EN_TO_ZH_MAP, en, zh);
             }
             return captionEn;
         }).collect(Collectors.toList());
@@ -2009,7 +1926,7 @@ public class SdTrainServiceImpl implements SdTrainService {
             wxMsg.put("type","PUBLISH_MODEL");
             wxMsg.put("openId",info.getString("wxOpenId"));
             wxMsg.put("userId",info.getString("userId"));
-            rabbitTemplate.convertAndSend(WX_MSG_EXCHANGE,WX_MSG_ROUTING_KEY,wxMsg);
+            rabbitTemplate.convertAndSend(NEW_WX_MSG_EXCHANGE,NEW_WX_MSG_ROUTING_KEY,wxMsg);
         }
     }
 
@@ -2429,7 +2346,7 @@ public class SdTrainServiceImpl implements SdTrainService {
         wxMsg.put("oldModelName",loraNameZh);
         wxMsg.put("startTime",startTime);
         wxMsg.put("endTime",endTime);
-        rabbitTemplate.convertAndSend(MqConstant.WX_MSG_EXCHANGE, MqConstant.WX_MSG_ROUTING_KEY,wxMsg);
+        rabbitTemplate.convertAndSend(NEW_WX_MSG_EXCHANGE, NEW_WX_MSG_ROUTING_KEY,wxMsg);
     }
 
 }

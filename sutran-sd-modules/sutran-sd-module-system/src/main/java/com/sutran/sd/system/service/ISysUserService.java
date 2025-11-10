@@ -10,6 +10,7 @@ import com.sutran.sd.system.domain.vo.UserBaseVo;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 用户 业务层
@@ -277,4 +278,17 @@ public interface ISysUserService {
      * @return 用户公开信息
      */
     UserPublicInfoVO getUserPublicInfo(Long userId);
+
+     /**
+     * 根据用户ID查询用户绑定的微信openId
+     * @param userId    用户ID
+     * @return          微信openId
+     */
+    String selectOpenIdByUserId(Long userId);
+
+    /**
+     * 查询所有管理员用户的openId
+     * @return 管理员用户openId列表
+     */
+    List<Map<String, String>> selectAdminUserOpenId();
 }

@@ -12,11 +12,11 @@ import lombok.experimental.Accessors;
 @Accessors(chain=true)
 public class TrainCaptionBo {
     /**
-     * 英文描述
+     * 英文描述(不包含模型名称)
      */
     private String caption;
     /**
-     * 中文描述
+     * 中文描述(不包含模型名称)
      */
     private String captionZh;
 }

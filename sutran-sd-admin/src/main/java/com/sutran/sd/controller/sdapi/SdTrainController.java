@@ -225,25 +225,6 @@ public class SdTrainController {
     }
 
     /**
-     * [FluxGym]提交训练
-     * @param taskId  任务id
-     * @param modelTag 模型标签(多个用逗号隔开)
-     * @param isOpen   是否公开[0-否,1-是]
-     * @param modelDesc 模型描述
-     * @throws IOException 图片IO异常
-     * @return 任务id
-     */
-    @ApiOperationSupport(order = 15)
-    @PostMapping("/fluxgym/start-train")
-    @RequireMember(value = "AI模型训练", newUserBenefit = {RequireMember.NewUserBenefitType.DRAW})
-    public R<String> starTrain(@RequestParam("taskId") String taskId,
-                               @RequestParam(value = "modelTag",required = false) String modelTag,
-                               @RequestParam(value = "isOpen",required = false) Integer isOpen,
-                               @RequestParam(value = "modelDesc",required = false) String modelDesc) throws IOException {
-        return R.ok("操作成功",sdTrainService.startTrainTask(taskId,modelTag,isOpen,modelDesc));
-    }
-
-    /**
      * [FluxGym][V2]提交训练
      * @param images        图片集合
      * @param loraName      训练模型名称(用于触发词)
@@ -290,7 +271,7 @@ public class SdTrainController {
     /**
      * [FluxGym]当前用户正在训练的任务ID
      */
-    @ApiOperationSupport(order = 16)
+    @ApiOperationSupport(order = 17)
     @GetMapping("/fluxgym/doing-task")
     public R<String> getDoingTask(){
         return R.ok("操作成功",sdTrainService.getDoingFluxgymTask(LoginHelper.getUserId()));
@@ -301,7 +282,7 @@ public class SdTrainController {
      * @param newStatus 任务状态[0-预处理队列中,1-预处理中,2-未训练,3-训练队列中,4-训练中,5-训练完成,6-训练失败]
      * @return 任务集合
      */
-    @ApiOperationSupport(order = 1)
+    @ApiOperationSupport(order = 18)
     @GetMapping("/fluxgym/my-task/page")
     public TableDataInfo<TrainTaskVo> getFluxgymTrainTasks(@RequestParam(required = false) Integer newStatus,
                                                            @RequestParam(defaultValue = "1") int pageNum,
@@ -316,7 +297,7 @@ public class SdTrainController {
      * 测试消息推送
      */
     @PostMapping("/test-msg")
-    @ApiOperationSupport(order = 17)
+    @ApiOperationSupport(order = 19)
     @SaIgnore
     public void testMsg(@RequestBody WxMsgDto data) throws WxErrorException {
         WxMpTemplateMessage message = WxMpTemplateMessage.builder().toUser(data.getOpenId()).templateId(data.getTemplateId()).url(data.getUrl()).build();

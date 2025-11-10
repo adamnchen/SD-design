@@ -69,4 +69,11 @@ public interface ISysNoticeService {
      * @return 结果
      */
     int deleteNoticeByIds(Long[] noticeIds);
+
+    /**
+     * 标记已读
+     * @param id        消息ID
+     * @param userId    用户ID
+     */
+    void markRead(String id, Long userId);
 }

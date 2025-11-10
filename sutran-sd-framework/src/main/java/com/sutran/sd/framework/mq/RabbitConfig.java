@@ -156,6 +156,21 @@ public class RabbitConfig {
     }
 
 
+    /** ---------------------------------------------------------------------------- (新)微信消息通知 Direct exchange --------------------------------------------------------------------------- */
+    @Bean
+    public Exchange newWxMsgExchange() {
+        return ExchangeBuilder.directExchange(NEW_WX_MSG_EXCHANGE).durable(true).build();
+    }
+    @Bean
+    public Queue newWxMsgQueue() {
+        return QueueBuilder.durable(NEW_WX_MSG_QUEUE).build();
+    }
+    @Bean
+    public Binding newWxMsgBinding() {
+        return BindingBuilder.bind(newWxMsgQueue()).to(newWxMsgExchange()).with(NEW_WX_MSG_ROUTING_KEY).noargs();
+    }
+
+
     /** ---------------------------------------------------------------------------- 第三方绘图数据推送 Direct exchange --------------------------------------------------------------------------- */
     @Bean
     public Exchange imgSendThirdExchange() {

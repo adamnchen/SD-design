@@ -142,7 +142,7 @@ public class SpringDocConfig {
     public GroupedOpenApi sysServiceApi() {
         return GroupedOpenApi.builder()
             .group("WEB系统接口")
-            .pathsToMatch("/system/**","/monitor/**","/wx-mp-bind","/wx-mp-unbind","/getInfo","/getRouters","/close-guide")
+            .pathsToMatch("/system/**","/monitor/**","/wx-mp-bind","/wx-mp-unbind","/getInfo","/getRouters","/close-guide","/notice/**")
             // 添加自定义配置，这里添加了一个用户认证的 header，否则 knife4j 里会没有 header
             .addOperationCustomizer((operation, handlerMethod) -> operation.security(
                 Collections.singletonList(new SecurityRequirement().addList(TOKEN_HEADER)))

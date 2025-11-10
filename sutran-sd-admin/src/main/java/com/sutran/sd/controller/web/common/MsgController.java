@@ -47,7 +47,7 @@ public class MsgController {
      * 查询最近5条通知消息列表
      * @param scope     查询范围[sys-系统通知\公告，infos-用户消息]
      */
-    @GetMapping("/infos")
+    @GetMapping("/latest-info")
     public R<List<NoticeVo>> infos(@RequestParam String scope) {
         if (scope == null) {
             scope = "infos";

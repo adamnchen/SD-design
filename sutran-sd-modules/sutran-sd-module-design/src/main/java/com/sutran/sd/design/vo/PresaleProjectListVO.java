@@ -40,6 +40,11 @@ public class PresaleProjectListVO {
     private String creatorName;
 
     /**
+     * 厂家用户ID
+     */
+    private Long manufacturerUserId;
+
+    /**
      * 厂家姓名
      */
     private String manufacturerName;

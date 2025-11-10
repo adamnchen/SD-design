@@ -45,6 +45,11 @@ public class CrowdfundingProjectListVO {
     private String creatorAvatar;
 
     /**
+     * 厂家用户ID
+     */
+    private Long manufacturerUserId;
+
+    /**
      * 厂家姓名
      */
     private String manufacturerName;

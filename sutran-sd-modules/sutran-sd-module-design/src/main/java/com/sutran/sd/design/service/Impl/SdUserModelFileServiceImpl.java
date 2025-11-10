@@ -4,11 +4,13 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.sutran.sd.common.core.domain.PageQuery;
+import com.sutran.sd.common.core.domain.entity.SdUserFavorite;
 import com.sutran.sd.common.core.page.TableDataInfo;
 import com.sutran.sd.design.domain.DesignSdUserModelFile;
 import com.sutran.sd.design.mapper.DesignSdUserModelFileMapper;
 import com.sutran.sd.design.service.ISdUserModelFileService;
 import com.sutran.sd.design.vo.UserModelFileVO;
+import com.sutran.sd.user.service.IUserFavoriteService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -29,6 +31,7 @@ import java.util.stream.Collectors;
 public class SdUserModelFileServiceImpl extends ServiceImpl<DesignSdUserModelFileMapper, DesignSdUserModelFile> implements ISdUserModelFileService {
 
     private final DesignSdUserModelFileMapper userModelFileMapper;
+    private final IUserFavoriteService favoriteService;
 
     @Override
     public DesignSdUserModelFile selectSdUserModelFileById(Long id) {
@@ -72,7 +75,7 @@ public class SdUserModelFileServiceImpl extends ServiceImpl<DesignSdUserModelFil
 
         List<DesignSdUserModelFile> files = selectSdUserModelFileListByUserId(userId);
 
-        return files.stream().map(this::convertToVO).collect(Collectors.toList());
+        return files.stream().map(file -> convertToVO(file, userId)).collect(Collectors.toList());
     }
 
     @Override
@@ -81,7 +84,7 @@ public class SdUserModelFileServiceImpl extends ServiceImpl<DesignSdUserModelFil
 
         List<DesignSdUserModelFile> files = selectSdUserModelFileListByUserIdAndCategory(userId, category);
 
-        return files.stream().map(this::convertToVO).collect(Collectors.toList());
+        return files.stream().map(file -> convertToVO(file, userId)).collect(Collectors.toList());
     }
 
     @Override
@@ -99,15 +102,28 @@ public class SdUserModelFileServiceImpl extends ServiceImpl<DesignSdUserModelFil
             return null;
         }
 
-        return convertToVO(file);
+        return convertToVO(file, userId);
     }
 
     /**
      * 转换为VO对象
      */
     private UserModelFileVO convertToVO(DesignSdUserModelFile file) {
+        return convertToVO(file, null);
+    }
+
+    /**
+     * 转换为VO对象（带用户ID，用于填充收藏状态）
+     */
+    private UserModelFileVO convertToVO(DesignSdUserModelFile file, Long userId) {
         UserModelFileVO vo = new UserModelFileVO();
         BeanUtils.copyProperties(file, vo);
+        // 填充收藏状态
+        if (userId != null && file.getId() != null) {
+            vo.setIsFavorite(favoriteService.isFavorite(userId, SdUserFavorite.FavoriteType.WORK, file.getId()));
+        } else {
+            vo.setIsFavorite(false);
+        }
         return vo;
     }
 
@@ -129,7 +145,7 @@ public class SdUserModelFileServiceImpl extends ServiceImpl<DesignSdUserModelFil
 
             // 转换为VO
             List<UserModelFileVO> voList = result.getRecords().stream()
-                    .map(this::convertToVO)
+                    .map(file -> convertToVO(file, userId))
                     .collect(Collectors.toList());
 
             // 构建分页结果
@@ -167,7 +183,7 @@ public class SdUserModelFileServiceImpl extends ServiceImpl<DesignSdUserModelFil
 
             // 转换为VO
             List<UserModelFileVO> voList = result.getRecords().stream()
-                    .map(this::convertToVO)
+                    .map(file -> convertToVO(file, userId))
                     .collect(Collectors.toList());
 
             // 构建分页结果

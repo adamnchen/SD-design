@@ -40,6 +40,7 @@ import com.sutran.sd.draw.service.*;
 import com.sutran.sd.draw.utils.CommonUtil;
 import com.sutran.sd.draw.utils.JsonUtils;
 import com.sutran.sd.framework.mq.MqConstant;
+import com.sutran.sd.system.service.IForbiddenWordService;
 import com.sutran.sd.system.service.ISysDictDataService;
 import com.sutran.sd.system.service.SysTranslateService;
 import lombok.RequiredArgsConstructor;
@@ -92,6 +93,7 @@ public class SdTrainServiceImpl implements SdTrainService {
     private final SdCommonConfigService sdCommonConfigService;
     private final UserService userService;
     private final SdDrawNodeService sdDrawNodeService;
+    private final IForbiddenWordService forbiddenWordService;
 
     @Resource(name = "threadPoolTaskExecutor")
     private Executor executor;
@@ -1585,6 +1587,14 @@ public class SdTrainServiceImpl implements SdTrainService {
         userService.checkTrainTimesOfMember(userId);
         userService.deductedTrainTimes(userId);
 
+        // 违禁词校验
+        if (StringUtils.isNotBlank(modelTag)) {
+            forbiddenWordService.validateForbiddenWord(modelTag, "模型标签");
+        }
+        if (StringUtils.isNotBlank(modelDesc)) {
+            forbiddenWordService.validateForbiddenWord(modelDesc, "模型描述");
+        }
+
         String parentFileUrl = String.format("/home/lora-scripts/train-data/%s/%s/%s",DateUtil.formatDate(new Date()),userId,taskId);
 //        String parentFileUrl = String.format("D:\\project\\ai_project\\train-data\\%s\\%s\\%s",DateUtil.formatDate(new Date()),userId,taskId);
         // 处理图片
@@ -1637,6 +1647,28 @@ public class SdTrainServiceImpl implements SdTrainService {
         userService.checkTrainTimesOfMember(userId);
         // 预先扣除训练次数
         userService.deductedTrainTimes(userId);
+
+        // 违禁词校验
+        if (StringUtils.isNotBlank(loraName)) {
+            forbiddenWordService.validateForbiddenWord(loraName, "模型名称");
+        }
+        if (StringUtils.isNotBlank(modelTag)) {
+            forbiddenWordService.validateForbiddenWord(modelTag, "模型标签");
+        }
+        if (StringUtils.isNotBlank(modelDesc)) {
+            forbiddenWordService.validateForbiddenWord(modelDesc, "模型描述");
+        }
+        // 校验提示词
+        if (CollectionUtil.isNotEmpty(captions)) {
+            for (TrainCaptionBo caption : captions) {
+                if (StringUtils.isNotBlank(caption.getCaption())) {
+                    forbiddenWordService.validateForbiddenWord(caption.getCaption(), "提示词");
+                }
+                if (StringUtils.isNotBlank(caption.getCaptionZh())) {
+                    forbiddenWordService.validateForbiddenWord(caption.getCaptionZh(), "提示词译文");
+                }
+            }
+        }
 
         String parentFileUrl = String.format("/home/lora-scripts/train-data/%s/%s/%s",DateUtil.formatDate(new Date()),userId,taskId);
 //        String parentFileUrl = String.format("D:\\project\\ai_project\\train-data\\%s\\%s\\%s",DateUtil.formatDate(new Date()),userId,taskId);
@@ -2287,6 +2319,17 @@ public class SdTrainServiceImpl implements SdTrainService {
         final String startTime = preParams.getString("startTime");
         final String endTime = preParams.getString("endTime");
 
+        // 违禁词校验（再次校验，防止预处理参数被修改）
+        if (StringUtils.isNotBlank(loraNameZh)) {
+            forbiddenWordService.validateForbiddenWord(loraNameZh, "模型名称");
+        }
+        if (StringUtils.isNotBlank(modelTag)) {
+            forbiddenWordService.validateForbiddenWord(modelTag, "模型标签");
+        }
+        if (StringUtils.isNotBlank(modelDesc)) {
+            forbiddenWordService.validateForbiddenWord(modelDesc, "模型描述");
+        }
+
         try {
             // 检查目标目录是否存在，不存在则创建
             File destDirFile = new File(destDir);
@@ -2330,9 +2373,19 @@ public class SdTrainServiceImpl implements SdTrainService {
                     Path targetPath = destModelFile.toPath();
                     Files.move(sourcePath, targetPath, StandardCopyOption.REPLACE_EXISTING);
                     log.info("[模型训练完成][模型移动]>>>>>>>>>任务ID[{}],成功移动模型文件: {} -> {}", taskId, sourcePath, targetPath);
+                    
+                    // 违禁词校验（模型标题和别名）
+                    String modelNameZh = loraNameZh + prefix;
+                    if (StringUtils.isNotBlank(title)) {
+                        forbiddenWordService.validateForbiddenWord(title, "模型标题");
+                    }
+                    if (StringUtils.isNotBlank(modelNameZh)) {
+                        forbiddenWordService.validateForbiddenWord(modelNameZh, "模型别名");
+                    }
+                    
                     SdUserModel model = new SdUserModel()
                         .setId(IdUtil.getSnowflakeNextId()).setTitle(title).setTaskId(Long.parseLong(taskId))
-                        .setModelName(modelName).setModelNameZh(loraNameZh+prefix).setFileName(destModelFile.getAbsolutePath())
+                        .setModelName(modelName).setModelNameZh(modelNameZh).setFileName(destModelFile.getAbsolutePath())
                         .setCrtTime(new Date()).setIsOpen(isOpen).setType(1).setPublishStatus(0).setBelongUserId(userId).setModelStrength("1.4")
                         .setModelTag(modelTag).setRemark(modelDesc).setModelType("FLUX");
                     // 移动对应的图片文件

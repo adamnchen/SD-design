@@ -38,6 +38,7 @@ import com.sutran.sd.oss.core.OssClient;
 import com.sutran.sd.oss.entity.UploadResult;
 import com.sutran.sd.oss.factory.OssFactory;
 import com.sutran.sd.system.domain.vo.SysOssVo;
+import com.sutran.sd.system.service.IForbiddenWordService;
 import com.sutran.sd.system.service.ISysOssService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -83,6 +84,7 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
     private final UserService userService;
     private final SdFlowService sdFlowService;
     private final RabbitTemplate rabbitTemplate;
+    private final IForbiddenWordService forbiddenWordService;
 
     /**
      * 查询固定工作流列表
@@ -128,6 +130,12 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
             .replace("\"{{seed2}}\"",String.valueOf(StringUtils.generate15DigitSeed()));
         String prompt = StringUtils.isBlank(modelTaskBo.getPrompt())?sdFlow.getInitPrompt():modelTaskBo.getPrompt();
         String promptZh = StringUtils.isBlank(modelTaskBo.getPromptZh())?sdFlow.getInitPromptZh():modelTaskBo.getPromptZh();
+        
+        // 违禁词校验
+        if (StringUtils.isNotBlank(prompt)) {
+            forbiddenWordService.validateForbiddenWord(prompt, "提示词");
+        }
+        
         if (prompt!=null) {
             // prompt双引号替换为单引号
             prompt = prompt.replace("\"","'");
@@ -203,6 +211,12 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
         // 只判断是否为null，空字符串还是需要替换的
         prompt = StringUtils.isBlank(prompt)?sdFlow.getInitPrompt():prompt;
         promptZh = StringUtils.isBlank(promptZh)?sdFlow.getInitPromptZh():promptZh;
+        
+        // 违禁词校验
+        if (StringUtils.isNotBlank(prompt)) {
+            forbiddenWordService.validateForbiddenWord(prompt, "提示词");
+        }
+        
         if (prompt!=null) {
             // prompt双引号替换为单引号
             prompt = prompt.replace("\"","'");

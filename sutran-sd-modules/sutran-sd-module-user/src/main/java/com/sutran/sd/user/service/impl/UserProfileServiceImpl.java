@@ -12,6 +12,7 @@ import com.sutran.sd.system.domain.vo.SysOssVo;
 import com.sutran.sd.common.exception.ServiceException;
 import com.sutran.sd.common.utils.StringUtils;
 import com.sutran.sd.common.utils.file.MimeTypeUtils;
+import com.sutran.sd.system.service.IForbiddenWordService;
 import com.sutran.sd.system.service.ISysOssService;
 import com.sutran.sd.system.service.ISysUserService;
 import com.sutran.sd.user.service.IUserProfileService;
@@ -35,6 +36,7 @@ public class UserProfileServiceImpl implements IUserProfileService {
 
     private final ISysUserService userService;
     private final ISysOssService ossService;
+    private final IForbiddenWordService forbiddenWordService;
 
     @Override
     public UserProfileVO getClientUserProfile(Long userId) {
@@ -64,6 +66,17 @@ public class UserProfileServiceImpl implements IUserProfileService {
             if (!userService.checkEmailUnique(checkUser)) {
                 throw new ServiceException("修改用户失败，邮箱账号已存在");
             }
+        }
+
+        // 违禁词校验
+        if (StringUtils.isNotEmpty(updateDTO.getNickName())) {
+            forbiddenWordService.validateForbiddenWord(updateDTO.getNickName(), "用户昵称");
+        }
+        if (StringUtils.isNotEmpty(updateDTO.getDescription())) {
+            forbiddenWordService.validateForbiddenWord(updateDTO.getDescription(), "个人简介");
+        }
+        if (StringUtils.isNotEmpty(updateDTO.getRemark())) {
+            forbiddenWordService.validateForbiddenWord(updateDTO.getRemark(), "备注");
         }
 
         // 创建更新对象

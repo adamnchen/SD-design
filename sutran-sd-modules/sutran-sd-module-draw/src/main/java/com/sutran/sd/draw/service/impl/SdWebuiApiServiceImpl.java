@@ -39,6 +39,7 @@ import com.sutran.sd.draw.utils.ResultUtil;
 import com.sutran.sd.oss.core.OssClient;
 import com.sutran.sd.oss.entity.UploadResult;
 import com.sutran.sd.oss.factory.OssFactory;
+import com.sutran.sd.system.service.IForbiddenWordService;
 import com.sutran.sd.system.service.ISysOssService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -102,6 +103,7 @@ public class SdWebuiApiServiceImpl implements SdWebuiApiService {
     private final SdGpuPoolService sdGpuPoolService;
     private final UserService userService;
     private final ApplicationEventPublisher applicationEventPublisher;
+    private final IForbiddenWordService forbiddenWordService;
 
     @Resource(name = "threadPoolTaskExecutor")
     private Executor executor;
@@ -790,6 +792,14 @@ public class SdWebuiApiServiceImpl implements SdWebuiApiService {
         // 反向提示词译文
         String negativePromptZh = dto.getNegativePromptZh();
 
+        // 违禁词校验
+        if (StringUtils.isNotBlank(prompt)) {
+            forbiddenWordService.validateForbiddenWord(prompt, "提示词");
+        }
+        if (StringUtils.isNotBlank(negativePrompt)) {
+            forbiddenWordService.validateForbiddenWord(negativePrompt, "反向提示词");
+        }
+
         StringBuilder newPrompt = new StringBuilder(prompt);
 
         // 多模型集合
@@ -1076,6 +1086,15 @@ public class SdWebuiApiServiceImpl implements SdWebuiApiService {
         // 召唤词
         String negativePrompt = dto.getNegative_prompt();
         String negativePromptZh = dto.getNegativePromptZh();
+        
+        // 违禁词校验
+        if (StringUtils.isNotBlank(prompt)) {
+            forbiddenWordService.validateForbiddenWord(prompt, "提示词");
+        }
+        if (StringUtils.isNotBlank(negativePrompt)) {
+            forbiddenWordService.validateForbiddenWord(negativePrompt, "反向提示词");
+        }
+        
         StringBuilder newPrompt = new StringBuilder(prompt);
         // 多模型集合
         List<JSONObject> loraInfo = new ArrayList<>();

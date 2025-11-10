@@ -17,6 +17,8 @@ import com.sutran.sd.design.mapper.SdProofingInvitationMapper;
 import com.sutran.sd.design.mapper.SdProofingInvitationCandidateMapper;
 import com.sutran.sd.common.core.domain.entity.SdProofingInvitationCandidate;
 import com.sutran.sd.design.service.ISdProofingInvitationService;
+import com.sutran.sd.system.service.IForbiddenWordService;
+import com.sutran.sd.common.utils.StringUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -46,6 +48,7 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
      */
     private final SdProofingInvitationMapper invitationMapper;
     private final SdProofingInvitationCandidateMapper candidateMapper;
+    private final IForbiddenWordService forbiddenWordService;
 
 
     // 使用常量类管理状态，不再定义重复常量
@@ -126,7 +129,21 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
             throw new ServiceException("发起者必须自留至少1个样品，当前打样数量=" + createDTO.getProofingQuantity() + "，抽奖数量=" + createDTO.getDrawNumber() + "，自留数量=" + reservedQuantity);
         }
 
-        // 7. 为每个被邀约人创建独立的邀约记录
+        // 7. 违禁词校验
+        if (StringUtils.isNotBlank(createDTO.getProductTitle())) {
+            forbiddenWordService.validateForbiddenWord(createDTO.getProductTitle(), "产品标题");
+        }
+        if (StringUtils.isNotBlank(createDTO.getProductDescription())) {
+            forbiddenWordService.validateForbiddenWord(createDTO.getProductDescription(), "产品描述");
+        }
+        if (StringUtils.isNotBlank(createDTO.getCooperationContent())) {
+            forbiddenWordService.validateForbiddenWord(createDTO.getCooperationContent(), "合作内容");
+        }
+        if (StringUtils.isNotBlank(createDTO.getKeywords())) {
+            forbiddenWordService.validateForbiddenWord(createDTO.getKeywords(), "关键词");
+        }
+
+        // 8. 为每个被邀约人创建独立的邀约记录
         SdProofingInvitation createdInvitation = null;
         for (Long inviteeId : inviteeIds) {
             SdProofingInvitation invitation = new SdProofingInvitation();

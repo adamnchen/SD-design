@@ -24,6 +24,7 @@ import com.sutran.sd.design.service.CrowdfundingRedisService;
 import com.sutran.sd.design.service.ISdCrowdfundingProjectService;
 import com.sutran.sd.design.vo.*;
 import com.sutran.sd.pay.service.AliPayService;
+import com.sutran.sd.system.service.IForbiddenWordService;
 import com.sutran.sd.system.service.ISysUserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -57,6 +58,7 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
     private final SdProofingInvitationMapper invitationMapper;
     private final ISysUserService userService;
     private final AliPayService aliPayService;
+    private final IForbiddenWordService forbiddenWordService;
 
     @Override
     public SdCrowdfundingProject selectSdCrowdfundingProjectById(Long id) {
@@ -164,8 +166,19 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
         project.setProjectNo(projectNo);
 
         // 从邀约详情获取项目信息
-        project.setTitle(invitationDetail.getProductTitle());
-        project.setDescription(invitationDetail.getProductDescription());
+        String title = invitationDetail.getProductTitle();
+        String description = invitationDetail.getProductDescription();
+        
+        // 违禁词校验
+        if (StringUtils.isNotBlank(title)) {
+            forbiddenWordService.validateForbiddenWord(title, "项目标题");
+        }
+        if (StringUtils.isNotBlank(description)) {
+            forbiddenWordService.validateForbiddenWord(description, "项目描述");
+        }
+        
+        project.setTitle(title);
+        project.setDescription(description);
         project.setCoverImage(invitationDetail.getImageUrl()); // 从联查结果获取图片
 
         // 发起人信息（从联查结果获取）

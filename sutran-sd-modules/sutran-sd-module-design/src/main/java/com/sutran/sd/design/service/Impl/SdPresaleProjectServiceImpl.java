@@ -30,6 +30,7 @@ import com.sutran.sd.design.vo.PresaleProjectListVO;
 import com.sutran.sd.pay.service.impl.PayOrderServiceImpl;
 import com.sutran.sd.pay.service.AliPayService;
 import com.sutran.sd.system.domain.vo.SysOssVo;
+import com.sutran.sd.system.service.IForbiddenWordService;
 import com.sutran.sd.system.service.ISysOssService;
 import com.sutran.sd.system.service.ISysUserService;
 import com.sutran.sd.common.core.domain.entity.SysUser;
@@ -65,6 +66,7 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
     private final SdCrowdfundingProjectMapper crowdfundingProjectMapper;
     private final ISysOssService sysOssService;
     private final ISysUserService userService;
+    private final IForbiddenWordService forbiddenWordService;
 
     @Override
     public SdPresaleProject selectSdPresaleProjectById(Long id) {
@@ -673,12 +675,22 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
             project.setProjectNo(projectNo);
 
             // 标题：优先使用用户填写的，否则继承打样邀约的产品标题
-            project.setTitle(StringUtils.isNotBlank(publishDTO.getTitle()) ?
-                publishDTO.getTitle() : invitationDetail.getProductTitle());
+            String title = StringUtils.isNotBlank(publishDTO.getTitle()) ?
+                publishDTO.getTitle() : invitationDetail.getProductTitle();
+            // 违禁词校验
+            if (StringUtils.isNotBlank(title)) {
+                forbiddenWordService.validateForbiddenWord(title, "项目标题");
+            }
+            project.setTitle(title);
 
             // 描述：优先使用用户填写的，否则继承打样邀约的产品描述
-            project.setDescription(StringUtils.isNotBlank(publishDTO.getDescription()) ?
-                publishDTO.getDescription() : invitationDetail.getProductDescription());
+            String description = StringUtils.isNotBlank(publishDTO.getDescription()) ?
+                publishDTO.getDescription() : invitationDetail.getProductDescription();
+            // 违禁词校验
+            if (StringUtils.isNotBlank(description)) {
+                forbiddenWordService.validateForbiddenWord(description, "项目描述");
+            }
+            project.setDescription(description);
 
             project.setCoverImage(invitationDetail.getImageUrl()); // 使用AI设计图作为封面
 

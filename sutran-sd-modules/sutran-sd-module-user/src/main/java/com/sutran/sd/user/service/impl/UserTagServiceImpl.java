@@ -6,6 +6,7 @@ import com.sutran.sd.common.core.domain.vo.TagDetailVO;
 import com.sutran.sd.common.exception.ServiceException;
 import com.sutran.sd.common.constant.TagConstants;
 import com.sutran.sd.common.utils.TagNameValidator;
+import com.sutran.sd.system.service.IForbiddenWordService;
 import com.sutran.sd.system.service.ISysUserTagService;
 import com.sutran.sd.user.service.IUserTagService;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +27,7 @@ import java.util.List;
 public class UserTagServiceImpl implements IUserTagService {
 
     private final ISysUserTagService sysUserTagService;
+    private final IForbiddenWordService forbiddenWordService;
 
     @Override
     public void addTag(Long userId, @Valid UserTagDTO tagDTO) {
@@ -40,6 +42,12 @@ public class UserTagServiceImpl implements IUserTagService {
         
         // 验证标签名称，防止用户输入身份标签相关词汇
         TagNameValidator.validate(tagDTO.getTagName());
+        
+        // 违禁词校验
+        forbiddenWordService.validateForbiddenWord(tagDTO.getTagName(), "标签名称");
+        if (tagDTO.getDescription() != null && !tagDTO.getDescription().trim().isEmpty()) {
+            forbiddenWordService.validateForbiddenWord(tagDTO.getDescription(), "标签描述");
+        }
         
         // 确保设置为业务标签
         tagDTO.setBizType(TagConstants.BUSINESS_TAG);
@@ -73,6 +81,13 @@ public class UserTagServiceImpl implements IUserTagService {
         // 如果更新了标签名称，需要验证
         if (tagDTO.getTagName() != null && !tagDTO.getTagName().trim().isEmpty()) {
             TagNameValidator.validate(tagDTO.getTagName());
+            // 违禁词校验
+            forbiddenWordService.validateForbiddenWord(tagDTO.getTagName(), "标签名称");
+        }
+        
+        // 如果更新了标签描述，需要违禁词校验
+        if (tagDTO.getDescription() != null && !tagDTO.getDescription().trim().isEmpty()) {
+            forbiddenWordService.validateForbiddenWord(tagDTO.getDescription(), "标签描述");
         }
         
         // 用户只能更新业务标签，不能修改标签的业务类型

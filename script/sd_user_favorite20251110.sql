@@ -11,7 +11,7 @@
  Target Server Version : 80040 (8.0.40)
  File Encoding         : 65001
 
- Date: 01/11/2025
+ Date: 10/11/2025 15:12:20
 */
 
 SET NAMES utf8mb4;
@@ -28,8 +28,10 @@ CREATE TABLE `sd_user_favorite`  (
   `target_id` bigint NOT NULL COMMENT '收藏对象ID（模型ID或作品ID）',
   `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `create_by` bigint NULL DEFAULT NULL,
+  `update_by` bigint NULL DEFAULT NULL,
   PRIMARY KEY (`id`) USING BTREE,
-  UNIQUE INDEX `uk_user_type_target`(`user_id`, `favorite_type`, `target_id`) USING BTREE COMMENT '唯一索引：防止同一用户重复收藏同一对象',
+  UNIQUE INDEX `uk_user_type_target`(`user_id` ASC, `favorite_type` ASC, `target_id` ASC) USING BTREE COMMENT '唯一索引：防止同一用户重复收藏同一对象',
   INDEX `idx_user_id`(`user_id` ASC) USING BTREE COMMENT '用户ID索引：查询用户的所有收藏',
   INDEX `idx_target_id`(`target_id` ASC, `favorite_type` ASC) USING BTREE COMMENT '对象ID索引：查询某对象的收藏数',
   INDEX `idx_favorite_type`(`favorite_type` ASC) USING BTREE COMMENT '收藏类型索引：按类型查询',
@@ -37,4 +39,3 @@ CREATE TABLE `sd_user_favorite`  (
 ) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '用户收藏表（支持收藏模型和作品）' ROW_FORMAT = DYNAMIC;
 
 SET FOREIGN_KEY_CHECKS = 1;
-

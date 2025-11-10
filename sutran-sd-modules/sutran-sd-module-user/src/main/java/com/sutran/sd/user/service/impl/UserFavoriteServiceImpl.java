@@ -21,7 +21,7 @@ import java.util.stream.Collectors;
 
 /**
  * 用户收藏服务实现类
- * 
+ *
  * @author sutran
  * @date 2025-11-07
  */
@@ -40,8 +40,8 @@ public class UserFavoriteServiceImpl implements IUserFavoriteService {
         }
 
         // 验证收藏类型
-        if (favoriteDTO.getFavoriteType() == null || 
-            (favoriteDTO.getFavoriteType() != SdUserFavorite.FavoriteType.MODEL && 
+        if (favoriteDTO.getFavoriteType() == null ||
+            (favoriteDTO.getFavoriteType() != SdUserFavorite.FavoriteType.MODEL &&
              favoriteDTO.getFavoriteType() != SdUserFavorite.FavoriteType.WORK)) {
             throw new ServiceException("收藏类型无效，只能是1（模型）或2（作品）");
         }
@@ -66,6 +66,7 @@ public class UserFavoriteServiceImpl implements IUserFavoriteService {
         favorite.setUserId(userId);
         favorite.setFavoriteType(favoriteDTO.getFavoriteType());
         favorite.setTargetId(favoriteDTO.getTargetId());
+        favorite.setImageUrl(favoriteDTO.getImageUrl());
         favorite.setCreateTime(new Date());
         favorite.setUpdateTime(new Date());
 
@@ -124,7 +125,7 @@ public class UserFavoriteServiceImpl implements IUserFavoriteService {
         // 构建查询条件
         LambdaQueryWrapper<SdUserFavorite> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(SdUserFavorite::getUserId, userId);
-        
+
         if (favoriteType != null) {
             wrapper.eq(SdUserFavorite::getFavoriteType, favoriteType);
         }
@@ -134,7 +135,7 @@ public class UserFavoriteServiceImpl implements IUserFavoriteService {
 
         // 构建分页对象
         Page<SdUserFavorite> page = pageQuery.build();
-        
+
         // 执行分页查询
         Page<SdUserFavorite> favoritePage = favoriteMapper.selectPage(page, wrapper);
 
@@ -158,7 +159,7 @@ public class UserFavoriteServiceImpl implements IUserFavoriteService {
         wrapper.eq(SdUserFavorite::getUserId, userId)
                .eq(SdUserFavorite::getFavoriteType, favoriteType)
                .eq(SdUserFavorite::getTargetId, targetId);
-        
+
         long count = favoriteMapper.selectCount(wrapper);
         return count > 0;
     }
@@ -169,7 +170,7 @@ public class UserFavoriteServiceImpl implements IUserFavoriteService {
     private UserFavoriteVO convertToVO(SdUserFavorite favorite) {
         UserFavoriteVO vo = new UserFavoriteVO();
         BeanUtils.copyProperties(favorite, vo);
-        
+
         // 设置收藏类型名称
         if (favorite.getFavoriteType() != null) {
             if (favorite.getFavoriteType() == SdUserFavorite.FavoriteType.MODEL) {

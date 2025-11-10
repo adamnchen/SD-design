@@ -44,6 +44,11 @@ public class UserFavoriteVO implements Serializable {
     private Long targetId;
 
     /**
+     * 目标对象封面/缩略图URL
+     */
+    private String imageUrl;
+
+    /**
      * 创建时间
      */
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")

@@ -22,7 +22,7 @@ import javax.validation.Valid;
 
 /**
  * 用户收藏管理控制器
- * 
+ *
  * @author sutran
  * @date 2025-11-07
  */
@@ -78,7 +78,7 @@ public class UserFavoriteController extends BaseController {
     @Operation(summary = "根据对象删除收藏", description = "根据收藏类型和目标ID删除收藏记录")
     @Log(title = "用户收藏管理", businessType = BusinessType.DELETE)
     @DeleteMapping("/target")
-    public R<Void> deleteFavoriteByTarget(@RequestParam Integer favoriteType, 
+    public R<Void> deleteFavoriteByTarget(@RequestParam Integer favoriteType,
                                           @RequestParam Long targetId) {
         Long userId = LoginHelper.getUserId();
         if (userId == null) {
@@ -96,15 +96,15 @@ public class UserFavoriteController extends BaseController {
      */
     @Operation(summary = "分页查询收藏列表", description = "分页查询当前用户的收藏列表，支持按收藏类型筛选")
     @GetMapping
-    public R<TableDataInfo<UserFavoriteVO>> list(@RequestParam(required = false) Integer favoriteType,
+    public TableDataInfo<UserFavoriteVO> list(@RequestParam(required = false) Integer favoriteType,
                                                   PageQuery pageQuery) {
         Long userId = LoginHelper.getUserId();
         if (userId == null) {
-            return R.fail("用户未登录或Token无效");
+            return TableDataInfo.build();
         }
 
         Page<UserFavoriteVO> page = favoriteService.selectFavoritePage(userId, favoriteType, pageQuery);
-        return R.ok(TableDataInfo.build(page));
+        return TableDataInfo.build(page);
     }
 
     /**
@@ -112,7 +112,7 @@ public class UserFavoriteController extends BaseController {
      */
     @Operation(summary = "检查是否已收藏", description = "检查用户是否已收藏指定对象")
     @GetMapping("/check")
-    public R<Boolean> checkFavorite(@RequestParam Integer favoriteType, 
+    public R<Boolean> checkFavorite(@RequestParam Integer favoriteType,
                                     @RequestParam Long targetId) {
         Long userId = LoginHelper.getUserId();
         if (userId == null) {

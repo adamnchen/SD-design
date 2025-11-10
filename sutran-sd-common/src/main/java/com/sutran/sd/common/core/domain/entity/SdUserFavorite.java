@@ -47,6 +47,12 @@ public class SdUserFavorite extends BaseEntity {
     private Long targetId;
 
     /**
+     * 目标对象封面/缩略图URL（由前端提交，或服务端在上层填充）
+     */
+    @TableField("image_url")
+    private String imageUrl;
+
+    /**
      * 收藏类型常量
      */
     public static final class FavoriteType {

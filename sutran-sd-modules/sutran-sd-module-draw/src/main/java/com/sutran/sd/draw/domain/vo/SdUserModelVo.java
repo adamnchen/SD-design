@@ -143,4 +143,10 @@ public class SdUserModelVo implements Serializable {
     @Schema(name = "isUserDel", description = "用户是否已删除该模型[0-否,1-是]")
     private Integer isUserDel;
 
+    /**
+     * 当前用户是否已收藏该模型[true-已收藏,false-未收藏]
+     */
+    @Schema(name = "isFavorite", description = "当前用户是否已收藏该模型")
+    private Boolean isFavorite;
+
 }

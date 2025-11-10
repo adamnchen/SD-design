@@ -28,6 +28,8 @@ import com.sutran.sd.draw.mapper.SdUserModelMapper;
 import com.sutran.sd.draw.service.SdUserModelService;
 import com.sutran.sd.draw.utils.CommonUtil;
 import com.sutran.sd.system.service.SysTranslateService;
+import com.sutran.sd.user.service.IUserFavoriteService;
+import com.sutran.sd.common.core.domain.entity.SdUserFavorite;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.text.StringEscapeUtils;
@@ -57,6 +59,7 @@ public class SdUserModelServiceImpl implements SdUserModelService {
     private final SdUserModelMapper baseMapper;
     private final SdUserModelClassifyMapper classifyMapper;
     private final SysTranslateService sysTranslateService;
+    private final IUserFavoriteService favoriteService;
 
     @Resource(name = "threadPoolTaskExecutor")
     private Executor executor;
@@ -117,6 +120,17 @@ public class SdUserModelServiceImpl implements SdUserModelService {
             }
             // 如果不是模型归属人，则是被分享的模型
             e.setShareModel(!Objects.equals(String.valueOf(userId), e.getBelongUserId()) && e.getIsOpen()==0 && e.getType()==1);
+            // 填充收藏状态
+            if (userId != null && e.getId() != null) {
+                try {
+                    Long modelId = Long.parseLong(e.getId());
+                    e.setIsFavorite(favoriteService.isFavorite(userId, SdUserFavorite.FavoriteType.MODEL, modelId));
+                } catch (NumberFormatException ex) {
+                    e.setIsFavorite(false);
+                }
+            } else {
+                e.setIsFavorite(false);
+            }
         }
         return TableDataInfo.build(page);
     }
@@ -193,6 +207,17 @@ public class SdUserModelServiceImpl implements SdUserModelService {
             }
             // 如果不是模型归属人，则是被分享的模型
             modelInfo.setShareModel(!Objects.equals(String.valueOf(userId), modelInfo.getBelongUserId()) && modelInfo.getIsOpen()==0 && modelInfo.getType()==1);
+            // 填充收藏状态
+            if (userId != null && modelInfo.getId() != null) {
+                try {
+                    Long targetId = Long.parseLong(modelInfo.getId());
+                    modelInfo.setIsFavorite(favoriteService.isFavorite(userId, SdUserFavorite.FavoriteType.MODEL, targetId));
+                } catch (NumberFormatException ex) {
+                    modelInfo.setIsFavorite(false);
+                }
+            } else {
+                modelInfo.setIsFavorite(false);
+            }
         }
         return modelInfo;
     }
@@ -213,6 +238,17 @@ public class SdUserModelServiceImpl implements SdUserModelService {
         for (SdUserModelVo modelVo : modelVoList) {
             // 如果不是模型归属人，则是被分享的模型
             modelVo.setShareModel(!Objects.equals(String.valueOf(userId), modelVo.getBelongUserId()) && modelVo.getIsOpen()==0 && modelVo.getType()==1);
+            // 填充收藏状态
+            if (userId != null && modelVo.getId() != null) {
+                try {
+                    Long modelId = Long.parseLong(modelVo.getId());
+                    modelVo.setIsFavorite(favoriteService.isFavorite(userId, SdUserFavorite.FavoriteType.MODEL, modelId));
+                } catch (NumberFormatException ex) {
+                    modelVo.setIsFavorite(false);
+                }
+            } else {
+                modelVo.setIsFavorite(false);
+            }
             CompletableFuture<Void> future = CompletableFuture.runAsync(() -> dealConfig(modelVo), executor);
             futures.add(future);
         }
@@ -493,6 +529,17 @@ public class SdUserModelServiceImpl implements SdUserModelService {
             }
             // 如果不是模型归属人，则是被分享的模型
             e.setShareModel(!Objects.equals(String.valueOf(userId), e.getBelongUserId()) && e.getIsOpen()==0 && e.getType()==1);
+            // 填充收藏状态
+            if (userId != null && e.getId() != null) {
+                try {
+                    Long modelId = Long.parseLong(e.getId());
+                    e.setIsFavorite(favoriteService.isFavorite(userId, SdUserFavorite.FavoriteType.MODEL, modelId));
+                } catch (NumberFormatException ex) {
+                    e.setIsFavorite(false);
+                }
+            } else {
+                e.setIsFavorite(false);
+            }
             // 处理ComfyUI数据中的提示词
             dealComfyUiDataPrompt(e,paramMap);
         }
@@ -541,14 +588,25 @@ public class SdUserModelServiceImpl implements SdUserModelService {
             }
             // 如果不是模型归属人，则是被分享的模型
             e.setShareModel(!Objects.equals(String.valueOf(userId), e.getBelongUserId()) && e.getIsOpen()==0 && e.getType()==1);
+            // 填充收藏状态
+            if (userId != null && e.getId() != null) {
+                try {
+                    Long modelId = Long.parseLong(e.getId());
+                    e.setIsFavorite(favoriteService.isFavorite(userId, SdUserFavorite.FavoriteType.MODEL, modelId));
+                } catch (NumberFormatException ex) {
+                    e.setIsFavorite(false);
+                }
+            } else {
+                e.setIsFavorite(false);
+            }
             // 处理ComfyUI数据中的提示词
             dealComfyUiDataPrompt(e,paramMap);
         }
         return TableDataInfo.build(page);
     }
 
-    /**
-     * 获取comfyui lora模型详情
+     /**
+      * 获取comfyui lora模型详情
      * @param id    模型ID
      * @return      模型详情
      */
@@ -569,9 +627,20 @@ public class SdUserModelServiceImpl implements SdUserModelService {
         vo.setClassifyName("1".equals(vo.getClassifyId())?"全部模型":vo.getClassifyName());
         // 如果不是模型归属人，则是被分享的模型
         vo.setShareModel(!Objects.equals(String.valueOf(userId), vo.getBelongUserId()) && vo.getIsOpen()==0 && vo.getType()==1);
+        // 填充收藏状态
+        if (userId != null && vo.getId() != null) {
+            try {
+                Long modelId = Long.parseLong(vo.getId());
+                vo.setIsFavorite(favoriteService.isFavorite(userId, SdUserFavorite.FavoriteType.MODEL, modelId));
+            } catch (NumberFormatException ex) {
+                vo.setIsFavorite(false);
+            }
+        } else {
+            vo.setIsFavorite(false);
+        }
         // 处理ComfyUI数据中的提示词
         dealComfyUiDataPrompt(vo,paramMap);
-        return null;
+        return vo;
     }
 
     /**

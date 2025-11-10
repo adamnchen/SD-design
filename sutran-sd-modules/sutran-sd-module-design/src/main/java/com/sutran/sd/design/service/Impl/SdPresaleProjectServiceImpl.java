@@ -36,7 +36,6 @@ import com.sutran.sd.common.core.domain.entity.SysUser;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
-import org.springframework.core.annotation.OrderUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -92,8 +91,9 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
         Page<SdPresaleProject> page = new Page<>(1, 100); // 默认查询前100条
         IPage<SdPresaleProject> result = presaleProjectMapper.selectPresaleProjectListWithUserInfo(page, 1); // 销售中状态
 
-        // 转换为VO
+        // 转换为VO，并过滤掉已过期的项目
         List<PresaleProjectListVO> voList = result.getRecords().stream()
+                .filter(project -> !isProjectExpired(project)) // 过滤已过期的项目
                 .map(this::convertToProjectListVO)
                 .collect(Collectors.toList());
 
@@ -108,12 +108,15 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
         Page<SdPresaleProject> page = pageQuery.build();
         IPage<SdPresaleProject> result = presaleProjectMapper.selectPresaleProjectListWithUserInfo(page, 1); // 销售中状态
 
-        // 转换为VO
+        // 转换为VO，并过滤掉已过期的项目
         List<PresaleProjectListVO> voList = result.getRecords().stream()
+                .filter(project -> !isProjectExpired(project)) // 过滤已过期的项目
                 .map(this::convertToProjectListVO)
                 .collect(Collectors.toList());
 
-        return new TableDataInfo<>(voList, result.getTotal());
+        // 重新计算总数（过滤后的数量）
+        long filteredTotal = voList.size();
+        return new TableDataInfo<>(voList, filteredTotal);
     }
 
     @Override
@@ -123,6 +126,12 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
         SdPresaleProject project = presaleProjectMapper.selectSdPresaleProjectById(id);
         if (project == null) {
             return R.fail("预售项目不存在");
+        }
+
+        // 检查项目是否已过期（如果是销售中状态）
+        if (project.getStatus() == 1 && isProjectExpired(project)) {
+            log.warn("查询已过期的预售项目详情: 项目ID={}, 项目名称={}", project.getId(), project.getTitle());
+            return R.fail("该项目已过期，无法查看详情");
         }
 
         // 增加浏览次数
@@ -273,6 +282,12 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
 
             if (project.getStatus() != 1) {
                 return R.fail("项目不在销售中状态");
+            }
+
+            // 1.1 检查项目是否已过期
+            if (isProjectExpired(project)) {
+                log.warn("尝试购买已过期的预售项目: 项目ID={}, 项目名称={}", project.getId(), project.getTitle());
+                return R.fail("该项目已过期，无法购买");
             }
 
             // 2. 生成订单号

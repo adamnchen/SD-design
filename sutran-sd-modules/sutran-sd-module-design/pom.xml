@@ -34,6 +34,12 @@
             <artifactId>sutran-sd-module-pay</artifactId>
         </dependency>
 
+        <!-- 用户模块 -->
+        <dependency>
+            <groupId>com.sutran.sd</groupId>
+            <artifactId>sutran-sd-module-user</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>com.meilisearch.sdk</groupId>
             <artifactId>meilisearch-java</artifactId>

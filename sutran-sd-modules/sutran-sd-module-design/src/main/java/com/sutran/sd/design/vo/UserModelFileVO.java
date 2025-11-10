@@ -134,6 +134,11 @@ public class UserModelFileVO {
     private Date crtTime;
 
     /**
+     * 当前用户是否已收藏该作品[true-已收藏,false-未收藏]
+     */
+    private Boolean isFavorite;
+
+    /**
      * 获取分类名称
      */
     public String getCategoryName() {

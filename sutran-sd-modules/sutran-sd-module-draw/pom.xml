@@ -41,6 +41,12 @@
             <artifactId>sutran-sd-module-system</artifactId>
         </dependency>
 
+        <!-- user模块 -->
+        <dependency>
+            <groupId>com.sutran.sd</groupId>
+            <artifactId>sutran-sd-module-user</artifactId>
+        </dependency>
+
 <!--        <dependency>-->
 <!--            <groupId>com.alibaba.fastjson2</groupId>-->
 <!--            <artifactId>fastjson2</artifactId>-->

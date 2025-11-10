@@ -1573,6 +1573,7 @@ public class SdTrainServiceImpl implements SdTrainService {
       */
     @Override
     @Transactional(rollbackFor = Exception.class)
+    @Deprecated
     public String startTrainTask(String taskId, String modelTag, Integer isOpen, String modelDesc) throws IOException {
         if (StringUtils.isEmpty(taskId)) {
             throw new ServiceException("请输入训练任务ID!");
@@ -2319,17 +2320,6 @@ public class SdTrainServiceImpl implements SdTrainService {
         final String startTime = preParams.getString("startTime");
         final String endTime = preParams.getString("endTime");
 
-        // 违禁词校验（再次校验，防止预处理参数被修改）
-        if (StringUtils.isNotBlank(loraNameZh)) {
-            forbiddenWordService.validateForbiddenWord(loraNameZh, "模型名称");
-        }
-        if (StringUtils.isNotBlank(modelTag)) {
-            forbiddenWordService.validateForbiddenWord(modelTag, "模型标签");
-        }
-        if (StringUtils.isNotBlank(modelDesc)) {
-            forbiddenWordService.validateForbiddenWord(modelDesc, "模型描述");
-        }
-
         try {
             // 检查目标目录是否存在，不存在则创建
             File destDirFile = new File(destDir);
@@ -2373,19 +2363,9 @@ public class SdTrainServiceImpl implements SdTrainService {
                     Path targetPath = destModelFile.toPath();
                     Files.move(sourcePath, targetPath, StandardCopyOption.REPLACE_EXISTING);
                     log.info("[模型训练完成][模型移动]>>>>>>>>>任务ID[{}],成功移动模型文件: {} -> {}", taskId, sourcePath, targetPath);
-                    
-                    // 违禁词校验（模型标题和别名）
-                    String modelNameZh = loraNameZh + prefix;
-                    if (StringUtils.isNotBlank(title)) {
-                        forbiddenWordService.validateForbiddenWord(title, "模型标题");
-                    }
-                    if (StringUtils.isNotBlank(modelNameZh)) {
-                        forbiddenWordService.validateForbiddenWord(modelNameZh, "模型别名");
-                    }
-                    
                     SdUserModel model = new SdUserModel()
                         .setId(IdUtil.getSnowflakeNextId()).setTitle(title).setTaskId(Long.parseLong(taskId))
-                        .setModelName(modelName).setModelNameZh(modelNameZh).setFileName(destModelFile.getAbsolutePath())
+                        .setModelName(modelName).setModelNameZh(loraNameZh+prefix).setFileName(destModelFile.getAbsolutePath())
                         .setCrtTime(new Date()).setIsOpen(isOpen).setType(1).setPublishStatus(0).setBelongUserId(userId).setModelStrength("1.4")
                         .setModelTag(modelTag).setRemark(modelDesc).setModelType("FLUX");
                     // 移动对应的图片文件

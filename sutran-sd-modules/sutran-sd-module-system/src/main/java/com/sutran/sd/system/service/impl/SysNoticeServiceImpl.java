@@ -30,6 +30,7 @@ public class SysNoticeServiceImpl implements ISysNoticeService {
         LambdaQueryWrapper<SysNotice> lqw = new LambdaQueryWrapper<SysNotice>()
             .like(StringUtils.isNotBlank(notice.getNoticeTitle()), SysNotice::getNoticeTitle, notice.getNoticeTitle())
             .eq(StringUtils.isNotBlank(notice.getNoticeType()), SysNotice::getNoticeType, notice.getNoticeType())
+            .eq(StringUtils.isNotBlank(notice.getStatus()), SysNotice::getStatus, notice.getStatus())
             .like(StringUtils.isNotBlank(notice.getCreateBy()), SysNotice::getCreateBy, notice.getCreateBy());
         Page<SysNotice> page = baseMapper.selectPage(pageQuery.build(), lqw);
         return TableDataInfo.build(page);
@@ -57,6 +58,7 @@ public class SysNoticeServiceImpl implements ISysNoticeService {
         return baseMapper.selectList(new LambdaQueryWrapper<SysNotice>()
             .like(StringUtils.isNotBlank(notice.getNoticeTitle()), SysNotice::getNoticeTitle, notice.getNoticeTitle())
             .eq(StringUtils.isNotBlank(notice.getNoticeType()), SysNotice::getNoticeType, notice.getNoticeType())
+            .eq(StringUtils.isNotBlank(notice.getStatus()), SysNotice::getStatus, notice.getStatus())
             .like(StringUtils.isNotBlank(notice.getCreateBy()), SysNotice::getCreateBy, notice.getCreateBy()));
     }
 

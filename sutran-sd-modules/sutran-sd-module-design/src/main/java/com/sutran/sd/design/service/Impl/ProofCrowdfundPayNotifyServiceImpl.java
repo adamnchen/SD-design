@@ -1,5 +1,6 @@
 package com.sutran.sd.design.service.impl;
 
+import cn.hutool.core.util.IdUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.sutran.sd.common.exception.ServiceException;
 import com.sutran.sd.design.config.CrowdfundingConfig;
@@ -114,19 +115,19 @@ public class ProofCrowdfundPayNotifyServiceImpl extends BasePayNotifyService {
     public void handleFailedBusiness(String tradeStatus, String outTradeNo, String tradeNo, String totalAmount, String gmtPayment) {
         try {
             log.info("[众筹支付失败] 开始处理: 订单号={}, 交易状态={}", outTradeNo, tradeStatus);
-            
+
             SdCrowdfundingSupport support = supportMapper.selectByOrderNo(outTradeNo);
             if (support == null) {
                 log.warn("[众筹支付失败] 未找到支持记录: 订单号={}", outTradeNo);
                 return;
             }
-            
+
             Long projectId = support.getProjectId();
             BigDecimal amount = support.getSupportAmount(); // 使用支持记录中的金额，而不是回调中的金额
-            
+
             // 支付失败回滚金额
             handleRollback(outTradeNo, projectId, amount);
-            
+
             log.info("[众筹支付失败] 处理完成: 订单号={}, 项目ID={}, 金额={}", outTradeNo, projectId, amount);
         } catch (Exception e) {
             log.error("[众筹支付失败] 处理异常: 订单号={}", outTradeNo, e);
@@ -136,24 +137,24 @@ public class ProofCrowdfundPayNotifyServiceImpl extends BasePayNotifyService {
     @Override
     public void dealPayTimeoutData(PayTimeoutStatusVo vo) {
         try {
-            log.info("[众筹支付超时] 开始处理: 订单号={}, 交易状态={}, 项目ID={}, 金额={}", 
+            log.info("[众筹支付超时] 开始处理: 订单号={}, 交易状态={}, 项目ID={}, 金额={}",
                 vo.getOutTradeNo(), vo.getTradeStatus(), vo.getProjectid(), vo.getAmount());
-            
+
             // 如果支付成功或完成，不需要回滚
-            if (AliPayTradeStatus.TRADE_SUCCESS.name().equals(vo.getTradeStatus()) 
+            if (AliPayTradeStatus.TRADE_SUCCESS.name().equals(vo.getTradeStatus())
                 || AliPayTradeStatus.TRADE_FINISHED.name().equals(vo.getTradeStatus())) {
-                log.info("[众筹支付超时] 订单已支付成功，无需回滚: 订单号={}, 交易状态={}", 
+                log.info("[众筹支付超时] 订单已支付成功，无需回滚: 订单号={}, 交易状态={}",
                     vo.getOutTradeNo(), vo.getTradeStatus());
                 return;
             }
-            
+
             // 支付超时或失败，需要回滚
             handleRollback(vo.getOutTradeNo(), vo.getProjectid(), vo.getAmount());
-            
-            log.info("[众筹支付超时] 处理完成: 订单号={}, 项目ID={}, 金额={}", 
+
+            log.info("[众筹支付超时] 处理完成: 订单号={}, 项目ID={}, 金额={}",
                 vo.getOutTradeNo(), vo.getProjectid(), vo.getAmount());
         } catch (Exception e) {
-            log.error("[众筹支付超时] 处理异常: 订单号={}, 项目ID={}", 
+            log.error("[众筹支付超时] 处理异常: 订单号={}, 项目ID={}",
                 vo.getOutTradeNo(), vo.getProjectid(), e);
         }
     }
@@ -162,7 +163,7 @@ public class ProofCrowdfundPayNotifyServiceImpl extends BasePayNotifyService {
     private void handleRollback(String orderNo, Long projectId, BigDecimal amount) {
         try {
             log.info("[回滚处理] 开始: 订单号={}, 项目ID={}, 金额={}", orderNo, projectId, amount);
-            
+
             // 1. 查询支持记录（根据订单号查询）
             LambdaQueryWrapper<SdCrowdfundingSupport> queryWrapper = new LambdaQueryWrapper<>();
             queryWrapper.eq(SdCrowdfundingSupport::getOrderNo, orderNo);
@@ -174,13 +175,13 @@ public class ProofCrowdfundPayNotifyServiceImpl extends BasePayNotifyService {
                 // 如果支持记录存在，删除它
                 supportMapper.deleteById(support.getId());
                 log.info("[回滚处理] 删除支持记录: 订单号={}, 支持记录ID={}", orderNo, support.getId());
-                
+
                 // 如果传入的金额为空，使用支持记录中的金额
                 if (amount == null) {
                     amount = support.getSupportAmount();
                     log.info("[回滚处理] 使用支持记录中的金额: 订单号={}, 金额={}", orderNo, amount);
                 }
-                
+
                 // 如果传入的项目ID为空，使用支持记录中的项目ID
                 if (projectId == null) {
                     projectId = support.getProjectId();
@@ -340,19 +341,19 @@ public class ProofCrowdfundPayNotifyServiceImpl extends BasePayNotifyService {
                     // 获取收货地址（必填字段）- 优先使用支持记录中的地址
                     String deliveryAddress = winner.getReceiverAddress();
                     String receiverArea = winner.getReceiverArea();
-                    
+
                     // 如果地址不为空，将地区信息拼接到地址中
                     if (StringUtils.isNotBlank(deliveryAddress)) {
                         if (StringUtils.isNotBlank(receiverArea)) {
                             deliveryAddress = receiverArea + " " + deliveryAddress;
                         }
                     }
-                    
+
                     // 如果支持记录中没有地址（可能是发起人记录或旧数据），尝试从用户地址表获取
                     if (StringUtils.isBlank(deliveryAddress)) {
                         log.warn("支持记录中地址为空，尝试从用户地址表获取: 项目ID={}, 用户ID={}, 订单号={}",
                             project.getId(), winner.getUserId(), winner.getOrderNo());
-                        
+
                         try {
                             List<SysAddress> addressList = userAddressService.selectAddressList(winner.getUserId());
                             if (addressList != null && !addressList.isEmpty()) {
@@ -406,6 +407,7 @@ public class ProofCrowdfundPayNotifyServiceImpl extends BasePayNotifyService {
 
                     // 创建样品配送记录
                     SdCrowdfundingSampleDelivery delivery = new SdCrowdfundingSampleDelivery();
+                    delivery.setId(IdUtil.getSnowflakeNextId());
                     delivery.setCrowdfundingProjectId(project.getId());
                     delivery.setProofingInvitationId(project.getProofingInvitationId());
                     delivery.setRecipientUserId(winner.getUserId());

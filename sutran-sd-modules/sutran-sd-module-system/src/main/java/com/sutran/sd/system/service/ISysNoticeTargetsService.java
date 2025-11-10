@@ -7,11 +7,11 @@ import com.sutran.sd.system.domain.SysNotice;
 import java.util.List;
 
 /**
- * 公告 服务层
+ * 公告目标表 服务层
  *
- * @author Lion Li
+ * @author zj
  */
-public interface ISysNoticeService {
+public interface ISysNoticeTargetsService {
 
     /**
      * 查询公告分页列表

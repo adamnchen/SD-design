@@ -9,6 +9,7 @@ import lombok.EqualsAndHashCode;
 
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.Size;
+import java.util.Date;
 
 
 /**
@@ -32,11 +33,11 @@ public class SysNotice extends BaseEntity {
      */
     @Xss(message = "公告标题不能包含脚本字符")
     @NotBlank(message = "公告标题不能为空")
-    @Size(min = 0, max = 50, message = "公告标题不能超过{max}个字符")
+    @Size(max = 50, message = "公告标题不能超过{max}个字符")
     private String noticeTitle;
 
     /**
-     * 公告类型（1通知 2公告）
+     * 公告类型[0-普通,1-紧急,2-活动]
      */
     private String noticeType;
 
@@ -46,9 +47,19 @@ public class SysNotice extends BaseEntity {
     private String noticeContent;
 
     /**
-     * 公告状态（0正常 1关闭）
+     * 公告状态[0-未发布,1-已发布]
      */
     private String status;
+
+    /**
+     * 发布时间
+     */
+    private Date publishTime;
+
+    /**
+     * 过期时间
+     */
+    private Date expireTime;
 
     /**
      * 备注

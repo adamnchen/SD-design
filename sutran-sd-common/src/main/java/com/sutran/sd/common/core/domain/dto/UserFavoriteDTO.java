@@ -25,10 +25,5 @@ public class UserFavoriteDTO {
      */
     @NotNull(message = "收藏对象ID不能为空")
     private Long targetId;
-
-    /**
-     * 目标对象封面/缩略图URL（可选）
-     */
-    private String imageUrl;
 }
 

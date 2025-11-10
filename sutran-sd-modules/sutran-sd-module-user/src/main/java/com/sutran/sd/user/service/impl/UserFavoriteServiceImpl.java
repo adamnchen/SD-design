@@ -66,7 +66,6 @@ public class UserFavoriteServiceImpl implements IUserFavoriteService {
         favorite.setUserId(userId);
         favorite.setFavoriteType(favoriteDTO.getFavoriteType());
         favorite.setTargetId(favoriteDTO.getTargetId());
-        favorite.setImageUrl(favoriteDTO.getImageUrl());
         favorite.setCreateTime(new Date());
         favorite.setUpdateTime(new Date());
 
@@ -144,6 +143,34 @@ public class UserFavoriteServiceImpl implements IUserFavoriteService {
         List<UserFavoriteVO> voList = favoritePage.getRecords().stream()
                 .map(this::convertToVO)
                 .collect(Collectors.toList());
+
+    
+        List<Long> modelIds = favoritePage.getRecords().stream()
+            .filter(f -> f.getFavoriteType() != null && f.getFavoriteType() == SdUserFavorite.FavoriteType.MODEL)
+            .map(SdUserFavorite::getTargetId).distinct().collect(Collectors.toList());
+        List<Long> workIds = favoritePage.getRecords().stream()
+            .filter(f -> f.getFavoriteType() != null && f.getFavoriteType() == SdUserFavorite.FavoriteType.WORK)
+            .map(SdUserFavorite::getTargetId).distinct().collect(Collectors.toList());
+
+        java.util.Map<Long, String> modelIdToUrl = java.util.Collections.emptyMap();
+        java.util.Map<Long, String> workIdToUrl = java.util.Collections.emptyMap();
+        if (!modelIds.isEmpty()) {
+            modelIdToUrl = favoriteMapper.selectModelUrlsByIds(modelIds).stream()
+                .collect(Collectors.toMap(e -> e.id, e -> e.url, (a,b)->a));
+        }
+        if (!workIds.isEmpty()) {
+            workIdToUrl = favoriteMapper.selectWorkUrlsByIds(workIds).stream()
+                .collect(Collectors.toMap(e -> e.id, e -> e.url, (a,b)->a));
+        }
+        for (UserFavoriteVO vo : voList) {
+            if (vo.getFavoriteType() != null && vo.getTargetId() != null) {
+                if (vo.getFavoriteType() == SdUserFavorite.FavoriteType.MODEL) {
+                    vo.setImageUrl(modelIdToUrl.get(vo.getTargetId()));
+                } else if (vo.getFavoriteType() == SdUserFavorite.FavoriteType.WORK) {
+                    vo.setImageUrl(workIdToUrl.get(vo.getTargetId()));
+                }
+            }
+        }
         voPage.setRecords(voList);
 
         return voPage;

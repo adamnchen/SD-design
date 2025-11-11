@@ -2111,6 +2111,11 @@ public class SdTrainServiceImpl implements SdTrainService {
                     return;
                 }
                 FluxgymTrainResultVo vo = JsonUtils.toObject(resp, FluxgymTrainResultVo.class);
+                if (vo!=null && StringUtils.isNotBlank(vo.getDetail()) && "Task not found".equals(vo.getDetail())) {
+                    // 消费该消息
+                    channel.basicAck(deliveryTag, false);
+                    return;
+                }
                 if (vo==null || vo.getSuccess()==null || !vo.getSuccess()) {
                     log.error("[FluxGYM训练MQ]>>>>>>>>>提交训练失败!任务ID: {}, 异常信息: {}", taskId, vo.getMessage());
                     // 归还训练次数

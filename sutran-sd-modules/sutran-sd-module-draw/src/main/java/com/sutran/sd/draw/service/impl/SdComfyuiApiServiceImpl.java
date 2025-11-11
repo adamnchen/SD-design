@@ -135,6 +135,9 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
         if (StringUtils.isNotBlank(prompt)) {
             forbiddenWordService.validateForbiddenWord(prompt, "提示词");
         }
+        if (StringUtils.isNotBlank(promptZh)) {
+            forbiddenWordService.validateForbiddenWord(promptZh, "提示词(中文)");
+        }
         
         if (prompt!=null) {
             // prompt双引号替换为单引号
@@ -215,6 +218,9 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
         // 违禁词校验
         if (StringUtils.isNotBlank(prompt)) {
             forbiddenWordService.validateForbiddenWord(prompt, "提示词");
+        }
+        if (StringUtils.isNotBlank(promptZh)) {
+            forbiddenWordService.validateForbiddenWord(promptZh, "提示词(中文)");
         }
         
         if (prompt!=null) {

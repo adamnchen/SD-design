@@ -5,6 +5,7 @@ import com.sutran.sd.common.core.domain.PageQuery;
 import com.sutran.sd.common.core.domain.R;
 import com.sutran.sd.common.core.page.TableDataInfo;
 import com.sutran.sd.design.service.ISdCrowdfundingSampleDeliveryService;
+import com.sutran.sd.design.dto.UpdateTrackingNumberDTO;
 import com.sutran.sd.design.vo.SampleDeliveryListVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -38,10 +39,10 @@ public class SampleDeliveryController extends BaseController {
     /**
      * 更新快递单号
      */
-    @Operation(summary = "更新快递单号", description = "为发货记录更新快递单号")
+    @Operation(summary = "更新快递单号", description = "为发货记录更新快递单号（JSON提交）")
     @PostMapping("/update-tracking/{id}")
-    public R<String> updateTrackingNumber(@PathVariable Long id, @RequestParam String trackingNumber) {
-        return sampleDeliveryService.updateTrackingNumber(id, trackingNumber);
+    public R<String> updateTrackingNumber(@PathVariable Long id, @RequestBody UpdateTrackingNumberDTO dto) {
+        return sampleDeliveryService.updateTrackingNumber(id, dto.getTrackingNumber());
     }
 
     /**

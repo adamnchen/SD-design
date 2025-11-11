@@ -7,11 +7,7 @@ import com.sutran.sd.common.annotation.Log;
 import com.sutran.sd.common.core.controller.BaseController;
 import com.sutran.sd.common.core.domain.R;
 import com.sutran.sd.common.core.domain.entity.SysUser;
-import com.sutran.sd.common.core.domain.entity.SysAddress;
-import com.sutran.sd.common.core.domain.entity.SysAddressArea;
-import com.sutran.sd.common.core.domain.dto.TagUpdateDTO;
-import com.sutran.sd.common.core.domain.dto.UserTagDTO;
-import com.sutran.sd.common.core.domain.vo.TagDetailVO;
+
 import com.sutran.sd.common.core.domain.vo.UserPublicInfoVO;
 import com.sutran.sd.common.enums.BusinessType;
 import com.sutran.sd.common.helper.LoginHelper;
@@ -19,6 +15,7 @@ import com.sutran.sd.common.utils.StringUtils;
 import com.sutran.sd.common.utils.file.MimeTypeUtils;
 import com.sutran.sd.system.domain.vo.SysOssVo;
 import com.sutran.sd.system.service.ISysOssService;
+import com.sutran.sd.design.service.ISdProofingInvitationService;
 import com.sutran.sd.system.service.ISysUserService;
 import com.sutran.sd.user.service.IUserAddressService;
 import com.sutran.sd.user.service.IUserTagService;
@@ -30,11 +27,11 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import javax.validation.Valid;
+
 import javax.validation.constraints.NotNull;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
+
 import java.util.Map;
 
 /**
@@ -53,6 +50,7 @@ public class SysProfileController extends BaseController {
     private final ISysOssService iSysOssService;
     private final IUserAddressService addressService;
     private final IUserTagService tagService;
+    private final ISdProofingInvitationService invitationService;
 
     /**
      * 个人信息
@@ -155,6 +153,8 @@ public class SysProfileController extends BaseController {
             @NotNull(message = "用户ID不能为空")
             @PathVariable Long userId) {
         UserPublicInfoVO userPublicInfo = userService.getUserPublicInfo(userId);
+        // 追加成功打样邀约信息（来源 design 模块，避免 system 与 design 循环依赖）
+        userPublicInfo.setSuccessfulProofingInvitations(invitationService.getSuccessfulInvitationsByUserId(userId));
         return R.ok(userPublicInfo);
     }
 }

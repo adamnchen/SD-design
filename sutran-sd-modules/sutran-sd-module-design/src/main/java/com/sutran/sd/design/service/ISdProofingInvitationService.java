@@ -135,4 +135,11 @@ public interface ISdProofingInvitationService {
      * @return 邀约总数
      */
     Long countMerchantProcessedInvitations(Integer status);
+
+    /**
+     * 查询用户成功的打样邀约列表（状态为已接受或已发布）
+     * @param userId 用户ID
+     * @return 邀约详情列表
+     */
+    java.util.List<com.sutran.sd.common.core.domain.vo.ProofingInvitationDetailVO> getSuccessfulInvitationsByUserId(Long userId);
 }

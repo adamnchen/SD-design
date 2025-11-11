@@ -35,11 +35,7 @@
             <artifactId>sutran-sd-module-sms</artifactId>
         </dependency>
 
-        <!-- Design功能模块（用于查询打样邀约） -->
-        <dependency>
-            <groupId>com.sutran.sd</groupId>
-            <artifactId>sutran-sd-module-design</artifactId>
-        </dependency>
+        
 
 <!--        <dependency>-->
 <!--            <groupId>com.alibaba.fastjson2</groupId>-->

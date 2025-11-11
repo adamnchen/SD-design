@@ -160,6 +160,16 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
         return createdInvitation;
     }
 
+    @Override
+    public List<ProofingInvitationDetailVO> getSuccessfulInvitationsByUserId(Long userId) {
+        try {
+            return invitationMapper.selectSuccessfulInvitationsByUserId(userId);
+        } catch (Exception e) {
+            log.warn("查询用户成功打样邀约失败 userId={}, err={}", userId, e.getMessage());
+            return new ArrayList<>();
+        }
+    }
+
     /**
      * 获取当前用户收到的所有邀约列表
      */

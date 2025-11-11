@@ -19,7 +19,6 @@ import com.sutran.sd.common.core.domain.PageQuery;
 import com.sutran.sd.common.core.domain.dto.UserTagDTO;
 import com.sutran.sd.common.core.domain.entity.*;
 import com.sutran.sd.common.core.domain.vo.UserPublicInfoVO;
-import com.sutran.sd.common.core.domain.vo.ProofingInvitationDetailVO;
 import com.sutran.sd.common.core.page.TableDataInfo;
 import com.sutran.sd.common.core.service.UserService;
 import com.sutran.sd.common.exception.ServiceException;
@@ -36,7 +35,6 @@ import com.sutran.sd.system.domain.vo.UserBaseVo;
 import com.sutran.sd.system.mapper.*;
 import com.sutran.sd.system.service.ISysUserService;
 import com.sutran.sd.system.service.ISysUserTagService;
-import com.sutran.sd.design.mapper.SdProofingInvitationMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
@@ -67,7 +65,6 @@ public class SysUserServiceImpl implements ISysUserService, UserService {
     private final SysUserPostMapper userPostMapper;
     private final SysUserMemberMapper userMemberMapper;
     private final ISysUserTagService sysUserTagService;
-    private final SdProofingInvitationMapper proofingInvitationMapper;
     /** 会员新增锁 **/
     private final static Lock MEMBER_INSERY_LOCK = new ReentrantLock();
 
@@ -713,15 +710,6 @@ public class SysUserServiceImpl implements ISysUserService, UserService {
         vo.setRemark(user.getRemark());
         vo.setCreateTime(user.getCreateTime());
         vo.setLoginDate(user.getLoginDate());
-
-        // 查询用户成功的打样邀约列表（状态为已接受或已发布）
-        try {
-            List<ProofingInvitationDetailVO> successfulInvitations = proofingInvitationMapper.selectSuccessfulInvitationsByUserId(userId);
-            vo.setSuccessfulProofingInvitations(successfulInvitations != null ? successfulInvitations : new ArrayList<>());
-        } catch (Exception e) {
-            log.warn("查询用户 {} 的成功打样邀约失败: {}", userId, e.getMessage());
-            vo.setSuccessfulProofingInvitations(new ArrayList<>());
-        }
 
         return vo;
     }

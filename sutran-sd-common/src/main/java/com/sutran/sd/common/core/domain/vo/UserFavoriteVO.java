@@ -9,7 +9,7 @@ import java.util.Date;
 /**
  * 用户收藏VO
  * 用于返回给前端的收藏信息
- * 
+ *
  * @author sutran
  * @date 2025-11-07
  */
@@ -47,6 +47,16 @@ public class UserFavoriteVO implements Serializable {
      * 目标对象封面/缩略图URL
      */
     private String imageUrl;
+
+    /**
+     * 模型标签（仅模型类型有值）
+     */
+    private String modelTag;
+
+    /**
+     * 所有人姓名（模型或作品的归属人）
+     */
+    private String belongUserName;
 
     /**
      * 创建时间

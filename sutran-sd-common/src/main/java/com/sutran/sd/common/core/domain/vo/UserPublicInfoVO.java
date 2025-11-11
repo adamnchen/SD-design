@@ -89,5 +89,12 @@ public class UserPublicInfoVO implements Serializable {
      */
     @Schema(description = "最后登录时间")
     private Date loginDate;
+
+    /**
+     * 成功的打样邀约列表（状态为已接受或已发布）
+     * 包含图片和信息，便于展示
+     */
+    @Schema(description = "成功的打样邀约列表")
+    private java.util.List<ProofingInvitationDetailVO> successfulProofingInvitations;
 }
 

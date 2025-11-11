@@ -152,22 +152,31 @@ public class UserFavoriteServiceImpl implements IUserFavoriteService {
             .filter(f -> f.getFavoriteType() != null && f.getFavoriteType() == SdUserFavorite.FavoriteType.WORK)
             .map(SdUserFavorite::getTargetId).distinct().collect(Collectors.toList());
 
-        java.util.Map<Long, String> modelIdToUrl = java.util.Collections.emptyMap();
-        java.util.Map<Long, String> workIdToUrl = java.util.Collections.emptyMap();
+        java.util.Map<Long, SdUserFavoriteMapper.ModelDetail> modelDetailMap = java.util.Collections.emptyMap();
+        java.util.Map<Long, SdUserFavoriteMapper.WorkDetail> workDetailMap = java.util.Collections.emptyMap();
         if (!modelIds.isEmpty()) {
-            modelIdToUrl = favoriteMapper.selectModelUrlsByIds(modelIds).stream()
-                .collect(Collectors.toMap(e -> e.id, e -> e.url, (a,b)->a));
+            modelDetailMap = favoriteMapper.selectModelDetailsByIds(modelIds).stream()
+                .collect(Collectors.toMap(e -> e.id, e -> e, (a,b)->a));
         }
         if (!workIds.isEmpty()) {
-            workIdToUrl = favoriteMapper.selectWorkUrlsByIds(workIds).stream()
-                .collect(Collectors.toMap(e -> e.id, e -> e.url, (a,b)->a));
+            workDetailMap = favoriteMapper.selectWorkDetailsByIds(workIds).stream()
+                .collect(Collectors.toMap(e -> e.id, e -> e, (a,b)->a));
         }
         for (UserFavoriteVO vo : voList) {
             if (vo.getFavoriteType() != null && vo.getTargetId() != null) {
                 if (vo.getFavoriteType() == SdUserFavorite.FavoriteType.MODEL) {
-                    vo.setImageUrl(modelIdToUrl.get(vo.getTargetId()));
+                    SdUserFavoriteMapper.ModelDetail modelDetail = modelDetailMap.get(vo.getTargetId());
+                    if (modelDetail != null) {
+                        vo.setImageUrl(modelDetail.url);
+                        vo.setModelTag(modelDetail.modelTag);
+                        vo.setBelongUserName(modelDetail.belongUserName);
+                    }
                 } else if (vo.getFavoriteType() == SdUserFavorite.FavoriteType.WORK) {
-                    vo.setImageUrl(workIdToUrl.get(vo.getTargetId()));
+                    SdUserFavoriteMapper.WorkDetail workDetail = workDetailMap.get(vo.getTargetId());
+                    if (workDetail != null) {
+                        vo.setImageUrl(workDetail.url);
+                        vo.setBelongUserName(workDetail.belongUserName);
+                    }
                 }
             }
         }

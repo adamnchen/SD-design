@@ -81,4 +81,13 @@ public interface SdProofingInvitationMapper extends BaseMapper<SdProofingInvitat
     Long countSentInvitations(@Param("userId") Long userId);
 
     int updateStatusById(@Param("invitationId") Long id, @Param("status") Integer status);
+
+    /**
+     * 查询用户成功的打样邀约列表（状态为已接受或已发布）
+     * 包括用户作为发起人或被邀约人的邀约
+     *
+     * @param userId 用户ID
+     * @return 成功的打样邀约详情列表
+     */
+    List<ProofingInvitationDetailVO> selectSuccessfulInvitationsByUserId(@Param("userId") Long userId);
 }

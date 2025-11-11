@@ -1,11 +1,13 @@
 package com.sutran.sd.controller.web.common;
 
+import cn.hutool.core.collection.CollectionUtil;
 import com.sutran.sd.common.core.domain.PageQuery;
 import com.sutran.sd.common.core.domain.R;
 import com.sutran.sd.common.core.domain.vo.NoticeVo;
 import com.sutran.sd.common.core.page.TableDataInfo;
 import com.sutran.sd.common.core.service.NoticeService;
 import com.sutran.sd.common.helper.LoginHelper;
+import com.sutran.sd.common.utils.StringUtils;
 import com.sutran.sd.system.domain.SysNotice;
 import com.sutran.sd.system.domain.SysUserNotifications;
 import com.sutran.sd.system.service.ISysNoticeService;
@@ -18,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -48,9 +51,18 @@ public class MsgController {
      * @param scope     查询范围[sys-系统通知\公告，infos-用户消息]
      */
     @GetMapping("/latest-info")
-    public R<List<NoticeVo>> infos(@RequestParam String scope) {
-        if (scope == null) {
-            scope = "infos";
+    public R<List<NoticeVo>> infos(@RequestParam(required = false) String scope) {
+        if (StringUtils.isBlank(scope)) {
+            List<NoticeVo> noticeVos = noticeService.selectNoticeList(1);
+            List<NoticeVo> msgVos;
+            if (CollectionUtil.isEmpty(noticeVos)) {
+                msgVos = noticeService.selectMsgList(LoginHelper.getUserId(), 5);
+            }
+            else {
+                msgVos = noticeService.selectMsgList(LoginHelper.getUserId(), 4);
+            }
+            msgVos.addAll(noticeVos);
+            return R.ok(msgVos);
         }
         if ("sys".equals(scope)) {
             return R.ok(noticeService.selectNoticeList(5));

@@ -112,4 +112,10 @@ public class SampleDeliveryListVO extends BaseEntity {
      * 订单状态
      */
     private Integer orderStatus;
+
+    /**
+     * 支付订单编号
+     * 中奖人的支付订单编号，如果是发起者自留的，返回生成的订单编号（INITIATOR_WINNER_项目ID）
+     */
+    private String orderNo;
 }

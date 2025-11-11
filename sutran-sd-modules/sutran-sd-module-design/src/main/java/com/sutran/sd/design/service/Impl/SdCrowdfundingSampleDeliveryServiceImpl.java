@@ -130,6 +130,9 @@ public class SdCrowdfundingSampleDeliveryServiceImpl implements ISdCrowdfundingS
                     vo.setStatusText("待发货");
                     vo.setRemark(support.getPrizeInfo());
                     vo.setCreateTime(support.getCreateTime());
+                    
+                    // 设置订单编号
+                    vo.setOrderNo(support.getOrderNo());
 
                     // 判断是否为发起人自留样品
                     if (support.getOrderNo() != null && support.getOrderNo().startsWith("INITIATOR_WINNER_")) {
@@ -344,6 +347,26 @@ public class SdCrowdfundingSampleDeliveryServiceImpl implements ISdCrowdfundingS
         vo.setConfirmTime(delivery.getConfirmTime());
         vo.setCreateTime(delivery.getCreateTime());
         vo.setOrderStatus(delivery.getOrderStatus());
+        
+        // 查询订单编号：通过收货人用户ID和项目ID查询支持记录
+        try {
+            LambdaQueryWrapper<SdCrowdfundingSupport> supportWrapper = new LambdaQueryWrapper<>();
+            supportWrapper.eq(SdCrowdfundingSupport::getProjectId, delivery.getCrowdfundingProjectId())
+                         .eq(SdCrowdfundingSupport::getUserId, delivery.getRecipientUserId())
+                         .eq(SdCrowdfundingSupport::getIsWinner, 1) // 中奖者
+                         .orderByDesc(SdCrowdfundingSupport::getCreateTime)
+                         .last("LIMIT 1");
+            
+            SdCrowdfundingSupport support = supportMapper.selectOne(supportWrapper);
+            if (support != null && support.getOrderNo() != null) {
+                // 设置订单编号
+                // 如果是发起者自留的（订单号以 INITIATOR_WINNER_ 开头），返回这个订单编号
+                vo.setOrderNo(support.getOrderNo());
+            }
+        } catch (Exception e) {
+            log.warn("查询订单编号失败: 项目ID={}, 收货人ID={}, 错误={}", 
+                    delivery.getCrowdfundingProjectId(), delivery.getRecipientUserId(), e.getMessage());
+        }
         
         return vo;
     }

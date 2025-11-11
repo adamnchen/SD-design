@@ -345,7 +345,7 @@ public class ProofCrowdfundPayNotifyServiceImpl extends BasePayNotifyService {
                     // 如果地址不为空，将地区信息拼接到地址中
                     if (StringUtils.isNotBlank(deliveryAddress)) {
                         if (StringUtils.isNotBlank(receiverArea)) {
-                            deliveryAddress = receiverArea + " " + deliveryAddress;
+                            deliveryAddress = deliveryAddress + " " + receiverArea ;
                         }
                     }
 

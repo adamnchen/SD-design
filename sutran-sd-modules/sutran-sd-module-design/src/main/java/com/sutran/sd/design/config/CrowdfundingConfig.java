@@ -18,7 +18,7 @@ public class CrowdfundingConfig {
     /**
      * 抽奖延迟秒数
      */
-    private int drawDelaySeconds = 30;
+    private int drawDelaySeconds = 2;
 
     /**
      * 定时任务间隔毫秒

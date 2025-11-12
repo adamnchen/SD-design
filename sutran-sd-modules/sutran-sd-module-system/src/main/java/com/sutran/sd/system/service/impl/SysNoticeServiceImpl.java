@@ -36,7 +36,7 @@ import java.util.stream.Collectors;
  *
  * @author Lion Li
  */
-@SuppressWarnings("AlibabaUndefineMagicConstant")
+@SuppressWarnings({"AlibabaUndefineMagicConstant", "LoggingSimilarMessage"})
 @RequiredArgsConstructor
 @Service
 @Slf4j
@@ -201,7 +201,7 @@ public class SysNoticeServiceImpl implements ISysNoticeService, NoticeService {
     }
 
     private NoticeTotalVo getTotalVo(Long userId) {
-        NoticeTotalVo vo = new NoticeTotalVo().setNoticeType("TOTAL");
+        NoticeTotalVo vo = new NoticeTotalVo();
         // 获取当前用户未读系统通知\公告条数
         vo.setSysTotal(baseMapper.sysMsgTotalOfNotExpire());
         // 获取当前用户未读用户消息条数
@@ -251,6 +251,27 @@ public class SysNoticeServiceImpl implements ISysNoticeService, NoticeService {
             return new ArrayList<>();
         }
         return list.stream().map(e-> new NoticeVo().setId(e.getNoticeId().toString()).setType("sys").setContent(e.getNoticeContent()).setTitle(e.getNoticeTitle()).setPublishTime(e.getPublishTime())).collect(Collectors.toList());
+    }
+
+    @Override
+    public void dealExpireData(Date now) {
+        List<SysNotice> list = baseMapper.selectList(new LambdaQueryWrapper<SysNotice>().eq(SysNotice::getStatus, 1).le(SysNotice::getExpireTime, new Date()).orderByDesc(SysNotice::getPublishTime));
+        if (CollectionUtil.isEmpty(list)) {
+            return;
+        }
+        list.forEach(e->baseMapper.updateById(e.setStatus("0")));
+        // 推送sse
+        SSE_EMITTER_MAP.forEach((userId,sseEmitter)->{
+            try {
+                // 获取当前用户未读系统通知\公告条数
+                NoticeTotalVo totalVo = getTotalVo(userId);
+                // 推送消息
+                sseEmitter.send(SseEmitter.event().data(totalVo).name("total").id(String.valueOf(System.currentTimeMillis())));
+            }
+            catch (IOException e) {
+                log.error("[SSE发送消息异常]>>>>>>>>>原因：{}",e.getMessage());
+            }
+        });
     }
 
 

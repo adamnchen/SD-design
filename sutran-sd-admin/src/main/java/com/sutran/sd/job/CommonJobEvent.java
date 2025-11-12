@@ -3,6 +3,7 @@ package com.sutran.sd.job;
 import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.date.DateTime;
 import cn.hutool.core.date.DateUtil;
+import com.sutran.sd.common.core.service.NoticeService;
 import com.sutran.sd.draw.service.SdComfyuiApiService;
 import com.sutran.sd.common.utils.redis.RedisUtils;
 import com.sutran.sd.draw.service.SdDrawNodeService;
@@ -41,6 +42,7 @@ public class CommonJobEvent {
     private final PayOrderService payOrderService;
     private final AliPayService aliPayService;
     private final SdComfyuiApiService sdComfyuiApiService;
+    private final NoticeService noticeService;
 
     /**
      * 定时处理训练任务V1
@@ -226,6 +228,20 @@ public class CommonJobEvent {
                 log.error("[定时任务]>>>>>>>>>定时处理训练节点任务异常：",e);
             }
         });
+    }
+
+    /**
+     * 定时处理节点任务
+     * 每10秒执行一次
+     */
+    @Scheduled(cron="0/10 * * * * ?")
+    public void executeNotice(){
+        try{
+            noticeService.dealExpireData(new Date());
+        }
+        catch (Exception e){
+            log.error("[定时任务]>>>>>>>>>定时处理通知异常：",e);
+        }
     }
 
 }

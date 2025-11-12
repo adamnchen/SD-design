@@ -119,7 +119,7 @@ public class SdTranslationServiceImpl implements SdTranslationService {
             RedisUtils.deleteKey(TRANSLATE_EN_TO_ZH_MAP);
             List<SdTranslation> list = sdTranslationMapper.selectList(new LambdaQueryWrapper<SdTranslation>().eq(SdTranslation::getType,0));
             if (CollectionUtil.isNotEmpty(list)){
-                Map<String,String> map = list.stream().collect(Collectors.toMap(SdTranslation::getEn,SdTranslation::getZh));
+                Map<String,String> map = list.stream().collect(Collectors.toMap(SdTranslation::getEn,SdTranslation::getZh,(v1,v2)->v1));
                 RedisUtils.setCacheMap(TRANSLATE_EN_TO_ZH_MAP,map);
             }
         }
@@ -129,7 +129,7 @@ public class SdTranslationServiceImpl implements SdTranslationService {
             RedisUtils.deleteKey(TRANSLATE_ZH_TO_EN_MAP);
             List<SdTranslation> list = sdTranslationMapper.selectList(new LambdaQueryWrapper<SdTranslation>().eq(SdTranslation::getType, 1));
             if (CollectionUtil.isNotEmpty(list)) {
-                Map<String, String> map = list.stream().collect(Collectors.toMap(SdTranslation::getZh, SdTranslation::getEn));
+                Map<String, String> map = list.stream().collect(Collectors.toMap(SdTranslation::getZh, SdTranslation::getEn,(v1,v2)->v1));
                 RedisUtils.setCacheMap(TRANSLATE_ZH_TO_EN_MAP, map);
             }
         }

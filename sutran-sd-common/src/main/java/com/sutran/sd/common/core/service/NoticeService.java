@@ -5,6 +5,7 @@ import com.sutran.sd.common.core.domain.vo.NoticeMpVo;
 import com.sutran.sd.common.core.domain.vo.NoticeVo;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -49,4 +50,10 @@ public interface NoticeService {
       * @return          系统通知列表
       */
     List<NoticeVo> selectNoticeList(int num);
+
+    /**
+     * 处理过期数据
+     * @param now       当前时间
+     */
+    void dealExpireData(Date now);
 }

@@ -1509,21 +1509,21 @@ public class SdTrainServiceImpl implements SdTrainService {
             }
             for (FluxgymImgDealResultVo.ImageInfoVo result : vo.getResults()) {
                 // 翻译图片描述词
-//                String zhWord = RedisUtils.getCacheMapValue(TRANSLATE_EN_TO_ZH_MAP, result.getCaption());
-//                if (StringUtils.isBlank(zhWord)) {
-//                    // 没有翻译缓存，调用翻译接口
-//                    zhWord = sysTranslateService.enToZh(result.getCaption(), TranslateType.BAIDU);
-//                    if (StringUtils.isNotBlank(zhWord) && !zhWord.equals(result.getCaption())) {
-//                        // 存储没有模型名称的英文和中文
-//                        RedisUtils.setCacheMapValue(TRANSLATE_EN_TO_ZH_MAP,result.getCaption(),zhWord);
-//                    }
-//                }
-                // 没有翻译缓存，调用翻译接口
-                String zhWord = sysTranslateService.enToZh(result.getCaption(), TranslateType.BAIDU);
-                if (StringUtils.isNotBlank(zhWord) && !zhWord.equals(result.getCaption())) {
-                    // 存储没有模型名称的英文和中文
-                    RedisUtils.setCacheMapValue(TRANSLATE_EN_TO_ZH_MAP,result.getCaption(),zhWord);
+                String zhWord = RedisUtils.getCacheMapValue(TRANSLATE_EN_TO_ZH_MAP, result.getCaption());
+                if (StringUtils.isBlank(zhWord)) {
+                    // 没有翻译缓存，调用翻译接口
+                    zhWord = sysTranslateService.enToZh(result.getCaption(), TranslateType.BAIDU);
+                    if (StringUtils.isNotBlank(zhWord) && !zhWord.equals(result.getCaption())) {
+                        // 存储没有模型名称的英文和中文
+                        RedisUtils.setCacheMapValue(TRANSLATE_EN_TO_ZH_MAP,result.getCaption(),zhWord);
+                    }
                 }
+                // 没有翻译缓存，调用翻译接口
+//                String zhWord = sysTranslateService.enToZh(result.getCaption(), TranslateType.BAIDU);
+//                if (StringUtils.isNotBlank(zhWord) && !zhWord.equals(result.getCaption())) {
+//                    // 存储没有模型名称的英文和中文
+//                    RedisUtils.setCacheMapValue(TRANSLATE_EN_TO_ZH_MAP,result.getCaption(),zhWord);
+//                }
                 String en = instancePrompt+","+result.getCaption();
                 String zh = loraName+"，"+zhWord;
                 result.setCaptionZh(zh);

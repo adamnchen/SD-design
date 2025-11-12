@@ -13,10 +13,6 @@ import java.io.Serializable;
 @Accessors(chain=true)
 public class NoticeTotalVo implements Serializable {
     /**
-     * 通知类型[TOTAL-数量，DETAIL-详情]
-     */
-    private String noticeType;
-    /**
      * 系统通知\公告总数
      */
     private long sysTotal;

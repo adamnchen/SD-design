@@ -7,10 +7,7 @@ import lombok.NoArgsConstructor;
 import org.redisson.api.*;
 
 import java.time.Duration;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -449,6 +446,9 @@ public class RedisUtils {
      */
     public static <T> Map<String, T> getCacheMap(final String key) {
         RMap<String, T> rMap = CLIENT.getMap(key);
+        if (CollectionUtil.isEmpty(rMap)) {
+            return Collections.emptyMap();
+        }
         return rMap.getAll(rMap.keySet());
     }
 

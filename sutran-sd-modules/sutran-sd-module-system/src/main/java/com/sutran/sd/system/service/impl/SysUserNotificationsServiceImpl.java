@@ -155,4 +155,10 @@ public class SysUserNotificationsServiceImpl implements ISysUserNotificationsSer
         notice.setReadStatus(1).setReadTime(new Date());
         baseMapper.updateById(notice);
     }
+
+    @Override
+    public long selectCount(LambdaQueryWrapper<SysUserNotifications> queryWrapper) {
+        Long count = baseMapper.selectCount(queryWrapper);
+        return count==null?0:count;
+    }
 }

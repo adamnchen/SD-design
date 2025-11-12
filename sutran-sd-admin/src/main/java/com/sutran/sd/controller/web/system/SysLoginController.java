@@ -7,16 +7,18 @@ import com.sutran.sd.common.core.domain.R;
 import com.sutran.sd.common.core.domain.entity.SysMenu;
 import com.sutran.sd.common.core.domain.entity.SysUser;
 import com.sutran.sd.common.core.domain.model.*;
+import com.sutran.sd.common.core.domain.vo.NoticeCommonVo;
 import com.sutran.sd.common.core.service.DictService;
+import com.sutran.sd.common.core.service.NoticeService;
 import com.sutran.sd.common.encrypt.EncryptContext;
 import com.sutran.sd.common.enums.AlgorithmType;
 import com.sutran.sd.common.enums.DeviceType;
 import com.sutran.sd.common.enums.EncodeType;
 import com.sutran.sd.common.exception.ServiceException;
 import com.sutran.sd.common.helper.LoginHelper;
-import com.sutran.sd.framework.manager.EncryptorManager;
 import com.sutran.sd.draw.domain.SdUserMsg;
 import com.sutran.sd.draw.service.SdUserMsgService;
+import com.sutran.sd.framework.manager.EncryptorManager;
 import com.sutran.sd.system.domain.vo.RouterVo;
 import com.sutran.sd.system.service.*;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +29,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.constraints.NotBlank;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -46,6 +49,7 @@ public class SysLoginController {
     private final ISysMenuService menuService;
     private final ISysUserService userService;
     private final SdUserMsgService sdUserMsgService;
+    private final NoticeService noticeService;
     private final EncryptorManager encryptorManager;
     private final DictService dictService;
     private final SysRegisterService registerService;
@@ -157,11 +161,10 @@ public class SysLoginController {
             String name = loginService.selectConfigByKey("sys.wxPublic.name");
             name = StrUtil.isBlankIfStr(name)?"Zein AI":name;
             // 异步推送未关注微信公众号的消息
-            SdUserMsg msg = new SdUserMsg()
-                .setTitle("关注微信公众号")
-                .setMsgContent(String.format("系统检测到您当前还未关注 %s 微信公众号,如需接收微信公众号消息请关注 %s 微信公众号!",name,name))
-                .setUserId(userId);
-            sdUserMsgService.insertUserMsg(msg);
+            NoticeCommonVo vo = new NoticeCommonVo()
+                .setTitle("关注并绑定微信公众号").setPublishTime(new Date())
+                .setContent(String.format("系统检测到您当前还未关注并绑定 %s 微信公众号,如需接收微信公众号消息请关注并绑定 %s 微信公众号!",name,name));
+            noticeService.asyncSendCommonMsg(vo,userId);
         }
         return R.ok(ajax);
     }

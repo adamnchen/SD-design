@@ -1,6 +1,7 @@
 package com.sutran.sd.system.service.impl;
 
 import cn.hutool.core.collection.CollectionUtil;
+import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.util.IdUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -105,10 +106,25 @@ public class SysNoticeServiceImpl implements ISysNoticeService, NoticeService {
         else {
             notice.setId(Long.parseLong(commonVo.getId()));
         }
+
+        if (StringUtils.isNotBlank(commonVo.getTitle()) && "关注微信公众号".equals(commonVo.getTitle())) {
+            // 先查询当天开始时间和当天结束时间是否有推送过
+            LambdaQueryWrapper<SysUserNotifications> queryWrapper = new LambdaQueryWrapper<>();
+            queryWrapper.eq(SysUserNotifications::getUserId, userId)
+                    .eq(SysUserNotifications::getTitle, commonVo.getTitle())
+                    .eq(SysUserNotifications::getSendStatus, 1)
+                    .ge(SysUserNotifications::getSendTime, DateUtil.beginOfDay(new Date(commonVo.getPublishTime().getTime())))
+                    .le(SysUserNotifications::getSendTime, DateUtil.endOfDay(new Date(commonVo.getPublishTime().getTime())));
+            if (sysUserNotificationsService.selectCount(queryWrapper) > 0) {
+                // 已推送过，不重复推送
+                return;
+            }
+        }
         // 存储数据
         notice.setUserId(userId).setMsgContent(commonVo.getContent()).setTitle(commonVo.getTitle()).setSendTime(commonVo.getPublishTime()).setSendStatus(1);
         commonVo.setId(notice.getId().toString());
         sysUserNotificationsService.insertNotice(notice);
+
         SseEmitter sseEmitter = SSE_EMITTER_MAP.get(userId);
         if (sseEmitter!=null) {
             try {
@@ -144,6 +160,21 @@ public class SysNoticeServiceImpl implements ISysNoticeService, NoticeService {
         else {
             notice.setId(Long.parseLong(mpVo.getId()));
         }
+
+        if (StringUtils.isNotBlank(mpVo.getTitle()) && "关注微信公众号".equals(mpVo.getTitle())) {
+            // 先查询当天开始时间和当天结束时间是否有推送过
+            LambdaQueryWrapper<SysUserNotifications> queryWrapper = new LambdaQueryWrapper<>();
+            queryWrapper.eq(SysUserNotifications::getUserId, userId)
+                .eq(SysUserNotifications::getTitle, mpVo.getTitle())
+                .eq(SysUserNotifications::getSendStatus, 1)
+                .ge(SysUserNotifications::getSendTime, DateUtil.beginOfDay(new Date(mpVo.getPublishTime().getTime())))
+                .le(SysUserNotifications::getSendTime, DateUtil.endOfDay(new Date(mpVo.getPublishTime().getTime())));
+            if (sysUserNotificationsService.selectCount(queryWrapper) > 0) {
+                // 已推送过，不重复推送
+                return;
+            }
+        }
+
         // 获取openId
         String openId = sysUserService.selectOpenIdByUserId(userId);
         // 存储数据

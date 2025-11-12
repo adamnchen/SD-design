@@ -92,4 +92,11 @@ public interface ISysUserNotificationsService {
      * @param userId    用户ID
      */
     void markRead(String id, Long userId);
+
+    /**
+     * 查询用户通知\公告是否已存在
+     * @param queryWrapper 查询包装器
+     * @return             用户通知\公告是否已存在
+     */
+    long selectCount(LambdaQueryWrapper<SysUserNotifications> queryWrapper);
 }

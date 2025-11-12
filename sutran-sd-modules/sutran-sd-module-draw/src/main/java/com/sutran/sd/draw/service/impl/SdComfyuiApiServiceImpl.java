@@ -130,7 +130,7 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
             .replace("\"{{seed2}}\"",String.valueOf(StringUtils.generate15DigitSeed()));
         String prompt = StringUtils.isBlank(modelTaskBo.getPrompt())?sdFlow.getInitPrompt():modelTaskBo.getPrompt();
         String promptZh = StringUtils.isBlank(modelTaskBo.getPromptZh())?sdFlow.getInitPromptZh():modelTaskBo.getPromptZh();
-        
+
         // 违禁词校验
         if (StringUtils.isNotBlank(prompt)) {
             forbiddenWordService.validateForbiddenWord(prompt, "提示词");
@@ -138,7 +138,7 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
         if (StringUtils.isNotBlank(promptZh)) {
             forbiddenWordService.validateForbiddenWord(promptZh, "提示词(中文)");
         }
-        
+
         if (prompt!=null) {
             // prompt双引号替换为单引号
             prompt = prompt.replace("\"","'");
@@ -214,15 +214,12 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
         // 只判断是否为null，空字符串还是需要替换的
         prompt = StringUtils.isBlank(prompt)?sdFlow.getInitPrompt():prompt;
         promptZh = StringUtils.isBlank(promptZh)?sdFlow.getInitPromptZh():promptZh;
-        
+
         // 违禁词校验
-        if (StringUtils.isNotBlank(prompt)) {
-            forbiddenWordService.validateForbiddenWord(prompt, "提示词");
-        }
         if (StringUtils.isNotBlank(promptZh)) {
             forbiddenWordService.validateForbiddenWord(promptZh, "提示词(中文)");
         }
-        
+
         if (prompt!=null) {
             // prompt双引号替换为单引号
             prompt = prompt.replace("\"","'");

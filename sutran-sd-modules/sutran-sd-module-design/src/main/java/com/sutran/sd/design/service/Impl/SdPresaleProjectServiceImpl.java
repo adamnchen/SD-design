@@ -64,6 +64,7 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
     private final AliPayService aliPayService;
     private final SdProofingInvitationMapper proofingInvitationMapper;
     private final SdCrowdfundingProjectMapper crowdfundingProjectMapper;
+    private final com.sutran.sd.design.mapper.SdCrowdfundingSampleDeliveryMapper sampleDeliveryMapper;
     private final ISysOssService sysOssService;
     private final ISysUserService userService;
     private final IForbiddenWordService forbiddenWordService;
@@ -631,7 +632,31 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
                 return R.fail("该打样邀约已存在完成众筹的项目和处于有效期内的预售项目，不能同时发布新的预售项目");
             }
 
-            // 3.3 检查与该打样邀约相关的所有已发布项目的订单是否都已填写物流单号
+            // 3.3 校验发货单：所有需要发货的记录必须已填写快递单号并上传实物图片
+            if (!successfulCrowdfundingProjects.isEmpty()) {
+                List<Long> cfProjectIds = successfulCrowdfundingProjects.stream().map(SdCrowdfundingProject::getId).collect(Collectors.toList());
+                if (!cfProjectIds.isEmpty()) {
+                    LambdaQueryWrapper<com.sutran.sd.design.domain.SdCrowdfundingSampleDelivery> deliveryWrapper = new LambdaQueryWrapper<>();
+                    deliveryWrapper.in(com.sutran.sd.design.domain.SdCrowdfundingSampleDelivery::getCrowdfundingProjectId, cfProjectIds)
+                        // 需要发货的记录（有收货地址）
+                        .isNotNull(com.sutran.sd.design.domain.SdCrowdfundingSampleDelivery::getDeliveryAddress)
+                        .ne(com.sutran.sd.design.domain.SdCrowdfundingSampleDelivery::getDeliveryAddress, "")
+                        // 未完善信息：快递单号或实物图片缺失
+                        .and(w -> w.isNull(com.sutran.sd.design.domain.SdCrowdfundingSampleDelivery::getTrackingNumber)
+                                   .or().eq(com.sutran.sd.design.domain.SdCrowdfundingSampleDelivery::getTrackingNumber, ""))
+                        .or(w -> w.in(com.sutran.sd.design.domain.SdCrowdfundingSampleDelivery::getCrowdfundingProjectId, cfProjectIds)
+                                   .isNotNull(com.sutran.sd.design.domain.SdCrowdfundingSampleDelivery::getDeliveryAddress)
+                                   .ne(com.sutran.sd.design.domain.SdCrowdfundingSampleDelivery::getDeliveryAddress, "")
+                                   .and(w2 -> w2.isNull(com.sutran.sd.design.domain.SdCrowdfundingSampleDelivery::getSampleImageUrl)
+                                                .or().eq(com.sutran.sd.design.domain.SdCrowdfundingSampleDelivery::getSampleImageUrl, "")));
+                    List<com.sutran.sd.design.domain.SdCrowdfundingSampleDelivery> invalidDeliveries = sampleDeliveryMapper.selectList(deliveryWrapper);
+                    if (invalidDeliveries != null && !invalidDeliveries.isEmpty()) {
+                        return R.fail("请先在发货管理中为所有需要发货的记录填写快递单号并上传实物照片后，再发布预售");
+                    }
+                }
+            }
+
+            // 3.4 检查与该打样邀约相关的所有已发布项目的订单是否都已填写物流单号
             // 查询与该打样邀约相关的所有已发布的预售项目
             LambdaQueryWrapper<SdPresaleProject> projectQuery = new LambdaQueryWrapper<>();
             projectQuery.eq(SdPresaleProject::getProofingInvitationId, publishDTO.getProofingInvitationId())

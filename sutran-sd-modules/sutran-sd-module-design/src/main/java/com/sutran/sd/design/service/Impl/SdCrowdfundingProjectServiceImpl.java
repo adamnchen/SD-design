@@ -249,6 +249,8 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
             CrowdfundingProjectListVO vo = new CrowdfundingProjectListVO();
             // 使用BeanUtils进行属性拷贝
             org.springframework.beans.BeanUtils.copyProperties(project, vo);
+            // 确保发起人ID传递
+            vo.setCreatorUserId(project.getCreatorUserId());
 
             // 计算进度百分比
             if (project.getTargetAmount() != null && project.getTargetAmount().compareTo(BigDecimal.ZERO) > 0) {
@@ -274,6 +276,8 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
             CrowdfundingProjectListVO vo = new CrowdfundingProjectListVO();
             // 使用BeanUtils进行属性拷贝
             org.springframework.beans.BeanUtils.copyProperties(project, vo);
+            // 确保发起人ID传递
+            vo.setCreatorUserId(project.getCreatorUserId());
 
             // 计算进度百分比
             if (project.getTargetAmount() != null && project.getTargetAmount().compareTo(BigDecimal.ZERO) > 0) {
@@ -517,6 +521,7 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
             vo.setProjectNo(project.getProjectNo());
             vo.setTitle(project.getTitle());
             vo.setCoverImage(project.getCoverImage());
+            vo.setCreatorUserId(project.getCreatorUserId());
             vo.setCreatorName(project.getCreatorName());
             vo.setTargetAmount(project.getTargetAmount());
             vo.setCurrentAmount(project.getCurrentAmount());
@@ -561,6 +566,7 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
             vo.setProjectNo(project.getProjectNo());
             vo.setTitle(project.getTitle());
             vo.setCoverImage(project.getCoverImage());
+            vo.setCreatorUserId(project.getCreatorUserId());
             vo.setCreatorName(project.getCreatorName());
             vo.setTargetAmount(project.getTargetAmount());
             vo.setCurrentAmount(project.getCurrentAmount());

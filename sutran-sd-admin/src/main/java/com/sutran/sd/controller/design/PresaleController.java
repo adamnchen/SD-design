@@ -221,10 +221,12 @@ public class PresaleController extends BaseAliPayApiController {
     /**
      * 上传实物照片
      */
-    @Operation(summary = "上传实物照片", description = "为预售项目上传实物照片")
+    @Operation(summary = "上传实物照片", description = "为预售项目上传实物照片，支持多张图片回显")
     @PostMapping(value = "/upload/photos", consumes = "multipart/form-data")
-    public R<String> uploadManufacturerPhotos(@RequestPart("file") MultipartFile file) {
-        return presaleProjectService.uploadManufacturerPhotos(file);
+    public R<String> uploadManufacturerPhotos(
+            @RequestPart("file") MultipartFile file,
+            @RequestParam(value = "existingPhotos", required = false) String existingPhotos) {
+        return presaleProjectService.uploadManufacturerPhotos(file, existingPhotos);
     }
 
     /**

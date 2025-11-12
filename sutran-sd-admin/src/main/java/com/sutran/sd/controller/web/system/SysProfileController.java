@@ -17,6 +17,7 @@ import com.sutran.sd.system.domain.vo.SysOssVo;
 import com.sutran.sd.system.service.ISysOssService;
 import com.sutran.sd.design.service.ISdProofingInvitationService;
 import com.sutran.sd.system.service.ISysUserService;
+import com.sutran.sd.system.service.ISysUserTagService;
 import com.sutran.sd.user.service.IUserAddressService;
 import com.sutran.sd.user.service.IUserTagService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -51,6 +52,7 @@ public class SysProfileController extends BaseController {
     private final IUserAddressService addressService;
     private final IUserTagService tagService;
     private final ISdProofingInvitationService invitationService;
+    private final ISysUserTagService sysUserTagService;
 
     /**
      * 个人信息
@@ -155,6 +157,12 @@ public class SysProfileController extends BaseController {
         UserPublicInfoVO userPublicInfo = userService.getUserPublicInfo(userId);
         // 追加成功打样邀约信息（来源 design 模块，避免 system 与 design 循环依赖）
         userPublicInfo.setSuccessfulProofingInvitations(invitationService.getSuccessfulInvitationsByUserId(userId));
+        // 追加身份标签（仅身份类：0/1/2）
+        try {
+            userPublicInfo.setIdentityTags(sysUserTagService.selectUserTagListByType(userId, 0));
+        } catch (Exception e) {
+            userPublicInfo.setIdentityTags(java.util.Collections.emptyList());
+        }
         return R.ok(userPublicInfo);
     }
 }

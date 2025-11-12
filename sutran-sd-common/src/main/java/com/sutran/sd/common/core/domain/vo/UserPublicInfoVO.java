@@ -5,6 +5,7 @@ import lombok.Data;
 
 import java.io.Serializable;
 import java.util.Date;
+import java.util.List;
 
 /**
  * 用户公开信息VO
@@ -96,5 +97,11 @@ public class UserPublicInfoVO implements Serializable {
      */
     @Schema(description = "成功的打样邀约列表")
     private java.util.List<ProofingInvitationDetailVO> successfulProofingInvitations;
+
+    /**
+     * 用户身份标签列表（仅身份类：0/1/2）
+     */
+    @Schema(description = "身份标签列表")
+    private List<TagDetailVO> identityTags;
 }
 

@@ -22,7 +22,6 @@ import com.sutran.sd.system.service.ISysUserNotificationsService;
 import com.sutran.sd.system.service.ISysUserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.MediaType;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -37,6 +36,7 @@ import java.util.stream.Collectors;
  *
  * @author Lion Li
  */
+@SuppressWarnings("AlibabaUndefineMagicConstant")
 @RequiredArgsConstructor
 @Service
 @Slf4j
@@ -64,13 +64,13 @@ public class SysNoticeServiceImpl implements ISysNoticeService, NoticeService {
             // 推送最新的公告消息
             List<NoticeVo> noticeVos = selectNoticeList(1);
             if (CollectionUtil.isNotEmpty(noticeVos)) {
-                sseEmitter.send(noticeVos.get(0), MediaType.APPLICATION_JSON);
+                sseEmitter.send(SseEmitter.event().data(noticeVos.get(0)).name("notice").id(String.valueOf(System.currentTimeMillis())));
             }
 
             // 获取当前用户未读系统通知\公告条数
             NoticeTotalVo vo = getTotalVo(userId);
             // 推送消息
-            sseEmitter.send(vo, MediaType.APPLICATION_JSON);
+            sseEmitter.send(SseEmitter.event().data(vo).name("total").id(String.valueOf(System.currentTimeMillis())));
         }
         catch (IOException e) {
             log.error("[SSE连接异常]>>>>>>>>>原因：{}",e.getMessage());
@@ -129,12 +129,12 @@ public class SysNoticeServiceImpl implements ISysNoticeService, NoticeService {
         if (sseEmitter!=null) {
             try {
                 NoticeVo vo = new NoticeVo().setId(commonVo.getId()).setNoticeType("DETAIL").setType("infos").setContent(commonVo.getContent()).setTitle(commonVo.getTitle()).setPublishTime(commonVo.getPublishTime());
-                sseEmitter.send(vo, MediaType.APPLICATION_JSON);
+                sseEmitter.send(SseEmitter.event().data(vo).name("infos").id(String.valueOf(System.currentTimeMillis())));
 
                 // 获取当前用户未读系统通知\公告条数
                 NoticeTotalVo totalVo = getTotalVo(userId);
                 // 推送消息
-                sseEmitter.send(totalVo, MediaType.APPLICATION_JSON);
+                sseEmitter.send(SseEmitter.event().data(totalVo).name("total").id(String.valueOf(System.currentTimeMillis())));
             }
             catch (IOException e) {
                 log.error("[SSE发送消息异常]>>>>>>>>>原因：{}",e.getMessage());
@@ -186,12 +186,12 @@ public class SysNoticeServiceImpl implements ISysNoticeService, NoticeService {
         if (sseEmitter!=null) {
             try {
                 NoticeVo vo = new NoticeVo().setId(mpVo.getId()).setNoticeType("DETAIL").setType("infos").setContent(mpVo.getContent()).setTitle(mpVo.getTitle()).setPublishTime(mpVo.getPublishTime());
-                sseEmitter.send(vo, MediaType.APPLICATION_JSON);
+                sseEmitter.send(SseEmitter.event().data(vo).name("infos").id(String.valueOf(System.currentTimeMillis())));
 
                 // 获取当前用户未读系统通知\公告条数
                 NoticeTotalVo totalVo = getTotalVo(userId);
                 // 推送消息
-                sseEmitter.send(totalVo, MediaType.APPLICATION_JSON);
+                sseEmitter.send(SseEmitter.event().data(totalVo).name("total").id(String.valueOf(System.currentTimeMillis())));
             }
             catch (IOException e) {
                 log.error("[SSE发送消息异常]>>>>>>>>>原因：{}",e.getMessage());
@@ -301,12 +301,12 @@ public class SysNoticeServiceImpl implements ISysNoticeService, NoticeService {
             SSE_EMITTER_MAP.forEach((userId,sseEmitter)->{
                 try {
                     NoticeVo vo = new NoticeVo().setId(notice.getNoticeId().toString()).setNoticeType("DETAIL").setType("sys").setContent(notice.getNoticeContent()).setTitle(notice.getNoticeTitle()).setPublishTime(notice.getPublishTime());
-                    sseEmitter.send(vo, MediaType.APPLICATION_JSON);
+                    sseEmitter.send(SseEmitter.event().data(vo).name("notice").id(String.valueOf(System.currentTimeMillis())));
 
                     // 获取当前用户未读系统通知\公告条数
                     NoticeTotalVo totalVo = getTotalVo(userId);
                     // 推送消息
-                    sseEmitter.send(totalVo, MediaType.APPLICATION_JSON);
+                    sseEmitter.send(SseEmitter.event().data(totalVo).name("total").id(String.valueOf(System.currentTimeMillis())));
                 }
                 catch (IOException e) {
                     log.error("[SSE发送消息异常]>>>>>>>>>原因：{}",e.getMessage());
@@ -334,12 +334,12 @@ public class SysNoticeServiceImpl implements ISysNoticeService, NoticeService {
             SSE_EMITTER_MAP.forEach((userId,sseEmitter)->{
                 try {
                     NoticeVo vo = new NoticeVo().setId(notice.getNoticeId().toString()).setNoticeType("DETAIL").setType("sys").setContent(notice.getNoticeContent()).setTitle(notice.getNoticeTitle()).setPublishTime(notice.getPublishTime());
-                    sseEmitter.send(vo, MediaType.APPLICATION_JSON);
+                    sseEmitter.send(SseEmitter.event().data(vo).name("notice").id(String.valueOf(System.currentTimeMillis())));
 
                     // 获取当前用户未读系统通知\公告条数
                     NoticeTotalVo totalVo = getTotalVo(userId);
                     // 推送消息
-                    sseEmitter.send(totalVo, MediaType.APPLICATION_JSON);
+                    sseEmitter.send(SseEmitter.event().data(totalVo).name("total").id(String.valueOf(System.currentTimeMillis())));
                 }
                 catch (IOException e) {
                     log.error("[SSE发送消息异常]>>>>>>>>>原因：{}",e.getMessage());
@@ -385,7 +385,7 @@ public class SysNoticeServiceImpl implements ISysNoticeService, NoticeService {
                 // 获取当前用户未读系统通知\公告条数
                 NoticeTotalVo totalVo = getTotalVo(userId);
                 // 推送消息
-                sseEmitter.send(totalVo, MediaType.APPLICATION_JSON);
+                sseEmitter.send(SseEmitter.event().data(totalVo).name("total").id(String.valueOf(System.currentTimeMillis())));
             }
             catch (IOException e) {
                 log.error("[SSE发送消息异常]>>>>>>>>>原因：",e);

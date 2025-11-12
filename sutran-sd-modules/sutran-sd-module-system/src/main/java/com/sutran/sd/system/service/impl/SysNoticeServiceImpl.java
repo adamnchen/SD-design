@@ -61,6 +61,9 @@ public class SysNoticeServiceImpl implements ISysNoticeService, NoticeService {
         SseEmitter sseEmitter = new SseEmitter(0L);
         // 连接成功需要返回数据，否则会出现待处理状态
         try {
+            // 推送消息
+            sseEmitter.send(SseEmitter.event().data("connect success").name("connect").id(String.valueOf(System.currentTimeMillis())));
+
             // 推送最新的公告消息
             List<NoticeVo> noticeVos = selectNoticeList(1);
             if (CollectionUtil.isNotEmpty(noticeVos)) {

@@ -201,4 +201,39 @@ public class SdUserModelFileServiceImpl extends ServiceImpl<DesignSdUserModelFil
             return TableDataInfo.build();
         }
     }
+
+    @Override
+    public boolean setPublic(Long id, Long userId, boolean isPublic) {
+        // 只允许更新属于当前用户的作品
+        int affected = userModelFileMapper.updatePublicByIdAndUser(id, userId, isPublic ? 1 : 0);
+        return affected > 0;
+    }
+
+    @Override
+    public TableDataInfo<UserModelFileVO> getPublicWorksPage(PageQuery pageQuery) {
+        try {
+            log.info("分页查询公开作品");
+
+            Page<DesignSdUserModelFile> page = pageQuery.build();
+            LambdaQueryWrapper<DesignSdUserModelFile> queryWrapper = new LambdaQueryWrapper<>();
+            queryWrapper.eq(DesignSdUserModelFile::getIsPublic, 1)
+                       .orderByDesc(DesignSdUserModelFile::getCrtTime);
+
+            Page<DesignSdUserModelFile> result = userModelFileMapper.selectPage(page, queryWrapper);
+
+            List<UserModelFileVO> voList = result.getRecords().stream()
+                    .map(this::convertToVO)
+                    .collect(Collectors.toList());
+
+            TableDataInfo<UserModelFileVO> tableDataInfo = new TableDataInfo<>();
+            tableDataInfo.setCode(200);
+            tableDataInfo.setMsg("查询成功");
+            tableDataInfo.setRows(voList);
+            tableDataInfo.setTotal(result.getTotal());
+            return tableDataInfo;
+        } catch (Exception e) {
+            log.error("分页查询公开作品失败", e);
+            return TableDataInfo.build();
+        }
+    }
 }

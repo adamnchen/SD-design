@@ -182,6 +182,12 @@ public class SdDrawController {
             .setModelName(model.getModelName())
             .setModelStrength(StringUtils.isNotBlank(bo.getModelStrength())?bo.getModelStrength():model.getModelStrength())
             .setBatchSize(bo.getBatchSize());
+        if ("FLUX".equals(model.getModelType())) {
+            modelTaskBo.setCheckPoint("F.1基础算法模型F.1-dev-fp8.safetensors");
+        }
+        else if ("SDXL".equals(model.getModelType())) {
+            modelTaskBo.setCheckPoint("sd_xl_base_1.0.safetensors");
+        }
         String taskId = sdComfyuiApiService.submitComfyModelTask(modelTaskBo);
         return R.ok("提交成功",taskId);
     }

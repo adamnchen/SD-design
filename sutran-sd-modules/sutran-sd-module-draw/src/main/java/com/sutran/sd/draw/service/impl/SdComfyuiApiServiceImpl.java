@@ -85,6 +85,7 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
     private final SdFlowService sdFlowService;
     private final RabbitTemplate rabbitTemplate;
     private final IForbiddenWordService forbiddenWordService;
+    private final SdUserModelLogService sdUserModelLogService;
 
     /**
      * 查询固定工作流列表
@@ -146,6 +147,9 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
         // 生图任务存放到MQ队列
         DrawingTaskInfo taskInfo = new DrawingTaskInfo(taskId, flow,10,userId,batchSize,null);
         submitComfyTaskToQueue(taskInfo);
+
+        // 新增模型使用日志
+        sdUserModelLogService.asyncInsertData(userId,userName,Long.parseLong(modelTaskBo.getModelId()),modelTaskBo.getModelName(),modelTaskBo.getCheckPoint(),modelTaskBo.getModelStrength());
         return taskId;
     }
 

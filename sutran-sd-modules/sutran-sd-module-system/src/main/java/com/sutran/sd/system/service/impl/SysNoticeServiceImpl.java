@@ -1,5 +1,6 @@
 package com.sutran.sd.system.service.impl;
 
+import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.util.IdUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -26,10 +27,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
@@ -62,6 +60,12 @@ public class SysNoticeServiceImpl implements ISysNoticeService, NoticeService {
         SseEmitter sseEmitter = new SseEmitter(0L);
         // 连接成功需要返回数据，否则会出现待处理状态
         try {
+            // 推送最新的公告消息
+            List<NoticeVo> noticeVos = selectNoticeList(1);
+            if (CollectionUtil.isNotEmpty(noticeVos)) {
+                sseEmitter.send(noticeVos.get(0), MediaType.APPLICATION_JSON);
+            }
+
             // 获取当前用户未读系统通知\公告条数
             NoticeTotalVo vo = getTotalVo(userId);
             // 推送消息
@@ -191,6 +195,9 @@ public class SysNoticeServiceImpl implements ISysNoticeService, NoticeService {
             .eq(SysUserNotifications::getUserId, userId)
             .orderByDesc(SysUserNotifications::getSendTime)
             .last("limit "+num));
+        if (CollectionUtil.isEmpty(list)) {
+            return new ArrayList<>();
+        }
         return list.stream().map(e-> new NoticeVo().setId(e.getId().toString()).setType("infos").setContent(e.getMsgContent()).setTitle(e.getTitle()).setPublishTime(e.getSendTime())).collect(Collectors.toList());
     }
 
@@ -205,6 +212,9 @@ public class SysNoticeServiceImpl implements ISysNoticeService, NoticeService {
         List<SysNotice> list = baseMapper.selectList(new LambdaQueryWrapper<SysNotice>()
             .orderByDesc(SysNotice::getPublishTime)
             .last("limit "+num));
+        if (CollectionUtil.isEmpty(list)) {
+            return new ArrayList<>();
+        }
         return list.stream().map(e-> new NoticeVo().setId(e.getNoticeId().toString()).setType("sys").setContent(e.getNoticeContent()).setTitle(e.getNoticeTitle()).setPublishTime(e.getPublishTime())).collect(Collectors.toList());
     }
 

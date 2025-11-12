@@ -59,11 +59,18 @@ public class SysNoticeServiceImpl implements ISysNoticeService, NoticeService {
             throw new ServiceException("当前用户未登录或登录已失效!");
         }
         SseEmitter sseEmitter = new SseEmitter(0L);
+        // 连接断开
+        sseEmitter.onCompletion(() -> SSE_EMITTER_MAP.remove(userId));
+        // 连接超时
+        sseEmitter.onTimeout(() -> {
+            SSE_EMITTER_MAP.remove(userId);
+            sseEmitter.complete();
+        });
+        // 连接报错
+        sseEmitter.onError((throwable) -> SSE_EMITTER_MAP.remove(userId));
+        SSE_EMITTER_MAP.put(userId, sseEmitter);
         // 连接成功需要返回数据，否则会出现待处理状态
         try {
-            // 推送消息
-            sseEmitter.send(SseEmitter.event().data("connect success").name("connect").id(String.valueOf(System.currentTimeMillis())));
-
             // 推送最新的公告消息
             List<NoticeVo> noticeVos = selectNoticeList(1);
             if (CollectionUtil.isNotEmpty(noticeVos)) {
@@ -78,16 +85,6 @@ public class SysNoticeServiceImpl implements ISysNoticeService, NoticeService {
         catch (IOException e) {
             log.error("[SSE连接异常]>>>>>>>>>原因：{}",e.getMessage());
         }
-        // 连接断开
-        sseEmitter.onCompletion(() -> SSE_EMITTER_MAP.remove(userId));
-        // 连接超时
-        sseEmitter.onTimeout(() -> {
-            SSE_EMITTER_MAP.remove(userId);
-            sseEmitter.complete();
-        });
-        // 连接报错
-        sseEmitter.onError((throwable) -> SSE_EMITTER_MAP.remove(userId));
-        SSE_EMITTER_MAP.put(userId, sseEmitter);
         return sseEmitter;
     }
 

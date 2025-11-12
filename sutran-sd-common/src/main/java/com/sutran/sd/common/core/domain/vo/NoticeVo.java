@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
+import java.io.Serializable;
 import java.util.Date;
 
 /**
@@ -14,7 +15,7 @@ import java.util.Date;
  */
 @Data
 @Accessors(chain=true)
-public class NoticeVo {
+public class NoticeVo implements Serializable {
     /**
      * 通知类型[TOTAL-数量，DETAIL-详情]
      */

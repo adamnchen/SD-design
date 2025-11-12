@@ -118,4 +118,22 @@ public interface ISdUserModelFileService extends IService<DesignSdUserModelFile>
      * @return 分页结果
      */
     TableDataInfo<UserModelFileVO> getMyWorksByCategoryPage(Long userId, Integer category, PageQuery pageQuery);
+
+    /**
+     * 设置或取消作品公开
+     *
+     * @param id 作品ID
+     * @param userId 当前用户ID
+     * @param isPublic 是否公开 true/false
+     * @return 操作是否成功
+     */
+    boolean setPublic(Long id, Long userId, boolean isPublic);
+
+    /**
+     * 查询公开作品列表（分页）
+     *
+     * @param pageQuery 分页查询参数
+     * @return 分页结果（仅公开作品）
+     */
+    TableDataInfo<UserModelFileVO> getPublicWorksPage(PageQuery pageQuery);
 }

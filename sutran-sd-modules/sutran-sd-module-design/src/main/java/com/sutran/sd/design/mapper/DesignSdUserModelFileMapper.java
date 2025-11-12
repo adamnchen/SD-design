@@ -73,4 +73,13 @@ public interface DesignSdUserModelFileMapper extends BaseMapper<DesignSdUserMode
      * @return 结果
      */
     int deleteSdUserModelFileByIds(Long[] ids);
+
+    /**
+     * 设置/取消公开
+     * @param id 作品ID
+     * @param userId 所属用户ID
+     * @param isPublic 是否公开(0/1)
+     * @return 受影响行数
+     */
+    int updatePublicByIdAndUser(@Param("id") Long id, @Param("userId") Long userId, @Param("isPublic") Integer isPublic);
 }

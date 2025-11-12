@@ -157,4 +157,36 @@ public class UserModelFileController extends BaseController {
             return R.fail("批量删除作品失败: " + e.getMessage());
         }
     }
+
+    /**
+     * 设置作品为公开
+     */
+    @Operation(summary = "设置作品为公开", description = "将指定作品设置为公开，仅作品所属用户可操作")
+    @PutMapping("/my-works/{id}/public")
+    public R<Void> makePublic(@PathVariable Long id) {
+        try {
+            Long currentUserId = LoginHelper.getUserId();
+            boolean ok = userModelFileService.setPublic(id, currentUserId, true);
+            return ok ? R.ok() : R.fail("设置公开失败：作品不存在或不属于当前用户");
+        } catch (Exception e) {
+            log.error("设置作品公开失败: 作品ID={}", id, e);
+            return R.fail("设置公开失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 取消作品公开
+     */
+    @Operation(summary = "取消作品公开", description = "将指定作品取消公开，仅作品所属用户可操作")
+    @PutMapping("/my-works/{id}/private")
+    public R<Void> makePrivate(@PathVariable Long id) {
+        try {
+            Long currentUserId = LoginHelper.getUserId();
+            boolean ok = userModelFileService.setPublic(id, currentUserId, false);
+            return ok ? R.ok() : R.fail("取消公开失败：作品不存在或不属于当前用户");
+        } catch (Exception e) {
+            log.error("取消作品公开失败: 作品ID={}", id, e);
+            return R.fail("取消公开失败: " + e.getMessage());
+        }
+    }
 }

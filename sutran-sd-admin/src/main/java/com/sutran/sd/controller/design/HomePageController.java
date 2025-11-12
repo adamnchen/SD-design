@@ -5,8 +5,10 @@ import com.sutran.sd.common.core.domain.R;
 import com.sutran.sd.common.core.page.TableDataInfo;
 import com.sutran.sd.design.service.ISdCrowdfundingProjectService;
 import com.sutran.sd.design.service.ISdPresaleProjectService;
+import com.sutran.sd.design.service.ISdUserModelFileService;
 import com.sutran.sd.design.vo.CrowdfundingProjectListVO;
 import com.sutran.sd.design.vo.PresaleProjectListVO;
+import com.sutran.sd.design.vo.UserModelFileVO;
 import cn.dev33.satoken.annotation.SaIgnore;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -31,6 +33,7 @@ public class HomePageController {
 
     private final ISdPresaleProjectService presaleProjectService;
     private final ISdCrowdfundingProjectService crowdfundingProjectService;
+    private final ISdUserModelFileService userModelFileService;
 
     /**
      * 获取销售中的预售项目列表（分页）
@@ -52,6 +55,17 @@ public class HomePageController {
     public R<TableDataInfo<CrowdfundingProjectListVO>> getActiveCrowdfundingProjects(PageQuery pageQuery) {
         log.info("首页查询进行中的众筹项目列表（分页）");
         return R.ok(crowdfundingProjectService.getActiveCrowdfundingProjectsPage(pageQuery));
+    }
+
+    /**
+     * 获取公开作品列表（分页）
+     */
+    @Operation(summary = "获取公开作品列表（分页）", description = "首页展示所有公开的用户作品图片")
+    @SaIgnore
+    @GetMapping("/public/works")
+    public R<TableDataInfo<UserModelFileVO>> getPublicWorks(PageQuery pageQuery) {
+        log.info("首页查询公开作品列表（分页）");
+        return R.ok(userModelFileService.getPublicWorksPage(pageQuery));
     }
 }
 

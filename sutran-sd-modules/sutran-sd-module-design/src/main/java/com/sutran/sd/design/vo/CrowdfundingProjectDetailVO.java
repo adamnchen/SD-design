@@ -125,7 +125,7 @@ public class CrowdfundingProjectDetailVO {
     private Date deliveryTime;
 
     /**
-     * 项目状态：1=众筹中，2=众筹成功，3=众筹失败
+     * 项目状态：1=众筹中，2=众筹成功，3=众筹失败，4=已发布
      */
     private Integer status;
 

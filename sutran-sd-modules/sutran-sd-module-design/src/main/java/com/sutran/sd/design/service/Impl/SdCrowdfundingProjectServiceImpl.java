@@ -739,10 +739,12 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
                 throw new ServiceException("众筹项目不存在");
             }
 
-            // 2. 验证项目状态（只允许成功或已完成的项目释放资金）
-            if (project.getStatus() == null || !project.getStatus().equals(CrowdfundingProjectStatus.SUCCESS.getCode())) {
+            // 2. 验证项目状态（只允许成功或已发布的项目释放资金）
+            if (project.getStatus() == null || 
+                (!project.getStatus().equals(CrowdfundingProjectStatus.SUCCESS.getCode()) 
+                 && !project.getStatus().equals(CrowdfundingProjectStatus.PUBLISHED.getCode()))) {
                 log.error("[众筹资金释放] 项目状态不允许释放资金: 项目ID={}, 状态={}", projectId, project.getStatus());
-                throw new ServiceException("只有众筹成功的项目才能释放资金");
+                throw new ServiceException("只有众筹成功或已发布的项目才能释放资金");
             }
 
             // 3. 验证托管状态（确保资金还未释放）
@@ -848,10 +850,12 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
                 throw new ServiceException("众筹项目不存在");
             }
 
-            // 2. 验证项目状态（只允许成功或已完成的项目进行审核）
-            if (project.getStatus() == null || !project.getStatus().equals(CrowdfundingProjectStatus.SUCCESS.getCode())) {
+            // 2. 验证项目状态（只允许成功或已发布的项目进行审核）
+            if (project.getStatus() == null || 
+                (!project.getStatus().equals(CrowdfundingProjectStatus.SUCCESS.getCode()) 
+                 && !project.getStatus().equals(CrowdfundingProjectStatus.PUBLISHED.getCode()))) {
                 log.error("[资金释放审核] 项目状态不允许审核: 项目ID={}, 状态={}", projectId, project.getStatus());
-                throw new ServiceException("只有众筹成功的项目才能审核资金释放申请");
+                throw new ServiceException("只有众筹成功或已发布的项目才能审核资金释放申请");
             }
 
             // 3. 验证审核状态（必须是待审核状态）
@@ -915,7 +919,10 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
     public TableDataInfo<SdCrowdfundingProject> getPendingFundReleasePage(PageQuery pageQuery) {
         Page<SdCrowdfundingProject> page = pageQuery.build();
         LambdaQueryWrapper<SdCrowdfundingProject> lqw = new LambdaQueryWrapper<>();
-        lqw.eq(SdCrowdfundingProject::getStatus, CrowdfundingProjectStatus.SUCCESS.getCode()) // 众筹成功
+        lqw.and(wrapper -> wrapper
+                .eq(SdCrowdfundingProject::getStatus, CrowdfundingProjectStatus.SUCCESS.getCode()) // 众筹成功
+                .or()
+                .eq(SdCrowdfundingProject::getStatus, CrowdfundingProjectStatus.PUBLISHED.getCode())) // 已发布
            .eq(SdCrowdfundingProject::getEscrowStatus, 0) // 托管中
            .eq(SdCrowdfundingProject::getFundReleaseAuditStatus, 1) // 待审核
            .orderByDesc(SdCrowdfundingProject::getCreateTime);

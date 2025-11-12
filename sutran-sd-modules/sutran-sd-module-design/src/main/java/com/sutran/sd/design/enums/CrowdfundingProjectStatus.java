@@ -10,7 +10,8 @@ public enum CrowdfundingProjectStatus {
     
     FUNDING(1, "众筹中"),
     SUCCESS(2, "众筹成功"),
-    FAILED(3, "众筹失败");
+    FAILED(3, "众筹失败"),
+    PUBLISHED(4, "已发布");
 
     private final Integer code;
     private final String desc;

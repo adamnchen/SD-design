@@ -760,6 +760,31 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
             int result = presaleProjectMapper.insert(project);
             if (result > 0) {
                 log.info("[发布预售项目] 发布成功: 项目ID={}, 标题={}", project.getId(), project.getTitle());
+                
+                // 7. 发布预售成功后，如果该打样邀约对应的众筹项目是"众筹成功"状态，则将其状态更新为4（已发布）
+                LambdaQueryWrapper<SdCrowdfundingProject> updateQuery = new LambdaQueryWrapper<>();
+                updateQuery.eq(SdCrowdfundingProject::getProofingInvitationId, publishDTO.getProofingInvitationId())
+                          .eq(SdCrowdfundingProject::getStatus, CrowdfundingProjectStatus.SUCCESS.getCode()); // 众筹成功
+                
+                SdCrowdfundingProject crowdfundingProject = crowdfundingProjectMapper.selectOne(updateQuery);
+                if (crowdfundingProject != null) {
+                    // 更新项目状态为已发布
+                    crowdfundingProject.setStatus(CrowdfundingProjectStatus.PUBLISHED.getCode());
+                    // 更新资金审核状态为待审核（1=待审核）
+                    crowdfundingProject.setFundReleaseAuditStatus(1);
+                    
+                    int updateResult = crowdfundingProjectMapper.updateById(crowdfundingProject);
+                    if (updateResult > 0) {
+                        log.info("[发布预售项目] 更新众筹项目状态为已发布，资金审核状态为待审核: 众筹项目ID={}, 打样邀约ID={}", 
+                            crowdfundingProject.getId(), publishDTO.getProofingInvitationId());
+                    } else {
+                        log.warn("[发布预售项目] 更新众筹项目状态失败: 众筹项目ID={}, 打样邀约ID={}", 
+                            crowdfundingProject.getId(), publishDTO.getProofingInvitationId());
+                    }
+                } else {
+                    log.info("[发布预售项目] 未找到需要更新状态的众筹成功项目: 打样邀约ID={}", publishDTO.getProofingInvitationId());
+                }
+                
                 return R.ok("发布成功", project.getId().toString());
             } else {
                 return R.fail("发布失败");
@@ -772,9 +797,10 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
     }
 
     @Override
-    public R<String> uploadManufacturerPhotos(MultipartFile file) {
+    public R<String> uploadManufacturerPhotos(MultipartFile file, String existingPhotos) {
         try {
-            log.info("[上传实物照片] 开始上传: 文件名={}", file.getOriginalFilename());
+            log.info("[上传实物照片] 开始上传: 文件名={}, 已存在图片数={}", 
+                file.getOriginalFilename(), StringUtils.isBlank(existingPhotos) ? 0 : "有");
 
             // 1. 验证文件
             if (file.isEmpty()) {
@@ -791,8 +817,32 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
             SysOssVo oss = sysOssService.upload(file);
             String photoUrl = oss.getUrl();
 
-            log.info("[上传实物照片] 上传成功: URL={}", photoUrl);
-            return R.ok("上传成功", photoUrl);
+            // 4. 处理已存在的图片列表，将新上传的图片添加到列表中
+            List<String> photoList = new ArrayList<>();
+            
+            // 解析已存在的图片列表
+            if (StringUtils.isNotBlank(existingPhotos)) {
+                try {
+                    ObjectMapper mapper = new ObjectMapper();
+                    List<String> existingList = mapper.readValue(existingPhotos, 
+                        mapper.getTypeFactory().constructCollectionType(List.class, String.class));
+                    if (existingList != null) {
+                        photoList.addAll(existingList);
+                    }
+                } catch (Exception e) {
+                    log.warn("[上传实物照片] 解析已存在图片列表失败，将创建新列表: {}", e.getMessage());
+                }
+            }
+            
+            // 添加新上传的图片URL
+            photoList.add(photoUrl);
+            
+            // 5. 将完整的图片列表转换为JSON格式返回
+            ObjectMapper mapper = new ObjectMapper();
+            String photosJson = mapper.writeValueAsString(photoList);
+
+            log.info("[上传实物照片] 上传成功: 新图片URL={}, 总图片数={}", photoUrl, photoList.size());
+            return R.ok("上传成功", photosJson);
 
         } catch (Exception e) {
             log.error("[上传实物照片] 上传异常: {}", e.getMessage(), e);

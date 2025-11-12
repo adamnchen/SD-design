@@ -75,7 +75,6 @@ public class SysNoticeServiceImpl implements ISysNoticeService, NoticeService {
             List<NoticeVo> noticeVos = selectNoticeList(1);
             if (CollectionUtil.isNotEmpty(noticeVos)) {
                 NoticeVo noticeVo = noticeVos.get(0);
-                noticeVo.setNoticeType("DETAIL");
                 sseEmitter.send(SseEmitter.event().data(noticeVo).name("notice").id(String.valueOf(System.currentTimeMillis())));
             }
 
@@ -130,7 +129,7 @@ public class SysNoticeServiceImpl implements ISysNoticeService, NoticeService {
         SseEmitter sseEmitter = SSE_EMITTER_MAP.get(userId);
         if (sseEmitter!=null) {
             try {
-                NoticeVo vo = new NoticeVo().setId(commonVo.getId()).setNoticeType("DETAIL").setType("infos").setContent(commonVo.getContent()).setTitle(commonVo.getTitle()).setPublishTime(commonVo.getPublishTime());
+                NoticeVo vo = new NoticeVo().setId(commonVo.getId()).setType("infos").setContent(commonVo.getContent()).setTitle(commonVo.getTitle()).setPublishTime(commonVo.getPublishTime());
                 sseEmitter.send(SseEmitter.event().data(vo).name("infos").id(String.valueOf(System.currentTimeMillis())));
 
                 // 获取当前用户未读系统通知\公告条数
@@ -187,7 +186,7 @@ public class SysNoticeServiceImpl implements ISysNoticeService, NoticeService {
         SseEmitter sseEmitter = SSE_EMITTER_MAP.get(userId);
         if (sseEmitter!=null) {
             try {
-                NoticeVo vo = new NoticeVo().setId(mpVo.getId()).setNoticeType("DETAIL").setType("infos").setContent(mpVo.getContent()).setTitle(mpVo.getTitle()).setPublishTime(mpVo.getPublishTime());
+                NoticeVo vo = new NoticeVo().setId(mpVo.getId()).setType("infos").setContent(mpVo.getContent()).setTitle(mpVo.getTitle()).setPublishTime(mpVo.getPublishTime());
                 sseEmitter.send(SseEmitter.event().data(vo).name("infos").id(String.valueOf(System.currentTimeMillis())));
 
                 // 获取当前用户未读系统通知\公告条数
@@ -219,13 +218,14 @@ public class SysNoticeServiceImpl implements ISysNoticeService, NoticeService {
      * @return          用户最新消息
      */
     @Override
-    public List<NoticeVo> selectMsgList(Long userId,int num) {
+    public List<NoticeVo> selectLatestMsgList(Long userId, int num) {
         if (userId==null) {
             throw new ServiceException("当前用户未登录或登录已失效!");
         }
         // 查询用户通知列表
         List<SysUserNotifications> list = sysUserNotificationsService.selectNoticeList(new LambdaQueryWrapper<SysUserNotifications>()
             .eq(SysUserNotifications::getUserId, userId)
+            .eq(SysUserNotifications::getReadStatus, 0)
             .orderByDesc(SysUserNotifications::getSendTime)
             .last("limit "+num));
         if (CollectionUtil.isEmpty(list)) {
@@ -304,7 +304,7 @@ public class SysNoticeServiceImpl implements ISysNoticeService, NoticeService {
         if (insert >= 1 && "1".equals(notice.getStatus())) {
             SSE_EMITTER_MAP.forEach((userId,sseEmitter)->{
                 try {
-                    NoticeVo vo = new NoticeVo().setId(notice.getNoticeId().toString()).setNoticeType("DETAIL").setType("sys").setContent(notice.getNoticeContent()).setTitle(notice.getNoticeTitle()).setPublishTime(notice.getPublishTime());
+                    NoticeVo vo = new NoticeVo().setId(notice.getNoticeId().toString()).setType("sys").setContent(notice.getNoticeContent()).setTitle(notice.getNoticeTitle()).setPublishTime(notice.getPublishTime());
                     sseEmitter.send(SseEmitter.event().data(vo).name("notice").id(String.valueOf(System.currentTimeMillis())));
 
                     // 获取当前用户未读系统通知\公告条数
@@ -337,7 +337,7 @@ public class SysNoticeServiceImpl implements ISysNoticeService, NoticeService {
         if (update >= 1 && "1".equals(notice.getStatus()) && !"1".equals(oldNotice.getStatus())) {
             SSE_EMITTER_MAP.forEach((userId,sseEmitter)->{
                 try {
-                    NoticeVo vo = new NoticeVo().setId(notice.getNoticeId().toString()).setNoticeType("DETAIL").setType("sys").setContent(notice.getNoticeContent()).setTitle(notice.getNoticeTitle()).setPublishTime(notice.getPublishTime());
+                    NoticeVo vo = new NoticeVo().setId(notice.getNoticeId().toString()).setType("sys").setContent(notice.getNoticeContent()).setTitle(notice.getNoticeTitle()).setPublishTime(notice.getPublishTime());
                     sseEmitter.send(SseEmitter.event().data(vo).name("notice").id(String.valueOf(System.currentTimeMillis())));
 
                     // 获取当前用户未读系统通知\公告条数

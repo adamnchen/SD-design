@@ -55,10 +55,10 @@ public class MsgController {
             List<NoticeVo> noticeVos = noticeService.selectNoticeList(1);
             List<NoticeVo> msgVos;
             if (CollectionUtil.isEmpty(noticeVos)) {
-                msgVos = noticeService.selectMsgList(LoginHelper.getUserId(), 5);
+                msgVos = noticeService.selectLatestMsgList(LoginHelper.getUserId(), 5);
             }
             else {
-                msgVos = noticeService.selectMsgList(LoginHelper.getUserId(), 4);
+                msgVos = noticeService.selectLatestMsgList(LoginHelper.getUserId(), 4);
             }
             msgVos.addAll(noticeVos);
             return R.ok(msgVos);
@@ -66,7 +66,7 @@ public class MsgController {
         if ("sys".equals(scope)) {
             return R.ok(noticeService.selectNoticeList(5));
         }
-        return R.ok(noticeService.selectMsgList(LoginHelper.getUserId(),5));
+        return R.ok(noticeService.selectLatestMsgList(LoginHelper.getUserId(),5));
     }
 
     /**

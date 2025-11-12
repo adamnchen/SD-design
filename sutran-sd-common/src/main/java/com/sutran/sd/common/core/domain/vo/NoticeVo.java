@@ -17,10 +17,6 @@ import java.util.Date;
 @Accessors(chain=true)
 public class NoticeVo implements Serializable {
     /**
-     * 通知类型[TOTAL-数量，DETAIL-详情]
-     */
-    private String noticeType;
-    /**
      * 消息ID
      */
     private String id;

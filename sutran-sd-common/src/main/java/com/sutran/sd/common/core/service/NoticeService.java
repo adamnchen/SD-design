@@ -41,7 +41,7 @@ public interface NoticeService {
      * @param num       查询数量
      * @return          用户最新消息
      */
-    List<NoticeVo> selectMsgList(Long userId,int num);
+    List<NoticeVo> selectLatestMsgList(Long userId, int num);
 
      /**
       * 查询系统已发布且有效的通知列表

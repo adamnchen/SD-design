@@ -17,7 +17,7 @@ public interface SysNoticeMapper extends BaseMapperPlus<SysNoticeMapper, SysNoti
      * 获取系统通知\公告总数（未过期）
      * @return 系统通知\公告总数（未过期）
      */
-    @Select("select count(1) from sys_notice where notice_type in ('0','1') and status = '1' and expire_time > now()")
+    @Select("select count(1) from sys_notice where status = '1' and expire_time > now()")
     long sysMsgTotalOfNotExpire();
 
 }

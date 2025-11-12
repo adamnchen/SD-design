@@ -131,10 +131,7 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
         String prompt = StringUtils.isBlank(modelTaskBo.getPrompt())?sdFlow.getInitPrompt():modelTaskBo.getPrompt();
         String promptZh = StringUtils.isBlank(modelTaskBo.getPromptZh())?sdFlow.getInitPromptZh():modelTaskBo.getPromptZh();
 
-        // 违禁词校验
-        if (StringUtils.isNotBlank(prompt)) {
-            forbiddenWordService.validateForbiddenWord(prompt, "提示词");
-        }
+
         if (StringUtils.isNotBlank(promptZh)) {
             forbiddenWordService.validateForbiddenWord(promptZh, "提示词(中文)");
         }

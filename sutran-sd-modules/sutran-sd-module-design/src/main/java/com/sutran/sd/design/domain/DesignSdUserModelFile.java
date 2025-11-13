@@ -119,6 +119,12 @@ public class DesignSdUserModelFile extends BaseEntity {
     private Integer isPublic;
 
     /**
+     * 公开时间
+     */
+    @TableField("public_time")
+    private Date publicTime;
+
+    /**
      * lora模型ID
      */
     @TableField("lora_model_id")

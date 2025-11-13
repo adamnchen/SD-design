@@ -38,6 +38,7 @@ CREATE TABLE `sd_user_model_file`  (
   `file_info` json NULL COMMENT '文件信息',
   `file_parameters` json NULL COMMENT '文件参数信息',
   `is_public` int NULL DEFAULT 0 COMMENT '是否公开[0-否,1-是]',
+  `public_time` datetime NULL DEFAULT NULL COMMENT '公开时间',
   `model_name` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '基础大模型名称',
   `lora_model_id` bigint NULL DEFAULT NULL COMMENT 'lora模型ID',
   `lora_title` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT 'lora模型名称',

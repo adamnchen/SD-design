@@ -129,6 +129,16 @@ public class UserModelFileVO {
     private String belongUserName;
 
     /**
+     * 文件归属人头像
+     */
+    private String belongUserAvatar;
+
+    /**
+     * 文件归属人昵称
+     */
+    private String belongUserNickName;
+
+    /**
      * 创建时间
      */
     private Date crtTime;

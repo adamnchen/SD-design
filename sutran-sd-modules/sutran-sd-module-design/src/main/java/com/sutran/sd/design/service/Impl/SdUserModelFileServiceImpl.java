@@ -11,12 +11,17 @@ import com.sutran.sd.design.mapper.DesignSdUserModelFileMapper;
 import com.sutran.sd.design.service.ISdUserModelFileService;
 import com.sutran.sd.design.vo.UserModelFileVO;
 import com.sutran.sd.user.service.IUserFavoriteService;
+import com.sutran.sd.common.core.domain.entity.SysUser;
+import com.sutran.sd.system.mapper.SysUserMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
+import java.util.Date;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -32,6 +37,7 @@ public class SdUserModelFileServiceImpl extends ServiceImpl<DesignSdUserModelFil
 
     private final DesignSdUserModelFileMapper userModelFileMapper;
     private final IUserFavoriteService favoriteService;
+    private final SysUserMapper sysUserMapper;
 
     @Override
     public DesignSdUserModelFile selectSdUserModelFileById(Long id) {
@@ -205,7 +211,13 @@ public class SdUserModelFileServiceImpl extends ServiceImpl<DesignSdUserModelFil
     @Override
     public boolean setPublic(Long id, Long userId, boolean isPublic) {
         // 只允许更新属于当前用户的作品
-        int affected = userModelFileMapper.updatePublicByIdAndUser(id, userId, isPublic ? 1 : 0);
+        // 如果设置为公开，记录公开时间；如果取消公开，清空公开时间
+        Date publicTime = isPublic ? new Date() : null;
+        int affected = userModelFileMapper.updatePublicByIdAndUser(id, userId, isPublic ? 1 : 0, publicTime);
+        if (affected > 0) {
+            log.info("设置作品公开状态: 作品ID={}, 用户ID={}, 是否公开={}, 公开时间={}", 
+                id, userId, isPublic, publicTime);
+        }
         return affected > 0;
     }
 
@@ -221,9 +233,39 @@ public class SdUserModelFileServiceImpl extends ServiceImpl<DesignSdUserModelFil
 
             Page<DesignSdUserModelFile> result = userModelFileMapper.selectPage(page, queryWrapper);
 
+            // 转换为VO
             List<UserModelFileVO> voList = result.getRecords().stream()
                     .map(this::convertToVO)
                     .collect(Collectors.toList());
+
+            // 批量查询用户信息（头像和昵称）
+            if (!voList.isEmpty()) {
+                Set<Long> userIds = voList.stream()
+                        .map(UserModelFileVO::getBelongUserId)
+                        .filter(userId -> userId != null)
+                        .collect(Collectors.toSet());
+
+                if (!userIds.isEmpty()) {
+                    // 批量查询用户信息（使用 LambdaQueryWrapper 查询指定用户ID列表）
+                    LambdaQueryWrapper<SysUser> userQueryWrapper = new LambdaQueryWrapper<>();
+                    userQueryWrapper.in(SysUser::getUserId, userIds)
+                                   .select(SysUser::getUserId, SysUser::getNickName, SysUser::getAvatar);
+                    List<SysUser> users = sysUserMapper.selectList(userQueryWrapper);
+                    Map<Long, SysUser> userMap = users.stream()
+                            .collect(Collectors.toMap(SysUser::getUserId, user -> user));
+
+                    // 填充用户头像和昵称
+                    voList.forEach(vo -> {
+                        if (vo.getBelongUserId() != null) {
+                            SysUser user = userMap.get(vo.getBelongUserId());
+                            if (user != null) {
+                                vo.setBelongUserAvatar(user.getAvatar());
+                                vo.setBelongUserNickName(user.getNickName());
+                            }
+                        }
+                    });
+                }
+            }
 
             TableDataInfo<UserModelFileVO> tableDataInfo = new TableDataInfo<>();
             tableDataInfo.setCode(200);

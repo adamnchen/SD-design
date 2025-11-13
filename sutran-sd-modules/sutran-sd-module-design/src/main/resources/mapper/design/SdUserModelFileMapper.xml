@@ -21,6 +21,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="fileParameters"    column="file_parameters"    />
         <result property="modelName"    column="model_name"    />
         <result property="isPublic"    column="is_public"    />
+        <result property="publicTime"    column="public_time"    />
         <result property="loraModelId"    column="lora_model_id"    />
         <result property="loraTitle"    column="lora_title"    />
         <result property="loraTitleZh"    column="lora_title_zh"    />
@@ -31,7 +32,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </resultMap>
 
     <sql id="selectSdUserModelFileVo">
-        select id, task_id, category, is_redraw, prompt, prompt_zh, prompt_desc, negative_prompt, negative_prompt_zh, model_strength, init_img, file_url, file_info, file_parameters, model_name, is_public, lora_model_id, lora_title, lora_title_zh, lora_info, belong_user_id, belong_user_name, crt_time from sd_user_model_file
+        select id, task_id, category, is_redraw, prompt, prompt_zh, prompt_desc, negative_prompt, negative_prompt_zh, model_strength, init_img, file_url, file_info, file_parameters, model_name, is_public, public_time, lora_model_id, lora_title, lora_title_zh, lora_info, belong_user_id, belong_user_name, crt_time from sd_user_model_file
     </sql>
 
     <select id="selectSdUserModelFileList" parameterType="com.sutran.sd.design.domain.DesignSdUserModelFile" resultMap="SdUserModelFileResult">
@@ -101,6 +102,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="fileParameters != null and fileParameters != ''">file_parameters,</if>
             <if test="modelName != null and modelName != ''">model_name,</if>
             <if test="isPublic != null">is_public,</if>
+            <if test="publicTime != null">public_time,</if>
             <if test="loraModelId != null">lora_model_id,</if>
             <if test="loraTitle != null and loraTitle != ''">lora_title,</if>
             <if test="loraTitleZh != null and loraTitleZh != ''">lora_title_zh,</if>
@@ -125,6 +127,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="fileParameters != null and fileParameters != ''">#{fileParameters},</if>
             <if test="modelName != null and modelName != ''">#{modelName},</if>
             <if test="isPublic != null">#{isPublic},</if>
+            <if test="publicTime != null">#{publicTime},</if>
             <if test="loraModelId != null">#{loraModelId},</if>
             <if test="loraTitle != null and loraTitle != ''">#{loraTitle},</if>
             <if test="loraTitleZh != null and loraTitleZh != ''">#{loraTitleZh},</if>
@@ -137,7 +140,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 
     <update id="updatePublicByIdAndUser">
         update sd_user_model_file
-        set is_public = #{isPublic}
+        set is_public = #{isPublic},
+            public_time = #{publicTime}
         where id = #{id} and belong_user_id = #{userId}
     </update>
 

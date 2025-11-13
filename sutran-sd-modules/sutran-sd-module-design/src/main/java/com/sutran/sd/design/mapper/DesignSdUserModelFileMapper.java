@@ -79,7 +79,8 @@ public interface DesignSdUserModelFileMapper extends BaseMapper<DesignSdUserMode
      * @param id 作品ID
      * @param userId 所属用户ID
      * @param isPublic 是否公开(0/1)
+     * @param publicTime 公开时间（设置为公开时传入当前时间，取消公开时传入null）
      * @return 受影响行数
      */
-    int updatePublicByIdAndUser(@Param("id") Long id, @Param("userId") Long userId, @Param("isPublic") Integer isPublic);
+    int updatePublicByIdAndUser(@Param("id") Long id, @Param("userId") Long userId, @Param("isPublic") Integer isPublic, @Param("publicTime") java.util.Date publicTime);
 }

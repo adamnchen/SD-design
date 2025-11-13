@@ -1632,7 +1632,6 @@ public class SdTrainServiceImpl implements SdTrainService {
         // 投递任务到MQ队列
         try {
             rabbitTemplate.convertAndSend(SD_FLUXGYM_TRAIN_EXCHANGE,SD_FLUXGYM_TRAIN_ROUTING_KEY,taskInfo,new CorrelationData(taskInfo.getTaskId()));
-            RedisUtils.deleteKey(FLUXGYM_IMG_TASK+taskId);
         }
         catch (Exception e) {
             //重试次数

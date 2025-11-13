@@ -367,8 +367,8 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
                 // 提交任务，返回ComfyUI内部任务ID
                 String promptId = submitDrawTask(taskId, JSONObject.parseObject(flowStr), node);
                 if (StringUtils.isNotBlank(promptId)) {
-                    RedisUtils.setCacheObject(COMFY_TASK+taskId,promptId, Duration.ofMinutes(5));
-                    RedisUtils.setCacheObject(COMFY_TASK+promptId,taskId, Duration.ofMinutes(5));
+                    RedisUtils.setCacheObject(COMFY_TASK+taskId,promptId, Duration.ofMinutes(3));
+                    RedisUtils.setCacheObject(COMFY_TASK+promptId,taskId, Duration.ofMinutes(3));
                 }
                 // 检查任务是否有缓存
                 checkCacheTask(promptId,taskId,node,taskInfo,task);
@@ -735,6 +735,13 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
         // 任务不存在或不处于进行中
         if (taskVo == null || (taskVo.getStatus()!=null && taskVo.getStatus()==2)) {
             dealTaskAndNodeAndWebsocket(taskId, nodeId);
+            return;
+        }
+        // 检查taskId是否还存在缓存 如果不存在则跳过（不存在则说明任务已超时）
+        String promptId = RedisUtils.getCacheObject(COMFY_TASK + taskId);
+        if (StringUtils.isBlank(promptId)) {
+            dealTaskAndNodeAndWebsocket(taskId, nodeId);
+            sdUserTaskService.failComfyTask(taskId, "任务超时", new Date());
             return;
         }
         SdDrawNode node = sdDrawNodeService.findById(Long.parseLong(nodeId));

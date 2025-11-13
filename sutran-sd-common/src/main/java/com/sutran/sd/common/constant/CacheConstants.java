@@ -163,11 +163,6 @@ public interface CacheConstants {
      */
     String DEAL_MODEL_LOCK = "DEAL_MODEL_LOCK_";
 
-    /**
-     * 训练任务图片列表
-     */
-    String FLUXGYM_IMG_TASK = "FLUXGYM_IMG_TASK:";
-
      /**
      * 训练任务节点信息
      */

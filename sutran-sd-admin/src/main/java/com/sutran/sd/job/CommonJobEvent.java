@@ -4,16 +4,12 @@ import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.date.DateTime;
 import cn.hutool.core.date.DateUtil;
 import com.sutran.sd.common.core.service.NoticeService;
-import com.sutran.sd.draw.service.SdComfyuiApiService;
 import com.sutran.sd.common.utils.redis.RedisUtils;
-import com.sutran.sd.draw.service.SdDrawNodeService;
+import com.sutran.sd.draw.domain.SdChannelData;
+import com.sutran.sd.draw.domain.vo.TrainTaskStatusVo;
+import com.sutran.sd.draw.service.*;
 import com.sutran.sd.pay.service.AliPayService;
 import com.sutran.sd.pay.service.PayOrderService;
-import com.sutran.sd.draw.domain.vo.TrainTaskStatusVo;
-import com.sutran.sd.draw.service.SdChannelDataService;
-import com.sutran.sd.draw.domain.SdChannelData;
-import com.sutran.sd.draw.service.SdTrainService;
-import com.sutran.sd.draw.service.SdWebuiApiService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -191,10 +187,10 @@ public class CommonJobEvent {
     }
 
     /**
-     * 定时处理节点任务
+     * 定时处理绘图节点任务
      * 每10秒执行一次
      */
-    @Scheduled(cron="0/20 * * * * ?")
+    @Scheduled(cron="0/10 * * * * ?")
     public void executeComfyDrawTask(){
         Map<String, String> cacheMap = RedisUtils.getCacheMap(DRAW_NODE_TASK_MAP);
         if (CollectionUtil.isEmpty(cacheMap)) {
@@ -211,7 +207,7 @@ public class CommonJobEvent {
     }
 
     /**
-     * 定时处理节点任务
+     * 定时处理训练节点任务
      * 每10秒执行一次
      */
     @Scheduled(cron="0/20 * * * * ?")

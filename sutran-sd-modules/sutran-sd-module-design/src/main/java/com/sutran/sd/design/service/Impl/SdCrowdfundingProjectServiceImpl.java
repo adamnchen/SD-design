@@ -168,7 +168,7 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
         // 从邀约详情获取项目信息
         String title = invitationDetail.getProductTitle();
         String description = invitationDetail.getProductDescription();
-        
+
         // 违禁词校验
         if (StringUtils.isNotBlank(title)) {
             forbiddenWordService.validateForbiddenWord(title, "项目标题");
@@ -176,7 +176,7 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
         if (StringUtils.isNotBlank(description)) {
             forbiddenWordService.validateForbiddenWord(description, "项目描述");
         }
-        
+
         project.setTitle(title);
         project.setDescription(description);
         project.setCoverImage(invitationDetail.getImageUrl()); // 从联查结果获取图片
@@ -301,8 +301,7 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
         com.baomidou.mybatisplus.extension.plugins.pagination.Page<SdCrowdfundingProject> page = pageQuery.build();
         com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<SdCrowdfundingProject> queryWrapper =
             new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<>();
-        queryWrapper.eq(SdCrowdfundingProject::getStatus, 1) // 进行中
-                   .orderByDesc(SdCrowdfundingProject::getCreateTime);
+        queryWrapper.orderByDesc(SdCrowdfundingProject::getCreateTime);
 
         com.baomidou.mybatisplus.core.metadata.IPage<SdCrowdfundingProject> result =
             crowdfundingProjectMapper.selectPage(page, queryWrapper);
@@ -740,8 +739,8 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
             }
 
             // 2. 验证项目状态（只允许成功或已发布的项目释放资金）
-            if (project.getStatus() == null || 
-                (!project.getStatus().equals(CrowdfundingProjectStatus.SUCCESS.getCode()) 
+            if (project.getStatus() == null ||
+                (!project.getStatus().equals(CrowdfundingProjectStatus.SUCCESS.getCode())
                  && !project.getStatus().equals(CrowdfundingProjectStatus.PUBLISHED.getCode()))) {
                 log.error("[众筹资金释放] 项目状态不允许释放资金: 项目ID={}, 状态={}", projectId, project.getStatus());
                 throw new ServiceException("只有众筹成功或已发布的项目才能释放资金");
@@ -851,8 +850,8 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
             }
 
             // 2. 验证项目状态（只允许成功或已发布的项目进行审核）
-            if (project.getStatus() == null || 
-                (!project.getStatus().equals(CrowdfundingProjectStatus.SUCCESS.getCode()) 
+            if (project.getStatus() == null ||
+                (!project.getStatus().equals(CrowdfundingProjectStatus.SUCCESS.getCode())
                  && !project.getStatus().equals(CrowdfundingProjectStatus.PUBLISHED.getCode()))) {
                 log.error("[资金释放审核] 项目状态不允许审核: 项目ID={}, 状态={}", projectId, project.getStatus());
                 throw new ServiceException("只有众筹成功或已发布的项目才能审核资金释放申请");

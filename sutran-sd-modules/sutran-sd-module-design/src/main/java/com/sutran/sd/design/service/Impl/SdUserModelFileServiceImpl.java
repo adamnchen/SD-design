@@ -215,7 +215,7 @@ public class SdUserModelFileServiceImpl extends ServiceImpl<DesignSdUserModelFil
         Date publicTime = isPublic ? new Date() : null;
         int affected = userModelFileMapper.updatePublicByIdAndUser(id, userId, isPublic ? 1 : 0, publicTime);
         if (affected > 0) {
-            log.info("设置作品公开状态: 作品ID={}, 用户ID={}, 是否公开={}, 公开时间={}", 
+            log.info("设置作品公开状态: 作品ID={}, 用户ID={}, 是否公开={}, 公开时间={}",
                 id, userId, isPublic, publicTime);
         }
         return affected > 0;
@@ -228,8 +228,7 @@ public class SdUserModelFileServiceImpl extends ServiceImpl<DesignSdUserModelFil
 
             Page<DesignSdUserModelFile> page = pageQuery.build();
             LambdaQueryWrapper<DesignSdUserModelFile> queryWrapper = new LambdaQueryWrapper<>();
-            queryWrapper.eq(DesignSdUserModelFile::getIsPublic, 1)
-                       .orderByDesc(DesignSdUserModelFile::getCrtTime);
+            queryWrapper.orderByDesc(DesignSdUserModelFile::getCrtTime);
 
             Page<DesignSdUserModelFile> result = userModelFileMapper.selectPage(page, queryWrapper);
 

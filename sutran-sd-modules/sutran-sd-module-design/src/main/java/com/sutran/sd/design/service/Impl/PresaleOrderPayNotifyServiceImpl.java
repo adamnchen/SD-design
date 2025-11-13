@@ -2,9 +2,12 @@ package com.sutran.sd.design.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.sutran.sd.common.exception.ServiceException;
+import com.sutran.sd.common.utils.OrderNumUtils;
+import com.sutran.sd.design.domain.SdPresaleDelivery;
 import com.sutran.sd.design.domain.SdPresaleOrder;
 import com.sutran.sd.design.domain.SdPresaleProject;
 import com.sutran.sd.design.enums.PresaleOrderStatus;
+import com.sutran.sd.design.mapper.SdPresaleDeliveryMapper;
 import com.sutran.sd.design.mapper.SdPresaleOrderMapper;
 import com.sutran.sd.design.mapper.SdPresaleProjectMapper;
 import com.sutran.sd.design.vo.TieredPricingItem;
@@ -42,6 +45,7 @@ public class PresaleOrderPayNotifyServiceImpl extends BasePayNotifyService {
 
     private final PayOrderService payOrderService;
     private final SdPresaleOrderMapper presaleOrderMapper;
+    private final SdPresaleDeliveryMapper presaleDeliveryMapper;
     private final SdPresaleProjectMapper presaleProjectMapper;
     private final AliPayService aliPayService;
 
@@ -55,23 +59,21 @@ public class PresaleOrderPayNotifyServiceImpl extends BasePayNotifyService {
             SdPresaleOrder presaleOrder = presaleOrderMapper.selectByOrderNo(outTradeNo);
             if (presaleOrder == null) {
                 log.error("[预售订单][支付回调] 订单不存在: 订单号={}", outTradeNo);
-
+                throw new ServiceException("预售订单不存在");
             }
 
             // 查询支付订单
             PayOrder payOrder = payOrderService.detailByOutTradeNo(outTradeNo);
             if (payOrder == null) {
                 log.error("[预售订单][支付回调] 支付订单不存在: 订单号={}", outTradeNo);
-
+                throw new ServiceException("支付订单不存在");
             }
 
             // 检查订单状态，已处理过直接返回成功
             if (payOrder.getStatus() != 0) {
                 log.info("[预售订单][支付回调] 订单已处理: 订单号={}, 状态={}", outTradeNo, payOrder.getStatus());
-
+                return;
             }
-
-            BigDecimal amount = new BigDecimal(totalAmount);
 
             // 支付成功
             if (AliPayTradeStatus.TRADE_SUCCESS.name().equals(tradeStatus) || AliPayTradeStatus.TRADE_FINISHED.name().equals(tradeStatus)) {
@@ -86,6 +88,9 @@ public class PresaleOrderPayNotifyServiceImpl extends BasePayNotifyService {
                 // 更新项目销售金额和销售数量
                 BigDecimal amountDecimal = new BigDecimal(totalAmount);
                 updateProjectSalesInfo(presaleOrder.getProjectId(), amountDecimal, presaleOrder.getQuantity());
+
+                // 创建预售发货记录（待发货）
+                createPendingDeliveryRecord(presaleOrder);
 
                 // 检查是否需要阶梯价格调整
                 checkAndAdjustTieredPricing(presaleOrder);
@@ -110,6 +115,8 @@ public class PresaleOrderPayNotifyServiceImpl extends BasePayNotifyService {
         SdPresaleOrder presaleOrder = presaleOrderMapper.selectByOrderNo(outTradeNo);
         if (presaleOrder == null) {
             log.error("[预售订单][支付回调] 订单不存在: 订单号={}", outTradeNo);
+            payOrderService.failPay(outTradeNo, tradeNo, totalAmount);
+            return;
         }
 
         payOrderService.failPay(outTradeNo, tradeNo, totalAmount);
@@ -314,6 +321,53 @@ public class PresaleOrderPayNotifyServiceImpl extends BasePayNotifyService {
 
         } catch (Exception e) {
             log.error("[预售订单] 调整订单价格失败: 订单号={}", order.getOrderNo(), e);
+        }
+    }
+
+    /**
+     * 创建预售待发货记录
+     */
+    private void createPendingDeliveryRecord(SdPresaleOrder presaleOrder) {
+        try {
+            List<SdPresaleDelivery> existingDeliveries = presaleDeliveryMapper.selectByOrderNo(presaleOrder.getOrderNo());
+            if (existingDeliveries != null && !existingDeliveries.isEmpty()) {
+                log.info("[预售订单] 发货记录已存在，跳过创建: 订单号={}", presaleOrder.getOrderNo());
+                return;
+            }
+
+            if (StringUtils.isBlank(presaleOrder.getReceiverAddress())) {
+                throw new ServiceException("订单缺少收货地址，无法创建发货记录");
+            }
+
+            SdPresaleDelivery delivery = new SdPresaleDelivery();
+            delivery.setDeliveryNo(OrderNumUtils.getOrderNum(new Date()));
+            delivery.setProjectId(presaleOrder.getProjectId());
+            delivery.setOrderId(presaleOrder.getId());
+            delivery.setOrderNo(presaleOrder.getOrderNo());
+            delivery.setUserId(presaleOrder.getUserId());
+            delivery.setUserName(StringUtils.blankToDefault(presaleOrder.getUserName(), "未知用户"));
+            delivery.setProductTitle(presaleOrder.getProductTitle());
+            delivery.setQuantity(presaleOrder.getQuantity());
+            BigDecimal totalAmount = presaleOrder.getFinalTotalAmount() != null
+                ? presaleOrder.getFinalTotalAmount()
+                : presaleOrder.getOriginalTotalAmount();
+            delivery.setTotalAmount(totalAmount);
+            delivery.setRecipientName(StringUtils.blankToDefault(presaleOrder.getReceiverName(), presaleOrder.getUserName()));
+            delivery.setRecipientPhone(presaleOrder.getReceiverPhone());
+            delivery.setRecipientAddress(presaleOrder.getReceiverAddress());
+            delivery.setDeliveryStatus(1); // 待发货
+
+            int inserted = presaleDeliveryMapper.insertSdPresaleDelivery(delivery);
+            if (inserted <= 0) {
+                throw new ServiceException("创建预售发货记录失败");
+            }
+
+            log.info("[预售订单] 创建预售发货记录成功: 订单号={}, 发货单号={}", presaleOrder.getOrderNo(), delivery.getDeliveryNo());
+        } catch (ServiceException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("[预售订单] 创建预售发货记录异常: 订单号={}", presaleOrder.getOrderNo(), e);
+            throw new ServiceException("创建预售发货记录失败: " + e.getMessage());
         }
     }
 

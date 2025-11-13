@@ -1600,12 +1600,15 @@ public class SdTrainServiceImpl implements SdTrainService {
         List<ImageInfoBo> imageList = new ArrayList<>();
         int index = 1;
         for (MultipartFile image : images) {
-            byte[] imgBytes = image.getBytes();
+//            byte[] imgBytes = image.getBytes();
             // 生成新的文件名,避免文件名重复
             String fileName = image.getOriginalFilename();
             String suffix = fileName.substring(fileName.lastIndexOf("."));
             fileName = fileName.substring(0, fileName.lastIndexOf("."))+"_"+index+suffix;
-            imageList.add(new ImageInfoBo().setImageName(fileName).setContentType("image/jpeg").setFileData(imgBytes));
+            // 将文件保存到/parentFileUrl目录下
+            String filePath = parentFileUrl+"/"+fileName;
+            image.transferTo(new File(filePath));
+            imageList.add(new ImageInfoBo().setImageName(fileName).setContentType("image/jpeg").setFileTempUrl(filePath));
             index++;
         }
         // 缓存提示词中英文
@@ -2099,7 +2102,9 @@ public class SdTrainServiceImpl implements SdTrainService {
             try {
                 HttpRequest request = HttpRequest.post(node.getBaseUrl() + "/api/lora/train").contentType("multipart/form-data").form(formMap).timeout(60000);
                 for (ImageInfoBo image : taskInfo.getImages()) {
-                    File file = FileUtils.bytesToTempFile(image.getFileData(), image.getImageName(), false);
+//                    File file = FileUtils.bytesToTempFile(image.getFileData(), image.getImageName(), false);
+                    // 从image中获取文件临时路径,并读取文件
+                    File file = new File(image.getFileTempUrl());
                     request.form("images", file);
                 }
                 String resp = execHttpRequest(request);

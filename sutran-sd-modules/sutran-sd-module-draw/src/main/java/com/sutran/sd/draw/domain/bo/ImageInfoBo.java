@@ -15,4 +15,5 @@ public class ImageInfoBo implements Serializable {
     private String imageName;
     private String contentType;
     private byte[] fileData;
+    private String fileTempUrl;
 }

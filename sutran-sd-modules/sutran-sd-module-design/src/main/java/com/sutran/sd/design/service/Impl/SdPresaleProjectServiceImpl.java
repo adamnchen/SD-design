@@ -634,43 +634,6 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
             }
 
             // 3.3 校验发货单：所有需要发货的记录必须已填写快递单号并上传实物图片
-            if (!successfulCrowdfundingProjects.isEmpty()) {
-                List<Long> cfProjectIds = successfulCrowdfundingProjects.stream().map(SdCrowdfundingProject::getId).collect(Collectors.toList());
-                if (!cfProjectIds.isEmpty()) {
-                    // 查询所有属于这些众筹项目的发货记录
-                    LambdaQueryWrapper<SdCrowdfundingSampleDelivery> allDeliveriesQuery = new LambdaQueryWrapper<>();
-                    allDeliveriesQuery.in(SdCrowdfundingSampleDelivery::getCrowdfundingProjectId, cfProjectIds);
-                    List<SdCrowdfundingSampleDelivery> allDeliveries = sampleDeliveryMapper.selectList(allDeliveriesQuery);
-                    
-                    // 筛选出需要发货的记录（有收货地址）
-                    List<SdCrowdfundingSampleDelivery> needDeliveryList = allDeliveries.stream()
-                        .filter(delivery -> {
-                            String address = delivery.getDeliveryAddress();
-                            return address != null && !address.trim().isEmpty();
-                        })
-                        .collect(Collectors.toList());
-                    
-                    // 检查需要发货的记录是否都填写了快递单号和上传了实物图片
-                    if (!needDeliveryList.isEmpty()) {
-                        for (SdCrowdfundingSampleDelivery delivery : needDeliveryList) {
-                            // 检查快递单号
-                            String trackingNumber = delivery.getTrackingNumber();
-                            boolean hasTrackingNumber = trackingNumber != null && !trackingNumber.trim().isEmpty();
-                            
-                            // 检查实物图片
-                            String sampleImageUrl = delivery.getSampleImageUrl();
-                            boolean hasSampleImage = sampleImageUrl != null && !sampleImageUrl.trim().isEmpty();
-                            
-                            // 如果快递单号或实物图片缺失，则不允许发布
-                            if (!hasTrackingNumber || !hasSampleImage) {
-                                log.warn("[发布预售项目] 发货记录未完善: 发货记录ID={}, 众筹项目ID={}, 有快递单号={}, 有实物图片={}", 
-                                    delivery.getId(), delivery.getCrowdfundingProjectId(), hasTrackingNumber, hasSampleImage);
-                                return R.fail("请先在发货管理中为所有需要发货的记录填写快递单号并上传实物照片后，再发布预售");
-                            }
-                        }
-                    }
-                }
-            }
 
             // 3.4 检查与该打样邀约相关的所有已发布项目的订单是否都已填写物流单号
             // 查询与该打样邀约相关的所有已发布的预售项目

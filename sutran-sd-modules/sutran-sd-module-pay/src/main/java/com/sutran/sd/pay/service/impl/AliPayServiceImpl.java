@@ -157,7 +157,7 @@ public class AliPayServiceImpl implements AliPayService {
 
         // 订单过期时间，5分钟后过期(稍微大于支付认超时时间)
         Date now = new Date();
-        Date expireTime = DateUtil.offsetMinute(now, 3);
+        Date expireTime = DateUtil.offsetMinute(now, 1);
 
         // 存入redis,扫描redis进行过期订单处理
         RedisUtils.setCacheZSet(PAY_ORDER_TASK,expireTime.getTime(),outTradeNo);

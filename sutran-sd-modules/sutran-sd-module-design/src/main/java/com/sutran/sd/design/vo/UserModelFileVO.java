@@ -139,6 +139,11 @@ public class UserModelFileVO {
     private Boolean isFavorite;
 
     /**
+     * 是否公开[0-不公开,1-公开]
+     */
+    private Integer isPublic;
+
+    /**
      * 获取分类名称
      */
     public String getCategoryName() {

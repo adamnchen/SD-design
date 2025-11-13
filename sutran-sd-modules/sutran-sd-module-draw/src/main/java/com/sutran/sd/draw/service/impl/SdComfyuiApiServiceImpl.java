@@ -55,10 +55,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static com.sutran.sd.common.constant.CacheConstants.*;
 import static com.sutran.sd.draw.constants.CommonKey.JPG;
@@ -733,7 +730,8 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
     public void autoDealComfyTask(String nodeId, String taskId) {
         SdUserTaskVo taskVo = sdUserTaskService.getDrawTaskInfoByTaskId(taskId);
         // 任务不存在或不处于进行中
-        if (taskVo == null || (taskVo.getStatus()!=null && taskVo.getStatus()==2)) {
+        List<Integer> statusList = Arrays.asList(2,3);
+        if (taskVo == null || (taskVo.getStatus()!=null && statusList.contains(taskVo.getStatus()))) {
             dealTaskAndNodeAndWebsocket(taskId, nodeId);
             return;
         }

@@ -42,7 +42,7 @@ public class HomePageController {
     @SaIgnore
     @GetMapping("/presale/projects")
     public R<TableDataInfo<PresaleProjectListVO>> getActivePresaleProjects(PageQuery pageQuery) {
-        log.info("首页查询销售中的预售项目列表（分页）");
+        log.info("首页查询预售项目列表（分页）");
         return R.ok(presaleProjectService.getPresaleProjectListPage(pageQuery));
     }
 
@@ -53,7 +53,7 @@ public class HomePageController {
     @SaIgnore
     @GetMapping("/crowdfunding/projects")
     public R<TableDataInfo<CrowdfundingProjectListVO>> getActiveCrowdfundingProjects(PageQuery pageQuery) {
-        log.info("首页查询进行中的众筹项目列表（分页）");
+        log.info("首页查询众筹项目列表（分页）");
         return R.ok(crowdfundingProjectService.getActiveCrowdfundingProjectsPage(pageQuery));
     }
 

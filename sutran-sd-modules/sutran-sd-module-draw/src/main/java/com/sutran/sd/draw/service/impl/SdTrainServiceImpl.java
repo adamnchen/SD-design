@@ -1896,9 +1896,11 @@ public class SdTrainServiceImpl implements SdTrainService {
                 String tempFileName = originalFileName + ".tmp";
 
                 String modelPath = "/root/cloud/comfyui-lora/" + originalFileName;
+                String modelPath1 = "/root/ComfyUI/models/loras/" + originalFileName;
                 String tempModelPath = "/root/cloud/comfyui-lora/" + tempFileName;
 
                 Path target = Paths.get(modelPath);
+                Path target1 = Paths.get(modelPath1);
                 Path tempTarget = Paths.get(tempModelPath);
                 log.warn("[模型发布]>>>>>>>>>开始移动模型：{}->{}->{}",fileName,tempModelPath,modelPath);
                 try {
@@ -1914,6 +1916,7 @@ public class SdTrainServiceImpl implements SdTrainService {
                     // 临时文件
                     Files.copy(source, tempTarget, StandardCopyOption.REPLACE_EXISTING);
                     // 复制完成后重命名为正式文件
+                    Files.copy(tempTarget, target1, StandardCopyOption.REPLACE_EXISTING);
                     Files.move(tempTarget, target, StandardCopyOption.REPLACE_EXISTING);
                 }
                 catch (Exception e) {

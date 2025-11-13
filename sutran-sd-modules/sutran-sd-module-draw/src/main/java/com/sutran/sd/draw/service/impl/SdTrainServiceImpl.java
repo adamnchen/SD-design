@@ -1607,7 +1607,11 @@ public class SdTrainServiceImpl implements SdTrainService {
             fileName = fileName.substring(0, fileName.lastIndexOf("."))+"_"+index+suffix;
             // 将文件保存到/parentFileUrl目录下
             String filePath = parentFileUrl+"/"+fileName;
-            image.transferTo(new File(filePath));
+            File file = new File(filePath);
+            if (!file.getParentFile().exists()) {
+                file.getParentFile().mkdirs();
+            }
+            image.transferTo(file);
             imageList.add(new ImageInfoBo().setImageName(fileName).setContentType("image/jpeg").setFileTempUrl(filePath));
             index++;
         }
@@ -2173,6 +2177,16 @@ public class SdTrainServiceImpl implements SdTrainService {
             }
             catch (IOException ex) {
                 log.error("[FluxGYM训练MQ]>>>>>>>>>MQ消息消费异常重新入队列异常,异常信息: ", ex);
+            }
+        }
+        finally {
+            if (taskInfo!=null) {
+                taskInfo.getImages().forEach(image -> {
+                    // 删除临时文件
+                    if (image.getFileTempUrl()!=null) {
+                        FileUtils.deleteFile(new File(image.getFileTempUrl()));
+                    }
+                });
             }
         }
     }

@@ -16,7 +16,6 @@ import com.sutran.sd.common.enums.DeviceType;
 import com.sutran.sd.common.enums.EncodeType;
 import com.sutran.sd.common.exception.ServiceException;
 import com.sutran.sd.common.helper.LoginHelper;
-import com.sutran.sd.draw.domain.SdUserMsg;
 import com.sutran.sd.draw.service.SdUserMsgService;
 import com.sutran.sd.framework.manager.EncryptorManager;
 import com.sutran.sd.system.domain.vo.RouterVo;
@@ -94,11 +93,10 @@ public class SysLoginController {
             String name = loginService.selectConfigByKey("sys.wxPublic.name");
             name = StrUtil.isBlankIfStr(name)?"Zein AI":name;
             // 异步推送未关注微信公众号的消息
-            SdUserMsg msg = new SdUserMsg()
-                .setTitle("关注微信公众号")
-                .setMsgContent(String.format("系统检测到您当前还未关注 %s 微信公众号,如需接收微信公众号消息请关注 %s 微信公众号!",name,name))
-                .setUserId(userId);
-            sdUserMsgService.insertUserMsg(msg);
+            NoticeCommonVo vo = new NoticeCommonVo()
+                .setTitle("关注并绑定微信公众号").setPublishTime(new Date())
+                .setContent(String.format("系统检测到您当前还未关注并绑定 %s 微信公众号,如需接收微信公众号消息请关注并绑定 %s 微信公众号!",name,name));
+            noticeService.asyncSendCommonMsg(vo,userId);
         }
         return R.ok(ajax);
     }

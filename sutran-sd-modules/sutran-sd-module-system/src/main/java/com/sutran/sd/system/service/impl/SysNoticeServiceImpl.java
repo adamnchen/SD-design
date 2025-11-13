@@ -108,7 +108,7 @@ public class SysNoticeServiceImpl implements ISysNoticeService, NoticeService {
             notice.setId(Long.parseLong(commonVo.getId()));
         }
 
-        if (StringUtils.isNotBlank(commonVo.getTitle()) && "关注微信公众号".equals(commonVo.getTitle())) {
+        if (StringUtils.isNotBlank(commonVo.getTitle()) && "关注并绑定微信公众号".equals(commonVo.getTitle())) {
             // 先查询当天开始时间和当天结束时间是否有推送过
             LambdaQueryWrapper<SysUserNotifications> queryWrapper = new LambdaQueryWrapper<>();
             queryWrapper.eq(SysUserNotifications::getUserId, userId)

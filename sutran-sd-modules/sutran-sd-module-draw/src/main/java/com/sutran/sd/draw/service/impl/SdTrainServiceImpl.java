@@ -1607,7 +1607,11 @@ public class SdTrainServiceImpl implements SdTrainService {
             fileName = fileName.substring(0, fileName.lastIndexOf("."))+"_"+index+suffix;
             // 将文件保存到/parentFileUrl目录下
             String filePath = parentFileUrl+"/"+fileName;
-            image.transferTo(new File(filePath));
+            File file = new File(filePath);
+            if (!file.getParentFile().exists()) {
+                file.getParentFile().mkdirs();
+            }
+            image.transferTo(file);
             imageList.add(new ImageInfoBo().setImageName(fileName).setContentType("image/jpeg").setFileTempUrl(filePath));
             index++;
         }
@@ -1892,9 +1896,11 @@ public class SdTrainServiceImpl implements SdTrainService {
                 String tempFileName = originalFileName + ".tmp";
 
                 String modelPath = "/root/cloud/comfyui-lora/" + originalFileName;
+                String modelPath1 = "/root/ComfyUI/models/loras/" + originalFileName;
                 String tempModelPath = "/root/cloud/comfyui-lora/" + tempFileName;
 
                 Path target = Paths.get(modelPath);
+                Path target1 = Paths.get(modelPath1);
                 Path tempTarget = Paths.get(tempModelPath);
                 log.warn("[模型发布]>>>>>>>>>开始移动模型：{}->{}->{}",fileName,tempModelPath,modelPath);
                 try {
@@ -1910,6 +1916,7 @@ public class SdTrainServiceImpl implements SdTrainService {
                     // 临时文件
                     Files.copy(source, tempTarget, StandardCopyOption.REPLACE_EXISTING);
                     // 复制完成后重命名为正式文件
+                    Files.copy(tempTarget, target1, StandardCopyOption.REPLACE_EXISTING);
                     Files.move(tempTarget, target, StandardCopyOption.REPLACE_EXISTING);
                 }
                 catch (Exception e) {
@@ -2173,6 +2180,16 @@ public class SdTrainServiceImpl implements SdTrainService {
             }
             catch (IOException ex) {
                 log.error("[FluxGYM训练MQ]>>>>>>>>>MQ消息消费异常重新入队列异常,异常信息: ", ex);
+            }
+        }
+        finally {
+            if (taskInfo!=null) {
+                taskInfo.getImages().forEach(image -> {
+                    // 删除临时文件
+                    if (image.getFileTempUrl()!=null) {
+                        FileUtils.deleteFile(new File(image.getFileTempUrl()));
+                    }
+                });
             }
         }
     }

@@ -309,7 +309,7 @@ public class SdUserTaskServiceImpl implements SdUserTaskService {
         }
         promptId = baseMapper.getPromptIdByTaskId(taskId);
         if (StringUtils.isNotBlank(promptId)) {
-            RedisUtils.setCacheObject(COMFY_TASK+taskId,promptId, Duration.ofMinutes(1));
+            RedisUtils.setCacheObject(COMFY_TASK+taskId,promptId, Duration.ofMinutes(4));
         }
         return promptId;
     }
@@ -337,7 +337,7 @@ public class SdUserTaskServiceImpl implements SdUserTaskService {
         }
         taskId = baseMapper.getTaskIdByPromptId(promptId);
         if (StringUtils.isNotBlank(taskId)) {
-            RedisUtils.setCacheObject(COMFY_TASK+promptId,taskId, Duration.ofMinutes(1));
+            RedisUtils.setCacheObject(COMFY_TASK+promptId,taskId, Duration.ofMinutes(4));
         }
         return taskId;
     }

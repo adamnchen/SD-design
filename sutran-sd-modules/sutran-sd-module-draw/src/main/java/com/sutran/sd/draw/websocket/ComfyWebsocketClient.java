@@ -60,30 +60,29 @@ public class ComfyWebsocketClient {
                         // progress_state=PROGRESS_STATE：当前运行的耗时节点执行进度更新
                         ComfyWebSocketMessageType msgType = ComfyWebSocketMessageType.fromType(type.asText());
                         if (msgType == ComfyWebSocketMessageType.EXECUTING) {
-//                            log.info("[ComfUI][任务节点更新]>>>>>>>>>任务节点ID：{}",dataNode.get("node"));
                             log.warn("[ComfUI][任务节点执行中]>>>>>>>>>当前节点：{}",dataNode);
                         }
                         else if (msgType == ComfyWebSocketMessageType.MONITOR) {
                             log.info("[ComfUI][系统性能状态更新]>>>>>>>>>{}",dataNode);
                         }
                         else if (msgType == ComfyWebSocketMessageType.TASK_NUMBER || Objects.equals(dataNode.get("prompt_id").asText(), promptId)) {
-                            //ComfyUI状态更新消息直接进行处理
                             messageHandler.handleMessage(msgType, dataNode);
                         }
                     }
                     catch (Exception e) {
                         if (log != null) {
-                            log.error("comfyui的websocket异常,异常信息: ", e);
+                            log.error("[ComfUI][任务执行异常]>>>>>>>>>comfyui的websocket异常,异常信息: ", e);
                         }
                     }
                 }
 
                 @Override
                 public void onError(Exception ex) {
-                    log.error("Error: {}", ex.getMessage());
+                    log.error("[ComfUI][Websocket连接错误]>>>>>>>>>comfyui的websocket异常,异常信息: {}", ex.getMessage());
                 }
                 @Override
                 public void onClose(int code, String reason, boolean remote) {
+                    log.warn("[ComfUI][Websocket连接端口]>>>>>>>>>comfyui的websocket关闭,任务ID：{}，关闭原因：{}",taskId,reason);
                 }
             };
             webSocketClient.connect();
@@ -101,9 +100,16 @@ public class ComfyWebsocketClient {
      */
     public void closeComfyUiWebSocket(String taskId) {
         WebSocketClient webSocketClient = NODE_WS_CLIENT_MAP.get(taskId);
-        if (Objects.nonNull(webSocketClient)){
-            webSocketClient.close();
+        try{
+            if (Objects.nonNull(webSocketClient)){
+                webSocketClient.close();
+            }
         }
-        NODE_WS_CLIENT_MAP.remove(taskId);
+        catch (Exception e) {
+            log.error("关闭comfyui的websocket异常,异常信息: ", e);
+        }
+        finally {
+            NODE_WS_CLIENT_MAP.remove(taskId);
+        }
     }
 }

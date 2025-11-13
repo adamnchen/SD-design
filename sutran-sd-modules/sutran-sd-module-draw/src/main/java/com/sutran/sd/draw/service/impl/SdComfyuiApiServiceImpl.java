@@ -367,8 +367,8 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
                 // 提交任务，返回ComfyUI内部任务ID
                 String promptId = submitDrawTask(taskId, JSONObject.parseObject(flowStr), node);
                 if (StringUtils.isNotBlank(promptId)) {
-                    RedisUtils.setCacheObject(COMFY_TASK+taskId,promptId, Duration.ofMinutes(3));
-                    RedisUtils.setCacheObject(COMFY_TASK+promptId,taskId, Duration.ofMinutes(3));
+                    RedisUtils.setCacheObject(COMFY_TASK+taskId,promptId, Duration.ofMinutes(4));
+                    RedisUtils.setCacheObject(COMFY_TASK+promptId,taskId, Duration.ofMinutes(4));
                 }
                 // 检查任务是否有缓存
                 checkCacheTask(promptId,taskId,node,taskInfo,task);

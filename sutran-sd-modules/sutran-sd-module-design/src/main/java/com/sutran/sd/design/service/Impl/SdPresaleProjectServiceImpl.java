@@ -753,7 +753,12 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
 
             // 有效期天数：使用用户填写的有效期天数
             project.setValidityDays(publishDTO.getValidityDays());
-            project.setManufacturerPhotos(publishDTO.getManufacturerPhotos());
+            // 设置厂家上传的实物照片
+            String manufacturerPhotos = publishDTO.getManufacturerPhotos();
+            project.setManufacturerPhotos(manufacturerPhotos);
+            log.info("[发布预售项目] 设置厂家实物照片: 打样邀约ID={}, 照片数据={}", 
+                publishDTO.getProofingInvitationId(), 
+                StringUtils.isNotBlank(manufacturerPhotos) ? "已设置(" + manufacturerPhotos.length() + "字符)" : "为空");
             project.setStatus(PresaleProjectStatus.ON_SALE.getCode()); // 销售中
             project.setViewCount(0);
             project.setFavoriteCount(0);
@@ -773,9 +778,16 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
             project.setTieredPricing(tieredPricingJson);
 
             // 6. 保存项目
-            int result = presaleProjectMapper.insert(project);
+            log.info("[发布预售项目] 准备保存项目: 标题={}, manufacturerPhotos={}", 
+                project.getTitle(), 
+                project.getManufacturerPhotos() != null ? "已设置(" + project.getManufacturerPhotos().length() + "字符)" : "为null");
+            // 使用自定义插入方法，确保 manufacturer_photos 字段被正确插入
+            int result = presaleProjectMapper.insertSdPresaleProject(project);
             if (result > 0) {
-                log.info("[发布预售项目] 发布成功: 项目ID={}, 标题={}", project.getId(), project.getTitle());
+                log.info("[发布预售项目] 发布成功: 项目ID={}, 标题={}, manufacturerPhotos={}", 
+                    project.getId(), 
+                    project.getTitle(),
+                    project.getManufacturerPhotos() != null ? "已保存(" + project.getManufacturerPhotos().length() + "字符)" : "未保存");
 
                 // 7. 发布预售成功后，如果该打样邀约对应的众筹项目是"众筹成功"状态，则将其状态更新为4（已发布）
                 LambdaQueryWrapper<SdCrowdfundingProject> updateQuery = new LambdaQueryWrapper<>();

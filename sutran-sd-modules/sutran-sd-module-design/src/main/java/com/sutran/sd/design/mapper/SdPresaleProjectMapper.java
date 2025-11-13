@@ -68,4 +68,12 @@ public interface SdPresaleProjectMapper extends BaseMapper<SdPresaleProject> {
      * @return 预售项目分页数据
      */
     IPage<SdPresaleProject> selectUserPresaleProjects(IPage<SdPresaleProject> page, @Param("userId") Long userId, @Param("userType") String userType);
+
+    /**
+     * 新增预售项目（使用自定义插入语句，确保所有字段都被正确插入）
+     *
+     * @param sdPresaleProject 预售项目
+     * @return 结果
+     */
+    int insertSdPresaleProject(SdPresaleProject sdPresaleProject);
 }

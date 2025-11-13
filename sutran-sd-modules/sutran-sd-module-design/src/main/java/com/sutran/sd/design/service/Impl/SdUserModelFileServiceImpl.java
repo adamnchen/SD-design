@@ -228,7 +228,9 @@ public class SdUserModelFileServiceImpl extends ServiceImpl<DesignSdUserModelFil
 
             Page<DesignSdUserModelFile> page = pageQuery.build();
             LambdaQueryWrapper<DesignSdUserModelFile> queryWrapper = new LambdaQueryWrapper<>();
-            queryWrapper.orderByDesc(DesignSdUserModelFile::getCrtTime);
+            queryWrapper.orderByDesc(DesignSdUserModelFile::getCrtTime)
+                        .eq(DesignSdUserModelFile::getIsPublic, 1);
+
 
             Page<DesignSdUserModelFile> result = userModelFileMapper.selectPage(page, queryWrapper);
 

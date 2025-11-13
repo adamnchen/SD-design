@@ -42,6 +42,8 @@ public class SdCrowdfundingSampleDeliveryServiceImpl implements ISdCrowdfundingS
     private final SdCrowdfundingProjectMapper projectMapper;
     private final SdCrowdfundingSupportMapper supportMapper;
     private final ISysOssService ossService;
+    private final SdCrowdfundingProjectMapper sdCrowdfundingProjectMapper;
+    private final SdCrowdfundingSupportMapper crowdfundingSupportMapper;
 
     @Override
     public SdCrowdfundingSampleDelivery selectSdCrowdfundingSampleDeliveryById(Long id) {
@@ -130,7 +132,7 @@ public class SdCrowdfundingSampleDeliveryServiceImpl implements ISdCrowdfundingS
                     vo.setStatusText("待发货");
                     vo.setRemark(support.getPrizeInfo());
                     vo.setCreateTime(support.getCreateTime());
-                    
+
                     // 设置订单编号
                     vo.setOrderNo(support.getOrderNo());
 
@@ -214,6 +216,7 @@ public class SdCrowdfundingSampleDeliveryServiceImpl implements ISdCrowdfundingS
 
             // 2. 查询发货记录
             SdCrowdfundingSampleDelivery delivery = sampleDeliveryMapper.selectSdCrowdfundingSampleDeliveryById(id);
+            SdCrowdfundingProject project = sdCrowdfundingProjectMapper.selectSdCrowdfundingProjectById(id);
             if (delivery == null) {
 
                 return R.fail("发货记录不存在");
@@ -225,9 +228,12 @@ public class SdCrowdfundingSampleDeliveryServiceImpl implements ISdCrowdfundingS
 
             // 4. 更新发货记录的样品图片地址
             delivery.setSampleImageUrl(uploadUrl);
-            int result = sampleDeliveryMapper.updateById(delivery);
+            project.setManufacturerPhotos(uploadUrl);
 
-            if (result > 0) {
+            int result = sampleDeliveryMapper.updateById(delivery);
+            int result2 = sdCrowdfundingProjectMapper.updateById(project);
+
+            if (result > 0&& result2 > 0) {
                 log.info("样品图片上传成功: 记录ID={}, 图片URL={}", id, uploadUrl);
                 return R.ok(uploadUrl);
             } else {
@@ -285,7 +291,7 @@ public class SdCrowdfundingSampleDeliveryServiceImpl implements ISdCrowdfundingS
 
             // 2. 构建分页查询
             Page<SdCrowdfundingSampleDelivery> page = pageQuery.build();
-            
+
             // 3. 查询该项目的所有发货记录
             LambdaQueryWrapper<SdCrowdfundingSampleDelivery> queryWrapper = new LambdaQueryWrapper<>();
             queryWrapper.eq(SdCrowdfundingSampleDelivery::getCrowdfundingProjectId, projectId)
@@ -317,37 +323,37 @@ public class SdCrowdfundingSampleDeliveryServiceImpl implements ISdCrowdfundingS
      */
     private SampleDeliveryListVO convertToSampleDeliveryListVO(SdCrowdfundingSampleDelivery delivery, SdCrowdfundingProject project) {
         SampleDeliveryListVO vo = new SampleDeliveryListVO();
-        
+
         // 基本信息
         vo.setId(delivery.getId());
         vo.setCrowdfundingProjectId(delivery.getCrowdfundingProjectId());
         vo.setProjectTitle(project.getTitle());
         vo.setProofingInvitationId(delivery.getProofingInvitationId());
         vo.setSampleImageUrl(delivery.getSampleImageUrl());
-        
+
         // 收货人信息
         vo.setRecipientUserId(delivery.getRecipientUserId());
         vo.setRecipientName(delivery.getRecipientName());
         vo.setRecipientPhone(delivery.getRecipientPhone());
         vo.setDeliveryAddress(delivery.getDeliveryAddress());
-        
+
         // 发货信息
         vo.setTrackingNumber(delivery.getTrackingNumber());
         vo.setDeliveryCompany(delivery.getDeliveryCompany());
         vo.setStatus(delivery.getStatus());
         vo.setStatusText(delivery.getStatus() == 1 ? "待发货" : "已发货");
         vo.setRemark(delivery.getRemark());
-        
+
         // 发货人信息
         vo.setSenderUserId(delivery.getSenderUserId());
         vo.setSenderName(delivery.getSenderName());
-        
+
         // 时间信息
         vo.setDeliveryTime(delivery.getDeliveryTime());
         vo.setConfirmTime(delivery.getConfirmTime());
         vo.setCreateTime(delivery.getCreateTime());
         vo.setOrderStatus(delivery.getOrderStatus());
-        
+
         // 查询订单编号：通过收货人用户ID和项目ID查询支持记录
         try {
             LambdaQueryWrapper<SdCrowdfundingSupport> supportWrapper = new LambdaQueryWrapper<>();
@@ -356,7 +362,7 @@ public class SdCrowdfundingSampleDeliveryServiceImpl implements ISdCrowdfundingS
                          .eq(SdCrowdfundingSupport::getIsWinner, 1) // 中奖者
                          .orderByDesc(SdCrowdfundingSupport::getCreateTime)
                          .last("LIMIT 1");
-            
+
             SdCrowdfundingSupport support = supportMapper.selectOne(supportWrapper);
             if (support != null && support.getOrderNo() != null) {
                 // 设置订单编号
@@ -364,10 +370,10 @@ public class SdCrowdfundingSampleDeliveryServiceImpl implements ISdCrowdfundingS
                 vo.setOrderNo(support.getOrderNo());
             }
         } catch (Exception e) {
-            log.warn("查询订单编号失败: 项目ID={}, 收货人ID={}, 错误={}", 
+            log.warn("查询订单编号失败: 项目ID={}, 收货人ID={}, 错误={}",
                     delivery.getCrowdfundingProjectId(), delivery.getRecipientUserId(), e.getMessage());
         }
-        
+
         return vo;
     }
 

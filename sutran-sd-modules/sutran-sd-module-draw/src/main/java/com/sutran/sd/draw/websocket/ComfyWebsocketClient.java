@@ -44,7 +44,7 @@ public class ComfyWebsocketClient {
             webSocketClient = new WebSocketClient(new URI(wsUrl)) {
                 @Override
                 public void onOpen(ServerHandshake handshake) {
-                    log.warn("[ComfUI][Websocket]>>>>>>>>>连接到任务：{}，内部任务ID：{}",taskId,promptId);
+                    log.warn("[ComfUI][开始任务]>>>>>>>>>连接到任务：{}，内部任务ID：{}",taskId,promptId);
                 }
                 @Override
                 public void onMessage(String message) {
@@ -82,7 +82,7 @@ public class ComfyWebsocketClient {
                 }
                 @Override
                 public void onClose(int code, String reason, boolean remote) {
-                    log.warn("[ComfUI][Websocket连接端口]>>>>>>>>>comfyui的websocket关闭,任务ID：{}，关闭原因：{}",taskId,reason);
+                    log.warn("[ComfUI][结束任务]>>>>>>>>>完成任务：{}",taskId);
                 }
             };
             webSocketClient.connect();

@@ -249,7 +249,7 @@ public class SdUserModelFileServiceImpl extends ServiceImpl<DesignSdUserModelFil
                     // 批量查询用户信息（使用 LambdaQueryWrapper 查询指定用户ID列表）
                     LambdaQueryWrapper<SysUser> userQueryWrapper = new LambdaQueryWrapper<>();
                     userQueryWrapper.in(SysUser::getUserId, userIds)
-                                   .select(SysUser::getUserId, SysUser::getNickName, SysUser::getAvatar);
+                                   .select(SysUser::getUserId, SysUser::getUserName, SysUser::getNickName, SysUser::getAvatar);
                     List<SysUser> users = sysUserMapper.selectList(userQueryWrapper);
                     Map<Long, SysUser> userMap = users.stream()
                             .collect(Collectors.toMap(SysUser::getUserId, user -> user));
@@ -260,6 +260,7 @@ public class SdUserModelFileServiceImpl extends ServiceImpl<DesignSdUserModelFil
                             SysUser user = userMap.get(vo.getBelongUserId());
                             if (user != null) {
                                 vo.setBelongUserAvatar(user.getAvatar());
+                                vo.setBelongUserName(user.getUserName());
                                 vo.setBelongUserNickName(user.getNickName());
                             }
                         }

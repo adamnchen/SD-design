@@ -79,6 +79,14 @@ public class CrowdfundingPaymentController extends BaseAliPayApiController {
     }
 
     /**
+     * 获取我的样品发货记录（包含快递单号）
+     */
+    @GetMapping("/support/my-deliveries")
+    public R<List<com.sutran.sd.design.vo.SampleDeliveryListVO>> getMySampleDeliveries() {
+        return R.ok(crowdfundingProjectService.getMySampleDeliveries());
+    }
+
+    /**
      * 获取我的抽奖记录
      */
     @GetMapping("/support/my-draws")

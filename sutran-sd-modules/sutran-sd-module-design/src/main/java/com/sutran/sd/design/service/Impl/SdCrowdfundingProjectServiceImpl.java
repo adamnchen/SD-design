@@ -12,12 +12,14 @@ import com.sutran.sd.common.helper.LoginHelper;
 import com.sutran.sd.common.utils.OrderNumUtils;
 import com.sutran.sd.design.config.CrowdfundingConfig;
 import com.sutran.sd.design.domain.SdCrowdfundingProject;
+import com.sutran.sd.design.domain.SdCrowdfundingSampleDelivery;
 import com.sutran.sd.design.domain.SdCrowdfundingSupport;
 import com.sutran.sd.design.dto.CrowdfundingProjectSimpleCreateDTO;
 import com.sutran.sd.design.dto.CrowdfundingSupportDTO;
 import com.sutran.sd.design.enums.CrowdfundingProjectStatus;
 import com.sutran.sd.design.mapper.SdCrowdfundingProjectMapper;
 import com.sutran.sd.design.mapper.SdCrowdfundingSupportMapper;
+import com.sutran.sd.design.mapper.SdCrowdfundingSampleDeliveryMapper;
 import com.sutran.sd.design.mapper.SdProofingInvitationMapper;
 import com.sutran.sd.design.service.CrowdfundingMqService;
 import com.sutran.sd.design.service.CrowdfundingRedisService;
@@ -29,6 +31,7 @@ import com.sutran.sd.system.service.ISysUserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -59,6 +62,7 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
     private final ISysUserService userService;
     private final AliPayService aliPayService;
     private final IForbiddenWordService forbiddenWordService;
+    private final SdCrowdfundingSampleDeliveryMapper deliveryMapper;
 
     @Override
     public SdCrowdfundingProject selectSdCrowdfundingProjectById(Long id) {
@@ -404,6 +408,45 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
             vo.setIsWinner(support.getIsWinner() == 1);
             vo.setPrizeInfo(support.getPrizeInfo());
             vo.setCreateTime(support.getCreateTime());
+            return vo;
+        }).collect(java.util.stream.Collectors.toList());
+    }
+
+    @Override
+    public List<SampleDeliveryListVO> getMySampleDeliveries() {
+        Long currentUserId = LoginHelper.getUserId();
+        
+        // 查询当前用户的样品发货记录
+        List<SdCrowdfundingSampleDelivery> deliveries = deliveryMapper.selectByRecipientUserId(currentUserId);
+        
+        // 转换为VO
+        return deliveries.stream().map(delivery -> {
+            SampleDeliveryListVO vo = new SampleDeliveryListVO();
+            BeanUtils.copyProperties(delivery, vo);
+            
+            // 设置状态描述
+            if (delivery.getStatus() != null) {
+                switch (delivery.getStatus()) {
+                    case 1:
+                        vo.setStatusText("待发货");
+                        break;
+                    case 2:
+                        vo.setStatusText("已发货");
+                        break;
+                    default:
+                        vo.setStatusText("未知状态");
+                        break;
+                }
+            }
+            
+            // 查询项目标题
+            if (delivery.getCrowdfundingProjectId() != null) {
+                SdCrowdfundingProject project = crowdfundingProjectMapper.selectSdCrowdfundingProjectById(delivery.getCrowdfundingProjectId());
+                if (project != null) {
+                    vo.setProjectTitle(project.getTitle());
+                }
+            }
+            
             return vo;
         }).collect(java.util.stream.Collectors.toList());
     }

@@ -9,6 +9,7 @@ import com.sutran.sd.design.vo.CrowdfundingProjectDetailVO;
 import com.sutran.sd.design.vo.CrowdfundingProjectListVO;
 import com.sutran.sd.design.vo.CrowdfundingSupportVO;
 import com.sutran.sd.design.vo.CrowdfundingDrawVO;
+import com.sutran.sd.design.vo.SampleDeliveryListVO;
 
 import java.util.List;
 
@@ -111,6 +112,13 @@ public interface ISdCrowdfundingProjectService {
      * @return 支持记录列表
      */
     List<CrowdfundingSupportVO> getMySupports();
+
+    /**
+     * 获取我的样品发货记录（包含快递单号）
+     *
+     * @return 样品发货记录列表
+     */
+    List<SampleDeliveryListVO> getMySampleDeliveries();
 
     /**
      * 获取我的抽奖记录

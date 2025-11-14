@@ -90,10 +90,11 @@ public class TaskOutputHandleStrategy implements IComfyWebSocketTextHandleStrate
             }
             if (CollectionUtil.isNotEmpty(urlList)) {
                 sdUserModelFileService.asyncBatchInsert(task,urlList);
+                RedisUtils.setCacheMapValue(DRAW_TASK_PROGRESS, taskId, 100);
             }
         }
-        finally {
-            RedisUtils.setCacheMapValue(DRAW_TASK_PROGRESS, taskId, 100);
+        catch (Exception e){
+            log.error("[任务输出图片][处理失败]>>>>>>>>>任务id: {},comfyui内部任务id: {},异常原因: ", taskId, promptId,e);
         }
     }
 }

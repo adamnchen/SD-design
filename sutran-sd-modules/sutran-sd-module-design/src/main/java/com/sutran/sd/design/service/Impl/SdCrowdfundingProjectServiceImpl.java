@@ -416,6 +416,101 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
         crowdfundingProjectMapper.updateSdCrowdfundingProject(project);
 
         log.info("[众筹抽奖] 抽奖完成, projectId={}, 中奖用户ID={} ", projectId, winnerUserIds);
+
+        // 插入众筹样品发货记录
+        insertSampleDeliveryRecordsForWinners(projectId, winnerUserIds, userSupportMap);
+    }
+
+    /**
+     * 为中奖者插入众筹样品发货记录
+     */
+    private void insertSampleDeliveryRecordsForWinners(Long projectId, Set<Long> winnerUserIds, Map<Long, List<SdCrowdfundingSupport>> userSupportMap) {
+        try {
+            log.info("[众筹发货] 开始为中奖者插入样品发货记录, projectId={}, 中奖人数={}", projectId, winnerUserIds.size());
+
+            // 获取项目信息
+            SdCrowdfundingProject project = crowdfundingProjectMapper.selectById(projectId);
+            if (project == null) {
+                log.error("[众筹发货] 项目不存在, projectId={}", projectId);
+                return;
+            }
+
+            // 查询项目的邀约记录ID（发货记录需要）
+            Long proofingInvitationId = project.getProofingInvitationId();
+            if (proofingInvitationId == null) {
+                log.error("[众筹发货] 项目邀约记录ID为空, projectId={}", projectId);
+                return;
+            }
+
+            // 获取发起人信息作为发货人
+            Long senderUserId = project.getCreatorUserId();
+            String senderName = "项目发起人";
+            if (senderUserId != null) {
+                try {
+                    SysUser senderUser = userService.selectUserById(senderUserId);
+                    if (senderUser != null) {
+                        senderName = senderUser.getUserName();
+                    }
+                } catch (Exception e) {
+                    log.warn("[众筹发货] 获取发起人信息失败, senderUserId={}", senderUserId, e);
+                }
+            }
+
+            int insertedCount = 0;
+            // 为每个中奖用户创建发货记录
+            for (Long winnerUserId : winnerUserIds) {
+                List<SdCrowdfundingSupport> userSupports = userSupportMap.get(winnerUserId);
+                if (userSupports == null || userSupports.isEmpty()) {
+                    log.warn("[众筹发货] 中奖用户无支持记录, projectId={}, userId={}", projectId, winnerUserId);
+                    continue;
+                }
+
+                // 使用该用户的第一个支持记录的收货信息
+                SdCrowdfundingSupport support = userSupports.get(0);
+
+                // 检查是否已有发货记录（避免重复插入）
+                LambdaQueryWrapper<SdCrowdfundingSampleDelivery> existQuery = new LambdaQueryWrapper<>();
+                existQuery.eq(SdCrowdfundingSampleDelivery::getCrowdfundingProjectId, projectId)
+                         .eq(SdCrowdfundingSampleDelivery::getRecipientUserId, winnerUserId);
+                SdCrowdfundingSampleDelivery existingDelivery = deliveryMapper.selectOne(existQuery);
+                if (existingDelivery != null) {
+                    log.info("[众筹发货] 中奖用户已有发货记录，跳过插入, projectId={}, userId={}", projectId, winnerUserId);
+                    continue;
+                }
+
+                // 创建发货记录
+                SdCrowdfundingSampleDelivery delivery = new SdCrowdfundingSampleDelivery();
+                delivery.setCrowdfundingProjectId(projectId);
+                delivery.setProofingInvitationId(proofingInvitationId);
+                delivery.setSampleImageUrl(""); // 样品图片初始为空
+                delivery.setRecipientUserId(winnerUserId);
+                delivery.setRecipientName(support.getReceiverName());
+                delivery.setRecipientPhone(support.getReceiverPhone());
+                delivery.setDeliveryAddress(support.getReceiverAddress());
+                delivery.setSenderUserId(senderUserId);
+                delivery.setSenderName(senderName);
+                delivery.setStatus(1); // 1=待发货
+                delivery.setTrackingNumber(""); // 快递单号初始为空，由商家后续填写
+                delivery.setDeliveryCompany(""); // 快递公司初始为空
+
+                // 插入发货记录
+                int result = deliveryMapper.insert(delivery);
+                if (result > 0) {
+                    insertedCount++;
+                    log.info("[众筹发货] 插入发货记录成功, projectId={}, userId={}, deliveryId={}", 
+                        projectId, winnerUserId, delivery.getId());
+                } else {
+                    log.error("[众筹发货] 插入发货记录失败, projectId={}, userId={}", projectId, winnerUserId);
+                }
+            }
+
+            log.info("[众筹发货] 完成为中奖者插入样品发货记录, projectId={}, 中奖人数={}, 成功插入{}条记录", 
+                projectId, winnerUserIds.size(), insertedCount);
+
+        } catch (Exception e) {
+            log.error("[众筹发货] 插入样品发货记录异常, projectId={}", projectId, e);
+            // 不抛出异常，避免影响主流程
+        }
     }
 
     @Override

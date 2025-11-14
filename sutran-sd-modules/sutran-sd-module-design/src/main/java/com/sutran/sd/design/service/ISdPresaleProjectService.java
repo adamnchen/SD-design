@@ -180,4 +180,12 @@ public interface ISdPresaleProjectService {
      * @return 完整的图片列表（JSON格式，包含新上传的图片）
      */
     R<String> uploadManufacturerPhotos(MultipartFile file, Long proofingInvitationId);
+
+    /**
+     * 预售发货 - 填写/更新快递单号
+     * @param deliveryId 预售发货记录ID
+     * @param trackingNumber 快递单号
+     * @return 结果
+     */
+    R<String> updatePresaleTrackingNumber(Long deliveryId, String trackingNumber);
 }

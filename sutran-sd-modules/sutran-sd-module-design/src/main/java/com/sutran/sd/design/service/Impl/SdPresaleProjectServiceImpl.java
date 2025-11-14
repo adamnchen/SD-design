@@ -10,6 +10,7 @@ import com.sutran.sd.common.core.page.TableDataInfo;
 import com.sutran.sd.common.helper.LoginHelper;
 import com.sutran.sd.common.utils.OrderNumUtils;
 import com.sutran.sd.common.utils.StringUtils;
+import com.sutran.sd.design.domain.SdPresaleDelivery;
 import com.sutran.sd.design.domain.SdPresaleOrder;
 import com.sutran.sd.design.domain.SdPresaleProject;
 import com.sutran.sd.design.domain.SdCrowdfundingProject;
@@ -18,6 +19,7 @@ import com.sutran.sd.design.enums.PresaleProjectStatus;
 import com.sutran.sd.design.enums.CrowdfundingProjectStatus;
 import com.sutran.sd.design.dto.PresaleOrderCreateDTO;
 import com.sutran.sd.design.dto.PresaleProjectPublishDTO;
+import com.sutran.sd.design.mapper.SdPresaleDeliveryMapper;
 import com.sutran.sd.design.mapper.SdPresaleOrderMapper;
 import com.sutran.sd.design.mapper.SdPresaleProjectMapper;
 import com.sutran.sd.design.mapper.SdProofingInvitationMapper;
@@ -64,6 +66,7 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
     private final AliPayService aliPayService;
     private final SdProofingInvitationMapper proofingInvitationMapper;
     private final SdCrowdfundingProjectMapper crowdfundingProjectMapper;
+    private final SdPresaleDeliveryMapper presaleDeliveryMapper;
     private final com.sutran.sd.design.mapper.SdCrowdfundingSampleDeliveryMapper sampleDeliveryMapper;
     private final ISysOssService sysOssService;
     private final ISysUserService userService;
@@ -882,6 +885,52 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
         } catch (Exception e) {
             log.error("[上传实物照片] 上传异常: {}", e.getMessage(), e);
             return R.fail("上传失败: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public R<String> updatePresaleTrackingNumber(Long deliveryId, String trackingNumber) {
+        try {
+            if (deliveryId == null) {
+                return R.fail("发货记录ID不能为空");
+            }
+            if (StringUtils.isBlank(trackingNumber)) {
+                return R.fail("快递单号不能为空");
+            }
+
+            // 查询预售发货记录
+            SdPresaleDelivery delivery = presaleDeliveryMapper.selectSdPresaleDeliveryById(deliveryId);
+            if (delivery == null) {
+                return R.fail("发货记录不存在");
+            }
+
+            // 更新发货记录快递单号与状态
+            delivery.setTrackingNumber(trackingNumber);
+            delivery.setDeliveryStatus(2); // 已发货
+            delivery.setDeliveryTime(new Date());
+            int upd1 = presaleDeliveryMapper.updateSdPresaleDelivery(delivery);
+
+            // 同步更新订单表快递单号与状态
+            SdPresaleOrder order = null;
+            if (StringUtils.isNotBlank(delivery.getOrderNo())) {
+                order = presaleOrderMapper.selectByOrderNo(delivery.getOrderNo());
+            } else if (delivery.getOrderId() != null) {
+                order = presaleOrderMapper.selectById(delivery.getOrderId());
+            }
+            if (order != null) {
+                order.setExpressNo(trackingNumber);
+                order.setDeliveryStatus(1); // 已发货
+                order.setDeliveryTime(new Date());
+                presaleOrderMapper.updateById(order);
+            }
+
+            if (upd1 > 0) {
+                return R.ok("快递单号更新成功");
+            }
+            return R.fail("更新失败");
+        } catch (Exception e) {
+            log.error("[预售发货] 更新快递单号异常: id={}, err=\n{}", deliveryId, e.getMessage(), e);
+            return R.fail("更新快递单号失败: " + e.getMessage());
         }
     }
 

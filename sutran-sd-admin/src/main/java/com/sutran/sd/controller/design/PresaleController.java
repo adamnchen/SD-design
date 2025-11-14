@@ -230,6 +230,17 @@ public class PresaleController extends BaseAliPayApiController {
     }
 
     /**
+     * 预售发货 - 填写/更新快递单号
+     */
+    @Operation(summary = "预售发货-填写快递单号", description = "根据预售发货记录ID填写或更新快递单号，同时同步订单表")
+    @PostMapping("/delivery/tracking")
+    public R<String> updatePresaleTrackingNumber(
+            @RequestParam("deliveryId") Long deliveryId,
+            @RequestParam("trackingNumber") String trackingNumber) {
+        return presaleProjectService.updatePresaleTrackingNumber(deliveryId, trackingNumber);
+    }
+
+    /**
      * 支付宝支付成功回调
      */
     @PostMapping("/payment/alipay/notify")

@@ -67,7 +67,7 @@ public class CrowdfundingRedisServiceImpl implements CrowdfundingRedisService {
                                 projectId, requestAmount, atomicDouble.get());
                         return true;
                     } else {
-                        log.warn("众筹金额不足: 项目={}, 当前金额={}, 请求金额={}",
+                        log.warn("众筹金额不符: 项目={}, 当前金额={}, 请求金额={}",
                                 projectId, currentAmount, deductAmount);
                         return false;
                     }

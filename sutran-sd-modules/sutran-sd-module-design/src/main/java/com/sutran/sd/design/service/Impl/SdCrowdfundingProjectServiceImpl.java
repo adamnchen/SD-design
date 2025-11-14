@@ -819,7 +819,7 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
             // 4. 扣除订单金额（Redis）
             boolean deducted = crowdfundingRedisService.tryDeductAmount(supportDTO.getProjectId(), supportDTO.getSupportAmount());
             if (!deducted) {
-                throw new RuntimeException("众筹金额不足，无法创建订单");
+                throw new RuntimeException("众筹金额不符，无法创建订单");
             }
             log.info("Redis金额扣除成功: 订单号={}, 金额={}", orderNo, supportDTO.getSupportAmount());
 

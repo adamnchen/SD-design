@@ -70,6 +70,21 @@ public class CrowdfundingSupportVO {
     private String prizeInfo;
 
     /**
+     * 快递单号（样品发货）
+     */
+    private String trackingNumber;
+
+    /**
+     * 发货状态：0=待发货，1=已发货，2=已收货
+     */
+    private Integer deliveryStatus;
+
+    /**
+     * 发货时间
+     */
+    private Date deliveryTime;
+
+    /**
      * 创建时间
      */
     private Date createTime;

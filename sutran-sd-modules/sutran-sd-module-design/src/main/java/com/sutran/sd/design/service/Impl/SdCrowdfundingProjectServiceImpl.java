@@ -650,7 +650,61 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
             vo.setDrawStatus(support.getDrawStatus());
             vo.setIsWinner(support.getIsWinner() == 1);
             vo.setPrizeInfo(support.getPrizeInfo());
+            
+            // 设置抽奖状态描述
+            switch (support.getDrawStatus()) {
+                case 0:
+                    vo.setDrawStatusDesc("未参与抽奖");
+                    break;
+                case 1:
+                    vo.setDrawStatusDesc("已参与抽奖");
+                    break;
+                case 2:
+                    vo.setDrawStatusDesc("恭喜中奖");
+                    break;
+                case 3:
+                    vo.setDrawStatusDesc("未中奖");
+                    break;
+                default:
+                    vo.setDrawStatusDesc("未知状态");
+                    break;
+            }
+            
             vo.setCreateTime(support.getCreateTime());
+
+            // 查询项目标题
+            try {
+                SdCrowdfundingProject project = crowdfundingProjectMapper.selectById(support.getProjectId());
+                if (project != null) {
+                    vo.setProjectTitle(project.getTitle());
+                }
+            } catch (Exception e) {
+                log.warn("查询项目信息失败: 项目ID={}, 错误={}", support.getProjectId(), e.getMessage());
+            }
+
+            // 查询关联的样品发货记录
+            try {
+                LambdaQueryWrapper<SdCrowdfundingSampleDelivery> deliveryQuery = new LambdaQueryWrapper<>();
+                deliveryQuery.eq(SdCrowdfundingSampleDelivery::getCrowdfundingProjectId, support.getProjectId())
+                           .eq(SdCrowdfundingSampleDelivery::getRecipientUserId, support.getUserId());
+                
+                List<SdCrowdfundingSampleDelivery> deliveries = deliveryMapper.selectList(deliveryQuery);
+                if (deliveries != null && !deliveries.isEmpty()) {
+                    // 如果有多个发货记录，取最新的一个
+                    SdCrowdfundingSampleDelivery latestDelivery = deliveries.stream()
+                        .max(java.util.Comparator.comparing(SdCrowdfundingSampleDelivery::getCreateTime))
+                        .orElse(null);
+                    
+                    if (latestDelivery != null) {
+                        vo.setTrackingNumber(latestDelivery.getTrackingNumber());
+                        vo.setDeliveryStatus(latestDelivery.getStatus());
+                        vo.setDeliveryTime(latestDelivery.getDeliveryTime());
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("查询发货记录失败: 支持记录ID={}, 错误={}", support.getId(), e.getMessage());
+            }
+
             return vo;
         }).collect(java.util.stream.Collectors.toList());
     }

@@ -292,13 +292,13 @@ public class PresaleOrderPayNotifyServiceImpl extends BasePayNotifyService {
             // 计算新的总金额
             BigDecimal newTotalAmount = currentUnitPrice.multiply(BigDecimal.valueOf(order.getQuantity()));
 
-            // 计算退款金额（原总金额 - 新总金额）
-            BigDecimal refundAmount = order.getOriginalTotalAmount().subtract(newTotalAmount);
+            // 计算退款金额（实际支付金额 - 新总金额）
+            BigDecimal refundAmount = order.getFinalTotalAmount().subtract(newTotalAmount);
 
             if (refundAmount.compareTo(BigDecimal.ZERO) > 0) {
                 // 需要退款
-                log.info("[预售订单] 需要退款: 订单号={}, 退款金额={}, 原金额={}, 新金额={}",
-                    order.getOrderNo(), refundAmount, order.getOriginalTotalAmount(), newTotalAmount);
+                log.info("[预售订单] 需要退款: 订单号={}, 退款金额={}, 实际支付金额={}, 新金额={}",
+                    order.getOrderNo(), refundAmount, order.getFinalTotalAmount(), newTotalAmount);
 
                 // 更新订单信息
                 order.setFinalUnitPrice(currentUnitPrice);

@@ -132,7 +132,21 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
             throw new ServiceException("打样邀约不存在");
         }
 
-        // 2. 厂家匹配：如果当前邀约的被邀约人不等于传入厂家，则在同一作品+发起人的邀约组中尝试定位该厂家
+        // 2. 检查邀约是否已有回应，防止重复发布众筹
+        if (invitationDetail.getStatus() != null && invitationDetail.getStatus() != 0) {
+            // 邀约有回应，检查是否已存在进行中的众筹项目
+            SdCrowdfundingProject existingProject = crowdfundingProjectMapper.selectByProofingInvitationId(invitationDetail.getId());
+            if (existingProject != null) {
+                // 检查现有众筹项目状态：1=众筹中，4=已发布
+                if (existingProject.getStatus() != null && 
+                    (existingProject.getStatus().equals(CrowdfundingProjectStatus.FUNDING.getCode()) || 
+                     existingProject.getStatus().equals(CrowdfundingProjectStatus.PUBLISHED.getCode()))) {
+                    throw new ServiceException("该邀约已存在进行中的众筹项目，不能重复发布");
+                }
+            }
+        }
+
+        // 3. 厂家匹配：如果当前邀约的被邀约人不等于传入厂家，则在同一作品+发起人的邀约组中尝试定位该厂家
         if (!invitationDetail.getInviteeUserId().equals(createDTO.getManufacturerUserId())) {
             // 在同一 workId + inviterUserId 下查找包含该厂家的邀约记录
             java.util.List<com.sutran.sd.common.core.domain.entity.SdProofingInvitation> groupInvitations =
@@ -160,10 +174,10 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
             }
         }
 
-        // 3. 生成项目编号
+        // 4. 生成项目编号
         String projectNo = "CF" + System.currentTimeMillis();
 
-        // 4. 构建众筹项目对象 - 从多表联查结果中获取所有信息
+        // 5. 构建众筹项目对象 - 从多表联查结果中获取所有信息
         SdCrowdfundingProject project = new SdCrowdfundingProject();
         project.setProjectNo(projectNo);
 
@@ -217,11 +231,11 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
         project.setDrawStatus(0); // 未开始
         project.setEscrowStatus(0); // 托管中
 
-        // 5. 插入众筹项目
+        // 6. 插入众筹项目
         int result = crowdfundingProjectMapper.insert(project);
 
 
-        // 6. 初始化Redis金额缓存
+        // 7. 初始化Redis金额缓存
         if (result > 0 && project.getId() != null) {
             boolean initSuccess = crowdfundingRedisService.initProjectAmount(
                 project.getId(),

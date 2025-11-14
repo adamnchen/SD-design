@@ -69,8 +69,6 @@ public class ProofCrowdfundPayNotifyServiceImpl extends BasePayNotifyService {
 
                 // 更新众筹支持记录状态
                 support.setStatus(CrowdfundingSupportStatus.NORMAL.getCode()); // 正常状态
-                support.setPayOrderId(payOrder.getId());
-                support.setPayTime(new Date());
                 crowdfundingSupportMapper.updateById(support);
 
                 log.info("[众筹][支付回调] 支付成功处理完成: 订单号={}, 项目ID={}", outTradeNo, support.getProjectId());
@@ -153,7 +151,7 @@ public class ProofCrowdfundPayNotifyServiceImpl extends BasePayNotifyService {
             }
 
             // 3. 检查是否已经退款
-            if (support.getStatus() == CrowdfundingSupportStatus.REFUNDED.getCode()) {
+            if (support.getStatus().equals(CrowdfundingSupportStatus.REFUNDED.getCode())) {
                 log.info("[众筹退款] 订单已退款，跳过处理: 订单号={}", orderNo);
                 return;
             }
@@ -165,7 +163,7 @@ public class ProofCrowdfundPayNotifyServiceImpl extends BasePayNotifyService {
             }
 
             BigDecimal refundAmount = support.getSupportAmount();
-            aliPayService.tradeRefund(orderNo, payOrder.getTradeNo(), 
+            aliPayService.tradeRefund(orderNo, payOrder.getTradeNo(),
                 refundAmount.setScale(2, RoundingMode.HALF_UP).toString(), refundReason);
 
             // 5. 更新众筹支持记录状态
@@ -174,7 +172,7 @@ public class ProofCrowdfundPayNotifyServiceImpl extends BasePayNotifyService {
             support.setRefundReason(refundReason);
             crowdfundingSupportMapper.updateById(support);
 
-            log.info("[众筹退款] 退款成功: 订单号={}, 退款金额={}, 用户={}", 
+            log.info("[众筹退款] 退款成功: 订单号={}, 退款金额={}, 用户={}",
                 orderNo, refundAmount, support.getUserName());
 
         } catch (Exception e) {

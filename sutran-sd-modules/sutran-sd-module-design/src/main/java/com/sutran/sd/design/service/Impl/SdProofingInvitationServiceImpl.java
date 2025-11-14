@@ -158,6 +158,18 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
             // 保存到数据库
             invitationMapper.insert(invitation);
             createdInvitation = invitation; // 记录最后一个创建的邀约，作为返回结果
+
+            // 发送通知给被邀约的厂家
+            try {
+                NoticeCommonVo noticeVo = new NoticeCommonVo();
+                noticeVo.setTitle("新的打样邀约通知");
+                noticeVo.setContent("您收到了一个新的打样邀约请求，请及时查看并处理。");
+                noticeVo.setPublishTime(new java.util.Date());
+                noticeService.asyncSendCommonMsg(noticeVo, inviteeId);
+                log.info("已发送打样邀约通知给厂家：{}", inviteeId);
+            } catch (Exception e) {
+                log.error("发送打样邀约通知失败：邀约ID={}, 厂家ID={}", invitation.getId(), inviteeId, e);
+            }
         }
 
         return createdInvitation;
@@ -584,6 +596,18 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
             log.error("发送邀约反馈通知失败：邀约ID={}, 发起人ID={}", invitation.getId(), invitation.getInviterUserId(), e);
         }
 
+        // 发送确认通知给厂家（当前用户）
+        try {
+            NoticeCommonVo confirmNotice = new NoticeCommonVo();
+            confirmNotice.setTitle("打样邀约接受确认");
+            confirmNotice.setContent("您已成功接受打样邀约，报价信息已提交给发起人，请等待发起人确认合作。");
+            confirmNotice.setPublishTime(new java.util.Date());
+            noticeService.asyncSendCommonMsg(confirmNotice, currentUserId);
+            log.info("已发送接受邀约确认通知给厂家：{}", currentUserId);
+        } catch (Exception e) {
+            log.error("发送接受邀约确认通知失败：邀约ID={}, 厂家ID={}", invitation.getId(), currentUserId, e);
+        }
+
         log.info("用户 {} 接受邀约 {} 成功，候选人记录已创建", currentUserId, acceptDTO.getInvitationId());
     }
 
@@ -628,6 +652,18 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
             log.info("已发送邀约拒绝通知给发起人：{}", invitation.getInviterUserId());
         } catch (Exception e) {
             log.error("发送邀约拒绝通知失败：邀约ID={}, 发起人ID={}", invitation.getId(), invitation.getInviterUserId(), e);
+        }
+
+        // 发送确认通知给厂家（当前用户）
+        try {
+            NoticeCommonVo confirmNotice = new NoticeCommonVo();
+            confirmNotice.setTitle("打样邀约拒绝确认");
+            confirmNotice.setContent("您已成功拒绝该打样邀约。");
+            confirmNotice.setPublishTime(new java.util.Date());
+            noticeService.asyncSendCommonMsg(confirmNotice, currentUserId);
+            log.info("已发送拒绝邀约确认通知给厂家：{}", currentUserId);
+        } catch (Exception e) {
+            log.error("发送拒绝邀约确认通知失败：邀约ID={}, 厂家ID={}", invitation.getId(), currentUserId, e);
         }
 
         // 检查是否所有候选人都拒绝了
@@ -808,8 +844,10 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
         }
 
         // 更新所有关联邀约下的候选人状态（不仅限于一个邀约ID）
+        List<SdProofingInvitationCandidate> allCandidates = new ArrayList<>();
         for (SdProofingInvitation inv : allInvitations) {
             List<SdProofingInvitationCandidate> candidates = candidateMapper.selectByInvitationId(inv.getId());
+            allCandidates.addAll(candidates);
             for (SdProofingInvitationCandidate c : candidates) {
                 if (c.getInviteeUserId().equals(chooseDto.getInviteeUserId())) {
                     c.setStatus(ProofingInvitationConstants.STATUS_ACCEPTED);
@@ -818,6 +856,38 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
                 }
                 candidateMapper.updateById(c);
             }
+        }
+
+        // 发送通知给被选中的厂家（中标通知）
+        try {
+            NoticeCommonVo selectedNotice = new NoticeCommonVo();
+            selectedNotice.setTitle("打样邀约中标通知");
+            selectedNotice.setContent("恭喜！您已被选中为打样合作厂家，请及时查看项目详情并开始准备打样。");
+            selectedNotice.setPublishTime(new java.util.Date());
+            noticeService.asyncSendCommonMsg(selectedNotice, chooseDto.getInviteeUserId());
+            log.info("已发送中标通知给厂家：{}", chooseDto.getInviteeUserId());
+        } catch (Exception e) {
+            log.error("发送中标通知失败：邀约ID={}, 厂家ID={}", invitation.getId(), chooseDto.getInviteeUserId(), e);
+        }
+
+        // 发送通知给未被选中的厂家（未中标通知）
+        try {
+            List<Long> rejectedCandidateIds = allCandidates.stream()
+                .filter(c -> !c.getInviteeUserId().equals(chooseDto.getInviteeUserId()))
+                .map(SdProofingInvitationCandidate::getInviteeUserId)
+                .distinct()
+                .collect(java.util.stream.Collectors.toList());
+            
+            for (Long rejectedUserId : rejectedCandidateIds) {
+                NoticeCommonVo rejectedNotice = new NoticeCommonVo();
+                rejectedNotice.setTitle("打样邀约结果通知");
+                rejectedNotice.setContent("很遗憾，您本次未被选中。感谢您的参与，期待未来合作机会。");
+                rejectedNotice.setPublishTime(new java.util.Date());
+                noticeService.asyncSendCommonMsg(rejectedNotice, rejectedUserId);
+                log.info("已发送未中标通知给厂家：{}", rejectedUserId);
+            }
+        } catch (Exception e) {
+            log.error("发送未中标通知失败：邀约ID={}", invitation.getId(), e);
         }
     }
 

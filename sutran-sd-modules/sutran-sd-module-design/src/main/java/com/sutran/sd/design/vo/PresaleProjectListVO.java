@@ -154,6 +154,11 @@ public class PresaleProjectListVO {
      */
     private Object tieredPricingList;
 
+    /**
+     * 当前登录用户在该项目下的快递单号（如有发货）
+     */
+    private String trackingNumber;
+
     public String getStatusDesc() {
         if (status == null) {
             return "未知";

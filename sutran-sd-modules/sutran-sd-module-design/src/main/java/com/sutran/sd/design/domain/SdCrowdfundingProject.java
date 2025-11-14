@@ -140,6 +140,9 @@ public class SdCrowdfundingProject extends BaseEntity {
     @TableField("support_count")
     private Integer supportCount;
 
+    @TableField(exist = false)
+    private String trackingNumber;
+
     /**
      * 浏览次数
      */

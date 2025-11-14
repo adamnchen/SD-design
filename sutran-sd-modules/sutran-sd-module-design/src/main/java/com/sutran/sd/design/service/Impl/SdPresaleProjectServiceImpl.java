@@ -46,6 +46,8 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
+import java.util.Comparator;
 import java.util.stream.Collectors;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -202,8 +204,30 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
         Page<SdPresaleProject> page = pageQuery.build();
         IPage<SdPresaleProject> result = presaleProjectMapper.selectUserPresaleProjects(page, currentUserId, "creator");
 
+        // 查询当前用户的发货记录，并按项目ID归类
+        com.baomidou.mybatisplus.extension.plugins.pagination.Page<com.sutran.sd.design.vo.PresaleDeliveryListVO> deliveryPage =
+            new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>(1, Integer.MAX_VALUE);
+        com.baomidou.mybatisplus.core.metadata.IPage<com.sutran.sd.design.vo.PresaleDeliveryListVO> deliveryResult =
+            presaleDeliveryMapper.selectUserDeliveryList(deliveryPage, currentUserId);
+
+        Map<Long, List<com.sutran.sd.design.vo.PresaleDeliveryListVO>> projectDeliveryMap =
+            deliveryResult.getRecords().stream()
+                .collect(Collectors.groupingBy(com.sutran.sd.design.vo.PresaleDeliveryListVO::getProjectId));
+
         List<PresaleProjectListVO> voList = result.getRecords().stream()
-                .map(this::convertToProjectListVO)
+                .map(project -> {
+                    PresaleProjectListVO vo = convertToProjectListVO(project);
+
+                    // 为当前登录用户在该项目下填充快递单号（如果存在发货记录）
+                    List<com.sutran.sd.design.vo.PresaleDeliveryListVO> deliveries = projectDeliveryMap.get(project.getId());
+                    if (deliveries != null && !deliveries.isEmpty()) {
+                        deliveries.stream()
+                            .max(Comparator.comparing(com.sutran.sd.design.vo.PresaleDeliveryListVO::getCreateTime))
+                            .ifPresent(delivery -> vo.setTrackingNumber(delivery.getTrackingNumber()));
+                    }
+
+                    return vo;
+                })
                 .collect(Collectors.toList());
 
         return new TableDataInfo<>(voList, result.getTotal());

@@ -114,6 +114,27 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
 
         // 使用XML中的查询方法
         Page<SdCrowdfundingProject> result = crowdfundingProjectMapper.selectPageCrowdfundingProjectListByType(page, type, currentUserId);
+
+        // 如果是“我购买的”列表，为当前登录用户在每个项目下填充自己的快递单号
+        if ("supported".equals(type)) {
+            // 查询当前用户的众筹样品发货记录，并按项目ID归类
+            List<SdCrowdfundingSampleDelivery> deliveries = deliveryMapper.selectByRecipientUserId(currentUserId);
+            if (deliveries != null && !deliveries.isEmpty()) {
+                java.util.Map<Long, java.util.List<SdCrowdfundingSampleDelivery>> projectDeliveryMap =
+                    deliveries.stream()
+                        .collect(Collectors.groupingBy(SdCrowdfundingSampleDelivery::getCrowdfundingProjectId));
+
+                result.getRecords().forEach(project -> {
+                    List<SdCrowdfundingSampleDelivery> projectDeliveries = projectDeliveryMap.get(project.getId());
+                    if (projectDeliveries != null && !projectDeliveries.isEmpty()) {
+                        projectDeliveries.stream()
+                            .max(Comparator.comparing(SdCrowdfundingSampleDelivery::getCreateTime))
+                            .ifPresent(d -> project.setTrackingNumber(d.getTrackingNumber()));
+                    }
+                });
+            }
+        }
+
         return TableDataInfo.build(result);
     }
 

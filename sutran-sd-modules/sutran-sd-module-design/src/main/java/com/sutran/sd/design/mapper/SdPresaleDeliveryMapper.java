@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.sutran.sd.design.domain.SdPresaleDelivery;
 import com.sutran.sd.design.vo.PresaleDeliveryListVO;
+import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
@@ -14,6 +15,7 @@ import java.util.List;
  * @author sutran
  * @date 2025-10-22
  */
+@Mapper
 public interface SdPresaleDeliveryMapper {
 
     /**

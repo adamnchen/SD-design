@@ -44,3 +44,5 @@ nbdist/
 !*/build/*.java
 !*/build/*.html
 !*/build/*.xml
+/sutran-sd-modules/sutran-sd-module-design/src/main/java/com/sutran/sd/design/enums/CrowdfundingSupportStatus.class
+/.vscode/settings.json

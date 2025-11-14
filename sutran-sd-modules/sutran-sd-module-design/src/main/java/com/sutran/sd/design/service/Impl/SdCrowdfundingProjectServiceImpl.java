@@ -16,6 +16,7 @@ import com.sutran.sd.design.domain.SdCrowdfundingSupport;
 import com.sutran.sd.design.dto.CrowdfundingProjectSimpleCreateDTO;
 import com.sutran.sd.design.dto.CrowdfundingSupportDTO;
 import com.sutran.sd.design.enums.CrowdfundingProjectStatus;
+import com.sutran.sd.design.enums.CrowdfundingSupportStatus;
 import com.sutran.sd.design.mapper.SdCrowdfundingProjectMapper;
 import com.sutran.sd.design.mapper.SdCrowdfundingSupportMapper;
 import com.sutran.sd.design.mapper.SdCrowdfundingSampleDeliveryMapper;
@@ -27,6 +28,8 @@ import com.sutran.sd.design.vo.*;
 import com.sutran.sd.pay.service.AliPayService;
 import com.sutran.sd.system.service.IForbiddenWordService;
 import com.sutran.sd.system.service.ISysUserService;
+import com.sutran.sd.common.core.service.NoticeService;
+import com.sutran.sd.common.core.domain.vo.NoticeCommonVo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -40,6 +43,10 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.HashSet;
+import java.util.Collections;
 import java.util.stream.Collectors;
 
 /**
@@ -61,6 +68,7 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
     private final AliPayService aliPayService;
     private final IForbiddenWordService forbiddenWordService;
     private final SdCrowdfundingSampleDeliveryMapper deliveryMapper;
+    private final NoticeService noticeService;
 
     @Override
     public SdCrowdfundingProject selectSdCrowdfundingProjectById(Long id) {
@@ -301,6 +309,112 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
 
             return vo;
         }).collect(java.util.stream.Collectors.toList());
+    }
+
+    /**
+     * 执行众筹项目抽奖逻辑：
+     * - 以 userId 为单位，一人一次机会
+     * - 从参与用户中随机抽取 drawNumber 个中奖用户
+     * - 中奖用户的所有支持记录标记为中奖，未中奖用户标记为未中奖
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void runDrawForProject(Long projectId) {
+        SdCrowdfundingProject project = crowdfundingProjectMapper.selectById(projectId);
+        if (project == null) {
+            log.warn("[众筹抽奖] 项目不存在, projectId={}", projectId);
+            return;
+        }
+
+        if (!CrowdfundingProjectStatus.SUCCESS.getCode().equals(project.getStatus())) {
+            log.warn("[众筹抽奖] 项目状态非成功, 跳过抽奖, projectId={}, status={}", projectId, project.getStatus());
+            return;
+        }
+
+        // 如果已经抽奖结束则不再重复执行
+        if (project.getDrawStatus() != null && project.getDrawStatus() == 2) {
+            log.info("[众筹抽奖] 项目已完成抽奖, 跳过, projectId={}", projectId);
+            return;
+        }
+
+        // 查询该项目下所有有效的支持记录（已支付、正常状态）
+        LambdaQueryWrapper<SdCrowdfundingSupport> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(SdCrowdfundingSupport::getProjectId, projectId)
+                   .eq(SdCrowdfundingSupport::getStatus, CrowdfundingSupportStatus.NORMAL.getCode())
+                   .isNotNull(SdCrowdfundingSupport::getOrderNo);
+
+        List<SdCrowdfundingSupport> supports = supportMapper.selectList(queryWrapper);
+        if (supports == null || supports.isEmpty()) {
+            log.warn("[众筹抽奖] 无有效支持记录, 直接标记抽奖结束, projectId={}", projectId);
+            project.setDrawStatus(2);
+            project.setDrawTime(new Date());
+            crowdfundingProjectMapper.updateSdCrowdfundingProject(project);
+            return;
+        }
+
+        // 以 userId 维度去重，一人一次机会
+        Map<Long, List<SdCrowdfundingSupport>> userSupportMap = supports.stream()
+            .collect(Collectors.groupingBy(SdCrowdfundingSupport::getUserId));
+
+        List<Long> userIds = new ArrayList<>(userSupportMap.keySet());
+        if (userIds.isEmpty()) {
+            log.warn("[众筹抽奖] 无参与用户, 直接标记抽奖结束, projectId={}", projectId);
+            project.setDrawStatus(2);
+            project.setDrawTime(new Date());
+            crowdfundingProjectMapper.updateSdCrowdfundingProject(project);
+            return;
+        }
+
+        // 随机打乱用户列表
+        Collections.shuffle(userIds);
+
+        Integer drawNumber = project.getDrawNumber();
+        int winnerCount = (drawNumber != null && drawNumber > 0)
+            ? Math.min(drawNumber, userIds.size())
+            : Math.min(1, userIds.size());
+
+        Set<Long> winnerUserIds = new HashSet<>(userIds.subList(0, winnerCount));
+
+        log.info("[众筹抽奖] 开始抽奖, projectId={}, 参与人数={}, 中奖名额={}, 实际中奖人数={}",
+            projectId, userIds.size(), drawNumber, winnerUserIds.size());
+
+        // 构建通知模板
+        NoticeCommonVo noticeTemplate = new NoticeCommonVo()
+            .setTitle("众筹抽奖结果通知")
+            .setPublishTime(new Date());
+
+        // 更新支持记录的抽奖状态
+        for (Map.Entry<Long, List<SdCrowdfundingSupport>> entry : userSupportMap.entrySet()) {
+            Long userId = entry.getKey();
+            boolean isWinner = winnerUserIds.contains(userId);
+
+            for (SdCrowdfundingSupport support : entry.getValue()) {
+                support.setDrawStatus(isWinner ? 2 : 3); // 2=中奖,3=未中奖
+                support.setIsWinner(isWinner ? 1 : 0);
+                supportMapper.updateById(support);
+            }
+
+            // 给中奖用户发送通知
+            if (isWinner) {
+                String projectTitle = project.getTitle() != null ? project.getTitle() : "众筹项目";
+                String content = "恭喜您参与的众筹项目【" + projectTitle + "】抽奖中奖，我们将尽快为您发放样品。";
+                NoticeCommonVo notice = new NoticeCommonVo()
+                    .setTitle(noticeTemplate.getTitle())
+                    .setContent(content)
+                    .setPublishTime(new Date());
+                try {
+                    noticeService.asyncSendCommonMsg(notice, userId);
+                } catch (Exception e) {
+                    log.error("[众筹抽奖] 发送中奖通知失败, projectId={}, userId={}", projectId, userId, e);
+                }
+            }
+        }
+
+        // 更新项目抽奖状态为已结束
+        project.setDrawStatus(2);
+        project.setDrawTime(new Date());
+        crowdfundingProjectMapper.updateSdCrowdfundingProject(project);
+
+        log.info("[众筹抽奖] 抽奖完成, projectId={}, 中奖用户ID={} ", projectId, winnerUserIds);
     }
 
     @Override

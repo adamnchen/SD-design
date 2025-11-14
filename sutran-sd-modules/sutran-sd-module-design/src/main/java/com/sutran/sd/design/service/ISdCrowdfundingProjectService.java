@@ -127,6 +127,13 @@ public interface ISdCrowdfundingProjectService {
      */
     List<CrowdfundingDrawVO> getMyDraws();
 
+    /**
+     * 执行指定众筹项目的抽奖逻辑
+     *
+     * @param projectId 众筹项目ID
+     */
+    void runDrawForProject(Long projectId);
+
 
     /**
      * 根据订单号查询支持记录

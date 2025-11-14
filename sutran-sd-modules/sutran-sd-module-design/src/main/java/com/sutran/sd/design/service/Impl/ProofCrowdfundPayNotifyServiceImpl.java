@@ -5,6 +5,7 @@ import com.sutran.sd.design.domain.SdCrowdfundingSupport;
 import com.sutran.sd.design.domain.SdCrowdfundingProject;
 import com.sutran.sd.design.enums.CrowdfundingSupportStatus;
 import com.sutran.sd.design.enums.CrowdfundingProjectStatus;
+import com.sutran.sd.design.service.ISdCrowdfundingProjectService;
 import com.sutran.sd.design.mapper.SdCrowdfundingSupportMapper;
 import com.sutran.sd.design.mapper.SdCrowdfundingProjectMapper;
 import com.sutran.sd.pay.constants.PayNotifyServer;
@@ -38,6 +39,7 @@ public class ProofCrowdfundPayNotifyServiceImpl extends BasePayNotifyService {
     private final SdCrowdfundingSupportMapper crowdfundingSupportMapper;
     private final SdCrowdfundingProjectMapper crowdfundingProjectMapper;
     private final AliPayService aliPayService;
+    private final ISdCrowdfundingProjectService crowdfundingProjectService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -201,13 +203,16 @@ public class ProofCrowdfundPayNotifyServiceImpl extends BasePayNotifyService {
             project.setCurrentAmount(newAmount);
             project.setSupportCount(newSupportCount);
 
+            // 记录项目原始状态，用于判断是否首次达成成功
+            Integer originalStatus = project.getStatus();
+
             // 检查是否达到目标金额
             if (newAmount.compareTo(project.getTargetAmount()) >= 0) {
-                // 众筹成功，自动开始抽奖
+                // 众筹成功
                 project.setStatus(CrowdfundingProjectStatus.SUCCESS.getCode());
                 project.setDrawStatus(1);
                 project.setDrawTime(new Date()); // 记录抽奖开始时间
-                log.info("[众筹] 众筹成功，自动开始抽奖: 项目ID={}, 项目名称={}", project.getId(), project.getTitle());
+                log.info("[众筹] 众筹成功: 项目ID={}, 项目名称={}", project.getId(), project.getTitle());
             }
 
             // 更新数据库
@@ -224,6 +229,13 @@ public class ProofCrowdfundPayNotifyServiceImpl extends BasePayNotifyService {
 
             log.info("[众筹] 更新项目金额和支持人数完成: 项目ID={}, 新增金额={}, 累计金额={}, 累计支持人数={}",
                 projectId, amount, newAmount, newSupportCount);
+
+            // 如果本次更新使项目从非成功状态首次变为成功状态，则立即执行抽奖
+            if (!CrowdfundingProjectStatus.SUCCESS.getCode().equals(originalStatus)
+                && CrowdfundingProjectStatus.SUCCESS.getCode().equals(project.getStatus())) {
+                log.info("[众筹] 项目首次达成众筹成功，开始执行抽奖逻辑: 项目ID={}", projectId);
+                crowdfundingProjectService.runDrawForProject(projectId);
+            }
 
         } catch (Exception e) {
             log.error("[众筹] 更新项目金额和支持人数失败: 项目ID={}, 金额={}", projectId, amount, e);

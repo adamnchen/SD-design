@@ -45,6 +45,7 @@ public abstract class BasePayNotifyService {
             String tradeNo = params.get("trade_no");
             boolean verifyResult = AlipaySignature.rsaCertCheckV1(params, aliPayCertPath, "UTF-8", "RSA2");
             if (verifyResult) {
+                log.warn("[支付宝][支付回调结果]>>>>>>>>>回调数据：{}", params);
                 // 交易状态
                 String tradeStatus = params.get("trade_status");
                 // 实际支付金额
@@ -56,7 +57,7 @@ public abstract class BasePayNotifyService {
                     // 查询订单
                     PayOrder order = ORDER_SERVICE.detailByOutTradeNo(outTradeNo);
                     if (order == null) {
-                        log.error("[支付宝][支付回调验证]>>>>>>>>>支付回调验证失败,订单号：{}，未查询到订单记录",outTradeNo);
+                        log.error("[支付宝][支付回调结果]>>>>>>>>>订单号：{}，未查询到订单记录",outTradeNo);
                         return "success";
                     }
                     // 检查订单状态,已处理过，直接返回成功
@@ -77,7 +78,7 @@ public abstract class BasePayNotifyService {
                 }
                 else {
                     ORDER_SERVICE.failPay(outTradeNo, tradeNo, totalAmount);
-                    log.error("[支付宝][支付回调验证]>>>>>>>>>支付回调验证失败,订单号：{},流水号：{},交易状态：{}",outTradeNo,tradeNo,tradeStatus);
+                    log.error("[支付宝][支付回调结果]>>>>>>>>>订单号：{},流水号：{},交易状态：{}",outTradeNo,tradeNo,tradeStatus);
                     try{
                         handleFailedBusiness(tradeStatus, outTradeNo, tradeNo, totalAmount, gmtPayment);
                     }

@@ -11,6 +11,8 @@ import com.sutran.sd.common.core.domain.vo.ProofingInvitationDetailVO;
 import com.sutran.sd.common.core.page.TableDataInfo;
 import com.sutran.sd.common.core.domain.PageQuery;
 import com.sutran.sd.common.constant.ProofingInvitationConstants;
+import com.sutran.sd.common.core.domain.vo.NoticeCommonVo;
+import com.sutran.sd.common.core.service.NoticeService;
 import com.sutran.sd.common.exception.ServiceException;
 import com.sutran.sd.common.helper.LoginHelper;
 import com.sutran.sd.design.mapper.SdProofingInvitationMapper;
@@ -49,6 +51,7 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
     private final SdProofingInvitationMapper invitationMapper;
     private final SdProofingInvitationCandidateMapper candidateMapper;
     private final IForbiddenWordService forbiddenWordService;
+    private final NoticeService noticeService;
 
 
     // 使用常量类管理状态，不再定义重复常量
@@ -569,6 +572,18 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
         int candidateInsertResult = candidateMapper.insert(candidate);
         log.info("候选人记录插入结果：{}，候选人ID：{}", candidateInsertResult, candidate.getId());
 
+        // 发送通知给邀约发起人
+        try {
+            NoticeCommonVo noticeVo = new NoticeCommonVo();
+            noticeVo.setTitle("打样邀约反馈通知");
+            noticeVo.setContent("您的打样邀约已收到新的反馈，请及时查看处理。");
+            noticeVo.setPublishTime(new java.util.Date());
+            noticeService.asyncSendCommonMsg(noticeVo, invitation.getInviterUserId());
+            log.info("已发送邀约反馈通知给发起人：{}", invitation.getInviterUserId());
+        } catch (Exception e) {
+            log.error("发送邀约反馈通知失败：邀约ID={}, 发起人ID={}", invitation.getId(), invitation.getInviterUserId(), e);
+        }
+
         log.info("用户 {} 接受邀约 {} 成功，候选人记录已创建", currentUserId, acceptDTO.getInvitationId());
     }
 
@@ -601,6 +616,18 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
         int rows = invitationMapper.updateById(invitation);
         if (rows == 0) {
             throw new ServiceException("操作失败，请重试");
+        }
+
+        // 发送通知给邀约发起人
+        try {
+            NoticeCommonVo noticeVo = new NoticeCommonVo();
+            noticeVo.setTitle("打样邀约拒绝通知");
+            noticeVo.setContent("您的打样邀约已被拒绝，请查看详情并考虑其他邀约对象。");
+            noticeVo.setPublishTime(new java.util.Date());
+            noticeService.asyncSendCommonMsg(noticeVo, invitation.getInviterUserId());
+            log.info("已发送邀约拒绝通知给发起人：{}", invitation.getInviterUserId());
+        } catch (Exception e) {
+            log.error("发送邀约拒绝通知失败：邀约ID={}, 发起人ID={}", invitation.getId(), invitation.getInviterUserId(), e);
         }
 
         // 检查是否所有候选人都拒绝了

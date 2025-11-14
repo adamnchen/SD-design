@@ -10,7 +10,6 @@ import com.sutran.sd.common.core.page.TableDataInfo;
 import com.sutran.sd.common.exception.ServiceException;
 import com.sutran.sd.common.helper.LoginHelper;
 import com.sutran.sd.common.utils.OrderNumUtils;
-import com.sutran.sd.design.config.CrowdfundingConfig;
 import com.sutran.sd.design.domain.SdCrowdfundingProject;
 import com.sutran.sd.design.domain.SdCrowdfundingSampleDelivery;
 import com.sutran.sd.design.domain.SdCrowdfundingSupport;
@@ -57,7 +56,6 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
     private final SdCrowdfundingSupportMapper supportMapper;
     private final CrowdfundingRedisService crowdfundingRedisService;
     private final CrowdfundingMqService crowdfundingMqService;
-    private final CrowdfundingConfig crowdfundingConfig;
     private final SdProofingInvitationMapper invitationMapper;
     private final ISysUserService userService;
     private final AliPayService aliPayService;
@@ -233,7 +231,7 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
             if (!initSuccess) {
                 log.error("初始化众筹项目Redis金额缓存失败: 项目ID={}", project.getId());
             }
-            int updateCount = invitationMapper.updateStatusById(invitationDetail.getId(), 7);
+            invitationMapper.updateStatusById(invitationDetail.getId(), 7);
         }
         return null;
     }

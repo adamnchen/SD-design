@@ -1,10 +1,12 @@
 package com.sutran.sd.design.service.impl;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.sutran.sd.common.exception.ServiceException;
 import com.sutran.sd.design.domain.SdCrowdfundingSupport;
+import com.sutran.sd.design.domain.SdCrowdfundingProject;
 import com.sutran.sd.design.enums.CrowdfundingSupportStatus;
+import com.sutran.sd.design.enums.CrowdfundingProjectStatus;
 import com.sutran.sd.design.mapper.SdCrowdfundingSupportMapper;
+import com.sutran.sd.design.mapper.SdCrowdfundingProjectMapper;
 import com.sutran.sd.pay.constants.PayNotifyServer;
 import com.sutran.sd.pay.domain.PayOrder;
 import com.sutran.sd.pay.domain.vo.PayTimeoutStatusVo;
@@ -34,6 +36,7 @@ public class ProofCrowdfundPayNotifyServiceImpl extends BasePayNotifyService {
 
     private final PayOrderService payOrderService;
     private final SdCrowdfundingSupportMapper crowdfundingSupportMapper;
+    private final SdCrowdfundingProjectMapper crowdfundingProjectMapper;
     private final AliPayService aliPayService;
 
     @Override
@@ -70,6 +73,9 @@ public class ProofCrowdfundPayNotifyServiceImpl extends BasePayNotifyService {
                 // 更新众筹支持记录状态
                 support.setStatus(CrowdfundingSupportStatus.NORMAL.getCode()); // 正常状态
                 crowdfundingSupportMapper.updateById(support);
+
+                // 更新众筹项目金额和支持人数
+                updateProjectAmountAndSupportCount(support.getProjectId(), new BigDecimal(totalAmount));
 
                 log.info("[众筹][支付回调] 支付成功处理完成: 订单号={}, 项目ID={}", outTradeNo, support.getProjectId());
             } else {
@@ -178,6 +184,66 @@ public class ProofCrowdfundPayNotifyServiceImpl extends BasePayNotifyService {
         } catch (Exception e) {
             log.error("[众筹退款] 退款失败: 订单号={}, 异常：", orderNo, e);
             throw new ServiceException("众筹退款失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 更新众筹项目金额和支持人数
+     * @param projectId 项目ID
+     * @param amount 支持金额
+     */
+    private void updateProjectAmountAndSupportCount(Long projectId, BigDecimal amount) {
+        try {
+            log.info("[众筹] 开始更新项目金额和支持人数: 项目ID={}, 金额={}", projectId, amount);
+
+            // 查询众筹项目
+            SdCrowdfundingProject project = crowdfundingProjectMapper.selectById(projectId);
+            if (project == null) {
+                log.error("[众筹] 项目不存在: 项目ID={}", projectId);
+                return;
+            }
+
+            // 获取当前金额和支持人数
+            BigDecimal currentAmount = project.getCurrentAmount() != null ? project.getCurrentAmount() : BigDecimal.ZERO;
+            Integer currentSupportCount = project.getSupportCount() != null ? project.getSupportCount() : 0;
+
+            log.info("[众筹] 项目当前信息: 项目ID={}, 当前金额={}, 当前支持人数={}", projectId, currentAmount, currentSupportCount);
+
+            // 计算新的金额和支持人数
+            BigDecimal newAmount = currentAmount.add(amount);
+            Integer newSupportCount = currentSupportCount + 1;
+
+            // 更新项目信息
+            project.setCurrentAmount(newAmount);
+            project.setSupportCount(newSupportCount);
+
+            // 检查是否达到目标金额
+            if (newAmount.compareTo(project.getTargetAmount()) >= 0) {
+                // 众筹成功，自动开始抽奖
+                project.setStatus(CrowdfundingProjectStatus.SUCCESS.getCode());
+                project.setDrawStatus(1);
+                project.setDrawTime(new Date()); // 记录抽奖开始时间
+                log.info("[众筹] 众筹成功，自动开始抽奖: 项目ID={}, 项目名称={}", project.getId(), project.getTitle());
+            }
+
+            // 更新数据库
+            int updateResult = crowdfundingProjectMapper.updateSdCrowdfundingProject(project);
+            log.info("[众筹] 数据库更新结果: 项目ID={}, 更新行数={}, 新金额={}, 新支持人数={}",
+                projectId, updateResult, newAmount, newSupportCount);
+
+            // 验证更新结果
+            SdCrowdfundingProject updatedProject = crowdfundingProjectMapper.selectById(projectId);
+            if (updatedProject != null) {
+                log.info("[众筹] 更新后验证: 项目ID={}, 数据库中的金额={}, 支持人数={}",
+                    projectId, updatedProject.getCurrentAmount(), updatedProject.getSupportCount());
+            }
+
+            log.info("[众筹] 更新项目金额和支持人数完成: 项目ID={}, 新增金额={}, 累计金额={}, 累计支持人数={}",
+                projectId, amount, newAmount, newSupportCount);
+
+        } catch (Exception e) {
+            log.error("[众筹] 更新项目金额和支持人数失败: 项目ID={}, 金额={}", projectId, amount, e);
+            throw e;
         }
     }
 }

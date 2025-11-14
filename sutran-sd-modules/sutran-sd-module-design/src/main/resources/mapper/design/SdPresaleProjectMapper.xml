@@ -78,6 +78,31 @@
         order by create_time desc
     </select>
 
+    <select id="selectPagePresaleProjectList" resultMap="SdPresaleProjectResult">
+        <include refid="selectSdPresaleProjectVo"/>
+        <where>
+            <if test="sdPresaleProject.projectNo != null and sdPresaleProject.projectNo != ''">
+                AND project_no = #{sdPresaleProject.projectNo}
+            </if>
+            <if test="sdPresaleProject.title != null and sdPresaleProject.title != ''">
+                AND title like concat('%', #{sdPresaleProject.title}, '%')
+            </if>
+            <if test="sdPresaleProject.creatorUserId != null">
+                AND creator_user_id = #{sdPresaleProject.creatorUserId}
+            </if>
+            <if test="sdPresaleProject.manufacturerUserId != null">
+                AND manufacturer_user_id = #{sdPresaleProject.manufacturerUserId}
+            </if>
+            <if test="sdPresaleProject.proofingInvitationId != null">
+                AND proofing_invitation_id = #{sdPresaleProject.proofingInvitationId}
+            </if>
+            <if test="sdPresaleProject.status != null">
+                AND status = #{sdPresaleProject.status}
+            </if>
+        </where>
+        ORDER BY create_time DESC
+    </select>
+
     <select id="selectByCrowdfundingProjectId" parameterType="Long" resultMap="SdPresaleProjectResult">
         <include refid="selectSdPresaleProjectVo"/>
         where proofing_invitation_id = #{crowdfundingProjectId}

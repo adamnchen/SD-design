@@ -111,6 +111,7 @@ public class PresaleOrderPayNotifyServiceImpl extends BasePayNotifyService {
         }
     }
 
+    @Override
     public void handleFailedBusiness(String tradeStatus, String outTradeNo, String tradeNo, String totalAmount, String gmtPayment) {
         SdPresaleOrder presaleOrder = presaleOrderMapper.selectByOrderNo(outTradeNo);
         if (presaleOrder == null) {

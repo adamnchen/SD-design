@@ -176,8 +176,8 @@ public interface ISdPresaleProjectService {
      * 上传实物照片
      *
      * @param file 照片文件
-     * @param existingPhotos 已存在的图片列表（JSON格式，可选）
+     * @param proofingInvitationId 打样邀约ID
      * @return 完整的图片列表（JSON格式，包含新上传的图片）
      */
-    R<String> uploadManufacturerPhotos(MultipartFile file, String existingPhotos);
+    R<String> uploadManufacturerPhotos(MultipartFile file, Long proofingInvitationId);
 }

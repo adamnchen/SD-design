@@ -10,7 +10,6 @@ import com.sutran.sd.common.core.page.TableDataInfo;
 import com.sutran.sd.common.helper.LoginHelper;
 import com.sutran.sd.common.utils.OrderNumUtils;
 import com.sutran.sd.common.utils.StringUtils;
-import com.sutran.sd.design.domain.SdCrowdfundingSampleDelivery;
 import com.sutran.sd.design.domain.SdPresaleOrder;
 import com.sutran.sd.design.domain.SdPresaleProject;
 import com.sutran.sd.design.domain.SdCrowdfundingProject;
@@ -593,11 +592,29 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
                 return R.fail("无权限发布此项目的预售");
             }
 
-            // 3.1 检查是否上传了实物照片
-            if (StringUtils.isBlank(publishDTO.getManufacturerPhotos())) {
-                log.warn("[发布预售项目] 未上传实物照片: 打样邀约ID={}", publishDTO.getProofingInvitationId());
+            // 3.1 检查众筹项目是否上传了实物照片
+            // 查询对应的众筹成功项目
+            LambdaQueryWrapper<SdCrowdfundingProject> photoCheckQuery = new LambdaQueryWrapper<>();
+            photoCheckQuery.eq(SdCrowdfundingProject::getProofingInvitationId, publishDTO.getProofingInvitationId())
+                          .eq(SdCrowdfundingProject::getStatus, CrowdfundingProjectStatus.SUCCESS.getCode()); // 众筹成功
+            
+            SdCrowdfundingProject crowdfundingProjectForPhoto = crowdfundingProjectMapper.selectOne(photoCheckQuery);
+            if (crowdfundingProjectForPhoto == null) {
+                log.warn("[发布预售项目] 未找到对应的众筹成功项目: 打样邀约ID={}", publishDTO.getProofingInvitationId());
+                return R.fail("未找到对应的众筹成功项目");
+            }
+            
+            if (StringUtils.isBlank(crowdfundingProjectForPhoto.getManufacturerPhotos())) {
+                log.warn("[发布预售项目] 众筹项目未上传实物照片: 打样邀约ID={}, 众筹项目ID={}", 
+                    publishDTO.getProofingInvitationId(), crowdfundingProjectForPhoto.getId());
                 return R.fail("发布预售项目前必须先上传实物照片");
             }
+            
+            // 将众筹项目的实物照片继承到预售项目
+            String manufacturerPhotos = crowdfundingProjectForPhoto.getManufacturerPhotos();
+            log.info("[发布预售项目] 从众筹项目继承实物照片: 打样邀约ID={}, 众筹项目ID={}, 照片数据长度={}",
+                publishDTO.getProofingInvitationId(), crowdfundingProjectForPhoto.getId(), 
+                manufacturerPhotos != null ? manufacturerPhotos.length() : 0);
 
             // 3.2 检查是否同时存在完成众筹的项目和处于有效期内的预售项目
             // 检查是否有完成众筹的项目（状态为SUCCESS）
@@ -716,9 +733,9 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
 
             // 有效期天数：使用用户填写的有效期天数
             project.setValidityDays(publishDTO.getValidityDays());
-            // 设置厂家上传的实物照片
-            String manufacturerPhotos = publishDTO.getManufacturerPhotos();
+            // 设置厂家上传的实物照片（从众筹项目继承）
             project.setManufacturerPhotos(manufacturerPhotos);
+            project.setManufacturerUploadTime(crowdfundingProjectForPhoto.getManufacturerUploadTime());
             log.info("[发布预售项目] 设置厂家实物照片: 打样邀约ID={}, 照片数据={}", 
                 publishDTO.getProofingInvitationId(), 
                 StringUtils.isNotBlank(manufacturerPhotos) ? "已设置(" + manufacturerPhotos.length() + "字符)" : "为空");
@@ -788,30 +805,46 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
     }
 
     @Override
-    public R<String> uploadManufacturerPhotos(MultipartFile file, String existingPhotos) {
+    public R<String> uploadManufacturerPhotos(MultipartFile file, Long proofingInvitationId) {
         try {
-            log.info("[上传实物照片] 开始上传: 文件名={}, 已存在图片数={}",
-                file.getOriginalFilename(), StringUtils.isBlank(existingPhotos) ? 0 : "有");
+            log.info("[上传实物照片] 开始上传: 文件名={}, 打样邀约ID={}",
+                file.getOriginalFilename(), proofingInvitationId);
 
-            // 1. 验证文件
+            // 1. 验证打样邀约ID
+            if (proofingInvitationId == null) {
+                return R.fail("打样邀约ID不能为空");
+            }
+
+            // 2. 查询对应的众筹项目
+            LambdaQueryWrapper<SdCrowdfundingProject> queryWrapper = new LambdaQueryWrapper<>();
+            queryWrapper.eq(SdCrowdfundingProject::getProofingInvitationId, proofingInvitationId)
+                       .eq(SdCrowdfundingProject::getStatus, CrowdfundingProjectStatus.SUCCESS.getCode()); // 众筹成功
+            
+            SdCrowdfundingProject crowdfundingProject = crowdfundingProjectMapper.selectOne(queryWrapper);
+            if (crowdfundingProject == null) {
+                return R.fail("未找到对应的众筹成功项目");
+            }
+
+            // 3. 验证文件
             if (file.isEmpty()) {
                 return R.fail("文件不能为空");
             }
 
-            // 2. 验证文件类型
+            // 4. 验证文件类型
             String originalFilename = file.getOriginalFilename();
             if (originalFilename == null || !isImageFile(originalFilename)) {
                 return R.fail("文件格式不正确，请上传JPG、JPEG、PNG格式的图片");
             }
 
-            // 3. 上传文件
+            // 5. 上传文件
             SysOssVo oss = sysOssService.upload(file);
             String photoUrl = oss.getUrl();
 
-            // 4. 处理已存在的图片列表，将新上传的图片添加到列表中
+            // 6. 处理已存在的图片列表，将新上传的图片添加到列表中
             List<String> photoList = new ArrayList<>();
 
             // 解析已存在的图片列表
+            String existingPhotos = crowdfundingProject.getManufacturerPhotos();
             if (StringUtils.isNotBlank(existingPhotos)) {
                 try {
                     ObjectMapper mapper = new ObjectMapper();
@@ -828,12 +861,23 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
             // 添加新上传的图片URL
             photoList.add(photoUrl);
 
-            // 5. 将完整的图片列表转换为JSON格式返回
+            // 7. 将完整的图片列表转换为JSON格式
             ObjectMapper mapper = new ObjectMapper();
             String photosJson = mapper.writeValueAsString(photoList);
 
-            log.info("[上传实物照片] 上传成功: 新图片URL={}, 总图片数={}", photoUrl, photoList.size());
-            return R.ok("上传成功", photosJson);
+            // 8. 更新众筹项目的 manufacturer_photos 字段
+            crowdfundingProject.setManufacturerPhotos(photosJson);
+            crowdfundingProject.setManufacturerUploadTime(new Date());
+            int updateResult = crowdfundingProjectMapper.updateById(crowdfundingProject);
+            
+            if (updateResult > 0) {
+                log.info("[上传实物照片] 上传成功: 众筹项目ID={}, 新图片URL={}, 总图片数={}", 
+                    crowdfundingProject.getId(), photoUrl, photoList.size());
+                return R.ok("上传成功", photosJson);
+            } else {
+                log.error("[上传实物照片] 更新数据库失败: 众筹项目ID={}", crowdfundingProject.getId());
+                return R.fail("上传失败：更新数据库失败");
+            }
 
         } catch (Exception e) {
             log.error("[上传实物照片] 上传异常: {}", e.getMessage(), e);

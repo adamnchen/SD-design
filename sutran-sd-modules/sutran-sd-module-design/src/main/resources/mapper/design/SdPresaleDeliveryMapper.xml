@@ -60,6 +60,11 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         from sd_presale_delivery
     </sql>
 
+    <select id="selectSdPresaleDeliveryById" parameterType="Long" resultMap="SdPresaleDeliveryResult">
+        <include refid="selectSdPresaleDeliveryVo"/>
+        where id = #{id}
+    </select>
+
     <select id="selectSdPresaleDeliveryList" parameterType="com.sutran.sd.design.domain.SdPresaleDelivery" resultMap="SdPresaleDeliveryResult">
         <include refid="selectSdPresaleDeliveryVo"/>
         <where>  
@@ -97,6 +102,91 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         </where>
         order by create_time desc
     </select>
+
+    <insert id="insertSdPresaleDelivery" parameterType="com.sutran.sd.design.domain.SdPresaleDelivery" useGeneratedKeys="true" keyProperty="id">
+        insert into sd_presale_delivery
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="deliveryNo != null and deliveryNo != ''">delivery_no,</if>
+            <if test="projectId != null">project_id,</if>
+            <if test="orderId != null">order_id,</if>
+            <if test="orderNo != null and orderNo != ''">order_no,</if>
+            <if test="userId != null">user_id,</if>
+            <if test="userName != null and userName != ''">user_name,</if>
+            <if test="productTitle != null and productTitle != ''">product_title,</if>
+            <if test="quantity != null">quantity,</if>
+            <if test="totalAmount != null">total_amount,</if>
+            <if test="recipientName != null and recipientName != ''">recipient_name,</if>
+            <if test="recipientPhone != null and recipientPhone != ''">recipient_phone,</if>
+            <if test="recipientAddress != null and recipientAddress != ''">recipient_address,</if>
+            <if test="trackingNumber != null and trackingNumber != ''">tracking_number,</if>
+            <if test="deliveryStatus != null">delivery_status,</if>
+            <if test="deliveryTime != null">delivery_time,</if>
+            <if test="senderUserId != null">sender_user_id,</if>
+            <if test="createBy != null and createBy != ''">create_by,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="updateBy != null and updateBy != ''">update_by,</if>
+            <if test="updateTime != null">update_time,</if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="deliveryNo != null and deliveryNo != ''">#{deliveryNo},</if>
+            <if test="projectId != null">#{projectId},</if>
+            <if test="orderId != null">#{orderId},</if>
+            <if test="orderNo != null and orderNo != ''">#{orderNo},</if>
+            <if test="userId != null">#{userId},</if>
+            <if test="userName != null and userName != ''">#{userName},</if>
+            <if test="productTitle != null and productTitle != ''">#{productTitle},</if>
+            <if test="quantity != null">#{quantity},</if>
+            <if test="totalAmount != null">#{totalAmount},</if>
+            <if test="recipientName != null and recipientName != ''">#{recipientName},</if>
+            <if test="recipientPhone != null and recipientPhone != ''">#{recipientPhone},</if>
+            <if test="recipientAddress != null and recipientAddress != ''">#{recipientAddress},</if>
+            <if test="trackingNumber != null and trackingNumber != ''">#{trackingNumber},</if>
+            <if test="deliveryStatus != null">#{deliveryStatus},</if>
+            <if test="deliveryTime != null">#{deliveryTime},</if>
+            <if test="senderUserId != null">#{senderUserId},</if>
+            <if test="createBy != null and createBy != ''">#{createBy},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="updateBy != null and updateBy != ''">#{updateBy},</if>
+            <if test="updateTime != null">#{updateTime},</if>
+        </trim>
+    </insert>
+
+    <update id="updateSdPresaleDelivery" parameterType="com.sutran.sd.design.domain.SdPresaleDelivery">
+        update sd_presale_delivery
+        <trim prefix="set" suffixOverrides=",">
+            <if test="deliveryNo != null and deliveryNo != ''">delivery_no = #{deliveryNo},</if>
+            <if test="projectId != null">project_id = #{projectId},</if>
+            <if test="orderId != null">order_id = #{orderId},</if>
+            <if test="orderNo != null and orderNo != ''">order_no = #{orderNo},</if>
+            <if test="userId != null">user_id = #{userId},</if>
+            <if test="userName != null and userName != ''">user_name = #{userName},</if>
+            <if test="productTitle != null and productTitle != ''">product_title = #{productTitle},</if>
+            <if test="quantity != null">quantity = #{quantity},</if>
+            <if test="totalAmount != null">total_amount = #{totalAmount},</if>
+            <if test="recipientName != null and recipientName != ''">recipient_name = #{recipientName},</if>
+            <if test="recipientPhone != null and recipientPhone != ''">recipient_phone = #{recipientPhone},</if>
+            <if test="recipientAddress != null and recipientAddress != ''">recipient_address = #{recipientAddress},</if>
+            <if test="trackingNumber != null and trackingNumber != ''">tracking_number = #{trackingNumber},</if>
+            <if test="deliveryStatus != null">delivery_status = #{deliveryStatus},</if>
+            <if test="deliveryTime != null">delivery_time = #{deliveryTime},</if>
+            <if test="senderUserId != null">sender_user_id = #{senderUserId},</if>
+            <if test="updateBy != null and updateBy != ''">update_by = #{updateBy},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+        </trim>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteSdPresaleDeliveryById" parameterType="Long">
+        delete from sd_presale_delivery where id = #{id}
+    </delete>
+
+    <delete id="deleteSdPresaleDeliveryByIds">
+        delete from sd_presale_delivery
+        where id in
+        <foreach collection="array" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
 
     <select id="selectByDeliveryNo" parameterType="String" resultMap="SdPresaleDeliveryResult">
         <include refid="selectSdPresaleDeliveryVo"/>

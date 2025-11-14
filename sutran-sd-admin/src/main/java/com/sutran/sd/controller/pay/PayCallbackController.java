@@ -46,17 +46,17 @@ public class PayCallbackController {
     public R<Map<String, Object>> getPaymentStatus(
             @Parameter(description = "订单号", required = true)
             @PathVariable String orderNo) {
-        
+
         try {
             log.info("[支付回调] 查询支付状态: 订单号={}", orderNo);
-            
+
             // 1. 查询支付订单
             PayOrder payOrder = payOrderService.detailByOutTradeNo(orderNo);
             if (payOrder == null) {
                 log.warn("[支付回调] 支付订单不存在: 订单号={}", orderNo);
                 return R.fail("订单不存在");
             }
-            
+
             Map<String, Object> result = new HashMap<>();
             result.put("orderNo", orderNo);
             result.put("payOrderId", payOrder.getId());
@@ -64,14 +64,14 @@ public class PayCallbackController {
             result.put("subject", payOrder.getSubject());
             result.put("payTime", payOrder.getGmtPayment());
             result.put("businessType", payOrder.getBusinessType());
-            
+
             // 2. 根据业务类型查询具体业务信息
             String businessType = payOrder.getBusinessType();
             if (StringUtils.isBlank(businessType)) {
                 log.warn("[支付回调] 业务类型为空: 订单号={}", orderNo);
                 return R.fail("业务类型未知");
             }
-            
+
             // 3. 处理预售订单
             if ("PRESALE".equals(businessType)) {
                 SdPresaleOrder presaleOrder = presaleOrderMapper.selectByOrderNo(orderNo);
@@ -87,14 +87,14 @@ public class PayCallbackController {
                     businessInfo.put("receiverName", presaleOrder.getReceiverName());
                     businessInfo.put("receiverPhone", presaleOrder.getReceiverPhone());
                     businessInfo.put("receiverAddress", presaleOrder.getReceiverAddress());
-                    
+
                     // 如果有退款金额，显示退款信息
                     if (presaleOrder.getRefundAmount() != null && presaleOrder.getRefundAmount().compareTo(BigDecimal.ZERO) > 0) {
                         businessInfo.put("refundAmount", presaleOrder.getRefundAmount());
                         businessInfo.put("refundTime", presaleOrder.getRefundTime());
                         businessInfo.put("refundReason", presaleOrder.getRefundReason());
                     }
-                    
+
                     result.put("businessInfo", businessInfo);
                     result.put("businessTypeText", "预售订单");
                 }
@@ -117,13 +117,13 @@ public class PayCallbackController {
                     businessInfo.put("receiverName", support.getReceiverName());
                     businessInfo.put("receiverPhone", support.getReceiverPhone());
                     businessInfo.put("receiverAddress", support.getReceiverAddress());
-                    
+
                     // 如果有退款信息，显示退款信息
                     if (support.getRefundTime() != null) {
                         businessInfo.put("refundTime", support.getRefundTime());
                         businessInfo.put("refundReason", support.getRefundReason());
                     }
-                    
+
                     result.put("businessInfo", businessInfo);
                     result.put("businessTypeText", "众筹支持");
                 }
@@ -133,37 +133,41 @@ public class PayCallbackController {
                 result.put("businessTypeText", "其他业务");
                 log.info("[支付回调] 其他业务类型: 订单号={}, 业务类型={}", orderNo, businessType);
             }
-            
+
             // 6. 判断支付状态
             boolean isPaid = payOrder.getStatus() == 1; // 1表示已支付
             result.put("isPaid", isPaid);
             result.put("paymentStatus", isPaid ? "支付成功" : "支付失败");
-            
+
             log.info("[支付回调] 查询支付状态成功: 订单号={}, 支付状态={}", orderNo, isPaid ? "成功" : "失败");
             return R.ok(result);
-            
+
         } catch (Exception e) {
             log.error("[支付回调] 查询支付状态异常: 订单号={}", orderNo, e);
             return R.fail("查询支付状态失败");
         }
     }
-    
+
     /**
      * 获取预售订单状态文本
      */
     private String getPresaleOrderStatusText(Integer status) {
-        if (status == null) return "未知";
-        
+        if (status == null) {
+            return "未知";
+        }
+
         PresaleOrderStatus orderStatus = PresaleOrderStatus.fromCode(status);
         return orderStatus != null ? orderStatus.getDesc() : "未知状态";
     }
-    
+
     /**
      * 获取众筹支持状态文本
      */
     private String getCrowdfundingSupportStatusText(Integer status) {
-        if (status == null) return "未知";
-        
+        if (status == null) {
+            return "未知";
+        }
+
         switch (status) {
             case 0: return "正常";
             case 1: return "已取消";
@@ -171,13 +175,15 @@ public class PayCallbackController {
             default: return "未知状态";
         }
     }
-    
+
     /**
      * 获取抽奖状态文本
      */
     private String getDrawStatusText(Integer drawStatus) {
-        if (drawStatus == null) return "未知";
-        
+        if (drawStatus == null) {
+            return "未知";
+        }
+
         switch (drawStatus) {
             case 0: return "未参与";
             case 1: return "已参与";

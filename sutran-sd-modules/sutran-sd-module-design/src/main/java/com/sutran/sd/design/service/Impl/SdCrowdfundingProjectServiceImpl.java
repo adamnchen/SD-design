@@ -167,8 +167,8 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
             SdCrowdfundingProject existingProject = crowdfundingProjectMapper.selectByProofingInvitationId(invitationDetail.getId());
             if (existingProject != null) {
                 // 检查现有众筹项目状态：1=众筹中，4=已发布
-                if (existingProject.getStatus() != null && 
-                    (existingProject.getStatus().equals(CrowdfundingProjectStatus.FUNDING.getCode()) || 
+                if (existingProject.getStatus() != null &&
+                    (existingProject.getStatus().equals(CrowdfundingProjectStatus.FUNDING.getCode()) ||
                      existingProject.getStatus().equals(CrowdfundingProjectStatus.PUBLISHED.getCode()))) {
                     throw new ServiceException("该邀约已存在进行中的众筹项目，不能重复发布");
                 }
@@ -317,6 +317,7 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
      * - 从参与用户中随机抽取 drawNumber 个中奖用户
      * - 中奖用户的所有支持记录标记为中奖，未中奖用户标记为未中奖
      */
+    @Override
     @Transactional(rollbackFor = Exception.class)
     public void runDrawForProject(Long projectId) {
         SdCrowdfundingProject project = crowdfundingProjectMapper.selectById(projectId);
@@ -396,7 +397,7 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
             // 给中奖用户发送通知
             if (isWinner) {
                 String projectTitle = project.getTitle() != null ? project.getTitle() : "众筹项目";
-                String content = "恭喜您参与的众筹项目【" + projectTitle + "】抽奖中奖，我们将尽快为您发放样品。";
+                String content = "恭喜您参与的众筹项目【" + projectTitle + "】抽奖中奖，商家将尽快为您发放样品。";
                 NoticeCommonVo notice = new NoticeCommonVo()
                     .setTitle(noticeTemplate.getTitle())
                     .setContent(content)
@@ -562,15 +563,15 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
     @Override
     public List<SampleDeliveryListVO> getMySampleDeliveries() {
         Long currentUserId = LoginHelper.getUserId();
-        
+
         // 查询当前用户的样品发货记录
         List<SdCrowdfundingSampleDelivery> deliveries = deliveryMapper.selectByRecipientUserId(currentUserId);
-        
+
         // 转换为VO
         return deliveries.stream().map(delivery -> {
             SampleDeliveryListVO vo = new SampleDeliveryListVO();
             BeanUtils.copyProperties(delivery, vo);
-            
+
             // 设置状态描述
             if (delivery.getStatus() != null) {
                 switch (delivery.getStatus()) {
@@ -585,7 +586,7 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
                         break;
                 }
             }
-            
+
             // 查询项目标题
             if (delivery.getCrowdfundingProjectId() != null) {
                 SdCrowdfundingProject project = crowdfundingProjectMapper.selectSdCrowdfundingProjectById(delivery.getCrowdfundingProjectId());
@@ -593,7 +594,7 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
                     vo.setProjectTitle(project.getTitle());
                 }
             }
-            
+
             return vo;
         }).collect(java.util.stream.Collectors.toList());
     }

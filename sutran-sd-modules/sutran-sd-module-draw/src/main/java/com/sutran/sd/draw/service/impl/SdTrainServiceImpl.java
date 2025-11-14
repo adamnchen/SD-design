@@ -1701,13 +1701,14 @@ public class SdTrainServiceImpl implements SdTrainService {
             String resp = execHttpRequest(request);
             FluxgymTrainProgressVo vo = JsonUtils.toObject(resp, FluxgymTrainProgressVo.class);
             // 返回训练失败  或者  训练失败且任务处于进行中
-            if (StringUtils.isNotBlank(vo.getDetail())){
-                log.error("[FLuxGym]>>>>>>>>>训练失败!原因：{}", vo.getDetail());
-                sdTrainTaskService.failFluxgymTrainTask(taskId,vo.getDetail(),new Date());
-                // 归还节点
-                RedisUtils.delCacheMapValue(TRAIN_NODE_TASK_MAP,nodeId);
-                vo.setStatus("failed");
-                vo.setProgress(100);
+            if (StringUtils.isNotBlank(vo.getDetail()) && "Task not found".equals(vo.getDetail())){
+                vo.setStatus("running").setProgress(0).setTaskId(taskId).setSuccess(true);
+//                log.error("[FLuxGym]>>>>>>>>>训练失败!原因：{}", vo.getDetail());
+//                sdTrainTaskService.failFluxgymTrainTask(taskId,vo.getDetail(),new Date());
+//                // 归还节点
+//                RedisUtils.delCacheMapValue(TRAIN_NODE_TASK_MAP,nodeId);
+//                vo.setStatus("failed");
+//                vo.setProgress(100);
             }
             else if (vo!=null && "failed".equals(vo.getStatus()) && taskNode.getIntValue("status")==4) {
                 log.error("[FLuxGym]>>>>>>>>>训练失败!原因：{}", vo.getMessage());

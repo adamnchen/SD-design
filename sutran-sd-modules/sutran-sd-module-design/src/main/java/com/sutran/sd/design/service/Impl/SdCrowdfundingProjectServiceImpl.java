@@ -1,5 +1,6 @@
 package com.sutran.sd.design.service.impl;
 
+import cn.hutool.core.util.IdUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -480,6 +481,7 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
 
                 // 创建发货记录
                 SdCrowdfundingSampleDelivery delivery = new SdCrowdfundingSampleDelivery();
+                delivery.setId(IdUtil.getSnowflakeNextId());
                 delivery.setCrowdfundingProjectId(projectId);
                 delivery.setProofingInvitationId(proofingInvitationId);
                 delivery.setSampleImageUrl(""); // 样品图片初始为空
@@ -497,14 +499,14 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
                 int result = deliveryMapper.insert(delivery);
                 if (result > 0) {
                     insertedCount++;
-                    log.info("[众筹发货] 插入发货记录成功, projectId={}, userId={}, deliveryId={}", 
+                    log.info("[众筹发货] 插入发货记录成功, projectId={}, userId={}, deliveryId={}",
                         projectId, winnerUserId, delivery.getId());
                 } else {
                     log.error("[众筹发货] 插入发货记录失败, projectId={}, userId={}", projectId, winnerUserId);
                 }
             }
 
-            log.info("[众筹发货] 完成为中奖者插入样品发货记录, projectId={}, 中奖人数={}, 成功插入{}条记录", 
+            log.info("[众筹发货] 完成为中奖者插入样品发货记录, projectId={}, 中奖人数={}, 成功插入{}条记录",
                 projectId, winnerUserIds.size(), insertedCount);
 
         } catch (Exception e) {
@@ -650,7 +652,7 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
             vo.setDrawStatus(support.getDrawStatus());
             vo.setIsWinner(support.getIsWinner() == 1);
             vo.setPrizeInfo(support.getPrizeInfo());
-            
+
             // 设置抽奖状态描述
             switch (support.getDrawStatus()) {
                 case 0:
@@ -669,7 +671,7 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
                     vo.setDrawStatusDesc("未知状态");
                     break;
             }
-            
+
             vo.setCreateTime(support.getCreateTime());
 
             // 查询项目标题
@@ -687,14 +689,14 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
                 LambdaQueryWrapper<SdCrowdfundingSampleDelivery> deliveryQuery = new LambdaQueryWrapper<>();
                 deliveryQuery.eq(SdCrowdfundingSampleDelivery::getCrowdfundingProjectId, support.getProjectId())
                            .eq(SdCrowdfundingSampleDelivery::getRecipientUserId, support.getUserId());
-                
+
                 List<SdCrowdfundingSampleDelivery> deliveries = deliveryMapper.selectList(deliveryQuery);
                 if (deliveries != null && !deliveries.isEmpty()) {
                     // 如果有多个发货记录，取最新的一个
                     SdCrowdfundingSampleDelivery latestDelivery = deliveries.stream()
                         .max(java.util.Comparator.comparing(SdCrowdfundingSampleDelivery::getCreateTime))
                         .orElse(null);
-                    
+
                     if (latestDelivery != null) {
                         vo.setTrackingNumber(latestDelivery.getTrackingNumber());
                         vo.setDeliveryStatus(latestDelivery.getStatus());

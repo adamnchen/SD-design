@@ -806,6 +806,7 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
             support.setSupportAmount(supportDTO.getSupportAmount());
             support.setDrawStatus(0); // 未参与抽奖
             support.setIsWinner(0); // 未中奖
+            support.setStatus(CrowdfundingSupportStatus.CANCELLED.getCode()); // 初始状态为已取消，支付成功后会更新为正常
             // 设置收货信息
             support.setReceiverName(supportDTO.getReceiverName());
             support.setReceiverPhone(supportDTO.getReceiverPhone());
@@ -814,7 +815,8 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
             // createBy, createTime, updateBy, updateTime 字段由 BaseEntity 自动填充
 
             supportMapper.insert(support);
-            log.info("参与者数据落库成功: 订单号={}", orderNo);
+            log.info("参与者数据落库成功: 订单号={}, 收货信息: {}，{}，{}", orderNo, 
+                support.getReceiverName(), support.getReceiverPhone(), support.getReceiverAddress());
 
             // 4. 扣除订单金额（Redis）
             boolean deducted = crowdfundingRedisService.tryDeductAmount(supportDTO.getProjectId(), supportDTO.getSupportAmount());

@@ -12,6 +12,13 @@
         <result property="drawStatus" column="draw_status" jdbcType="TINYINT"/>
         <result property="isWinner" column="is_winner" jdbcType="TINYINT"/>
         <result property="prizeInfo" column="prize_info" jdbcType="VARCHAR"/>
+        <result property="receiverName" column="receiver_name" jdbcType="VARCHAR"/>
+        <result property="receiverPhone" column="receiver_phone" jdbcType="VARCHAR"/>
+        <result property="receiverAddress" column="receiver_address" jdbcType="VARCHAR"/>
+        <result property="receiverArea" column="receiver_area" jdbcType="VARCHAR"/>
+        <result property="status" column="status" jdbcType="TINYINT"/>
+        <result property="refundTime" column="refund_time" jdbcType="TIMESTAMP"/>
+        <result property="refundReason" column="refund_reason" jdbcType="VARCHAR"/>
         <result property="createBy" column="create_by" jdbcType="VARCHAR"/>
         <result property="createTime" column="create_time" jdbcType="TIMESTAMP"/>
         <result property="updateBy" column="update_by" jdbcType="VARCHAR"/>
@@ -20,7 +27,10 @@
 
     <sql id="Base_Column_List">
         id, project_id, user_id, user_name, order_no, support_amount, 
-        draw_status, is_winner, prize_info, create_by, create_time, update_by, update_time
+        draw_status, is_winner, prize_info, 
+        receiver_name, receiver_phone, receiver_address, receiver_area,
+        status, refund_time, refund_reason,
+        create_by, create_time, update_by, update_time
     </sql>
 
 </mapper>

@@ -72,9 +72,9 @@ public class ProofingInvitationConstants {
      */
     public static boolean isValidCancelTimeLimit(Integer cancelTimeLimit) {
         return cancelTimeLimit != null &&
-               (cancelTimeLimit == CANCEL_TIME_ONE_DAY ||
-                cancelTimeLimit == CANCEL_TIME_TWO_DAYS ||
-                cancelTimeLimit == CANCEL_TIME_THREE_DAYS);
+               (cancelTimeLimit.equals(CANCEL_TIME_ONE_DAY) ||
+                   cancelTimeLimit.equals(CANCEL_TIME_TWO_DAYS) ||
+                   cancelTimeLimit.equals(CANCEL_TIME_THREE_DAYS));
     }
 
     /**

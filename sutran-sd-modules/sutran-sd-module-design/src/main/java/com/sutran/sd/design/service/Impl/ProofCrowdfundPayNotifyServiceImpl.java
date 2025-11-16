@@ -54,8 +54,24 @@ public class ProofCrowdfundPayNotifyServiceImpl extends BasePayNotifyService {
                 throw new ServiceException("众筹支持记录不存在");
             }
 
+            // 查询支付订单
+            PayOrder payOrder = payOrderService.detailByOutTradeNo(outTradeNo);
+            if (payOrder == null) {
+                log.error("[众筹][支付回调] 支付订单不存在: 订单号={}", outTradeNo);
+                throw new ServiceException("支付订单不存在");
+            }
+
+            // 检查订单状态，已处理过直接返回成功
+            if (payOrder.getStatus() != 0) {
+                log.info("[众筹][支付回调] 订单已处理: 订单号={}, 状态={}", outTradeNo, payOrder.getStatus());
+                return;
+            }
+
             // 支付成功
             if (AliPayTradeStatus.TRADE_SUCCESS.name().equals(tradeStatus) || AliPayTradeStatus.TRADE_FINISHED.name().equals(tradeStatus)) {
+                // 更新支付订单状态
+                payOrderService.successPay(outTradeNo, tradeNo, totalAmount, gmtPayment);
+                
                 // 更新众筹支持记录状态
                 support.setStatus(CrowdfundingSupportStatus.NORMAL.getCode()); // 正常状态
                 crowdfundingSupportMapper.updateById(support);

@@ -80,10 +80,12 @@ public class PresaleOrderPayNotifyServiceImpl extends BasePayNotifyService {
                 // 更新支付订单状态
                 payOrderService.successPay(outTradeNo, tradeNo, totalAmount, gmtPayment);
 
-                // 更新预售订单状态
-                presaleOrder.setOrderStatus(PresaleOrderStatus.PAID.getCode()); // 已支付
-                presaleOrder.setPayOrderId(payOrder.getId());
-                presaleOrderMapper.updateById(presaleOrder);
+                // 更新预售订单状态 - 只更新需要修改的字段，避免清空其他字段
+                SdPresaleOrder updateOrder = new SdPresaleOrder();
+                updateOrder.setId(presaleOrder.getId());
+                updateOrder.setOrderStatus(PresaleOrderStatus.PAID.getCode()); // 已支付
+                updateOrder.setPayOrderId(payOrder.getId());
+                presaleOrderMapper.updateById(updateOrder);
 
                 // 更新项目销售金额和销售数量
                 BigDecimal amountDecimal = new BigDecimal(totalAmount);
@@ -107,7 +109,8 @@ public class PresaleOrderPayNotifyServiceImpl extends BasePayNotifyService {
             log.error("[预售订单][支付回调] 处理异常: 订单号={}", outTradeNo, e);
             // 回滚事务
             TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
-
+            // 重新抛出异常，让支付宝知道回调处理失败
+            throw new ServiceException("支付回调处理失败: " + e.getMessage());
         }
     }
 
@@ -121,9 +124,11 @@ public class PresaleOrderPayNotifyServiceImpl extends BasePayNotifyService {
         }
 
         payOrderService.failPay(outTradeNo, tradeNo, totalAmount);
-        // 更新预售订单状态
-        presaleOrder.setOrderStatus(PresaleOrderStatus.CANCELLED.getCode()); // 已取消
-        presaleOrderMapper.updateById(presaleOrder);
+        // 更新预售订单状态 - 只更新需要修改的字段，避免清空其他字段
+        SdPresaleOrder updateOrder = new SdPresaleOrder();
+        updateOrder.setId(presaleOrder.getId());
+        updateOrder.setOrderStatus(PresaleOrderStatus.CANCELLED.getCode()); // 已取消
+        presaleOrderMapper.updateById(updateOrder);
 
         log.error("[预售订单][支付回调] 支付失败: 订单号={}, 交易状态={}", outTradeNo, tradeStatus);
 
@@ -143,9 +148,11 @@ public class PresaleOrderPayNotifyServiceImpl extends BasePayNotifyService {
             // 查询预售订单
             SdPresaleOrder presaleOrder = presaleOrderMapper.selectByOrderNo(vo.getOutTradeNo());
             if (presaleOrder != null) {
-                // 更新订单状态为已取消
-                presaleOrder.setOrderStatus(PresaleOrderStatus.CANCELLED.getCode()); // 已取消
-                presaleOrderMapper.updateById(presaleOrder);
+                // 更新订单状态为已取消 - 只更新需要修改的字段，避免清空其他字段
+                SdPresaleOrder updateOrder = new SdPresaleOrder();
+                updateOrder.setId(presaleOrder.getId());
+                updateOrder.setOrderStatus(PresaleOrderStatus.CANCELLED.getCode()); // 已取消
+                presaleOrderMapper.updateById(updateOrder);
                 log.info("[预售订单][支付超时] 订单已取消: 订单号={}", vo.getOutTradeNo());
             }
 
@@ -336,7 +343,10 @@ public class PresaleOrderPayNotifyServiceImpl extends BasePayNotifyService {
                 return;
             }
 
+            log.info("[预售订单] 检查收货地址: 订单号={}, 收货地址={}", presaleOrder.getOrderNo(), presaleOrder.getReceiverAddress());
             if (StringUtils.isBlank(presaleOrder.getReceiverAddress())) {
+                log.error("[预售订单] 收货地址为空，无法创建发货记录: 订单号={}, 收货人={}, 电话={}", 
+                    presaleOrder.getOrderNo(), presaleOrder.getReceiverName(), presaleOrder.getReceiverPhone());
                 throw new ServiceException("订单缺少收货地址，无法创建发货记录");
             }
 

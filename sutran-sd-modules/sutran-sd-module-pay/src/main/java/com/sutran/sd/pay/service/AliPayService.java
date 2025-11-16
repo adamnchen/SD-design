@@ -2,6 +2,7 @@ package com.sutran.sd.pay.service;
 
 import com.alipay.api.response.AlipayTradeQueryResponse;
 import com.ijpay.alipay.AliPayApiConfig;
+import com.sutran.sd.pay.enums.BusinessType;
 
 import java.math.BigDecimal;
 
@@ -48,6 +49,19 @@ public interface AliPayService {
      * @param notifyUrl 支付结果回调接口
      */
     void createPayOrder(Long userId, String userName, String outTradeNo, String subject, String body, BigDecimal totalAmount, String notifyUrl);
+
+    /**
+     * 创建支付订单（带业务类型）
+     * @param userId 下单人用户ID
+     * @param userName 下单人姓名
+     * @param outTradeNo 订单号
+     * @param subject 商品名称
+     * @param body 商品参数或者描述信息(可以用json字符串表示)
+     * @param totalAmount 订单总金额
+     * @param notifyUrl 支付结果回调接口
+     * @param businessType 业务类型
+     */
+    void createPayOrder(Long userId, String userName, String outTradeNo, String subject, String body, BigDecimal totalAmount, String notifyUrl, BusinessType businessType);
 
 
     /**

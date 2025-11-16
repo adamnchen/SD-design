@@ -5,6 +5,7 @@ import com.rabbitmq.client.Channel;
 import com.sutran.sd.design.service.CrowdfundingMqService;
 import com.sutran.sd.pay.service.AliPayService;
 import com.sutran.sd.pay.config.AliPayConfig;
+import com.sutran.sd.pay.enums.BusinessType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.core.Message;
@@ -59,7 +60,7 @@ public class CrowdfundingPaymentOrderConsumer {
             String body = "用户" + message.getUserName() + "支持众筹项目";
             String notifyUrl = "/design/crowdfunding/payment/alipay/notify"; // 众筹模块回调地址
 
-            // 创建支付订单并获取二维码
+            // 创建支付订单并获取二维码（业务类型：众筹）
             aliPayService.createPayOrder(
                     message.getUserId(),
                     message.getUserName(),
@@ -67,7 +68,8 @@ public class CrowdfundingPaymentOrderConsumer {
                     subject,
                     body,
                     message.getSupportAmount(),
-                    notifyUrl
+                    notifyUrl,
+                    BusinessType.PROOF_CROWDFUND
             );
 
             log.info("支付订单创建成功: 订单号={}", orderNo);

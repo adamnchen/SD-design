@@ -152,6 +152,13 @@ public class AliPayServiceImpl implements AliPayService {
      */
     @Override
     public void createPayOrder(Long userId, String userName, String outTradeNo, String subject, String body, BigDecimal totalAmount, String notifyUrl) {
+        // 保持兼容：不传业务类型时，默认按众筹处理
+        createPayOrder(userId, userName, outTradeNo, subject, body, totalAmount, notifyUrl, BusinessType.PROOF_CROWDFUND);
+    }
+
+    @Override
+    public void createPayOrder(Long userId, String userName, String outTradeNo, String subject, String body,
+                               BigDecimal totalAmount, String notifyUrl, BusinessType businessType) {
         // 支付宝应用ID
         final String appId = aliPayConfig.getAppId();
 
@@ -160,14 +167,15 @@ public class AliPayServiceImpl implements AliPayService {
         Date expireTime = DateUtil.offsetMinute(now, 1);
 
         // 存入redis,扫描redis进行过期订单处理
-        RedisUtils.setCacheZSet(PAY_ORDER_TASK,expireTime.getTime(),outTradeNo);
+        RedisUtils.setCacheZSet(PAY_ORDER_TASK, expireTime.getTime(), outTradeNo);
 
         // 新增订单记录
         PayOrder order = new PayOrder()
             .setOutTradeNo(outTradeNo)
             .setUserId(userId).setUserName(userName).setAppId(appId)
             .setSubject(subject).setBody(body).setTotalAmount(totalAmount)
-            .setChannelType(ChannelType.ALI_PAY.name()).setBusinessType(BusinessType.PROOF_CROWDFUND.name())
+            .setChannelType(ChannelType.ALI_PAY.name())
+            .setBusinessType(businessType != null ? businessType.name() : BusinessType.PROOF_CROWDFUND.name())
             .setStatus(0).setCreateTime(now).setExpireTime(expireTime);
         payOrderService.insert(order);
 
@@ -176,8 +184,8 @@ public class AliPayServiceImpl implements AliPayService {
         }
         catch (Exception e) {
             log.error("[支付宝][扫码支付]>>>>>>>>>创建订单失败,订单号:{}，异常：", outTradeNo, e);
-            payOrderService.failPay(outTradeNo,null, totalAmount.setScale(2, RoundingMode.HALF_UP).toString());
-            throw new ServiceException("创建订单失败:"+e.getMessage(),500);
+            payOrderService.failPay(outTradeNo, null, totalAmount.setScale(2, RoundingMode.HALF_UP).toString());
+            throw new ServiceException("创建订单失败:" + e.getMessage(), 500);
         }
     }
 

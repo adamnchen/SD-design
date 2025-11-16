@@ -30,6 +30,7 @@ import com.sutran.sd.design.vo.PresaleOrderListVO;
 import com.sutran.sd.design.vo.PresaleProjectDetailVO;
 import com.sutran.sd.design.vo.PresaleProjectListVO;
 import com.sutran.sd.pay.service.impl.PayOrderServiceImpl;
+import com.sutran.sd.pay.enums.BusinessType;
 import com.sutran.sd.pay.service.AliPayService;
 import com.sutran.sd.system.domain.vo.SysOssVo;
 import com.sutran.sd.system.service.IForbiddenWordService;
@@ -354,7 +355,7 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
                 String body = "购买数量：" + createDTO.getQuantity() + "件";
                 String notifyUrl = "/design/presale/payment/alipay/notify";
 
-                // 调用支付宝服务创建支付订单
+                // 调用支付宝服务创建支付订单（业务类型：预售）
                 aliPayService.createPayOrder(
                     LoginHelper.getUserId(),
                     LoginHelper.getUsername(),
@@ -362,7 +363,8 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
                     subject,
                     body,
                     totalAmount,
-                    notifyUrl
+                    notifyUrl,
+                    BusinessType.PRESALE
                 );
 
                 log.info("支付订单创建成功: 订单号={}", orderNo);

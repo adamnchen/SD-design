@@ -28,6 +28,7 @@ import com.sutran.sd.draw.domain.bo.ImageInfoBo;
 import com.sutran.sd.draw.domain.pojo.*;
 import com.sutran.sd.draw.domain.vo.ComfyUserModelFileVo;
 import com.sutran.sd.draw.domain.vo.ComfyuiImageToolVo;
+import com.sutran.sd.draw.domain.vo.ComfyuiProgressVo;
 import com.sutran.sd.draw.domain.vo.SdUserTaskVo;
 import com.sutran.sd.draw.enums.ImageType;
 import com.sutran.sd.draw.enums.LoadBalanceStrategy;
@@ -284,6 +285,53 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
             }
             // 图片还没有生成，则返回99
             return 99;
+        }
+    }
+
+    /**
+     * 获取任务进度V2
+     * @param taskId 任务id
+     * @return 任务进度
+     */
+    @Override
+    public ComfyuiProgressVo getComfyTaskProgressV2(String taskId) {
+        // 检查任务状态[0-排队等待中,1-执行中,2-执行成功,3-执行失败]
+        Long userId = LoginHelper.getUserId();
+        Integer status = sdUserTaskService.selectStatusByTaskIdAndUserId(taskId, userId);
+        if (status==null) {
+            throw new TaskErrorException("未找到任务");
+        }
+        else if (status==0) {
+            return new ComfyuiProgressVo().setProgress(0).setStatus(status);
+        }
+        else if (status==1) {
+            Integer progress = RedisUtils.getCacheMapValue(DRAW_TASK_PROGRESS, taskId);
+            ComfyuiProgressVo vo = new ComfyuiProgressVo();
+            if (progress!=null && progress == 100) {
+                // 查询是否已生成图片
+                boolean hasImg = sdUserModelFileService.checkHasImgByTaskId(taskId);
+                if (hasImg) {
+                    return vo.setProgress(100).setStatus(2);
+                }
+                else {
+                    // 图片还没有生成，则返回99
+                    return vo.setProgress(99).setStatus(1);
+                }
+            }
+            return progress!=null? vo.setProgress(progress).setStatus(1):vo.setProgress(0).setStatus(status);
+        }
+        // 执行失败
+        else if (status==3) {
+            throw new ServiceException("生图失败!");
+        }
+        else {
+            // 查询是否已生成图片
+            boolean hasImg = sdUserModelFileService.checkHasImgByTaskId(taskId);
+            if (hasImg) {
+                return new ComfyuiProgressVo().setProgress(100).setStatus(2);
+            }
+            // 图片还没有生成，则返回99
+            return new ComfyuiProgressVo().setProgress(99).setStatus(1);
         }
     }
 

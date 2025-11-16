@@ -235,4 +235,14 @@ public class SdDrawController {
         return R.ok(sdComfyuiApiService.getComfyTaskProgress(taskId));
     }
 
+    /**
+     * [ComfyUI][V2]获取指定任务生成进度
+     * @param taskId 任务ID[必填]
+     * @return 任务进度
+     */
+    @GetMapping("/comfy/model/task-progress/v2")
+    public R<ComfyuiProgressVo> getComfyTaskProgressV2(@RequestParam String taskId) {
+        return R.ok(sdComfyuiApiService.getComfyTaskProgressV2(taskId));
+    }
+
 }

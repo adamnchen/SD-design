@@ -112,6 +112,6 @@ public interface SdUserTaskMapper extends BaseMapperPlus<SdUserTaskMapper, SdUse
      * @param userId    用户ID
      * @return  ComfyuiDoingTaskVo
      */
-    @Select("select task_id AS taskId,category from sd_user_task where belong_user_id = #{userId} AND category IN (3,4) AND status IN (0,1) ORDER BY task_id DESC LIMIT 1")
+    @Select("SELECT task_id AS taskId,category,flow_id AS flowId FROM sd_user_task WHERE belong_user_id = #{userId} AND category IN (3,4) AND status IN (0,1) ORDER BY task_id DESC LIMIT 1")
     ComfyuiDoingTaskVo getDoingTaskV2(@Param("userId") Long userId);
 }

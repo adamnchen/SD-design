@@ -20,4 +20,8 @@ public class ComfyuiDoingTaskVo implements Serializable {
      * 正在进行的任务ID
      */
     private String taskId;
+    /**
+     * 使用的工作流ID
+     */
+    private String flowId;
 }

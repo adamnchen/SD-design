@@ -141,7 +141,7 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
             flow = flow.replace("{{prompt}}",prompt);
         }
 
-        sdUserTaskService.addComfyTask(taskId,userId,userName,flow,prompt,promptZh,null, 3);
+        sdUserTaskService.addComfyTask(taskId,userId,userName,flow,prompt,promptZh,null,3,sdFlow.getId());
         // 生图任务存放到MQ队列
         DrawingTaskInfo taskInfo = new DrawingTaskInfo(taskId, flow,10,userId,batchSize,null);
         submitComfyTaskToQueue(taskInfo);
@@ -225,7 +225,7 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
             flowStr = flowStr.replace("{{prompt}}",prompt);
         }
 
-        sdUserTaskService.addComfyTask(taskId, userId, userName, flowStr, prompt, promptZh, imageUrls, 4);
+        sdUserTaskService.addComfyTask(taskId, userId, userName, flowStr, prompt, promptZh, imageUrls, 4, sdFlow.getId());
         // 生图任务存放到MQ队列
         DrawingTaskInfo taskInfo = new DrawingTaskInfo(taskId, flowStr, 10, userId, sdFlow.getDrawNum(),images);
         submitComfyTaskToQueue(taskInfo);

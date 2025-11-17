@@ -36,6 +36,11 @@ public class SdUserTask implements Serializable {
      */
     @Schema(name = "status", description = "执行状态[0-排队等待中,1-执行中,2-执行成功,3-执行失败]")
     private Integer status;
+     /**
+     * 工作流ID
+     */
+    @Schema(name = "flowId", description = "工作流ID")
+    private Long flowId;
     /**
      * comfy工作流
      */

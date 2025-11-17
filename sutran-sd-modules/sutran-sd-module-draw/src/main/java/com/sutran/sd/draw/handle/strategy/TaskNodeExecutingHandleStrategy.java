@@ -1,5 +1,6 @@
 package com.sutran.sd.draw.handle.strategy;
 
+import cn.hutool.core.collection.CollectionUtil;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.sutran.sd.common.utils.redis.RedisUtils;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +24,10 @@ public class TaskNodeExecutingHandleStrategy implements IComfyWebSocketTextHandl
     @Override
     public void handleMessage(JsonNode dataNode) {
         log.warn("[ComfUI][任务节点执行中]>>>>>>>>>当前节点：{}",dataNode);
-        RedisUtils.setCacheListValue("COMFYUI_EXECUTING_NODE_LIST:"+dataNode.get("prompt_id").asText(),dataNode.get("node").asText());
+        JsonNode promptId = dataNode.get("prompt_id");
+        JsonNode node = dataNode.get("node");
+        if (CollectionUtil.isNotEmpty(promptId) && CollectionUtil.isNotEmpty(node)) {
+            RedisUtils.setCacheListValue("COMFYUI_EXECUTING_NODE_LIST:"+ promptId.asText(), node.asText());
+        }
     }
 }

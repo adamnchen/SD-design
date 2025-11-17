@@ -123,6 +123,7 @@ public class SdDrawController {
 
     /**
      * [通用]获取当前用户正在进行的任务taskId
+     * @param category 任务类型[必填,0-SD文生图,1-SD图生图,2-测试,3-Comfy生图,4-工具修复]
      */
     @GetMapping("/doing-task")
     public R<String> getDoingTask(@RequestParam Integer category) {
@@ -245,4 +246,11 @@ public class SdDrawController {
         return R.ok(sdComfyuiApiService.getComfyTaskProgressV2(taskId));
     }
 
+    /**
+     * [ComfyUI][V2]获取当前用户正在进行的任务taskId以及任务类型
+     */
+    @GetMapping("/doing-task/v2")
+    public R<ComfyuiDoingTaskVo> getDoingTaskV2() {
+        return R.ok("操作成功", sdWebuiApiService.getDoingTaskV2());
+    }
 }

@@ -10,6 +10,7 @@ import com.sutran.sd.common.core.page.TableDataInfo;
 import com.sutran.sd.common.utils.StringUtils;
 import com.sutran.sd.common.utils.redis.RedisUtils;
 import com.sutran.sd.draw.domain.SdUserTask;
+import com.sutran.sd.draw.domain.vo.ComfyuiDoingTaskVo;
 import com.sutran.sd.draw.domain.vo.SdUserModelFileVo;
 import com.sutran.sd.draw.domain.vo.SdUserTaskVo;
 import com.sutran.sd.draw.enums.TaskType;
@@ -363,5 +364,15 @@ public class SdUserTaskServiceImpl implements SdUserTaskService {
             .setTaskId(Long.parseLong(taskId))
             .setFlow(flowStr);
         baseMapper.updateById(task);
+    }
+
+    /**
+     * 获取当前用户正在进行的任务taskId以及任务类型
+     * @param userId    用户ID
+     * @return  ComfyuiDoingTaskVo
+     */
+    @Override
+    public ComfyuiDoingTaskVo getDoingTaskV2(Long userId) {
+        return baseMapper.getDoingTaskV2(userId);
     }
 }

@@ -693,6 +693,15 @@ public class SdWebuiApiServiceImpl implements SdWebuiApiService {
         }
     }
 
+    /**
+     * 获取当前用户正在进行的任务taskId以及任务类型
+     * @return  ComfyuiDoingTaskVo
+     */
+    @Override
+    public ComfyuiDoingTaskVo getDoingTaskV2() {
+        return sdUserTaskService.getDoingTaskV2(LoginHelper.getUserId());
+    }
+
     /** 获取任务进度 **/
     @Override
     public SdWebuiProgressVo getProcess(String taskId) {
@@ -1086,7 +1095,7 @@ public class SdWebuiApiServiceImpl implements SdWebuiApiService {
         // 召唤词
         String negativePrompt = dto.getNegative_prompt();
         String negativePromptZh = dto.getNegativePromptZh();
-        
+
         // 违禁词校验
         if (StringUtils.isNotBlank(prompt)) {
             forbiddenWordService.validateForbiddenWord(prompt, "提示词");
@@ -1094,7 +1103,7 @@ public class SdWebuiApiServiceImpl implements SdWebuiApiService {
         if (StringUtils.isNotBlank(negativePrompt)) {
             forbiddenWordService.validateForbiddenWord(negativePrompt, "反向提示词");
         }
-        
+
         StringBuilder newPrompt = new StringBuilder(prompt);
         // 多模型集合
         List<JSONObject> loraInfo = new ArrayList<>();

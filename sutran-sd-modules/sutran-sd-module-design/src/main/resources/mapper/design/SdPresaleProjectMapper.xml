@@ -18,7 +18,7 @@
         <result property="creatorAvatar" column="creator_avatar"/>
         <result property="manufacturerUserId" column="manufacturer_user_id"/>
         <result property="manufacturerName" column="manufacturer_name"/>
-        <result property="manufacturerAvatar" column="manufacturer_avatar_url"/>
+        <result property="manufacturerAvatar" column="manufacturer_avatar"/>
         <result property="proofingInvitationId" column="proofing_invitation_id"/>
         <result property="basePrice" column="base_price"/>
         <result property="tieredPricing" column="tiered_pricing"/>

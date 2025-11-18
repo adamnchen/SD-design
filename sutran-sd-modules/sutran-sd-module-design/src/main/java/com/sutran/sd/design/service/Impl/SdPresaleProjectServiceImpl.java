@@ -570,6 +570,8 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
         PresaleOrderListVO vo = new PresaleOrderListVO();
         BeanUtils.copyProperties(order, vo);
 
+        vo.setReceiverAddress(buildFullReceiverAddress(order.getReceiverArea(), order.getReceiverAddress()));
+
         // 查询用户昵称
         try {
             if (order.getUserId() != null) {
@@ -596,7 +598,18 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
     private PresaleOrderDetailVO convertToOrderDetailVO(SdPresaleOrder order) {
         PresaleOrderDetailVO vo = new PresaleOrderDetailVO();
         BeanUtils.copyProperties(order, vo);
+        vo.setReceiverAddress(buildFullReceiverAddress(order.getReceiverArea(), order.getReceiverAddress()));
         return vo;
+    }
+
+    private String buildFullReceiverAddress(String area, String address) {
+        if (StringUtils.isBlank(area)) {
+            return address;
+        }
+        if (StringUtils.isBlank(address)) {
+            return area;
+        }
+        return area + address;
     }
 
     @Override

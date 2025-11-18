@@ -86,7 +86,7 @@ public class PayCallbackController {
                     businessInfo.put("orderStatusText", getPresaleOrderStatusText(presaleOrder.getOrderStatus()));
                     businessInfo.put("receiverName", presaleOrder.getReceiverName());
                     businessInfo.put("receiverPhone", presaleOrder.getReceiverPhone());
-                    businessInfo.put("receiverAddress", presaleOrder.getReceiverAddress());
+                    businessInfo.put("receiverAddress", buildFullReceiverAddress(presaleOrder.getReceiverArea(), presaleOrder.getReceiverAddress()));
 
                     // 如果有退款金额，显示退款信息
                     if (presaleOrder.getRefundAmount() != null && presaleOrder.getRefundAmount().compareTo(BigDecimal.ZERO) > 0) {
@@ -116,7 +116,7 @@ public class PayCallbackController {
                     businessInfo.put("prizeInfo", support.getPrizeInfo());
                     businessInfo.put("receiverName", support.getReceiverName());
                     businessInfo.put("receiverPhone", support.getReceiverPhone());
-                    businessInfo.put("receiverAddress", support.getReceiverAddress());
+                    businessInfo.put("receiverAddress", buildFullReceiverAddress(support.getReceiverArea(), support.getReceiverAddress()));
 
                     // 如果有退款信息，显示退款信息
                     if (support.getRefundTime() != null) {
@@ -146,6 +146,16 @@ public class PayCallbackController {
             log.error("[支付回调] 查询支付状态异常: 订单号={}", orderNo, e);
             return R.fail("查询支付状态失败");
         }
+    }
+
+    private String buildFullReceiverAddress(String area, String address) {
+        if (StringUtils.isBlank(area)) {
+            return address;
+        }
+        if (StringUtils.isBlank(address)) {
+            return area;
+        }
+        return area + address;
     }
 
     /**

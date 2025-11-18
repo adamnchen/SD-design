@@ -2,6 +2,7 @@ package com.sutran.sd.draw.service;
 
 import com.sutran.sd.common.core.domain.PageQuery;
 import com.sutran.sd.common.core.page.TableDataInfo;
+import com.sutran.sd.draw.domain.vo.ComfyuiDoingTaskVo;
 import com.sutran.sd.draw.domain.vo.SdUserTaskVo;
 
 import java.util.Date;
@@ -24,8 +25,9 @@ public interface SdUserTaskService {
      * @param promptZh  中文提示词
      * @param imageUrls 参考图地址集合
      * @param category  任务类型[0-SD文生图,1-SD图生图,2-测试,3-Comfy生图,4-工具修复]
+     * @param flowId    工作流ID
      */
-    void addComfyTask(String taskId, Long userId, String userName, String flow, String prompt, String promptZh, List<String> imageUrls, int category);
+    void addComfyTask(String taskId, Long userId, String userName, String flow, String prompt, String promptZh, List<String> imageUrls, int category, Long flowId);
     /**
      * 新增用户任务
      * @param taskId    任务ID
@@ -170,4 +172,11 @@ public interface SdUserTaskService {
      * @param flowStr   工作流字符串
      */
     void updateFlowOfComfyTask(String taskId, String flowStr);
+
+    /**
+     * 获取当前用户正在进行的任务taskId以及任务类型
+     * @param userId    用户ID
+     * @return  ComfyuiDoingTaskVo
+     */
+    ComfyuiDoingTaskVo getDoingTaskV2(Long userId);
 }

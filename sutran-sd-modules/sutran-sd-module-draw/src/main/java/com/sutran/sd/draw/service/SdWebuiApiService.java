@@ -251,4 +251,11 @@ public interface SdWebuiApiService {
      * @param taskId    任务ID
      */
     void delXyzData(String taskId);
+
+    /**
+     * 获取当前用户正在进行的任务taskId以及任务类型
+     * @return  ComfyuiDoingTaskVo
+     */
+    ComfyuiDoingTaskVo getDoingTaskV2();
+
 }

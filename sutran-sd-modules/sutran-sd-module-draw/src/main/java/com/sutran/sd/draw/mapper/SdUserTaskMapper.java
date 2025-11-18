@@ -3,6 +3,7 @@ package com.sutran.sd.draw.mapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.sutran.sd.common.core.mapper.BaseMapperPlus;
 import com.sutran.sd.draw.domain.SdUserTask;
+import com.sutran.sd.draw.domain.vo.ComfyuiDoingTaskVo;
 import com.sutran.sd.draw.domain.vo.SdUserTaskVo;
 import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Mapper;
@@ -105,4 +106,12 @@ public interface SdUserTaskMapper extends BaseMapperPlus<SdUserTaskMapper, SdUse
      */
     @Select("select task_id from sd_user_task where prompt_id = #{promptId}")
     String getTaskIdByPromptId(@Param("promptId") String promptId);
+
+    /**
+     * 获取当前用户正在进行的任务taskId以及任务类型
+     * @param userId    用户ID
+     * @return  ComfyuiDoingTaskVo
+     */
+    @Select("SELECT task_id AS taskId,category,flow_id AS flowId FROM sd_user_task WHERE belong_user_id = #{userId} AND category IN (3,4) AND status IN (0,1) ORDER BY task_id DESC LIMIT 1")
+    ComfyuiDoingTaskVo getDoingTaskV2(@Param("userId") Long userId);
 }

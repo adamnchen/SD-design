@@ -5,6 +5,7 @@ import com.sutran.sd.draw.domain.bo.ComfyModelTaskSubmitBo;
 import com.sutran.sd.draw.domain.pojo.*;
 import com.sutran.sd.draw.domain.vo.ComfyUserModelFileVo;
 import com.sutran.sd.draw.domain.vo.ComfyuiImageToolVo;
+import com.sutran.sd.draw.domain.vo.ComfyuiProgressVo;
 import com.sutran.sd.draw.enums.ImageType;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -57,6 +58,13 @@ public interface SdComfyuiApiService {
      * @return 任务进度
      */
     Integer getComfyTaskProgress(String taskId);
+
+    /**
+     * 获取任务进度V2
+     * @param taskId 任务id
+     * @return 任务进度
+     */
+    ComfyuiProgressVo getComfyTaskProgressV2(String taskId);
 
     /**
      * api: /prompt<br>

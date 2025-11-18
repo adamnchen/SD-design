@@ -60,7 +60,8 @@ public class ComfyWebsocketClient {
                         // progress_state=PROGRESS_STATE：当前运行的耗时节点执行进度更新
                         ComfyWebSocketMessageType msgType = ComfyWebSocketMessageType.fromType(type.asText());
                         if (msgType == ComfyWebSocketMessageType.EXECUTING) {
-                            log.warn("[ComfUI][任务节点执行中]>>>>>>>>>当前节点：{}",dataNode);
+                            messageHandler.handleMessage(msgType, dataNode);
+//                            log.warn("[ComfUI][任务节点执行中]>>>>>>>>>当前节点：{}",dataNode);
                         }
                         else if (msgType == ComfyWebSocketMessageType.MONITOR) {
                             log.info("[ComfUI][系统性能状态更新]>>>>>>>>>{}",dataNode);

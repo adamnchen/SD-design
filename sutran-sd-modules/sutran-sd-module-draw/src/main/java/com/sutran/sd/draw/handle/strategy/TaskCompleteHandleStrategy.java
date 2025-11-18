@@ -36,7 +36,7 @@ public class TaskCompleteHandleStrategy implements IComfyWebSocketTextHandleStra
     @Override
     public void handleMessage(JsonNode dataNode) {
         // 任务完成
-        log.warn("[任务完成]>>>>>>>>>节点信息: {}", dataNode);
+        log.warn("[ComfUI][任务完成]>>>>>>>>>节点信息: {}", dataNode);
         String promptId = dataNode.get("prompt_id").asText();
         SdUserTaskVo task = sdUserTaskService.getTaskInfoByPromptId(promptId);
         if (task == null) {

@@ -32,7 +32,7 @@ public class TaskProgressHandleStrategy implements IComfyWebSocketTextHandleStra
     @Override
     public void handleMessage(JsonNode dataNode) {
         // {"value":1,"max":20,"prompt_id":"d7b64511-54db-4947-a2fa-0080fa379758","node":"42"}
-        log.info("[任务进度更新]>>>>>>>>>节点: {}", dataNode);
+        log.info("[ComfUI][任务进度更新]>>>>>>>>>节点: {}", dataNode);
         String promptId = dataNode.get("prompt_id").asText();
         String taskId = sdUserTaskService.getTaskIdByPromptId(promptId);
         //当消息类型为progress时有真实进度

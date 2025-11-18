@@ -10,6 +10,7 @@ import com.sutran.sd.common.core.page.TableDataInfo;
 import com.sutran.sd.common.utils.StringUtils;
 import com.sutran.sd.common.utils.redis.RedisUtils;
 import com.sutran.sd.draw.domain.SdUserTask;
+import com.sutran.sd.draw.domain.vo.ComfyuiDoingTaskVo;
 import com.sutran.sd.draw.domain.vo.SdUserModelFileVo;
 import com.sutran.sd.draw.domain.vo.SdUserTaskVo;
 import com.sutran.sd.draw.enums.TaskType;
@@ -50,23 +51,17 @@ public class SdUserTaskServiceImpl implements SdUserTaskService {
      * @param promptZh  中文提示词
      * @param imageUrls 参考图地址集合
      * @param category  任务类型[0-SD文生图,1-SD图生图,2-测试,3-Comfy生图,4-工具修复]
+     * @param flowId    工作流ID
      */
     @Override
-    public void addComfyTask(String taskId, Long userId, String userName, String flow, String prompt, String promptZh, List<String> imageUrls, int category) {
+    public void addComfyTask(String taskId, Long userId, String userName, String flow, String prompt, String promptZh, List<String> imageUrls, int category, Long flowId) {
         Date now = new Date();
         SdUserTask task = new SdUserTask()
-            .setTaskId(Long.parseLong(taskId))
-            .setTaskType(TaskType.COMFYUI.name())
-            .setIsRedraw(0)
-            .setStatus(0)
-            .setCategory(category)
-            .setBelongUserId(userId)
-            .setBelongUserName(userName)
-            .setPrompt(prompt)
-            .setPromptZh(promptZh)
-            .setCrtTime(now)
-            .setUpdTime(now)
-            .setFlow(flow);
+            .setTaskId(Long.parseLong(taskId)).setFlowId(flowId)
+            .setTaskType(TaskType.COMFYUI.name()).setIsRedraw(0).setStatus(0)
+            .setCategory(category).setBelongUserId(userId).setBelongUserName(userName)
+            .setPrompt(prompt).setPromptZh(promptZh)
+            .setCrtTime(now).setUpdTime(now).setFlow(flow);
         if (CollectionUtil.isNotEmpty(imageUrls)) {
             task.setInitImgList(JSONObject.toJSONString(imageUrls));
         }
@@ -363,5 +358,15 @@ public class SdUserTaskServiceImpl implements SdUserTaskService {
             .setTaskId(Long.parseLong(taskId))
             .setFlow(flowStr);
         baseMapper.updateById(task);
+    }
+
+    /**
+     * 获取当前用户正在进行的任务taskId以及任务类型
+     * @param userId    用户ID
+     * @return  ComfyuiDoingTaskVo
+     */
+    @Override
+    public ComfyuiDoingTaskVo getDoingTaskV2(Long userId) {
+        return baseMapper.getDoingTaskV2(userId);
     }
 }

@@ -27,7 +27,7 @@ public class TaskErrorHandleStrategy implements IComfyWebSocketTextHandleStrateg
     @Override
     public void handleMessage(JsonNode dataNode) {
         //当前消息没有真实进度 使用虚假进度;
-        log.error("[任务执行错误]>>>>>>>>>节点: {}", dataNode);
+        log.error("[ComfUI][任务执行错误]>>>>>>>>>节点: {}", dataNode);
         String promptId = dataNode.get("prompt_id").asText();
         String exceptionMessage = dataNode.get("exception_message").asText();
         String nodeId = dataNode.get("node_id").asText();

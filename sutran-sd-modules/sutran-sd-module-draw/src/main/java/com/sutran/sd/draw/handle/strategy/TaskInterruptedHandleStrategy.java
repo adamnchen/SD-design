@@ -22,6 +22,6 @@ public class TaskInterruptedHandleStrategy implements IComfyWebSocketTextHandleS
     @Override
     public void handleMessage(JsonNode dataNode) {
         // 任务取消
-        log.warn("[任务取消]>>>>>>>>>节点: {}", dataNode);
+        log.warn("[ComfUI][任务取消]>>>>>>>>>节点: {}", dataNode);
     }
 }

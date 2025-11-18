@@ -570,6 +570,9 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
             CrowdfundingProjectListVO vo = new CrowdfundingProjectListVO();
             org.springframework.beans.BeanUtils.copyProperties(project, vo);
 
+            // 设置产品描述
+            vo.setProductDescription(project.getDescription());
+
             // 计算进度百分比
             if (project.getTargetAmount() != null && project.getTargetAmount().compareTo(BigDecimal.ZERO) > 0) {
                 BigDecimal progress = project.getCurrentAmount()
@@ -601,9 +604,14 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
         vo.setProofingInvitationId(project.getProofingInvitationId());
         vo.setTitle(project.getTitle());
         vo.setDescription(project.getDescription());
+        vo.setProductDescription(project.getDescription());
         vo.setCoverImage(project.getCoverImage());
         vo.setCreatorUserId(project.getCreatorUserId());
         vo.setCreatorName(project.getCreatorName());
+        vo.setCreatorAvatar(project.getCreatorAvatar());
+        vo.setManufacturerUserId(project.getManufacturerUserId());
+        vo.setManufacturerName(project.getManufacturerName());
+        vo.setManufacturerAvatar(project.getManufacturerAvatar());
         vo.setTargetAmount(project.getTargetAmount());
         vo.setCurrentAmount(project.getCurrentAmount());
         vo.setSupportCount(project.getSupportCount());

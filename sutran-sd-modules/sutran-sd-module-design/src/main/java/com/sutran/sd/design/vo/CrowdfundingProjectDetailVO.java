@@ -1,6 +1,7 @@
 package com.sutran.sd.design.vo;
 
 import lombok.Data;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.math.BigDecimal;
 import java.util.Date;
@@ -33,6 +34,9 @@ public class CrowdfundingProjectDetailVO {
      * 项目标题
      */
     private String title;
+
+    @JsonProperty("product_description")
+    private String productDescription;
 
     /**
      * 项目详细描述

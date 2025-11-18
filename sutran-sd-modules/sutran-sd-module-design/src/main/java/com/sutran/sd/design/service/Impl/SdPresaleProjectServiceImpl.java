@@ -760,7 +760,10 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
             // 设置发起人信息（当前用户）
             project.setCreatorUserId(currentUserId);
             project.setCreatorName(LoginHelper.getUsername());
-
+            SysUser currentUser = userService.selectUserById(currentUserId);
+            if (currentUser != null) {
+                project.setCreatorAvatar(currentUser.getAvatar());
+            }
 
             // 设置厂家信息（打样邀约的发起人）
             project.setManufacturerUserId(invitationDetail.getInviterUserId());

@@ -7,6 +7,7 @@ import com.sutran.sd.common.core.domain.PageQuery;
 import com.sutran.sd.common.core.domain.R;
 import com.sutran.sd.common.core.page.TableDataInfo;
 import com.sutran.sd.common.helper.LoginHelper;
+import com.sutran.sd.common.utils.StringUtils;
 import com.sutran.sd.design.domain.SdCrowdfundingSampleDelivery;
 import com.sutran.sd.design.domain.SdCrowdfundingProject;
 import com.sutran.sd.design.domain.SdCrowdfundingSupport;
@@ -277,6 +278,16 @@ public class SdCrowdfundingSampleDeliveryServiceImpl implements ISdCrowdfundingS
        return userId;
     }
 
+    private String buildFullReceiverAddress(String area, String address) {
+        if (StringUtils.isBlank(area)) {
+            return address;
+        }
+        if (StringUtils.isBlank(address)) {
+            return area;
+        }
+        return area + address;
+    }
+
     @Override
     public TableDataInfo<SampleDeliveryListVO> getProjectDeliveryInfo(Long projectId, PageQuery pageQuery) {
         try {
@@ -364,10 +375,13 @@ public class SdCrowdfundingSampleDeliveryServiceImpl implements ISdCrowdfundingS
                          .last("LIMIT 1");
 
             SdCrowdfundingSupport support = supportMapper.selectOne(supportWrapper);
-            if (support != null && support.getOrderNo() != null) {
-                // 设置订单编号
-                // 如果是发起者自留的（订单号以 INITIATOR_WINNER_ 开头），返回这个订单编号
-                vo.setOrderNo(support.getOrderNo());
+            if (support != null) {
+                vo.setDeliveryAddress(buildFullReceiverAddress(support.getReceiverArea(), support.getReceiverAddress()));
+                if (support.getOrderNo() != null) {
+                    // 设置订单编号
+                    // 如果是发起者自留的（订单号以 INITIATOR_WINNER_ 开头），返回这个订单编号
+                    vo.setOrderNo(support.getOrderNo());
+                }
             }
         } catch (Exception e) {
             log.warn("查询订单编号失败: 项目ID={}, 收货人ID={}, 错误={}",

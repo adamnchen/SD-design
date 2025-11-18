@@ -59,6 +59,8 @@ public class PresaleProjectListVO {
      */
     private String manufacturerAvatar;
 
+    private String manufacturerPhotos;
+
     /**
      * 关联的打样邀约ID
      */

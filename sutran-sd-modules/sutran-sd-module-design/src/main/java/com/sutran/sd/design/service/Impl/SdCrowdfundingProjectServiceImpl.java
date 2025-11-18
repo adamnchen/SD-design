@@ -488,7 +488,7 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
                 delivery.setRecipientUserId(winnerUserId);
                 delivery.setRecipientName(support.getReceiverName());
                 delivery.setRecipientPhone(support.getReceiverPhone());
-                delivery.setDeliveryAddress(support.getReceiverAddress());
+                delivery.setDeliveryAddress(buildFullReceiverAddress(support.getReceiverArea(), support.getReceiverAddress()));
                 delivery.setSenderUserId(senderUserId);
                 delivery.setSenderName(senderName);
                 delivery.setStatus(1); // 1=待发货
@@ -513,6 +513,16 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
             log.error("[众筹发货] 插入样品发货记录异常, projectId={}", projectId, e);
             // 不抛出异常，避免影响主流程
         }
+    }
+
+    private String buildFullReceiverAddress(String area, String address) {
+        if (StringUtils.isBlank(area)) {
+            return address;
+        }
+        if (StringUtils.isBlank(address)) {
+            return area;
+        }
+        return area + address;
     }
 
     @Override

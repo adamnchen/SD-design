@@ -64,7 +64,6 @@ public class ProofCrowdfundPayNotifyServiceImpl extends BasePayNotifyService {
             // 检查订单状态，已处理过直接返回成功
             if (payOrder.getStatus() != 0) {
                 log.info("[众筹][支付回调] 订单已处理: 订单号={}, 状态={}", outTradeNo, payOrder.getStatus());
-                return;
             }
 
             // 支付成功

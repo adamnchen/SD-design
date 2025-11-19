@@ -829,8 +829,8 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
             log.info("[发布预售项目] 准备保存项目: 标题={}, manufacturerPhotos={}",
                 project.getTitle(),
                 project.getManufacturerPhotos() != null ? "已设置(" + project.getManufacturerPhotos().length() + "字符)" : "为null");
-            // 使用自定义插入方法，确保 manufacturer_photos 字段被正确插入
-            int result = presaleProjectMapper.insertSdPresaleProject(project);
+            // 使用 MyBatis-Plus 默认 insert 方法，会自动触发 CreateAndUpdateMetaObjectHandler 填充 createTime 为北京时间
+            int result = presaleProjectMapper.insert(project);
             if (result > 0) {
                 log.info("[发布预售项目] 发布成功: 项目ID={}, 标题={}, manufacturerPhotos={}",
                     project.getId(),

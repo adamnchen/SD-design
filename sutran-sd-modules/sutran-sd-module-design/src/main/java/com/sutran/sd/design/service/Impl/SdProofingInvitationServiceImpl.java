@@ -117,7 +117,7 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
         if (createDTO.getProofingQuantity() == null || createDTO.getProofingQuantity() < 2) {
             throw new ServiceException("打样数量必须大于等于2个");
         }
-        
+
         // 5. 验证抽奖数量
         if (createDTO.getDrawNumber() == null || createDTO.getDrawNumber() < 1) {
             throw new ServiceException("抽奖数量必须大于等于1个");
@@ -125,7 +125,7 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
         if (createDTO.getDrawNumber() > createDTO.getProofingQuantity()) {
             throw new ServiceException("抽奖数量不能超过打样数量");
         }
-        
+
         // 6. 验证发起者自留数量（打样数量 - 抽奖数量 >= 1）
         int reservedQuantity = createDTO.getProofingQuantity() - createDTO.getDrawNumber();
         if (reservedQuantity < 1) {
@@ -412,6 +412,7 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
     /**
      * 获取某邀约下的候选厂家列表（含报价与用户信息）
      */
+    @Override
     public java.util.List<com.sutran.sd.common.core.domain.vo.InvitationCandidateVO> getInvitationCandidates(Long invitationId) {
         Long currentUserId = LoginHelper.getUserId();
         SdProofingInvitation invitation = invitationMapper.selectById(invitationId);
@@ -877,7 +878,7 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
                 .map(SdProofingInvitationCandidate::getInviteeUserId)
                 .distinct()
                 .collect(java.util.stream.Collectors.toList());
-            
+
             for (Long rejectedUserId : rejectedCandidateIds) {
                 NoticeCommonVo rejectedNotice = new NoticeCommonVo();
                 rejectedNotice.setTitle("打样邀约结果通知");

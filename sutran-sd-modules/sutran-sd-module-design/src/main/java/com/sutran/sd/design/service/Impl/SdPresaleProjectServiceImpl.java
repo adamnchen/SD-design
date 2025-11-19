@@ -14,6 +14,7 @@ import com.sutran.sd.design.domain.SdPresaleDelivery;
 import com.sutran.sd.design.domain.SdPresaleOrder;
 import com.sutran.sd.design.domain.SdPresaleProject;
 import com.sutran.sd.design.domain.SdCrowdfundingProject;
+import com.sutran.sd.design.domain.SdCrowdfundingSampleDelivery;
 import com.sutran.sd.design.enums.PresaleOrderStatus;
 import com.sutran.sd.design.enums.PresaleProjectStatus;
 import com.sutran.sd.design.enums.CrowdfundingProjectStatus;
@@ -693,6 +694,28 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
             }
 
             // 3.3 校验发货单：所有需要发货的记录必须已填写快递单号并上传实物图片
+            SdCrowdfundingSampleDelivery sampleDeliveryQuery = new SdCrowdfundingSampleDelivery();
+            sampleDeliveryQuery.setProofingInvitationId(publishDTO.getProofingInvitationId());
+            List<SdCrowdfundingSampleDelivery> sampleDeliveries = sampleDeliveryMapper.selectSdCrowdfundingSampleDeliveryList(sampleDeliveryQuery);
+
+            if (sampleDeliveries != null && !sampleDeliveries.isEmpty()) {
+                long invalidCount = sampleDeliveries.stream()
+                    .filter(delivery -> {
+                        // delivery_status: 1=待发货，2=已发货
+                        Integer status = delivery.getStatus();
+                        String trackingNumber = delivery.getTrackingNumber();
+                        boolean trackingBlank = StringUtils.isBlank(trackingNumber);
+                        boolean waitingToDeliver = (status == null || status == 1);
+                        return waitingToDeliver || trackingBlank;
+                    })
+                    .count();
+
+                if (invalidCount > 0) {
+                    log.warn("[发布预售项目] 众筹样品存在未完整发货记录: 打样邀约ID={}, 异常记录数={}",
+                        publishDTO.getProofingInvitationId(), invalidCount);
+                    return R.fail("发布预售项目前，众筹样品的发货记录必须已完成发货并填写快递单号");
+                }
+            }
 
             // 3.4 检查与该打样邀约相关的所有已发布项目的订单是否都已填写物流单号
             // 查询与该打样邀约相关的所有已发布的预售项目
@@ -806,8 +829,8 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
             log.info("[发布预售项目] 准备保存项目: 标题={}, manufacturerPhotos={}",
                 project.getTitle(),
                 project.getManufacturerPhotos() != null ? "已设置(" + project.getManufacturerPhotos().length() + "字符)" : "为null");
-            // 使用自定义插入方法，确保 manufacturer_photos 字段被正确插入
-            int result = presaleProjectMapper.insertSdPresaleProject(project);
+            // 使用 MyBatis-Plus 默认 insert 方法，会自动触发 CreateAndUpdateMetaObjectHandler 填充 createTime 为北京时间
+            int result = presaleProjectMapper.insert(project);
             if (result > 0) {
                 log.info("[发布预售项目] 发布成功: 项目ID={}, 标题={}, manufacturerPhotos={}",
                     project.getId(),

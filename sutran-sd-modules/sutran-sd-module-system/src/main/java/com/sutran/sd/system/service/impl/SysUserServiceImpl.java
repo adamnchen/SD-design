@@ -726,6 +726,19 @@ public class SysUserServiceImpl implements ISysUserService, UserService {
     }
 
     /**
+     * 根据用户ID列表查询用户信息列表
+     * @param userIds   用户ID列表
+     * @return          用户信息列表
+     */
+    @Override
+    public List<SysUser> selectUserListByIds(List<Long> userIds) {
+        if (CollectionUtil.isEmpty(userIds)) {
+            return Collections.emptyList();
+        }
+        return baseMapper.selectList(new LambdaQueryWrapper<SysUser>().in(SysUser::getUserId, userIds));
+    }
+
+    /**
      * 根据用户ID查询用户当前有效会员信息
      * @param userId 用户ID
      * @return 会员信息

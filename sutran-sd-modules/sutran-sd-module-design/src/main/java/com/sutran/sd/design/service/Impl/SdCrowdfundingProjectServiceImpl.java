@@ -1,5 +1,6 @@
 package com.sutran.sd.design.service.impl;
 
+import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.util.IdUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -108,6 +109,27 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
         lqw.orderByDesc(SdCrowdfundingProject::getCreateTime);
 
         Page<SdCrowdfundingProject> result = crowdfundingProjectMapper.selectPage(page, lqw);
+
+        // 处理项目列表中的发起人用户ID对应的人员昵称和头像
+        if (CollectionUtil.isNotEmpty(result.getRecords())) {
+            List<Long> creatorUserIds = result.getRecords().stream()
+                .map(SdCrowdfundingProject::getCreatorUserId)
+                .collect(Collectors.toList());
+            // 查询用户信息[{"userId":xxxx,"avatar":"xxxx","nickName":"xxxx"}]
+            List<SysUser> users = userService.selectUserListByIds(creatorUserIds);
+            // 构建用户ID到用户信息的映射
+            Map<Long, SysUser> userMap = users.stream().collect(Collectors.toMap(SysUser::getUserId, user -> user));
+
+            // 填充用户信息到项目列表中
+            result.getRecords().forEach(project -> {
+                SysUser user = userMap.get(project.getCreatorUserId());
+                if (user != null) {
+                    project.setCreatorAvatar(user.getAvatar());
+                    project.setCreatorName(user.getNickName());
+                }
+            });
+        }
+
         return TableDataInfo.build(result);
     }
 
@@ -301,7 +323,7 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
             // 计算进度百分比
             if (project.getTargetAmount() != null && project.getTargetAmount().compareTo(BigDecimal.ZERO) > 0) {
                 BigDecimal progress = project.getCurrentAmount()
-                    .divide(project.getTargetAmount(), 4, BigDecimal.ROUND_HALF_UP)
+                    .divide(project.getTargetAmount(), 4, RoundingMode.HALF_UP)
                     .multiply(new BigDecimal("100"));
                 vo.setProgressPercentage(progress);
             } else {
@@ -541,7 +563,7 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
             // 计算进度百分比
             if (project.getTargetAmount() != null && project.getTargetAmount().compareTo(BigDecimal.ZERO) > 0) {
                 BigDecimal progress = project.getCurrentAmount()
-                    .divide(project.getTargetAmount(), 4, BigDecimal.ROUND_HALF_UP)
+                    .divide(project.getTargetAmount(), 4, RoundingMode.HALF_UP)
                     .multiply(new BigDecimal("100"));
                 vo.setProgressPercentage(progress);
             } else {
@@ -833,7 +855,7 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
             // createBy, createTime, updateBy, updateTime 字段由 BaseEntity 自动填充
 
             supportMapper.insert(support);
-            log.info("参与者数据落库成功: 订单号={}, 收货信息: {}，{}，{}", orderNo, 
+            log.info("参与者数据落库成功: 订单号={}, 收货信息: {}，{}，{}", orderNo,
                 support.getReceiverName(), support.getReceiverPhone(), support.getReceiverAddress());
 
             // 4. 扣除订单金额（Redis）
@@ -896,7 +918,7 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
             // 计算进度百分比
             if (project.getTargetAmount() != null && project.getTargetAmount().compareTo(BigDecimal.ZERO) > 0) {
                 BigDecimal progress = project.getCurrentAmount()
-                    .divide(project.getTargetAmount(), 4, BigDecimal.ROUND_HALF_UP)
+                    .divide(project.getTargetAmount(), 4, RoundingMode.HALF_UP)
                     .multiply(new BigDecimal("100"));
                 vo.setProgressPercentage(progress);
             } else {

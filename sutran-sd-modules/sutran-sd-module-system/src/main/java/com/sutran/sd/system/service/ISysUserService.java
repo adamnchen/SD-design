@@ -291,4 +291,12 @@ public interface ISysUserService {
      * @return 管理员用户openId列表
      */
     List<Map<String, String>> selectAdminUserOpenId();
+
+    /**
+     * 根据用户ID列表查询用户信息列表
+     * @param userIds   用户ID列表
+     * @return          用户信息列表
+     */
+    List<SysUser> selectUserListByIds(List<Long> userIds);
+
 }

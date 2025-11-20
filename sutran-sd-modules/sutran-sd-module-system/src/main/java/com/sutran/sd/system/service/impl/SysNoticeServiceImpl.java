@@ -12,6 +12,7 @@ import com.sutran.sd.common.core.domain.vo.NoticeTotalVo;
 import com.sutran.sd.common.core.domain.vo.NoticeVo;
 import com.sutran.sd.common.core.page.TableDataInfo;
 import com.sutran.sd.common.core.service.NoticeService;
+import com.sutran.sd.common.enums.NotificationType;
 import com.sutran.sd.common.exception.ServiceException;
 import com.sutran.sd.common.utils.StringUtils;
 import com.sutran.sd.system.domain.SysNotice;
@@ -122,8 +123,25 @@ public class SysNoticeServiceImpl implements ISysNoticeService, NoticeService {
             }
         }
         // 存储数据
-        notice.setUserId(userId).setMsgContent(commonVo.getContent()).setTitle(commonVo.getTitle()).setSendTime(commonVo.getPublishTime()).setSendStatus(1);
+        notice.setUserId(userId).setMsgContent(commonVo.getContent()).setTitle(commonVo.getTitle()).setSendTime(commonVo.getPublishTime()).setSendStatus(1).setNotificationType(commonVo.getNotificationType());
         commonVo.setId(notice.getId().toString());
+        if (StringUtils.isBlank(notice.getNotificationType())) {
+            if (commonVo.getTitle().contains("模型待审核")) {
+                notice.setNotificationType(NotificationType.MODEL_REVIEW_PENDING.name());
+            }
+            else if (commonVo.getTitle().contains("模型训练完成")) {
+                notice.setNotificationType(NotificationType.MODEL_TRAINING_COMPLETE.name());
+            }
+            else if (commonVo.getTitle().contains("众筹")) {
+                notice.setNotificationType(NotificationType.CROWD_FUNDING_NOTICE.name());
+            }
+            else if (commonVo.getTitle().contains("关注并绑定微信公众号")) {
+                notice.setNotificationType(NotificationType.FOLLOW_WECHAT_GZH.name());
+            }
+            else if (commonVo.getTitle().contains("打样邀约")) {
+                notice.setNotificationType(NotificationType.SAMPLE_INVITATION_NOTICE.name());
+            }
+        }
         sysUserNotificationsService.insertNotice(notice);
 
         SseEmitter sseEmitter = SSE_EMITTER_MAP.get(userId);

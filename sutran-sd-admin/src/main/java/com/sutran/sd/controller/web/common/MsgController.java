@@ -73,15 +73,25 @@ public class MsgController {
      * 分页查询通知消息列表
      * @param pageSize  每页数量
      * @param pageNum   当前页码
+     * @param notificationType  通知类型[
+     *                          CROWD_FUNDING_NOTICE-众筹通知，
+     *                          FOLLOW_WECHAT_GZH-关注并绑定微信公众号，
+     *                          SAMPLE_INVITATION_NOTICE-打样邀约通知,
+     *                          MODEL_REVIEW_PENDING-模型审核待处理,
+     *                          MODEL_REVIEW_RESULT-模型审核结果,
+     *                          ]
      */
     @GetMapping("/infos")
-    public TableDataInfo<SysUserNotifications> pageInfos(@RequestParam int pageSize, @RequestParam int pageNum) {
+    public TableDataInfo<SysUserNotifications> pageInfos(@RequestParam int pageSize,
+                                                         @RequestParam int pageNum,
+                                                         @RequestParam(required = false) Integer readStatus,
+                                                         @RequestParam(required = false) String notificationType) {
         PageQuery pageQuery = new PageQuery();
         pageQuery.setPageNum(pageNum);
         pageQuery.setPageSize(pageSize);
         pageQuery.setOrderByColumn("send_time");
         pageQuery.setIsAsc("desc");
-        SysUserNotifications notice = new SysUserNotifications().setUserId(LoginHelper.getUserId());
+        SysUserNotifications notice = new SysUserNotifications().setUserId(LoginHelper.getUserId()).setReadStatus(readStatus).setNotificationType(notificationType);
         return sysUserNotificationsService.selectPageNoticeList(notice,pageQuery);
     }
 

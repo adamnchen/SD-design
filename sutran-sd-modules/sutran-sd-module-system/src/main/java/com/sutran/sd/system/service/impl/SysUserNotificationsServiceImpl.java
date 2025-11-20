@@ -39,6 +39,7 @@ public class SysUserNotificationsServiceImpl implements ISysUserNotificationsSer
     @Override
     public TableDataInfo<SysUserNotifications> selectPageNoticeList(SysUserNotifications notice, PageQuery pageQuery) {
         LambdaQueryWrapper<SysUserNotifications> lqw = new LambdaQueryWrapper<SysUserNotifications>()
+            .eq(StringUtils.isNotBlank(notice.getNotificationType()), SysUserNotifications::getNotificationType, notice.getNotificationType())
             .like(StringUtils.isNotBlank(notice.getTitle()), SysUserNotifications::getTitle, notice.getTitle())
             .eq(notice.getUserId()!=null, SysUserNotifications::getUserId, notice.getUserId())
             .eq(notice.getReadStatus()!=null, SysUserNotifications::getReadStatus, notice.getReadStatus());

@@ -55,6 +55,15 @@ public class SampleDeliveryController extends BaseController {
     }
 
     /**
+     * 删除样品图片
+     */
+    @Operation(summary = "删除样品图片", description = "删除发货记录的样品图片")
+    @DeleteMapping("/delete-sample-image/{id}")
+    public R<String> deleteSampleImage(@PathVariable Long id) {
+        return sampleDeliveryService.deleteSampleImage(id);
+    }
+
+    /**
      * 根据众筹项目ID查询所有发货信息
      */
     @Operation(summary = "查询项目发货信息", description = "根据众筹项目ID查询该项目所有中奖人和发起人自留的发货信息")

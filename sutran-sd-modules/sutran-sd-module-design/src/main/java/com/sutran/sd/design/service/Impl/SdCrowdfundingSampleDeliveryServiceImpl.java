@@ -94,8 +94,7 @@ public class SdCrowdfundingSampleDeliveryServiceImpl implements ISdCrowdfundingS
             LambdaQueryWrapper<SdCrowdfundingProject> projectWrapper = new LambdaQueryWrapper<>();
             projectWrapper.eq(SdCrowdfundingProject::getManufacturerUserId, manufacturerUserId)
                          .eq(SdCrowdfundingProject::getStatus, 2) // 众筹成功
-                         .eq(SdCrowdfundingProject::getDrawStatus, 2)
-                         .orderByDesc(SdCrowdfundingProject::getUpdateTime);
+                         .eq(SdCrowdfundingProject::getDrawStatus, 2);
 
             List<SdCrowdfundingProject> projects = projectMapper.selectList(projectWrapper);
 
@@ -104,62 +103,30 @@ public class SdCrowdfundingSampleDeliveryServiceImpl implements ISdCrowdfundingS
                 return TableDataInfo.build(new ArrayList<>());
             }
 
-            List<SampleDeliveryListVO> resultList = new ArrayList<>();
+            // 构建项目Map方便后续查询
+            java.util.Map<Long, SdCrowdfundingProject> projectMap = projects.stream()
+                    .collect(Collectors.toMap(SdCrowdfundingProject::getId, p -> p));
+            List<Long> projectIds = new ArrayList<>(projectMap.keySet());
 
-            // 2. 为每个项目查询中奖者信息
-            for (SdCrowdfundingProject project : projects) {
-                // 查询该项目的中奖者
-                LambdaQueryWrapper<SdCrowdfundingSupport> supportWrapper = new LambdaQueryWrapper<>();
-                supportWrapper.eq(SdCrowdfundingSupport::getProjectId, project.getId())
-                             .eq(SdCrowdfundingSupport::getIsWinner, 1) // 中奖者
-                             .orderByDesc(SdCrowdfundingSupport::getCreateTime);
+            // 2. 查询这些项目的所有发货记录 (分页)
+            Page<SdCrowdfundingSampleDelivery> page = pageQuery.build();
+            LambdaQueryWrapper<SdCrowdfundingSampleDelivery> deliveryWrapper = new LambdaQueryWrapper<>();
+            deliveryWrapper.in(SdCrowdfundingSampleDelivery::getCrowdfundingProjectId, projectIds)
+                           .orderByDesc(SdCrowdfundingSampleDelivery::getCreateTime);
 
-                List<SdCrowdfundingSupport> winners = supportMapper.selectList(supportWrapper);
+            IPage<SdCrowdfundingSampleDelivery> result = sampleDeliveryMapper.selectPage(page, deliveryWrapper);
 
-                if (winners.isEmpty()) {
-                    log.info("项目ID={}没有中奖者信息", project.getId());
-                    continue;
-                }
+            // 3. 转换为发货信息VO
+            List<SampleDeliveryListVO> resultList = result.getRecords().stream()
+                    .map(delivery -> convertToSampleDeliveryListVO(delivery, projectMap.get(delivery.getCrowdfundingProjectId())))
+                    .collect(Collectors.toList());
 
-                // 3. 转换为发货信息VO
-                for (SdCrowdfundingSupport support : winners) {
-                    SampleDeliveryListVO vo = new SampleDeliveryListVO();
-                    vo.setId(support.getId());
-                    vo.setCrowdfundingProjectId(project.getId());
-                    vo.setProjectTitle(project.getTitle());
-                    vo.setRecipientUserId(support.getUserId());
-                    vo.setRecipientName(support.getUserName());
-                    vo.setStatus(1); // 待发货
-                    vo.setStatusText("待发货");
-                    vo.setRemark(support.getPrizeInfo());
-                    vo.setCreateTime(support.getCreateTime());
+            log.info("获取我的发货项目成功: 项目数量={}, 发货记录总数={}, 当前页数量={}", projects.size(), result.getTotal(), resultList.size());
 
-                    // 设置订单编号
-                    vo.setOrderNo(support.getOrderNo());
-
-                    // 判断是否为发起人自留样品
-                    if (support.getOrderNo() != null && support.getOrderNo().startsWith("INITIATOR_WINNER_")) {
-                        vo.setRemark("发起人自留样品 - " + support.getPrizeInfo());
-                    }
-
-                    resultList.add(vo);
-                }
-            }
-
-            // 4. 手动分页处理
-            int total = resultList.size();
-            int pageNum = pageQuery.getPageNum();
-            int pageSize = pageQuery.getPageSize();
-            int start = (pageNum - 1) * pageSize;
-            int end = Math.min(start + pageSize, total);
-
-            List<SampleDeliveryListVO> pageData = new ArrayList<>();
-            if (start < total) {
-                pageData = resultList.subList(start, end);
-            }
-
-            log.info("获取我的发货项目成功: 项目数量={}, 发货记录数量={}, 分页数据={}", projects.size(), resultList.size(), pageData.size());
-            return new TableDataInfo<>(pageData, (long) total);
+            TableDataInfo<SampleDeliveryListVO> dataInfo = new TableDataInfo<>();
+            dataInfo.setRows(resultList);
+            dataInfo.setTotal(result.getTotal());
+            return dataInfo;
 
         } catch (Exception e) {
             log.error("获取我的发货项目失败", e);
@@ -385,7 +352,7 @@ public class SdCrowdfundingSampleDeliveryServiceImpl implements ISdCrowdfundingS
         // 基本信息
         vo.setId(delivery.getId());
         vo.setCrowdfundingProjectId(delivery.getCrowdfundingProjectId());
-        vo.setProjectTitle(project.getTitle());
+        vo.setProjectTitle(project != null ? project.getTitle() : "");
         vo.setProofingInvitationId(delivery.getProofingInvitationId());
         vo.setSampleImageUrl(delivery.getSampleImageUrl());
 
@@ -401,6 +368,9 @@ public class SdCrowdfundingSampleDeliveryServiceImpl implements ISdCrowdfundingS
         vo.setStatus(delivery.getStatus());
         vo.setStatusText(delivery.getStatus() == 1 ? "待发货" : "已发货");
         vo.setRemark(delivery.getRemark());
+
+        // 发货数量
+        vo.setQuantity(delivery.getQuantity());
 
         // 发货人信息
         vo.setSenderUserId(delivery.getSenderUserId());
@@ -426,9 +396,11 @@ public class SdCrowdfundingSampleDeliveryServiceImpl implements ISdCrowdfundingS
                 vo.setDeliveryAddress(buildFullReceiverAddress(support.getReceiverArea(), support.getReceiverAddress()));
                 if (support.getOrderNo() != null) {
                     // 设置订单编号
-                    // 如果是发起者自留的（订单号以 INITIATOR_WINNER_ 开头），返回这个订单编号
                     vo.setOrderNo(support.getOrderNo());
                 }
+            } else if (project != null && delivery.getRecipientUserId().equals(project.getCreatorUserId())) {
+                // 如果是发起人且没有中奖记录（通常就是发起人自留样品），生成一个特殊的订单号
+                vo.setOrderNo("INITIATOR_WINNER_" + project.getId());
             }
         } catch (Exception e) {
             log.warn("查询订单编号失败: 项目ID={}, 收货人ID={}, 错误={}",

@@ -128,6 +128,12 @@ public class SdCrowdfundingSampleDelivery extends BaseEntity {
     @TableField("confirm_time")
     private Date confirmTime;
     /**
+     * 发货数量
+     */
+    @TableField("quantity")
+    private Integer quantity;
+
+    /**
      * 订单状态
      */
     private Integer orderStatus;

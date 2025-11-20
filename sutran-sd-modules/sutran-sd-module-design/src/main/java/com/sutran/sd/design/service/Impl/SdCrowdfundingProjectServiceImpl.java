@@ -554,6 +554,54 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
             }
 
             int insertedCount = 0;
+
+            // 插入发起人自留样品的发货记录
+            Integer totalSamples = project.getTotalSamples();
+            Integer drawNumber = project.getDrawNumber();
+            int initiatorQuantity = (totalSamples != null ? totalSamples : 0) - (drawNumber != null ? drawNumber : 0);
+            if (initiatorQuantity > 0) {
+                Long creatorUserId = project.getCreatorUserId();
+                
+                // 检查是否已有发货记录
+                LambdaQueryWrapper<SdCrowdfundingSampleDelivery> existQuery = new LambdaQueryWrapper<>();
+                existQuery.eq(SdCrowdfundingSampleDelivery::getCrowdfundingProjectId, projectId)
+                          .eq(SdCrowdfundingSampleDelivery::getRecipientUserId, creatorUserId);
+                if (deliveryMapper.selectCount(existQuery) == 0) {
+                    SdCrowdfundingSampleDelivery delivery = new SdCrowdfundingSampleDelivery();
+                    delivery.setId(IdUtil.getSnowflakeNextId());
+                    delivery.setCrowdfundingProjectId(projectId);
+                    delivery.setProofingInvitationId(proofingInvitationId);
+                    delivery.setSampleImageUrl("");
+                    delivery.setRecipientUserId(creatorUserId);
+                    delivery.setSenderUserId(senderUserId);
+                    delivery.setSenderName(senderName);
+                    delivery.setStatus(1); // 待发货
+                    delivery.setTrackingNumber("");
+                    delivery.setDeliveryCompany("");
+                    delivery.setQuantity(initiatorQuantity);
+                    delivery.setRemark("发起人自留样品");
+
+                    // 尝试获取收货信息
+                    List<SdCrowdfundingSupport> creatorSupports = userSupportMap.get(creatorUserId);
+                    if (creatorSupports != null && !creatorSupports.isEmpty()) {
+                        SdCrowdfundingSupport s = creatorSupports.get(0);
+                        delivery.setRecipientName(s.getReceiverName());
+                        delivery.setRecipientPhone(s.getReceiverPhone());
+                        delivery.setDeliveryAddress(buildFullReceiverAddress(s.getReceiverArea(), s.getReceiverAddress()));
+                    } else {
+                        delivery.setRecipientName(project.getCreatorName());
+                        delivery.setRecipientPhone("");
+                        delivery.setDeliveryAddress("");
+                    }
+
+                    int result = deliveryMapper.insert(delivery);
+                    if (result > 0) {
+                        insertedCount++;
+                        log.info("[众筹发货] 插入发起人自留样品记录成功, projectId={}, userId={}", projectId, creatorUserId);
+                    }
+                }
+            }
+
             // 为每个中奖用户创建发货记录
             for (Long winnerUserId : winnerUserIds) {
                 List<SdCrowdfundingSupport> userSupports = userSupportMap.get(winnerUserId);
@@ -590,6 +638,7 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
                 delivery.setStatus(1); // 1=待发货
                 delivery.setTrackingNumber(""); // 快递单号初始为空，由商家后续填写
                 delivery.setDeliveryCompany(""); // 快递公司初始为空
+                delivery.setQuantity(1); // 中奖用户默认1件
 
                 // 插入发货记录
                 int result = deliveryMapper.insert(delivery);

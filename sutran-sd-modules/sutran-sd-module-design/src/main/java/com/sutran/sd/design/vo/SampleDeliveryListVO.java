@@ -2,6 +2,7 @@ package com.sutran.sd.design.vo;
 
 import com.sutran.sd.common.core.domain.BaseEntity;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 import java.util.Date;
 
@@ -12,6 +13,7 @@ import java.util.Date;
  * @date 2025-01-12
  */
 @Data
+@EqualsAndHashCode(callSuper = true)
 public class SampleDeliveryListVO extends BaseEntity {
 
     /**
@@ -112,6 +114,11 @@ public class SampleDeliveryListVO extends BaseEntity {
      * 订单状态
      */
     private Integer orderStatus;
+
+    /**
+     * 发货数量
+     */
+    private Integer quantity;
 
     /**
      * 支付订单编号

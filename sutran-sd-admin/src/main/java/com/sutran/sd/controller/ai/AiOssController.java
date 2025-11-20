@@ -6,7 +6,7 @@ import com.sutran.sd.common.annotation.Log;
 import com.sutran.sd.common.core.controller.BaseController;
 import com.sutran.sd.common.core.domain.PageQuery;
 import com.sutran.sd.common.core.domain.R;
-import com.sutran.sd.common.core.domain.dto.BatchRemoveDto;
+import com.sutran.sd.common.core.domain.dto.BatchIdsDto;
 import com.sutran.sd.common.core.page.TableDataInfo;
 import com.sutran.sd.common.core.validate.QueryGroup;
 import com.sutran.sd.common.enums.BusinessType;
@@ -51,7 +51,7 @@ public class AiOssController extends BaseController {
      * @param dto OSS对象ID串
      */
     @PostMapping("/oss/listByIds")
-    public R<List<SysOssVo>> listByIds(@RequestBody BatchRemoveDto dto) {
+    public R<List<SysOssVo>> listByIds(@RequestBody BatchIdsDto dto) {
         if (CollectionUtil.isEmpty(dto.getIds())) {
             return R.fail("主键不能为空");
         }
@@ -96,7 +96,7 @@ public class AiOssController extends BaseController {
      */
     @Log(title = "OSS对象存储", businessType = BusinessType.DELETE)
     @DeleteMapping("/oss")
-    public R<Void> remove(@RequestBody BatchRemoveDto dto) {
+    public R<Void> remove(@RequestBody BatchIdsDto dto) {
         if (CollectionUtil.isEmpty(dto.getIds())) {
             return R.fail("主键不能为空");
         }

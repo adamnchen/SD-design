@@ -414,4 +414,29 @@ public class SysNoticeServiceImpl implements ISysNoticeService, NoticeService {
             }
         }
     }
+
+    /**
+     * 批量标记已读
+     * @param ids       消息ID列表
+     * @param userId    用户ID
+     */
+    @Override
+    public void markReadBatch(List<String> ids, Long userId) {
+        if (CollectionUtil.isEmpty(ids)) {
+            return;
+        }
+        sysUserNotificationsService.markReadBatch(ids,userId);
+        SseEmitter sseEmitter = SSE_EMITTER_MAP.get(userId);
+        if (sseEmitter!=null) {
+            try {
+                // 获取当前用户未读系统通知\公告条数
+                NoticeTotalVo totalVo = getTotalVo(userId);
+                // 推送消息
+                sseEmitter.send(SseEmitter.event().data(totalVo).name("total").id(String.valueOf(System.currentTimeMillis())));
+            }
+            catch (IOException e) {
+                log.error("[SSE发送消息异常]>>>>>>>>>原因：",e);
+            }
+        }
+    }
 }

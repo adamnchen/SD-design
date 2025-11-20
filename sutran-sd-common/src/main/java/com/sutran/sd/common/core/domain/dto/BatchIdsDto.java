@@ -10,7 +10,7 @@ import java.util.List;
  * @date 2024-03-10
  */
 @Data
-public class BatchRemoveDto implements Serializable {
+public class BatchIdsDto implements Serializable {
 
     /**
      * 需要删除的id集合

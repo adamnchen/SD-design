@@ -99,4 +99,11 @@ public interface ISysUserNotificationsService {
      * @return             用户通知\公告是否已存在
      */
     long selectCount(LambdaQueryWrapper<SysUserNotifications> queryWrapper);
+
+    /**
+     * 批量标记用户通知\公告为已读
+     * @param ids       用户通知\公告ID列表
+     * @param userId    用户ID
+     */
+    void markReadBatch(List<String> ids, Long userId);
 }

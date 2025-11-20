@@ -5,7 +5,7 @@ import cn.hutool.core.util.StrUtil;
 import com.sutran.sd.common.core.domain.PageQuery;
 import com.sutran.sd.common.core.domain.R;
 import com.sutran.sd.common.core.page.TableDataInfo;
-import com.sutran.sd.common.core.domain.dto.BatchRemoveDto;
+import com.sutran.sd.common.core.domain.dto.BatchIdsDto;
 import com.sutran.sd.draw.domain.dto.SdUserModelFilePageDto;
 import com.sutran.sd.draw.service.SdWebuiApiService;
 import com.sutran.sd.draw.domain.vo.SdUserModelFileVo;
@@ -46,7 +46,7 @@ public class SdDesignController {
      * [业务接口]SD设计库-批量删除当前用户绘图数据列表
      */
     @DeleteMapping("/model-file/remove")
-    public R<Void> removeUserModelFile(@RequestBody BatchRemoveDto dto) {
+    public R<Void> removeUserModelFile(@RequestBody BatchIdsDto dto) {
         sdWebuiApiService.removeUserModelFile(dto.getIds());
         return R.ok();
     }
@@ -55,7 +55,7 @@ public class SdDesignController {
      * [业务接口]SD设计库-批量删除当前用户绘图数据列表
      */
     @PostMapping("/model-file/batch/download")
-    public void batchDownloadUserModelFile(@RequestBody BatchRemoveDto dto, HttpServletResponse response) throws IOException {
+    public void batchDownloadUserModelFile(@RequestBody BatchIdsDto dto, HttpServletResponse response) throws IOException {
         if (CollectionUtil.isEmpty(dto.getIds())) {
             return;
         }

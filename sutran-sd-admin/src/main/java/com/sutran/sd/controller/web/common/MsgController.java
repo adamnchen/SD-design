@@ -3,6 +3,7 @@ package com.sutran.sd.controller.web.common;
 import cn.hutool.core.collection.CollectionUtil;
 import com.sutran.sd.common.core.domain.PageQuery;
 import com.sutran.sd.common.core.domain.R;
+import com.sutran.sd.common.core.domain.dto.BatchIdsDto;
 import com.sutran.sd.common.core.domain.vo.NoticeVo;
 import com.sutran.sd.common.core.page.TableDataInfo;
 import com.sutran.sd.common.core.service.NoticeService;
@@ -14,10 +15,7 @@ import com.sutran.sd.system.service.ISysNoticeService;
 import com.sutran.sd.system.service.ISysUserNotificationsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.Date;
@@ -118,6 +116,16 @@ public class MsgController {
     @GetMapping("/read")
     public R<Void> read(@RequestParam String id) {
         sysNoticeService.markRead(id,LoginHelper.getUserId());
+        return R.ok();
+    }
+
+    /**
+     * 标记已读
+     * @param dto        批量ID
+     */
+    @PostMapping("/read/batch")
+    public R<Void> readBatch(@RequestBody BatchIdsDto dto) {
+        sysNoticeService.markReadBatch(dto.getIds(),LoginHelper.getUserId());
         return R.ok();
     }
 }

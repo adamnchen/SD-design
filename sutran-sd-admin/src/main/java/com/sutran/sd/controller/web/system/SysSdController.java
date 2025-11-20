@@ -6,7 +6,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.sutran.sd.common.core.controller.BaseController;
 import com.sutran.sd.common.core.domain.PageQuery;
 import com.sutran.sd.common.core.domain.R;
-import com.sutran.sd.common.core.domain.dto.BatchRemoveDto;
+import com.sutran.sd.common.core.domain.dto.BatchIdsDto;
 import com.sutran.sd.common.core.page.TableDataInfo;
 import com.sutran.sd.common.exception.ServiceException;
 import com.sutran.sd.draw.domain.SdGpuPool;
@@ -117,7 +117,7 @@ public class SysSdController extends BaseController {
      * SD Lora模型-批量删除个人未发布的模型
      */
     @DeleteMapping("/lora/batch")
-    public R<Void> batchRemoveModel(@RequestBody BatchRemoveDto dto) {
+    public R<Void> batchRemoveModel(@RequestBody BatchIdsDto dto) {
        sdWebuiApiService.removeModelOfAdmin(dto.getIds());
         return R.ok();
     }

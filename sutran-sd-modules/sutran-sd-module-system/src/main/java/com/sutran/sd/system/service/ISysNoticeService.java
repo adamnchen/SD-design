@@ -76,4 +76,11 @@ public interface ISysNoticeService {
      * @param userId    用户ID
      */
     void markRead(String id, Long userId);
+
+    /**
+     * 批量标记已读
+     * @param ids       消息ID列表
+     * @param userId    用户ID
+     */
+    void markReadBatch(List<String> ids, Long userId);
 }

@@ -1,5 +1,6 @@
 package com.sutran.sd.system.service.impl;
 
+import cn.hutool.core.collection.CollectionUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.sutran.sd.common.core.domain.PageQuery;
@@ -161,5 +162,16 @@ public class SysUserNotificationsServiceImpl implements ISysUserNotificationsSer
     public long selectCount(LambdaQueryWrapper<SysUserNotifications> queryWrapper) {
         Long count = baseMapper.selectCount(queryWrapper);
         return count==null?0:count;
+    }
+
+    @Override
+    public void markReadBatch(List<String> ids, Long userId) {
+        List<SysUserNotifications> noticeList = baseMapper.selectList(new LambdaQueryWrapper<SysUserNotifications>()
+            .in(SysUserNotifications::getId, ids).eq(SysUserNotifications::getUserId, userId));
+        if (CollectionUtil.isEmpty(noticeList)) {
+            return;
+        }
+        noticeList.forEach(notice -> notice.setReadStatus(1).setReadTime(new Date()));
+        baseMapper.updateBatchById(noticeList);
     }
 }

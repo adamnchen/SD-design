@@ -248,6 +248,53 @@ public class SdCrowdfundingSampleDeliveryServiceImpl implements ISdCrowdfundingS
         }
     }
 
+    @Override
+    public R<String> deleteSampleImage(Long id) {
+        try {
+            log.info("删除样品图片: 记录ID={}", id);
+
+            // 1. 查询发货记录
+            SdCrowdfundingSampleDelivery delivery = sampleDeliveryMapper.selectSdCrowdfundingSampleDeliveryById(id);
+            if (delivery == null) {
+                log.warn("发货记录不存在: ID={}", id);
+                return R.fail("发货记录不存在");
+            }
+
+            // 2. 查询项目信息（使用发货记录中的项目ID）
+            SdCrowdfundingProject project = sdCrowdfundingProjectMapper.selectSdCrowdfundingProjectById(delivery.getCrowdfundingProjectId());
+            if (project == null) {
+                log.warn("众筹项目不存在: 项目ID={}", delivery.getCrowdfundingProjectId());
+                return R.fail("众筹项目不存在");
+            }
+
+            // 3. 检查是否有样品图片
+            if (StringUtils.isBlank(delivery.getSampleImageUrl())) {
+                log.info("该发货记录没有样品图片: 记录ID={}", id);
+                return R.fail("该发货记录没有样品图片");
+            }
+
+            // 4. 清空数据库中的样品图片地址
+            delivery.setSampleImageUrl(null);
+            project.setManufacturerPhotos(null);
+
+            // 5. 更新数据库
+            int result = sampleDeliveryMapper.updateById(delivery);
+            int result2 = sdCrowdfundingProjectMapper.updateById(project);
+
+            if (result > 0 && result2 > 0) {
+                log.info("样品图片删除成功: 记录ID={}", id);
+                return R.ok("样品图片删除成功");
+            } else {
+                log.warn("删除样品图片失败: 记录ID={}", id);
+                return R.fail("删除样品图片失败");
+            }
+
+        } catch (Exception e) {
+            log.error("删除样品图片失败: 记录ID={}", id, e);
+            return R.fail("删除样品图片失败: " + e.getMessage());
+        }
+    }
+
 
     /**
      * 获取文件扩展名

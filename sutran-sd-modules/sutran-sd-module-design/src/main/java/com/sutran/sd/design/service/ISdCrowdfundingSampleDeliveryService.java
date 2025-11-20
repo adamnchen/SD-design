@@ -99,6 +99,14 @@ public interface ISdCrowdfundingSampleDeliveryService {
     R<String> uploadSampleImage(Long id, org.springframework.web.multipart.MultipartFile file);
 
     /**
+     * 删除样品图片
+     *
+     * @param id 发货记录ID
+     * @return 操作结果
+     */
+    R<String> deleteSampleImage(Long id);
+
+    /**
      * 根据众筹项目ID查询所有发货信息
      *
      * @param projectId 众筹项目ID

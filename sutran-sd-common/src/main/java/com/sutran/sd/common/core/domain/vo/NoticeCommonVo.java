@@ -28,6 +28,10 @@ public class NoticeCommonVo {
       */
     private String content;
     /**
+     * 通知类型 link NotificationType
+     */
+    private String notificationType;
+    /**
       * 发布时间
       */
     @DateTimeFormat("yyyy-MM-dd HH:mm:ss")

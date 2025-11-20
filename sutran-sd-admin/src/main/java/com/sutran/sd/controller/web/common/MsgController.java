@@ -84,13 +84,14 @@ public class MsgController {
     @GetMapping("/infos")
     public TableDataInfo<SysUserNotifications> pageInfos(@RequestParam int pageSize,
                                                          @RequestParam int pageNum,
+                                                         @RequestParam(required = false) Integer readStatus,
                                                          @RequestParam(required = false) String notificationType) {
         PageQuery pageQuery = new PageQuery();
         pageQuery.setPageNum(pageNum);
         pageQuery.setPageSize(pageSize);
         pageQuery.setOrderByColumn("send_time");
         pageQuery.setIsAsc("desc");
-        SysUserNotifications notice = new SysUserNotifications().setUserId(LoginHelper.getUserId()).setNotificationType(notificationType);
+        SysUserNotifications notice = new SysUserNotifications().setUserId(LoginHelper.getUserId()).setReadStatus(readStatus).setNotificationType(notificationType);
         return sysUserNotificationsService.selectPageNoticeList(notice,pageQuery);
     }
 

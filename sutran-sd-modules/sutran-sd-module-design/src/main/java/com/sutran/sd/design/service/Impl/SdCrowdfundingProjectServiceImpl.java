@@ -74,7 +74,89 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
 
     @Override
     public SdCrowdfundingProject selectSdCrowdfundingProjectById(Long id) {
-        return crowdfundingProjectMapper.selectSdCrowdfundingProjectByIdWithTieredPricing(id);
+        SdCrowdfundingProject project = crowdfundingProjectMapper.selectSdCrowdfundingProjectByIdWithTieredPricing(id);
+        if (project != null) {
+            fillUserInfoForSingleProject(project);
+        }
+        return project;
+    }
+
+    /**
+     * 填充项目列表的用户信息（发起人和厂家）
+     * 从用户表实时查询最新的用户信息，避免返回脏数据
+     */
+    private void fillUserInfoForProjects(List<SdCrowdfundingProject> projects) {
+        if (CollectionUtil.isEmpty(projects)) {
+            return;
+        }
+
+        // 收集所有的用户ID（发起人和厂家）
+        Set<Long> userIds = new HashSet<>();
+        projects.forEach(project -> {
+            if (project.getCreatorUserId() != null) {
+                userIds.add(project.getCreatorUserId());
+            }
+            if (project.getManufacturerUserId() != null) {
+                userIds.add(project.getManufacturerUserId());
+            }
+        });
+
+        if (userIds.isEmpty()) {
+            return;
+        }
+
+        // 批量查询用户信息
+        List<SysUser> users = userService.selectUserListByIds(new ArrayList<>(userIds));
+        Map<Long, SysUser> userMap = users.stream()
+            .collect(Collectors.toMap(SysUser::getUserId, user -> user));
+
+        // 填充用户信息到项目列表中
+        projects.forEach(project -> {
+            // 填充发起人信息
+            if (project.getCreatorUserId() != null) {
+                SysUser creator = userMap.get(project.getCreatorUserId());
+                if (creator != null) {
+                    project.setCreatorAvatar(creator.getAvatar());
+                    project.setCreatorName(creator.getNickName());
+                }
+            }
+            // 填充厂家信息
+            if (project.getManufacturerUserId() != null) {
+                SysUser manufacturer = userMap.get(project.getManufacturerUserId());
+                if (manufacturer != null) {
+                    project.setManufacturerAvatar(manufacturer.getAvatar());
+                    project.setManufacturerName(manufacturer.getNickName());
+                }
+            }
+        });
+    }
+
+    /**
+     * 填充单个项目的用户信息（发起人和厂家）
+     * 从用户表实时查询最新的用户信息，避免返回脏数据
+     */
+    private void fillUserInfoForSingleProject(SdCrowdfundingProject project) {
+        if (project == null) {
+            return;
+        }
+
+        // 填充发起人信息
+        if (project.getCreatorUserId() != null) {
+            SysUser creator = userService.selectUserById(project.getCreatorUserId());
+            if (creator != null) {
+                project.setCreatorAvatar(creator.getAvatar());
+                project.setCreatorName(creator.getNickName());
+            }
+        }
+
+        // 填充厂家信息
+        if (project.getManufacturerUserId() != null) {
+            SysUser manufacturer = userService.selectUserById(project.getManufacturerUserId());
+            if (manufacturer != null) {
+                project.setManufacturerAvatar(manufacturer.getAvatar());
+                project.setManufacturerName(manufacturer.getNickName());
+            }
+        }
     }
 
     @Override
@@ -96,7 +178,10 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
            .ge(sdCrowdfundingProject.getStartTime() != null, SdCrowdfundingProject::getStartTime, sdCrowdfundingProject.getStartTime())
            .le(sdCrowdfundingProject.getEndTime() != null, SdCrowdfundingProject::getEndTime, sdCrowdfundingProject.getEndTime())
            .orderByDesc(SdCrowdfundingProject::getCreateTime);
-        return crowdfundingProjectMapper.selectList(lqw);
+        List<SdCrowdfundingProject> projects = crowdfundingProjectMapper.selectList(lqw);
+        // 填充最新的用户信息
+        fillUserInfoForProjects(projects);
+        return projects;
     }
 
     @Override
@@ -110,25 +195,8 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
 
         Page<SdCrowdfundingProject> result = crowdfundingProjectMapper.selectPage(page, lqw);
 
-        // 处理项目列表中的发起人用户ID对应的人员昵称和头像
-        if (CollectionUtil.isNotEmpty(result.getRecords())) {
-            List<Long> creatorUserIds = result.getRecords().stream()
-                .map(SdCrowdfundingProject::getCreatorUserId)
-                .collect(Collectors.toList());
-            // 查询用户信息[{"userId":xxxx,"avatar":"xxxx","nickName":"xxxx"}]
-            List<SysUser> users = userService.selectUserListByIds(creatorUserIds);
-            // 构建用户ID到用户信息的映射
-            Map<Long, SysUser> userMap = users.stream().collect(Collectors.toMap(SysUser::getUserId, user -> user));
-
-            // 填充用户信息到项目列表中
-            result.getRecords().forEach(project -> {
-                SysUser user = userMap.get(project.getCreatorUserId());
-                if (user != null) {
-                    project.setCreatorAvatar(user.getAvatar());
-                    project.setCreatorName(user.getNickName());
-                }
-            });
-        }
+        // 填充最新的用户信息（发起人和厂家）
+        fillUserInfoForProjects(result.getRecords());
 
         return TableDataInfo.build(result);
     }
@@ -145,6 +213,9 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
 
         // 使用XML中的查询方法
         Page<SdCrowdfundingProject> result = crowdfundingProjectMapper.selectPageCrowdfundingProjectListByType(page, type, currentUserId);
+
+        // 填充最新的用户信息（发起人和厂家）
+        fillUserInfoForProjects(result.getRecords());
 
         // 如果是“我购买的”列表，为当前登录用户在每个项目下填充自己的快递单号
         if ("supported".equals(type)) {
@@ -311,6 +382,9 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
     public List<CrowdfundingProjectListVO> getCrowdfundingProjectList() {
         // 使用多表联查获取众筹项目列表（带正确图片）
         List<SdCrowdfundingProject> projects = crowdfundingProjectMapper.selectCrowdfundingProjectListWithImage();
+
+        // 填充最新的用户信息（发起人和厂家）
+        fillUserInfoForProjects(projects);
 
         // 转换为VO
         return projects.stream().map(project -> {
@@ -552,6 +626,9 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
         // 使用多表联查获取进行中的众筹项目列表（带正确图片）
         List<SdCrowdfundingProject> projects = crowdfundingProjectMapper.selectActiveCrowdfundingProjectsWithImage();
 
+        // 填充最新的用户信息（发起人和厂家）
+        fillUserInfoForProjects(projects);
+
         // 转换为VO
         return projects.stream().map(project -> {
             CrowdfundingProjectListVO vo = new CrowdfundingProjectListVO();
@@ -587,6 +664,9 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
         com.baomidou.mybatisplus.core.metadata.IPage<SdCrowdfundingProject> result =
             crowdfundingProjectMapper.selectPage(page, queryWrapper);
 
+        // 填充最新的用户信息（发起人和厂家）
+        fillUserInfoForProjects(result.getRecords());
+
         // 转换为VO
         List<CrowdfundingProjectListVO> voList = result.getRecords().stream().map(project -> {
             CrowdfundingProjectListVO vo = new CrowdfundingProjectListVO();
@@ -618,6 +698,9 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
         if (project == null) {
             throw new RuntimeException("众筹项目不存在");
         }
+
+        // 填充最新的用户信息（发起人和厂家）
+        fillUserInfoForSingleProject(project);
 
         // 转换为VO
         CrowdfundingProjectDetailVO vo = new CrowdfundingProjectDetailVO();
@@ -897,6 +980,9 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
 
         List<SdCrowdfundingProject> projects = crowdfundingProjectMapper.selectList(queryWrapper);
 
+        // 填充最新的用户信息（发起人和厂家）
+        fillUserInfoForProjects(projects);
+
         // 转换为VO
         return projects.stream().map(project -> {
             CrowdfundingProjectListVO vo = new CrowdfundingProjectListVO();
@@ -941,6 +1027,9 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
                    .orderByDesc(SdCrowdfundingProject::getCreateTime);
 
         List<SdCrowdfundingProject> projects = crowdfundingProjectMapper.selectList(queryWrapper);
+
+        // 填充最新的用户信息（发起人和厂家）
+        fillUserInfoForProjects(projects);
 
         // 转换为VO
         return projects.stream().map(project -> {

@@ -78,18 +78,105 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
 
     @Override
     public SdPresaleProject selectSdPresaleProjectById(Long id) {
-        return presaleProjectMapper.selectSdPresaleProjectById(id);
+        SdPresaleProject project = presaleProjectMapper.selectSdPresaleProjectById(id);
+        if (project != null) {
+            fillUserInfoForSingleProject(project);
+        }
+        return project;
+    }
+
+    /**
+     * 填充项目列表的用户信息（发起人和厂家）
+     * 从用户表实时查询最新的用户信息，避免返回脏数据
+     */
+    private void fillUserInfoForProjects(List<SdPresaleProject> projects) {
+        if (projects == null || projects.isEmpty()) {
+            return;
+        }
+
+        // 收集所有的用户ID（发起人和厂家）
+        java.util.Set<Long> userIds = new java.util.HashSet<>();
+        projects.forEach(project -> {
+            if (project.getCreatorUserId() != null) {
+                userIds.add(project.getCreatorUserId());
+            }
+            if (project.getManufacturerUserId() != null) {
+                userIds.add(project.getManufacturerUserId());
+            }
+        });
+
+        if (userIds.isEmpty()) {
+            return;
+        }
+
+        // 批量查询用户信息
+        List<SysUser> users = userService.selectUserListByIds(new java.util.ArrayList<>(userIds));
+        java.util.Map<Long, SysUser> userMap = users.stream()
+            .collect(Collectors.toMap(SysUser::getUserId, user -> user));
+
+        // 填充用户信息到项目列表中
+        projects.forEach(project -> {
+            // 填充发起人信息
+            if (project.getCreatorUserId() != null) {
+                SysUser creator = userMap.get(project.getCreatorUserId());
+                if (creator != null) {
+                    project.setCreatorAvatar(creator.getAvatar());
+                    project.setCreatorName(creator.getNickName());
+                }
+            }
+            // 填充厂家信息
+            if (project.getManufacturerUserId() != null) {
+                SysUser manufacturer = userMap.get(project.getManufacturerUserId());
+                if (manufacturer != null) {
+                    project.setManufacturerAvatar(manufacturer.getAvatar());
+                    project.setManufacturerName(manufacturer.getNickName());
+                }
+            }
+        });
+    }
+
+    /**
+     * 填充单个项目的用户信息（发起人和厂家）
+     * 从用户表实时查询最新的用户信息，避免返回脏数据
+     */
+    private void fillUserInfoForSingleProject(SdPresaleProject project) {
+        if (project == null) {
+            return;
+        }
+
+        // 填充发起人信息
+        if (project.getCreatorUserId() != null) {
+            SysUser creator = userService.selectUserById(project.getCreatorUserId());
+            if (creator != null) {
+                project.setCreatorAvatar(creator.getAvatar());
+                project.setCreatorName(creator.getNickName());
+            }
+        }
+
+        // 填充厂家信息
+        if (project.getManufacturerUserId() != null) {
+            SysUser manufacturer = userService.selectUserById(project.getManufacturerUserId());
+            if (manufacturer != null) {
+                project.setManufacturerAvatar(manufacturer.getAvatar());
+                project.setManufacturerName(manufacturer.getNickName());
+            }
+        }
     }
 
     @Override
     public List<SdPresaleProject> selectSdPresaleProjectList(SdPresaleProject sdPresaleProject) {
-        return presaleProjectMapper.selectSdPresaleProjectList(sdPresaleProject);
+        List<SdPresaleProject> projects = presaleProjectMapper.selectSdPresaleProjectList(sdPresaleProject);
+        // 填充最新的用户信息
+        fillUserInfoForProjects(projects);
+        return projects;
     }
 
     @Override
     public TableDataInfo<SdPresaleProject> selectPagePresaleProjectList(SdPresaleProject sdPresaleProject, PageQuery pageQuery) {
         Page<SdPresaleProject> page = pageQuery.build();
         IPage<SdPresaleProject> result = presaleProjectMapper.selectPagePresaleProjectList(page, sdPresaleProject);
+        // 填充最新的用户信息
+        fillUserInfoForProjects(result.getRecords());
         return TableDataInfo.build(result);
     }
 
@@ -100,6 +187,9 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
         // 使用多表联查获取预售项目列表
         Page<SdPresaleProject> page = new Page<>(1, 100); // 默认查询前100条
         IPage<SdPresaleProject> result = presaleProjectMapper.selectPresaleProjectListWithUserInfo(page, 1); // 销售中状态
+
+        // 填充最新的用户信息
+        fillUserInfoForProjects(result.getRecords());
 
         // 转换为VO，并过滤掉已过期的项目
         List<PresaleProjectListVO> voList = result.getRecords().stream()
@@ -117,6 +207,9 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
         // 使用多表联查获取预售项目列表
         Page<SdPresaleProject> page = pageQuery.build();
         IPage<SdPresaleProject> result = presaleProjectMapper.selectPresaleProjectListWithUserInfo(page, 1); // 销售中状态
+
+        // 填充最新的用户信息
+        fillUserInfoForProjects(result.getRecords());
 
         // 转换为VO，并过滤掉已过期的项目
         List<PresaleProjectListVO> voList = result.getRecords().stream()
@@ -161,6 +254,9 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
         Page<SdPresaleProject> page = new Page<>(1, 100);
         IPage<SdPresaleProject> result = presaleProjectMapper.selectUserPresaleProjects(page, currentUserId, "manufacturer");
 
+        // 填充最新的用户信息
+        fillUserInfoForProjects(result.getRecords());
+
         List<PresaleProjectListVO> voList = result.getRecords().stream()
                 .map(this::convertToProjectListVO)
                 .collect(Collectors.toList());
@@ -175,6 +271,9 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
         Long currentUserId = LoginHelper.getUserId();
         Page<SdPresaleProject> page = pageQuery.build();
         IPage<SdPresaleProject> result = presaleProjectMapper.selectUserPresaleProjects(page, currentUserId, "manufacturer");
+
+        // 填充最新的用户信息
+        fillUserInfoForProjects(result.getRecords());
 
         List<PresaleProjectListVO> voList = result.getRecords().stream()
                 .map(this::convertToProjectListVO)
@@ -191,6 +290,9 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
         Page<SdPresaleProject> page = new Page<>(1, 100);
         IPage<SdPresaleProject> result = presaleProjectMapper.selectUserPresaleProjects(page, currentUserId, "creator");
 
+        // 填充最新的用户信息
+        fillUserInfoForProjects(result.getRecords());
+
         List<PresaleProjectListVO> voList = result.getRecords().stream()
                 .map(this::convertToProjectListVO)
                 .collect(Collectors.toList());
@@ -206,7 +308,10 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
         Page<SdPresaleProject> page = pageQuery.build();
         IPage<SdPresaleProject> result = presaleProjectMapper.selectUserPresaleProjects(page, currentUserId, "creator");
 
-        // 查询当前用户的发货记录，并按项目ID归类
+        // 填充最新的用户信息
+        fillUserInfoForProjects(result.getRecords());
+
+        // 查询当前用户的发货记录，并按项目 ID归类
         com.baomidou.mybatisplus.extension.plugins.pagination.Page<com.sutran.sd.design.vo.PresaleDeliveryListVO> deliveryPage =
             new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>(1, Integer.MAX_VALUE);
         com.baomidou.mybatisplus.core.metadata.IPage<com.sutran.sd.design.vo.PresaleDeliveryListVO> deliveryResult =
@@ -242,6 +347,9 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
         Page<SdPresaleProject> page = new Page<>(1, 100);
         IPage<SdPresaleProject> result = presaleProjectMapper.selectUserPresaleProjects(page, currentUserId, "buyer");
 
+        // 填充最新的用户信息
+        fillUserInfoForProjects(result.getRecords());
+
         List<PresaleProjectListVO> voList = result.getRecords().stream()
                 .map(this::convertToProjectListVO)
                 .collect(Collectors.toList());
@@ -276,6 +384,9 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
         Page<SdPresaleProject> page = pageQuery.build();
         IPage<SdPresaleProject> result = presaleProjectMapper.selectUserPresaleProjects(page, currentUserId, "buyer");
         log.info("查询到的预售项目数量: {}", result.getRecords().size());
+
+        // 填充最新的用户信息
+        fillUserInfoForProjects(result.getRecords());
 
         // 如果查询结果为空，尝试直接查询项目
         if (result.getRecords().isEmpty() && !paidOrders.isEmpty()) {

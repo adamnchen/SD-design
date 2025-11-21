@@ -216,11 +216,7 @@ public class SdUserTaskServiceImpl implements SdUserTaskService {
                 JSONObject loraInfo = JSONObject.parseObject(String.valueOf(e.getLoraInfo()));
                 loraInfo.put("loraTitle",loraInfo.getString("loraModelName"));
                 loraInfo.put("loraTitleZh",loraInfo.getString("loraModelNameZh"));
-                loraInfo.put("loraModelId",loraInfo.getString("loraModelId"));
-                loraInfo.put("loraModelUrl",loraInfo.getString("loraModelUrl"));
                 loraInfo.put("modelStrength",loraInfo.getString("loraModelStrength"));
-                loraInfo.remove("loraModelId");
-                loraInfo.remove("loraModelUrl");
                 loraInfo.remove("loraModelName");
                 loraInfo.remove("loraModelNameZh");
                 loraInfo.remove("loraModelStrength");

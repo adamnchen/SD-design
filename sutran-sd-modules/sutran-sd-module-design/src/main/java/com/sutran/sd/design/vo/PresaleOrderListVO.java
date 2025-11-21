@@ -155,9 +155,9 @@ public class PresaleOrderListVO {
     private String receiverAddress;
 
     /**
-     * 收货地区
+     * 发货记录ID
      */
-    private String receiverArea;
+    private Long deliveryId;
 
     public String getOrderStatusDesc() {
         if (orderStatus == null) {

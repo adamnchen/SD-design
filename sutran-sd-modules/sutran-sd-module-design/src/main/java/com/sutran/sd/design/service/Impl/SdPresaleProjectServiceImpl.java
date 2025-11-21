@@ -701,6 +701,15 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
             vo.setNickName(order.getUserName());
         }
 
+        // 查询发货记录ID（如果已创建发货记录）
+        // 注意：这里返回的是List，因为可能有多次发货记录（虽然目前逻辑主要是一对一，但Mapper定义是List）
+        // 我们取最新的一条记录
+        List<SdPresaleDelivery> deliveries = presaleDeliveryMapper.selectByOrderNo(order.getOrderNo());
+        if (deliveries != null && !deliveries.isEmpty()) {
+            // selectByOrderNo 已经在 XML 中按 create_time desc 排序，所以取第一个即可
+            vo.setDeliveryId(deliveries.get(0).getId());
+        }
+
         return vo;
     }
 

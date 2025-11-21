@@ -25,13 +25,15 @@
         <result property="createTime" column="create_time"/>
         <result property="updateBy" column="update_by"/>
         <result property="updateTime" column="update_time"/>
+        <result property="orderStatus" column="order_status"/>
+        <result property="quantity" column="quantity"/>
     </resultMap>
 
     <sql id="selectSdCrowdfundingSampleDeliveryVo">
         select id, crowdfunding_project_id, proofing_invitation_id, sample_image_url,
                recipient_user_id, recipient_name, recipient_phone, delivery_address,
                tracking_number, delivery_company, delivery_status, remark, sender_user_id, sender_name,
-               delivery_time, confirm_time, create_by, create_time, update_by, update_time
+               delivery_time, confirm_time, create_by, create_time, update_by, update_time, order_status, quantity
         from sd_crowdfunding_sample_delivery
     </sql>
 

@@ -212,6 +212,21 @@ public class SdUserTaskServiceImpl implements SdUserTaskService {
             return TableDataInfo.build(page);
         }
         for (SdUserTaskVo e : page.getRecords()) {
+            SdUserModelFileVo firstVo = sdUserModelFileMapper.selectFirstUrlByTaskIdAndUserId(e.getTaskId(),userId);
+            if (firstVo == null) {
+                continue;
+            }
+            e.setFirstImgUrl(firstVo.getFileUrl());
+            // 兼容webui的图生图：初始化图片为空时，设置为第一个模型的初始化图片
+            if (StringUtils.isBlank(e.getInitImgList()) && StringUtils.isNotBlank(firstVo.getInitImg())) {
+                e.setInitImgList(JSONArray.toJSONString(Collections.singletonList(firstVo.getInitImg())));
+            }
+            if (StringUtils.isBlank(e.getPrompt())) {
+                e.setPrompt(firstVo.getPrompt());
+            }
+            if (StringUtils.isBlank(e.getPromptZh())) {
+                e.setPromptZh(firstVo.getPromptZh());
+            }
             if (e.getLoraInfo()!=null && StringUtils.isNotBlank(String.valueOf(e.getLoraInfo()))) {
                 List<JSONObject> loraInfos = JSONArray.parseArray(String.valueOf(e.getLoraInfo()),JSONObject.class);
                 for (JSONObject loraInfo : loraInfos) {
@@ -225,11 +240,6 @@ public class SdUserTaskServiceImpl implements SdUserTaskService {
                 e.setLoraInfo(loraInfos);
             }
             else {
-                SdUserModelFileVo firstVo = sdUserModelFileMapper.selectFirstUrlByTaskIdAndUserId(e.getTaskId(),userId);
-                if (firstVo == null) {
-                    continue;
-                }
-                e.setFirstImgUrl(firstVo.getFileUrl());
                 Object loraInfoList = firstVo.getLoraInfo();
                 if (loraInfoList!=null) {
                     e.setLoraInfo(JSONArray.parseArray(String.valueOf(loraInfoList)));
@@ -242,16 +252,6 @@ public class SdUserTaskServiceImpl implements SdUserTaskService {
                     loraInfo.put("loraModelUrl",firstVo.getLoraModelUrl());
                     loraInfo.put("modelStrength",firstVo.getLoraTitleZh());
                     e.setLoraInfo(Collections.singletonList(loraInfo));
-                }
-                // 兼容webui的图生图：初始化图片为空时，设置为第一个模型的初始化图片
-                if (StringUtils.isBlank(e.getInitImgList()) && StringUtils.isNotBlank(firstVo.getInitImg())) {
-                    e.setInitImgList(JSONArray.toJSONString(Collections.singletonList(firstVo.getInitImg())));
-                }
-                if (StringUtils.isBlank(e.getPrompt())) {
-                    e.setPrompt(firstVo.getPrompt());
-                }
-                if (StringUtils.isBlank(e.getPromptZh())) {
-                    e.setPromptZh(firstVo.getPromptZh());
                 }
             }
         }

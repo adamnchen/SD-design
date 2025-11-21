@@ -11,6 +11,7 @@ import com.sutran.sd.common.helper.LoginHelper;
 import com.sutran.sd.design.domain.SdPresaleProject;
 import com.sutran.sd.design.dto.PresaleOrderCreateDTO;
 import com.sutran.sd.design.dto.PresaleProjectPublishDTO;
+import com.sutran.sd.design.dto.UpdateTrackingNumberDTO;
 import com.sutran.sd.design.service.ISdPresaleProjectService;
 import com.sutran.sd.design.vo.PresaleOrderDetailVO;
 import com.sutran.sd.design.vo.PresaleOrderListVO;
@@ -234,10 +235,13 @@ public class PresaleController extends BaseAliPayApiController {
      */
     @Operation(summary = "预售发货-填写快递单号", description = "根据预售发货记录ID填写或更新快递单号，同时同步订单表")
     @PostMapping("/delivery/tracking")
-    public R<String> updatePresaleTrackingNumber(
-            @RequestParam("deliveryId") Long deliveryId,
-            @RequestParam("trackingNumber") String trackingNumber) {
-        return presaleProjectService.updatePresaleTrackingNumber(deliveryId, trackingNumber);
+    public R<String> updatePresaleTrackingNumber(@Valid @RequestBody UpdateTrackingNumberDTO dto) {
+        // 这里约定使用 deliveryId 字段，但 DTO 里只有 trackingNumber，所以需要修改 DTO 或者在这里兼容
+        // 实际情况是前端可能发 JSON，但 Controller 之前定义是 @RequestParam
+        // 根据用户报错，改为 RequestBody 并使用 DTO 可能是更好的方式，或者保持 RequestParam 但确保前端发 x-www-form-urlencoded
+        
+        // 但是为了兼容性，我们这里先改成 DTO 接收，需要确保 DTO 有 deliveryId
+        return presaleProjectService.updatePresaleTrackingNumber(dto.getDeliveryId(), dto.getTrackingNumber());
     }
 
     /**

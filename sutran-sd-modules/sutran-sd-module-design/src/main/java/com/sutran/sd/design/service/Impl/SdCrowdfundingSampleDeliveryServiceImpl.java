@@ -2,6 +2,7 @@ package com.sutran.sd.design.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.sutran.sd.common.core.domain.PageQuery;
 import com.sutran.sd.common.core.domain.R;
@@ -251,17 +252,23 @@ public class SdCrowdfundingSampleDeliveryServiceImpl implements ISdCrowdfundingS
 
             if (!hasImage) {
                 log.info("该记录没有样品图片: 邀约ID={}", id);
-                return R.fail("该记录没有样品图片");
+                // return R.fail("该记录没有样品图片");
             }
 
             // 4. 清空数据库中的样品图片地址 (清空项目和所有发货记录的图片)
-            project.setManufacturerPhotos(null);
-            sdCrowdfundingProjectMapper.updateById(project);
+            if (StringUtils.isNotBlank(project.getManufacturerPhotos())) {
+                project.setManufacturerPhotos(null);
+                sdCrowdfundingProjectMapper.updateById(project);
+            }
 
             for (SdCrowdfundingSampleDelivery item : deliveryList) {
                 if (StringUtils.isNotBlank(item.getSampleImageUrl())) {
-                    item.setSampleImageUrl(null);
-                    sampleDeliveryMapper.updateById(item);
+                    item.setSampleImageUrl(null); // MyBatisPlus更新为null需要注意策略，如果字段策略不是IGNORED
+                    // 或者显式使用UpdateWrapper
+                    LambdaUpdateWrapper<SdCrowdfundingSampleDelivery> updateWrapper = new LambdaUpdateWrapper<>();
+                    updateWrapper.eq(SdCrowdfundingSampleDelivery::getId, item.getId())
+                                .set(SdCrowdfundingSampleDelivery::getSampleImageUrl, null);
+                    sampleDeliveryMapper.update(null, updateWrapper);
                 }
             }
 

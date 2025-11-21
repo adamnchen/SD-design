@@ -1,5 +1,6 @@
 package com.sutran.sd.pay.service.impl;
 
+import cn.hutool.core.util.RandomUtil;
 import cn.hutool.core.date.DateUtil;
 import com.alipay.api.AlipayApiException;
 import com.alipay.api.domain.*;
@@ -377,6 +378,12 @@ public class AliPayServiceImpl implements AliPayService {
         model.setRefundAmount(refundAmount);
         // 退款原因
         model.setRefundReason(refundReason);
+        // 退款请求号：保证部分退款的唯一性，防止重复退款
+        // 这里的退款请求号使用订单号+当前时间戳，或者使用业务传入的唯一标识
+        // 由于我们在业务层没有传入requestNo，这里暂时用时间戳生成一个，但建议业务层传入更可靠的唯一ID
+        // 为了支持多次部分退款，每次退款请求号必须不同
+        model.setOutRequestNo(outTradeNo + "_" + System.currentTimeMillis());
+
         try {
             AlipayTradeRefundResponse refundToResponse = AliPayApi.tradeRefundToResponse(model, null);
             if (refundToResponse.isSuccess()) {
@@ -474,12 +481,14 @@ public class AliPayServiceImpl implements AliPayService {
     public String releaseCrowdfundingFunds(String businessOrderNo, String payeeAccount, String payeeName, BigDecimal amount, String projectTitle) {
         getConfig();
         
-        // 生成转账订单号（格式：T + 时间戳）
-        String transferOrderNo = "TF" + DateUtil.current();
-        
+    
+        String timestamp = DateUtil.format(new Date(), "yyyyMMddHHmmss");
+        String suffix = businessOrderNo.length() > 6 ? businessOrderNo.substring(businessOrderNo.length() - 6) : businessOrderNo;
+        String transferOrderNo = "TF" + timestamp + suffix + RandomUtil.randomNumbers(4);
+
         // 构建统一转账模型
         AlipayFundTransUniTransferModel model = new AlipayFundTransUniTransferModel();
-        // 业务订单号
+        // 业务订单号 - 使用transferOrderNo作为本次转账的唯一标识
         model.setOutBizNo(transferOrderNo);
         // 转账金额，单位为元，精确到小数点后两位
         model.setTransAmount(amount.setScale(2, RoundingMode.HALF_UP).toString());

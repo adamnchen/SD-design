@@ -85,4 +85,10 @@
         order by create_time desc
     </select>
 
+    <update id="clearSampleImageUrl" parameterType="Long">
+        update sd_crowdfunding_sample_delivery
+        set sample_image_url = null
+        where id = #{id}
+    </update>
+
 </mapper>

@@ -65,4 +65,12 @@ public interface SdCrowdfundingSampleDeliveryMapper extends BaseMapper<SdCrowdfu
      * @return 发货记录列表
      */
     List<SdCrowdfundingSampleDelivery> selectBySenderUserId(Long senderUserId);
+
+    /**
+     * 清空样品图片URL
+     *
+     * @param id 发货记录ID
+     * @return 结果
+     */
+    int clearSampleImageUrl(Long id);
 }

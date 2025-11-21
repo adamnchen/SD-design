@@ -263,12 +263,8 @@ public class SdCrowdfundingSampleDeliveryServiceImpl implements ISdCrowdfundingS
 
             for (SdCrowdfundingSampleDelivery item : deliveryList) {
                 if (StringUtils.isNotBlank(item.getSampleImageUrl())) {
-                    item.setSampleImageUrl(null); // MyBatisPlus更新为null需要注意策略，如果字段策略不是IGNORED
-                    // 或者显式使用UpdateWrapper
-                    LambdaUpdateWrapper<SdCrowdfundingSampleDelivery> updateWrapper = new LambdaUpdateWrapper<>();
-                    updateWrapper.eq(SdCrowdfundingSampleDelivery::getId, item.getId())
-                                .set(SdCrowdfundingSampleDelivery::getSampleImageUrl, null);
-                    sampleDeliveryMapper.update(null, updateWrapper);
+                    // 使用专门的 XML 方法来清空图片字段
+                    sampleDeliveryMapper.clearSampleImageUrl(item.getId());
                 }
             }
 

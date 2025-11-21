@@ -117,5 +117,11 @@ public class SdUserTask implements Serializable {
     @Schema(name = "updTime", description = "任务更新时间")
     private Date updTime;
 
+    /**
+     * lora模型信息数组
+     */
+    @Schema(name = "loraInfo", description = "lora模型信息数组")
+    private String loraInfo;
+
 }
 

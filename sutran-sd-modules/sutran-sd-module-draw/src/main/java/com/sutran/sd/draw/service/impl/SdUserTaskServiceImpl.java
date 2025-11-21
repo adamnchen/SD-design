@@ -1,8 +1,10 @@
 package com.sutran.sd.draw.service.impl;
 
 import cn.hutool.core.collection.CollectionUtil;
+import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson.serializer.SerializerFeature;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.sutran.sd.common.core.domain.PageQuery;
@@ -10,6 +12,7 @@ import com.sutran.sd.common.core.page.TableDataInfo;
 import com.sutran.sd.common.utils.StringUtils;
 import com.sutran.sd.common.utils.redis.RedisUtils;
 import com.sutran.sd.draw.domain.SdUserTask;
+import com.sutran.sd.draw.domain.bo.ComfyModelTaskSubmitBo;
 import com.sutran.sd.draw.domain.vo.ComfyuiDoingTaskVo;
 import com.sutran.sd.draw.domain.vo.SdUserModelFileVo;
 import com.sutran.sd.draw.domain.vo.SdUserTaskVo;
@@ -43,18 +46,19 @@ public class SdUserTaskServiceImpl implements SdUserTaskService {
     /**
      * 新增ComfyUI任务
      *
-     * @param taskId    任务ID
-     * @param userId    用户ID
-     * @param userName  用户名
-     * @param flow      工作流
-     * @param prompt    英文提示词
-     * @param promptZh  中文提示词
-     * @param imageUrls 参考图地址集合
-     * @param category  任务类型[0-SD文生图,1-SD图生图,2-测试,3-Comfy生图,4-工具修复]
-     * @param flowId    工作流ID
+     * @param taskId        任务ID
+     * @param userId        用户ID
+     * @param userName      用户名
+     * @param flow          工作流
+     * @param prompt        英文提示词
+     * @param promptZh      中文提示词
+     * @param imageUrls     参考图地址集合
+     * @param category      任务类型[0-SD文生图,1-SD图生图,2-测试,3-Comfy生图,4-工具修复]
+     * @param flowId        工作流ID
+     * @param modelTaskBo  模型任务提交BO
      */
     @Override
-    public void addComfyTask(String taskId, Long userId, String userName, String flow, String prompt, String promptZh, List<String> imageUrls, int category, Long flowId) {
+    public void addComfyTask(String taskId, Long userId, String userName, String flow, String prompt, String promptZh, List<String> imageUrls, int category, Long flowId, ComfyModelTaskSubmitBo modelTaskBo) {
         Date now = new Date();
         SdUserTask task = new SdUserTask()
             .setTaskId(Long.parseLong(taskId)).setFlowId(flowId)
@@ -64,6 +68,15 @@ public class SdUserTaskServiceImpl implements SdUserTaskService {
             .setCrtTime(now).setUpdTime(now).setFlow(flow);
         if (CollectionUtil.isNotEmpty(imageUrls)) {
             task.setInitImgList(JSONObject.toJSONString(imageUrls));
+        }
+        if (modelTaskBo!=null) {
+            JSONObject loraInfo = new JSONObject();
+            loraInfo.put("loraModelId", modelTaskBo.getModelId());
+            loraInfo.put("loraModelUrl", modelTaskBo.getModelUrl());
+            loraInfo.put("loraModelName", modelTaskBo.getModelName());
+            loraInfo.put("loraModelNameZh", modelTaskBo.getModelNameZh());
+            loraInfo.put("loraModelStrength", modelTaskBo.getModelStrength());
+            task.setLoraInfo(JSON.toJSONString(Collections.singletonList(loraInfo), SerializerFeature.WriteMapNullValue));
         }
         baseMapper.insert(task);
     }
@@ -199,32 +212,49 @@ public class SdUserTaskServiceImpl implements SdUserTaskService {
             return TableDataInfo.build(page);
         }
         for (SdUserTaskVo e : page.getRecords()) {
-            SdUserModelFileVo firstVo = sdUserModelFileMapper.selectFirstUrlByTaskIdAndUserId(e.getTaskId(),userId);
-            if (firstVo == null) {
-                continue;
-            }
-            e.setFirstImgUrl(firstVo.getFileUrl());
-            Object loraInfoList = firstVo.getLoraInfo();
-            if (loraInfoList!=null) {
-                e.setLoraInfo(JSONArray.parseArray(String.valueOf(loraInfoList)));
-            }
-            else {
-                JSONObject loraInfo = new JSONObject();
-                loraInfo.put("loraTitle",firstVo.getLoraTitle());
-                loraInfo.put("loraModelId",firstVo.getLoraModelId());
-                loraInfo.put("loraModelUrl",firstVo.getLoraModelUrl());
-                loraInfo.put("modelStrength",firstVo.getLoraTitleZh());
+            if (e.getLoraInfo()!=null && StringUtils.isNotBlank(String.valueOf(e.getLoraInfo()))) {
+                JSONObject loraInfo = JSONObject.parseObject(String.valueOf(e.getLoraInfo()));
+                loraInfo.put("loraTitle",loraInfo.getString("loraModelName"));
+                loraInfo.put("loraTitleZh",loraInfo.getString("loraModelNameZh"));
+                loraInfo.put("loraModelId",loraInfo.getString("loraModelId"));
+                loraInfo.put("loraModelUrl",loraInfo.getString("loraModelUrl"));
+                loraInfo.put("modelStrength",loraInfo.getString("loraModelStrength"));
+                loraInfo.remove("loraModelId");
+                loraInfo.remove("loraModelUrl");
+                loraInfo.remove("loraModelName");
+                loraInfo.remove("loraModelNameZh");
+                loraInfo.remove("loraModelStrength");
                 e.setLoraInfo(Collections.singletonList(loraInfo));
             }
-            // 兼容webui的图生图：初始化图片为空时，设置为第一个模型的初始化图片
-            if (StringUtils.isBlank(e.getInitImgList()) && StringUtils.isNotBlank(firstVo.getInitImg())) {
-                e.setInitImgList(JSONArray.toJSONString(Collections.singletonList(firstVo.getInitImg())));
-            }
-            if (StringUtils.isBlank(e.getPrompt())) {
-                e.setPrompt(firstVo.getPrompt());
-            }
-            if (StringUtils.isBlank(e.getPromptZh())) {
-                e.setPromptZh(firstVo.getPromptZh());
+            else {
+                SdUserModelFileVo firstVo = sdUserModelFileMapper.selectFirstUrlByTaskIdAndUserId(e.getTaskId(),userId);
+                if (firstVo == null) {
+                    continue;
+                }
+                e.setFirstImgUrl(firstVo.getFileUrl());
+                Object loraInfoList = firstVo.getLoraInfo();
+                if (loraInfoList!=null) {
+                    e.setLoraInfo(JSONArray.parseArray(String.valueOf(loraInfoList)));
+                }
+                else {
+                    JSONObject loraInfo = new JSONObject();
+                    loraInfo.put("loraTitle",firstVo.getLoraTitle());
+                    loraInfo.put("loraTitleZh",firstVo.getLoraTitleZh());
+                    loraInfo.put("loraModelId",firstVo.getLoraModelId());
+                    loraInfo.put("loraModelUrl",firstVo.getLoraModelUrl());
+                    loraInfo.put("modelStrength",firstVo.getLoraTitleZh());
+                    e.setLoraInfo(Collections.singletonList(loraInfo));
+                }
+                // 兼容webui的图生图：初始化图片为空时，设置为第一个模型的初始化图片
+                if (StringUtils.isBlank(e.getInitImgList()) && StringUtils.isNotBlank(firstVo.getInitImg())) {
+                    e.setInitImgList(JSONArray.toJSONString(Collections.singletonList(firstVo.getInitImg())));
+                }
+                if (StringUtils.isBlank(e.getPrompt())) {
+                    e.setPrompt(firstVo.getPrompt());
+                }
+                if (StringUtils.isBlank(e.getPromptZh())) {
+                    e.setPromptZh(firstVo.getPromptZh());
+                }
             }
         }
         return TableDataInfo.build(page);

@@ -183,6 +183,8 @@ public class SdDrawController {
             .setPromptZh(bo.getPromptZh())
             .setModelType(model.getModelType())
             .setModelName(model.getModelName())
+            .setModelNameZh(model.getModelNameZh())
+            .setModelUrl(model.getUrl())
             .setModelStrength(StringUtils.isNotBlank(bo.getModelStrength())?bo.getModelStrength():model.getModelStrength())
             .setBatchSize(bo.getBatchSize());
         if ("FLUX".equals(model.getModelType())) {

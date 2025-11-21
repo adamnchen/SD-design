@@ -21,6 +21,7 @@
         <result property="startTime" column="start_time" jdbcType="TIMESTAMP"/>
         <result property="endTime" column="end_time" jdbcType="TIMESTAMP"/>
         <result property="updTime" column="upd_time" jdbcType="TIMESTAMP"/>
+        <result property="loraInfo" column="lora_info" jdbcType="VARCHAR"/>
     </resultMap>
 
     <!-- 查询用户任务列表(包含0,1,3,4类别) -->

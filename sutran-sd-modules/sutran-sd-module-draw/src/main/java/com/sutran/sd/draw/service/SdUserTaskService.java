@@ -2,6 +2,7 @@ package com.sutran.sd.draw.service;
 
 import com.sutran.sd.common.core.domain.PageQuery;
 import com.sutran.sd.common.core.page.TableDataInfo;
+import com.sutran.sd.draw.domain.bo.ComfyModelTaskSubmitBo;
 import com.sutran.sd.draw.domain.vo.ComfyuiDoingTaskVo;
 import com.sutran.sd.draw.domain.vo.SdUserTaskVo;
 
@@ -17,17 +18,18 @@ public interface SdUserTaskService {
     /**
      * 新增ComfyUI任务
      *
-     * @param taskId    任务ID
-     * @param userId    用户ID
-     * @param userName  用户名
-     * @param flow      工作流
-     * @param prompt    英文提示词
-     * @param promptZh  中文提示词
-     * @param imageUrls 参考图地址集合
-     * @param category  任务类型[0-SD文生图,1-SD图生图,2-测试,3-Comfy生图,4-工具修复]
-     * @param flowId    工作流ID
+     * @param taskId        任务ID
+     * @param userId        用户ID
+     * @param userName      用户名
+     * @param flow          工作流
+     * @param prompt        英文提示词
+     * @param promptZh      中文提示词
+     * @param imageUrls     参考图地址集合
+     * @param category      任务类型[0-SD文生图,1-SD图生图,2-测试,3-Comfy生图,4-工具修复]
+     * @param flowId        工作流ID
+     * @param modelTaskBo   模型任务提交BO
      */
-    void addComfyTask(String taskId, Long userId, String userName, String flow, String prompt, String promptZh, List<String> imageUrls, int category, Long flowId);
+    void addComfyTask(String taskId, Long userId, String userName, String flow, String prompt, String promptZh, List<String> imageUrls, int category, Long flowId, ComfyModelTaskSubmitBo modelTaskBo);
     /**
      * 新增用户任务
      * @param taskId    任务ID

@@ -213,14 +213,16 @@ public class SdUserTaskServiceImpl implements SdUserTaskService {
         }
         for (SdUserTaskVo e : page.getRecords()) {
             if (e.getLoraInfo()!=null && StringUtils.isNotBlank(String.valueOf(e.getLoraInfo()))) {
-                JSONObject loraInfo = JSONObject.parseObject(String.valueOf(e.getLoraInfo()));
-                loraInfo.put("loraTitle",loraInfo.getString("loraModelName"));
-                loraInfo.put("loraTitleZh",loraInfo.getString("loraModelNameZh"));
-                loraInfo.put("modelStrength",loraInfo.getString("loraModelStrength"));
-                loraInfo.remove("loraModelName");
-                loraInfo.remove("loraModelNameZh");
-                loraInfo.remove("loraModelStrength");
-                e.setLoraInfo(Collections.singletonList(loraInfo));
+                List<JSONObject> loraInfos = JSONArray.parseArray(String.valueOf(e.getLoraInfo()),JSONObject.class);
+                for (JSONObject loraInfo : loraInfos) {
+                    loraInfo.put("loraTitle",loraInfo.getString("loraModelName"));
+                    loraInfo.put("loraTitleZh",loraInfo.getString("loraModelNameZh"));
+                    loraInfo.put("modelStrength",loraInfo.getString("loraModelStrength"));
+                    loraInfo.remove("loraModelName");
+                    loraInfo.remove("loraModelNameZh");
+                    loraInfo.remove("loraModelStrength");
+                }
+                e.setLoraInfo(loraInfos);
             }
             else {
                 SdUserModelFileVo firstVo = sdUserModelFileMapper.selectFirstUrlByTaskIdAndUserId(e.getTaskId(),userId);

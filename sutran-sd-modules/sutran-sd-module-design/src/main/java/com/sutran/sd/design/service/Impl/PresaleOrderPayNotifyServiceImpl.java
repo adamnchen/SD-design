@@ -296,10 +296,17 @@ public class PresaleOrderPayNotifyServiceImpl extends BasePayNotifyService {
             }
 
             // 计算新的总金额
-            BigDecimal newTotalAmount = currentUnitPrice.multiply(BigDecimal.valueOf(order.getQuantity()));
+            // BigDecimal newTotalAmount = currentUnitPrice.multiply(BigDecimal.valueOf(order.getQuantity()));
 
             // 计算退款金额（实际支付金额 - 新总金额）
-            BigDecimal refundAmount = order.getFinalTotalAmount().subtract(newTotalAmount);
+            // BigDecimal refundAmount = order.getFinalTotalAmount().subtract(newTotalAmount);
+
+            // 使用明确的公式：(原单价 - 新单价) * 数量
+            BigDecimal priceDifference = order.getFinalUnitPrice().subtract(currentUnitPrice);
+            BigDecimal refundAmount = priceDifference.multiply(BigDecimal.valueOf(order.getQuantity()));
+
+            // 更新后的总金额
+            BigDecimal newTotalAmount = currentUnitPrice.multiply(BigDecimal.valueOf(order.getQuantity()));
 
             if (refundAmount.compareTo(BigDecimal.ZERO) > 0) {
                 // 需要退款
@@ -402,8 +409,8 @@ public class PresaleOrderPayNotifyServiceImpl extends BasePayNotifyService {
             String refundReason = "阶梯价格调整退款";
             aliPayService.tradeRefund(order.getOrderNo(), payOrder.getTradeNo(), refundAmount.setScale(2, RoundingMode.HALF_UP).toString(), refundReason);
 
-            // 3. 更新预售订单状态为已退款
-            order.setOrderStatus(PresaleOrderStatus.REFUNDED.getCode());
+            // 3. 更新预售订单退款信息（注意：这是部分退款，不修改订单主体状态为已退款，仅记录退款金额）
+            // order.setOrderStatus(PresaleOrderStatus.REFUNDED.getCode());
             order.setRefundTime(new Date());
             order.setRefundReason(refundReason);
             presaleOrderMapper.updateById(order);

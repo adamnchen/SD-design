@@ -14,7 +14,7 @@ public class UpdateTrackingNumberDTO {
     private String trackingNumber;
 
     @Schema(description = "预售发货记录ID")
-    private String deliveryId;
+    private Long deliveryId;
 }
 
 

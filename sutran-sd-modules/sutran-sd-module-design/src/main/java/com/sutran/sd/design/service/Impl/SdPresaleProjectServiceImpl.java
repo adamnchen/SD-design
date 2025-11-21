@@ -1065,7 +1065,7 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
     }
 
     @Override
-    public R<String> updatePresaleTrackingNumber(String deliveryId, String trackingNumber) {
+    public R<String> updatePresaleTrackingNumber(Long deliveryId, String trackingNumber) {
         try {
             if (deliveryId == null) {
                 return R.fail("发货记录ID不能为空");

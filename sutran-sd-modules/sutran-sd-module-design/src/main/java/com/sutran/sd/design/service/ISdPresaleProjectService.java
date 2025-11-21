@@ -187,5 +187,5 @@ public interface ISdPresaleProjectService {
      * @param trackingNumber 快递单号
      * @return 结果
      */
-    R<String> updatePresaleTrackingNumber(String deliveryId, String trackingNumber);
+    R<String> updatePresaleTrackingNumber(Long deliveryId, String trackingNumber);
 }

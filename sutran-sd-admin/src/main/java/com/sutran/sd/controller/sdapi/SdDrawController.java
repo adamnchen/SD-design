@@ -1,6 +1,7 @@
 package com.sutran.sd.controller.sdapi;
 
 import cn.hutool.core.util.StrUtil;
+import com.sutran.sd.common.annotation.RepeatSubmit;
 import com.sutran.sd.common.annotation.RequireMember;
 import com.sutran.sd.common.core.domain.PageQuery;
 import com.sutran.sd.common.core.domain.R;
@@ -164,6 +165,7 @@ public class SdDrawController {
      */
     @PostMapping("/comfy/model/submit-task")
     @RequireMember(value = "ComfyUI模型生图", newUserBenefit = {RequireMember.NewUserBenefitType.DRAW})
+    @RepeatSubmit()
     public R<String> submitComfyModelTask(@Validated @RequestBody ComfyModelTaskBo bo) {
         // 校验模型是否存在
         SdUserModel model = sdUserModelService.selectById(bo.getModelId());
@@ -204,6 +206,7 @@ public class SdDrawController {
      */
     @PostMapping("/comfy/flow/submit-task")
     @RequireMember(value = "ComfyUI工作流生图", newUserBenefit = {RequireMember.NewUserBenefitType.DRAW})
+    @RepeatSubmit()
     public R<String> submitComfyFlowTask(@RequestParam String flowId,
                                          @RequestParam(required = false) String prompt,
                                          @RequestParam(required = false) String promptZh,

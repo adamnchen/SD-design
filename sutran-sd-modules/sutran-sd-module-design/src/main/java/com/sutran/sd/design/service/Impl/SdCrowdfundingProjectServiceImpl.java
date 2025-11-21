@@ -30,6 +30,8 @@ import com.sutran.sd.design.vo.*;
 import com.sutran.sd.pay.service.AliPayService;
 import com.sutran.sd.system.service.IForbiddenWordService;
 import com.sutran.sd.system.service.ISysUserService;
+import com.sutran.sd.system.service.ISysUserAddressService;
+import com.sutran.sd.common.core.domain.entity.SysAddress;
 import com.sutran.sd.common.core.service.NoticeService;
 import com.sutran.sd.common.core.domain.vo.NoticeCommonVo;
 import lombok.RequiredArgsConstructor;
@@ -71,6 +73,7 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
     private final IForbiddenWordService forbiddenWordService;
     private final SdCrowdfundingSampleDeliveryMapper deliveryMapper;
     private final NoticeService noticeService;
+    private final ISysUserAddressService sysUserAddressService;
 
     @Override
     public SdCrowdfundingProject selectSdCrowdfundingProjectById(Long id) {
@@ -589,9 +592,39 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
                         delivery.setRecipientPhone(s.getReceiverPhone());
                         delivery.setDeliveryAddress(buildFullReceiverAddress(s.getReceiverArea(), s.getReceiverAddress()));
                     } else {
-                        delivery.setRecipientName(project.getCreatorName());
-                        delivery.setRecipientPhone("");
-                        delivery.setDeliveryAddress("");
+                        // 尝试查询用户默认收货地址
+                        try {
+                            List<SysAddress> addressList = sysUserAddressService.selectAddressList(creatorUserId);
+                            if (CollectionUtil.isNotEmpty(addressList)) {
+                                // 优先使用默认地址，如果没有则使用第一个
+                                SysAddress targetAddress = addressList.stream()
+                                        .filter(a -> a.getIsDefault() != null && a.getIsDefault() == 1)
+                                        .findFirst()
+                                        .orElse(addressList.get(0));
+                                
+                                delivery.setRecipientName(targetAddress.getName());
+                                delivery.setRecipientPhone(targetAddress.getPhonenumber());
+                                
+                                // 构建完整地址
+                                StringBuilder fullAddress = new StringBuilder();
+                                if (StringUtils.isNotBlank(targetAddress.getProvinceName())) fullAddress.append(targetAddress.getProvinceName());
+                                if (StringUtils.isNotBlank(targetAddress.getCityName())) fullAddress.append(targetAddress.getCityName());
+                                if (StringUtils.isNotBlank(targetAddress.getCountyName())) fullAddress.append(targetAddress.getCountyName());
+                                if (StringUtils.isNotBlank(targetAddress.getAddressName())) fullAddress.append(targetAddress.getAddressName());
+                                if (StringUtils.isNotBlank(targetAddress.getHome())) fullAddress.append(targetAddress.getHome());
+                                
+                                delivery.setDeliveryAddress(fullAddress.toString());
+                            } else {
+                                delivery.setRecipientName(project.getCreatorName());
+                                delivery.setRecipientPhone("");
+                                delivery.setDeliveryAddress("");
+                            }
+                        } catch (Exception ex) {
+                             log.warn("[众筹发货] 获取发起人地址失败, userId={}", creatorUserId, ex);
+                             delivery.setRecipientName(project.getCreatorName());
+                             delivery.setRecipientPhone("");
+                             delivery.setDeliveryAddress("");
+                        }
                     }
 
                     int result = deliveryMapper.insert(delivery);

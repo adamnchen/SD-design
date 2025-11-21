@@ -1065,7 +1065,7 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
     }
 
     @Override
-    public R<String> updatePresaleTrackingNumber(Long deliveryId, String trackingNumber) {
+    public R<String> updatePresaleTrackingNumber(String deliveryId, String trackingNumber) {
         try {
             if (deliveryId == null) {
                 return R.fail("发货记录ID不能为空");
@@ -1076,6 +1076,9 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
 
             // 查询预售发货记录
             SdPresaleDelivery delivery = presaleDeliveryMapper.selectSdPresaleDeliveryById(deliveryId);
+            if (delivery == null) {
+                return R.fail("预售发货记录不存在");
+            }
             // 更新发货记录快递单号与状态
             delivery.setTrackingNumber(trackingNumber);
             delivery.setDeliveryStatus(2); // 已发货

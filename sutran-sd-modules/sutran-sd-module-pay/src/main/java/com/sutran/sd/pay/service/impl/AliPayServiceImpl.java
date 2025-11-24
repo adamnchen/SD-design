@@ -4,6 +4,7 @@ import cn.hutool.core.util.RandomUtil;
 import cn.hutool.core.date.DateUtil;
 import com.alipay.api.AlipayApiException;
 import com.alipay.api.domain.*;
+import com.alipay.api.request.AlipayTradeRefundRequest;
 import com.alipay.api.response.*;
 import com.ijpay.alipay.AliPayApi;
 import com.ijpay.alipay.AliPayApiConfig;
@@ -367,7 +368,7 @@ public class AliPayServiceImpl implements AliPayService {
      */
     @Override
     public void tradeRefund(String outTradeNo, String tradeNo, String refundAmount, String refundReason) {
-        getConfig();
+        AliPayApiConfig config = getConfig();
 
         AlipayTradeRefundModel model = new AlipayTradeRefundModel();
         // 订单号
@@ -385,7 +386,11 @@ public class AliPayServiceImpl implements AliPayService {
         model.setOutRequestNo(outTradeNo + "_" + System.currentTimeMillis());
 
         try {
-            AlipayTradeRefundResponse refundToResponse = AliPayApi.tradeRefundToResponse(model, null);
+            AlipayTradeRefundRequest request = new AlipayTradeRefundRequest();
+            request.setBizModel(model);
+            // 从getConfig()中获取配置证书的AlipayClient实例
+            AlipayTradeRefundResponse refundToResponse = config.getAliPayClient().certificateExecute(request);
+            //AlipayTradeRefundResponse refundToResponse = AliPayApi.tradeRefundToResponse(model, null);
             if (refundToResponse.isSuccess()) {
                 log.info("[支付宝][交易退款]>>>>>>>>>退款成功,订单号:{},支付宝交易流水号:{},退款金额:{},退款原因:{}", outTradeNo, tradeNo, refundAmount, refundReason);
                 payOrderService.updateRefundStatus(outTradeNo, new BigDecimal(refundAmount), refundReason);
@@ -480,8 +485,8 @@ public class AliPayServiceImpl implements AliPayService {
     @Transactional(rollbackFor = Exception.class)
     public String releaseCrowdfundingFunds(String businessOrderNo, String payeeAccount, String payeeName, BigDecimal amount, String projectTitle) {
         getConfig();
-        
-    
+
+
         String timestamp = DateUtil.format(new Date(), "yyyyMMddHHmmss");
         String suffix = businessOrderNo.length() > 6 ? businessOrderNo.substring(businessOrderNo.length() - 6) : businessOrderNo;
         String transferOrderNo = "TF" + timestamp + suffix + RandomUtil.randomNumbers(4);
@@ -500,7 +505,7 @@ public class AliPayServiceImpl implements AliPayService {
         model.setOrderTitle("众筹项目资金释放-" + projectTitle);
         // 转账备注
         model.setRemark("众筹项目《" + projectTitle + "》资金释放，业务订单号：" + businessOrderNo);
-        
+
         // 收款方信息
         Participant payeeInfo = new Participant();
         // 收款方账号（支付宝账号）
@@ -510,24 +515,24 @@ public class AliPayServiceImpl implements AliPayService {
         // 收款方姓名
         payeeInfo.setName(payeeName);
         model.setPayeeInfo(payeeInfo);
-        
+
         try {
-            log.info("[支付宝][众筹资金释放]开始转账,业务订单号:{},转账订单号:{},收款方:{},金额:{}", 
+            log.info("[支付宝][众筹资金释放]开始转账,业务订单号:{},转账订单号:{},收款方:{},金额:{}",
                 businessOrderNo, transferOrderNo, payeeAccount, amount);
-            
+
             AlipayFundTransUniTransferResponse response = AliPayApi.uniTransferToResponse(model, null);
-            
+
             if (response.isSuccess()) {
                 String alipayOrderId = response.getOrderId();
                 String status = response.getStatus();
-                
-                log.info("[支付宝][众筹资金释放]转账成功,业务订单号:{},转账订单号:{},支付宝订单号:{},状态:{}", 
+
+                log.info("[支付宝][众筹资金释放]转账成功,业务订单号:{},转账订单号:{},支付宝订单号:{},状态:{}",
                     businessOrderNo, transferOrderNo, alipayOrderId, status);
-                
+
                 return transferOrderNo;
             } else {
                 String errorMsg = response.getSubMsg();
-                log.error("[支付宝][众筹资金释放]转账失败,业务订单号:{},转账订单号:{},失败原因:{}", 
+                log.error("[支付宝][众筹资金释放]转账失败,业务订单号:{},转账订单号:{},失败原因:{}",
                     businessOrderNo, transferOrderNo, errorMsg);
                 throw new ServiceException("转账失败：" + errorMsg);
             }

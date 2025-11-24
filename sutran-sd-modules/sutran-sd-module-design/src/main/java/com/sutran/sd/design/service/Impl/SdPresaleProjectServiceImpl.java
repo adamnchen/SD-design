@@ -406,7 +406,19 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
         }
 
         List<PresaleProjectListVO> voList = result.getRecords().stream()
-                .map(this::convertToProjectListVO)
+                .map(project -> {
+                    PresaleProjectListVO vo = convertToProjectListVO(project);
+
+                    // 计算当前用户在该项目下的购买数量（只计算已支付及以上状态）
+                    int myPurchaseQuantity = userOrders.stream()
+                            .filter(order -> order.getProjectId().equals(project.getId()))
+                            .filter(order -> order.getOrderStatus() >= 2) // 已支付及以上
+                            .mapToInt(SdPresaleOrder::getQuantity)
+                            .sum();
+                    vo.setSoldQuantity(myPurchaseQuantity);
+
+                    return vo;
+                })
                 .collect(Collectors.toList());
 
         return new TableDataInfo<>(voList, result.getTotal());

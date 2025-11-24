@@ -257,8 +257,10 @@ public class SdCrowdfundingSampleDeliveryServiceImpl implements ISdCrowdfundingS
 
             // 4. 清空数据库中的样品图片地址 (清空项目和所有发货记录的图片)
             if (StringUtils.isNotBlank(project.getManufacturerPhotos())) {
-                project.setManufacturerPhotos(null);
-                sdCrowdfundingProjectMapper.updateById(project);
+                LambdaUpdateWrapper<SdCrowdfundingProject> updateWrapper = new LambdaUpdateWrapper<>();
+                updateWrapper.eq(SdCrowdfundingProject::getId, project.getId())
+                        .set(SdCrowdfundingProject::getManufacturerPhotos, null);
+                sdCrowdfundingProjectMapper.update(null, updateWrapper);
             }
 
             for (SdCrowdfundingSampleDelivery item : deliveryList) {

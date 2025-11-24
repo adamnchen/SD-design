@@ -410,12 +410,29 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
                     PresaleProjectListVO vo = convertToProjectListVO(project);
 
                     // 计算当前用户在该项目下的购买数量（只计算已支付及以上状态）
-                    int myPurchaseQuantity = userOrders.stream()
-                            .filter(order -> order.getProjectId().equals(project.getId()))
-                            .filter(order -> order.getOrderStatus() >= 2) // 已支付及以上
-                            .mapToInt(SdPresaleOrder::getQuantity)
-                            .sum();
+                    int myPurchaseQuantity = 0;
+                    BigDecimal totalRefundAmount = BigDecimal.ZERO;
+                    
+                    // 当前项目的最新单价（阶梯价格计算出的 currentPrice）
+                    BigDecimal currentProjectPrice = vo.getCurrentPrice() != null ? vo.getCurrentPrice() : project.getBasePrice();
+
+                    for (SdPresaleOrder order : userOrders) {
+                        if (order.getProjectId().equals(project.getId()) && order.getOrderStatus() >= 2) {
+                            // 累加购买数量
+                            myPurchaseQuantity += order.getQuantity();
+                            
+                            // 计算该订单的预计退款金额： (订单原单价 - 当前最新单价) * 数量
+                            // 只有当 原单价 > 当前单价 时才会有退款
+                            if (order.getOriginalUnitPrice() != null && order.getOriginalUnitPrice().compareTo(currentProjectPrice) > 0) {
+                                BigDecimal priceDiff = order.getOriginalUnitPrice().subtract(currentProjectPrice);
+                                BigDecimal orderRefund = priceDiff.multiply(BigDecimal.valueOf(order.getQuantity()));
+                                totalRefundAmount = totalRefundAmount.add(orderRefund);
+                            }
+                        }
+                    }
+                    
                     vo.setSoldQuantity(myPurchaseQuantity);
+                    vo.setRefundAmount(totalRefundAmount);
 
                     return vo;
                 })

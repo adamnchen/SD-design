@@ -161,6 +161,11 @@ public class PresaleProjectListVO {
      */
     private String trackingNumber;
 
+    /**
+     * 预计退款金额（总差价 = (原单价 - 现单价) * 购买数量）
+     */
+    private BigDecimal refundAmount;
+
     public String getStatusDesc() {
         if (status == null) {
             return "未知";

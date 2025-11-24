@@ -484,6 +484,11 @@ public class SdProofingInvitationServiceImpl implements ISdProofingInvitationSer
                 throw new ServiceException("阶梯价格设置错误：数量点数量必须等于价格数量");
             }
 
+            // 验证阶梯数量不能超过5个
+            if (quantities.size() > 5) {
+                throw new ServiceException("阶梯价格设置错误：阶梯数量最多为5个");
+            }
+
             // 验证数量点不能为null、0或负数（tieredQuantities是数量点数组）
             for (int i = 0; i < quantities.size(); i++) {
                 Integer qty = quantities.get(i);

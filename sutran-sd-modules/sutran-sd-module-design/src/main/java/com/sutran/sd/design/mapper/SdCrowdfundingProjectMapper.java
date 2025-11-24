@@ -101,4 +101,6 @@ public interface SdCrowdfundingProjectMapper extends BaseMapper<SdCrowdfundingPr
      * @return 众筹项目详情
      */
     SdCrowdfundingProject selectSdCrowdfundingProjectByIdWithTieredPricing(@Param("id") Long id);
+
+    int clearManufacturerPhotos(@Param("id") Long id);
 }

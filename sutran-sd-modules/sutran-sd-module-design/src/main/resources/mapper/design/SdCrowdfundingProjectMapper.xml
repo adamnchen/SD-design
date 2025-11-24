@@ -327,6 +327,14 @@
         WHERE proofing_invitation_id = #{proofingInvitationId}
     </select>
 
+    <!-- 删除图片样品 -->
+    <update id="clearManufacturerPhotos">
+        UPDATE sd_crowdfunding_project
+        SET manufacturer_photos = NULL
+        WHERE id = #{id}
+    </update>
+
+
     <!-- 内部更新众筹项目 -->
     <update id="updateSdCrowdfundingProject" parameterType="com.sutran.sd.design.domain.SdCrowdfundingProject">
         UPDATE sd_crowdfunding_project

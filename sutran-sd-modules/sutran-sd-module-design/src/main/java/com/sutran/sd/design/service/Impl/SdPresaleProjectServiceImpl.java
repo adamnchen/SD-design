@@ -713,6 +713,30 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
 
         vo.setReceiverAddress(buildFullReceiverAddress(order.getReceiverArea(), order.getReceiverAddress()));
 
+        // 计算预计退款金额
+        try {
+            // 只有已支付的订单才计算退款
+            if (order.getOrderStatus() >= 2 && order.getOrderStatus() != 6 && order.getOrderStatus() != 7) {
+                // 获取项目当前价格
+                SdPresaleProject project = presaleProjectMapper.selectSdPresaleProjectById(order.getProjectId());
+                if (project != null) {
+                    BigDecimal currentUnitPrice = calculateCurrentUnitPrice(project);
+                    
+                    // 如果原购买单价大于当前单价，计算差价
+                    if (order.getOriginalUnitPrice() != null && order.getOriginalUnitPrice().compareTo(currentUnitPrice) > 0) {
+                        BigDecimal priceDiff = order.getOriginalUnitPrice().subtract(currentUnitPrice);
+                        BigDecimal estimatedRefund = priceDiff.multiply(BigDecimal.valueOf(order.getQuantity()));
+                        vo.setEstimatedRefundAmount(estimatedRefund);
+                    } else {
+                        vo.setEstimatedRefundAmount(BigDecimal.ZERO);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.warn("计算订单预计退款金额失败: 订单号={}", order.getOrderNo(), e);
+            vo.setEstimatedRefundAmount(BigDecimal.ZERO);
+        }
+
         // 查询用户昵称
         try {
             if (order.getUserId() != null) {

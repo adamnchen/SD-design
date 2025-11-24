@@ -80,9 +80,14 @@ public class PresaleOrderListVO {
     private BigDecimal finalTotalAmount;
 
     /**
-     * 退款金额
+     * 退款金额（实际已退款金额）
      */
     private BigDecimal refundAmount;
+
+    /**
+     * 预计退款金额（根据当前阶梯价格计算出的差价）
+     */
+    private BigDecimal estimatedRefundAmount;
 
     /**
      * 订单状态：1=待支付，2=已支付，3=生产中，4=已发货，5=已完成，6=已取消，7=已退款

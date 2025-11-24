@@ -260,7 +260,7 @@ public class SdCrowdfundingSampleDeliveryServiceImpl implements ISdCrowdfundingS
                 LambdaUpdateWrapper<SdCrowdfundingProject> updateWrapper = new LambdaUpdateWrapper<>();
                 updateWrapper.eq(SdCrowdfundingProject::getId, project.getId())
                         .set(SdCrowdfundingProject::getManufacturerPhotos, null);
-                sdCrowdfundingProjectMapper.update(null, updateWrapper);
+                sdCrowdfundingProjectMapper.update(updateWrapper);
             }
 
             for (SdCrowdfundingSampleDelivery item : deliveryList) {

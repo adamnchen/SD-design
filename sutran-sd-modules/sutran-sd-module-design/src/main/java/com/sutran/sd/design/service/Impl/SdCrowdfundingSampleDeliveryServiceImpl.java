@@ -185,10 +185,13 @@ public class SdCrowdfundingSampleDeliveryServiceImpl implements ISdCrowdfundingS
 
             // 2. 查询发货记录
             SdCrowdfundingSampleDelivery delivery = sampleDeliveryMapper.selectSdCrowdfundingSampleDeliveryById(id);
-            SdCrowdfundingProject project = sdCrowdfundingProjectMapper.selectSdCrowdfundingProjectById(id);
             if (delivery == null) {
-
                 return R.fail("发货记录不存在");
+            }
+            SdCrowdfundingProject project = sdCrowdfundingProjectMapper.selectSdCrowdfundingProjectById(delivery.getCrowdfundingProjectId());
+
+            if (project == null) {
+                return R.fail("众筹项目不存在");
             }
 
             //3.上传
@@ -258,7 +261,7 @@ public class SdCrowdfundingSampleDeliveryServiceImpl implements ISdCrowdfundingS
             // 4. 清空数据库中的样品图片地址 (清空项目和所有发货记录的图片)
             if (StringUtils.isNotBlank(project.getManufacturerPhotos())) {
 
-                sdCrowdfundingProjectMapper.clearManufacturerPhotos(id);
+                sdCrowdfundingProjectMapper.clearManufacturerPhotos(project.getId());
             }
 
             for (SdCrowdfundingSampleDelivery item : deliveryList) {

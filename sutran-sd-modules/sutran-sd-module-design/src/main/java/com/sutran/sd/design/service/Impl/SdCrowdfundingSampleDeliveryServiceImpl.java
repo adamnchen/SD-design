@@ -222,19 +222,31 @@ public class SdCrowdfundingSampleDeliveryServiceImpl implements ISdCrowdfundingS
     @Override
     public R<String> deleteSampleImage(Long id) {
         try {
-            log.info("删除样品图片: 邀约ID={}", id);
+            log.info("删除样品图片: ID={}", id);
 
-            // 1. 根据邀约ID查询发货记录
+            // 1. 先根据传入的ID（发货记录ID）查询发货记录，获取邀约ID
+            SdCrowdfundingSampleDelivery currentDelivery = sampleDeliveryMapper.selectSdCrowdfundingSampleDeliveryById(id);
+            if (currentDelivery == null) {
+                log.warn("发货记录不存在: ID={}", id);
+                return R.fail("发货记录不存在");
+            }
+            Long invitationId = currentDelivery.getProofingInvitationId();
+            if (invitationId == null) {
+                log.warn("发货记录关联的邀约ID为空: ID={}", id);
+                return R.fail("数据异常，关联邀约ID为空");
+            }
+
+            // 2. 根据邀约ID查询所有相关发货记录
             LambdaQueryWrapper<SdCrowdfundingSampleDelivery> queryWrapper = new LambdaQueryWrapper<>();
-            queryWrapper.eq(SdCrowdfundingSampleDelivery::getProofingInvitationId, id);
+            queryWrapper.eq(SdCrowdfundingSampleDelivery::getProofingInvitationId, invitationId);
             List<SdCrowdfundingSampleDelivery> deliveryList = sampleDeliveryMapper.selectList(queryWrapper);
 
             if (deliveryList == null || deliveryList.isEmpty()) {
-                log.warn("发货记录不存在: 邀约ID={}", id);
-                return R.fail("发货记录不存在");
+                log.warn("未找到相关发货记录: 邀约ID={}", invitationId);
+                return R.fail("未找到相关发货记录");
             }
 
-            // 2. 查询项目信息（使用第一条发货记录中的项目ID）
+            // 3. 查询项目信息（使用第一条发货记录中的项目ID）
             SdCrowdfundingSampleDelivery firstDelivery = deliveryList.get(0);
             SdCrowdfundingProject project = sdCrowdfundingProjectMapper.selectSdCrowdfundingProjectById(firstDelivery.getCrowdfundingProjectId());
             if (project == null) {
@@ -242,7 +254,7 @@ public class SdCrowdfundingSampleDeliveryServiceImpl implements ISdCrowdfundingS
                 return R.fail("众筹项目不存在");
             }
 
-            // 3. 检查是否有样品图片 (检查项目图片或任意发货记录图片)
+            // 4. 检查是否有样品图片 (检查项目图片或任意发货记录图片)
             boolean hasImage = StringUtils.isNotBlank(project.getManufacturerPhotos());
             if (!hasImage) {
                 for (SdCrowdfundingSampleDelivery item : deliveryList) {
@@ -254,28 +266,25 @@ public class SdCrowdfundingSampleDeliveryServiceImpl implements ISdCrowdfundingS
             }
 
             if (!hasImage) {
-                log.info("该记录没有样品图片: 邀约ID={}", id);
-                // return R.fail("该记录没有样品图片");
+                log.info("该记录没有样品图片: ID={}", id);
             }
 
-            // 4. 清空数据库中的样品图片地址 (清空项目和所有发货记录的图片)
+            // 5. 清空数据库中的样品图片地址 (清空项目和所有发货记录的图片)
             if (StringUtils.isNotBlank(project.getManufacturerPhotos())) {
-
                 sdCrowdfundingProjectMapper.clearManufacturerPhotos(project.getId());
             }
 
             for (SdCrowdfundingSampleDelivery item : deliveryList) {
                 if (StringUtils.isNotBlank(item.getSampleImageUrl())) {
-                    // 使用专门的 XML 方法来清空图片字段
                     sampleDeliveryMapper.clearSampleImageUrl(item.getId());
                 }
             }
 
-            log.info("样品图片删除成功: 邀约ID={}", id);
+            log.info("样品图片删除成功: ID={}, 邀约ID={}", id, invitationId);
             return R.ok("样品图片删除成功");
 
         } catch (Exception e) {
-            log.error("删除样品图片失败: 邀约ID={}", id, e);
+            log.error("删除样品图片失败: ID={}", id, e);
             return R.fail("删除样品图片失败: " + e.getMessage());
         }
     }

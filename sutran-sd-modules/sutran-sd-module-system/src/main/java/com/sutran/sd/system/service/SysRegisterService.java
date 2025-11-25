@@ -56,6 +56,7 @@ public class SysRegisterService {
         sysUser.setUserType(userType);
         sysUser.setChannelId("3");
         sysUser.setChannel("自行注册");
+        sysUser.setAvatar("http://img.zeinai.net/sutran/2025/11/07/baa19046cf804b15a471ec8bdc37f748.jpg");
         String drawNum = configService.selectConfigByKey("registry.user.drawNum");
         drawNum = StringUtils.isEmpty(drawNum)?"10":drawNum;
         sysUser.setLimitDrawNum(Integer.parseInt(drawNum));

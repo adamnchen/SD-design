@@ -4,6 +4,7 @@ import com.sutran.sd.common.core.domain.PageQuery;
 import com.sutran.sd.common.core.page.TableDataInfo;
 import com.sutran.sd.design.domain.SdCrowdfundingProject;
 import com.sutran.sd.design.domain.SdCrowdfundingSupport;
+import com.sutran.sd.design.dto.CrowdfundingProjectSimpleCreateDTO;
 import com.sutran.sd.design.dto.CrowdfundingSupportDTO;
 import com.sutran.sd.design.vo.CrowdfundingProjectDetailVO;
 import com.sutran.sd.design.vo.CrowdfundingProjectListVO;
@@ -69,9 +70,8 @@ public interface ISdCrowdfundingProjectService {
      * 简化新增众筹项目（前端只需要传厂家ID，其他信息从打样邀约中获取）
      *
      * @param createDTO 简化创建DTO
-     * @return 创建的众筹项目
      */
-    Void insertSdCrowdfundingProjectSimple(com.sutran.sd.design.dto.CrowdfundingProjectSimpleCreateDTO createDTO);
+    void insertSdCrowdfundingProjectSimple(CrowdfundingProjectSimpleCreateDTO createDTO);
 
 
 

@@ -7,8 +7,11 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sutran.sd.common.core.domain.PageQuery;
+import com.sutran.sd.common.core.domain.entity.SysAddress;
 import com.sutran.sd.common.core.domain.entity.SysUser;
+import com.sutran.sd.common.core.domain.vo.NoticeCommonVo;
 import com.sutran.sd.common.core.page.TableDataInfo;
+import com.sutran.sd.common.core.service.NoticeService;
 import com.sutran.sd.common.exception.ServiceException;
 import com.sutran.sd.common.helper.LoginHelper;
 import com.sutran.sd.common.utils.OrderNumUtils;
@@ -20,8 +23,8 @@ import com.sutran.sd.design.dto.CrowdfundingSupportDTO;
 import com.sutran.sd.design.enums.CrowdfundingProjectStatus;
 import com.sutran.sd.design.enums.CrowdfundingSupportStatus;
 import com.sutran.sd.design.mapper.SdCrowdfundingProjectMapper;
-import com.sutran.sd.design.mapper.SdCrowdfundingSupportMapper;
 import com.sutran.sd.design.mapper.SdCrowdfundingSampleDeliveryMapper;
+import com.sutran.sd.design.mapper.SdCrowdfundingSupportMapper;
 import com.sutran.sd.design.mapper.SdProofingInvitationMapper;
 import com.sutran.sd.design.service.CrowdfundingMqService;
 import com.sutran.sd.design.service.CrowdfundingRedisService;
@@ -29,11 +32,8 @@ import com.sutran.sd.design.service.ISdCrowdfundingProjectService;
 import com.sutran.sd.design.vo.*;
 import com.sutran.sd.pay.service.AliPayService;
 import com.sutran.sd.system.service.IForbiddenWordService;
-import com.sutran.sd.system.service.ISysUserService;
 import com.sutran.sd.system.service.ISysUserAddressService;
-import com.sutran.sd.common.core.domain.entity.SysAddress;
-import com.sutran.sd.common.core.service.NoticeService;
-import com.sutran.sd.common.core.domain.vo.NoticeCommonVo;
+import com.sutran.sd.system.service.ISysUserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -43,14 +43,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.HashSet;
-import java.util.Collections;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -58,6 +51,7 @@ import java.util.stream.Collectors;
  *
  * @author sutran
  */
+@SuppressWarnings("AlibabaUndefineMagicConstant")
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -110,8 +104,7 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
 
         // 批量查询用户信息
         List<SysUser> users = userService.selectUserListByIds(new ArrayList<>(userIds));
-        Map<Long, SysUser> userMap = users.stream()
-            .collect(Collectors.toMap(SysUser::getUserId, user -> user));
+        Map<Long, SysUser> userMap = users.stream().collect(Collectors.toMap(SysUser::getUserId, user -> user));
 
         // 填充用户信息到项目列表中
         projects.forEach(project -> {
@@ -204,16 +197,22 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
         return TableDataInfo.build(result);
     }
 
+    /**
+     * 根据众筹项目类型分页查询众筹项目列表（支持“已发布”、“我支持的”、“我发起的”）
+     *
+     * @param type      查询类型（published, supported, manufactured）
+     * @param pageQuery 分页查询参数
+     * @return 众筹项目列表
+     */
     @Override
     public TableDataInfo<SdCrowdfundingProject> selectPageCrowdfundingProjectListByType(String type, PageQuery pageQuery) {
-        Page<SdCrowdfundingProject> page = pageQuery.build();
-        Long currentUserId = LoginHelper.getUserId();
-
         // 验证类型参数
         if (!"published".equals(type) && !"supported".equals(type) && !"manufactured".equals(type)) {
             throw new ServiceException("不支持的类型: " + type);
         }
 
+        Long currentUserId = LoginHelper.getUserId();
+        Page<SdCrowdfundingProject> page = pageQuery.build();
         // 使用XML中的查询方法
         Page<SdCrowdfundingProject> result = crowdfundingProjectMapper.selectPageCrowdfundingProjectListByType(page, type, currentUserId);
 
@@ -222,21 +221,17 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
 
         // 如果是“我购买的”列表，为当前登录用户在每个项目下填充自己的快递单号
         if ("supported".equals(type)) {
-            // 查询当前用户的众筹样品发货记录，并按项目ID归类
+            // 查询当前用户的众筹样品发货记录
             List<SdCrowdfundingSampleDelivery> deliveries = deliveryMapper.selectByRecipientUserId(currentUserId);
-            if (deliveries != null && !deliveries.isEmpty()) {
-                java.util.Map<Long, java.util.List<SdCrowdfundingSampleDelivery>> projectDeliveryMap =
-                    deliveries.stream()
-                        .collect(Collectors.groupingBy(SdCrowdfundingSampleDelivery::getCrowdfundingProjectId));
-
-                result.getRecords().forEach(project -> {
-                    List<SdCrowdfundingSampleDelivery> projectDeliveries = projectDeliveryMap.get(project.getId());
-                    if (projectDeliveries != null && !projectDeliveries.isEmpty()) {
-                        projectDeliveries.stream()
-                            .max(Comparator.comparing(SdCrowdfundingSampleDelivery::getCreateTime))
-                            .ifPresent(d -> project.setTrackingNumber(d.getTrackingNumber()));
+            if (CollectionUtil.isNotEmpty(deliveries)) {
+                // 按项目ID对发货记录进行分组
+                Map<Long, List<SdCrowdfundingSampleDelivery>> projectDeliveryGroup = deliveries.stream().collect(Collectors.groupingBy(SdCrowdfundingSampleDelivery::getCrowdfundingProjectId));
+                for (SdCrowdfundingProject project : result.getRecords()) {
+                    List<SdCrowdfundingSampleDelivery> projectDeliveries = projectDeliveryGroup.get(project.getId());
+                    if (CollectionUtil.isNotEmpty(projectDeliveries)) {
+                        projectDeliveries.stream().max(Comparator.comparing(SdCrowdfundingSampleDelivery::getId)).ifPresent(d -> project.setTrackingNumber(d.getTrackingNumber()));
                     }
-                });
+                }
             }
         }
 
@@ -249,7 +244,7 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public Void insertSdCrowdfundingProjectSimple(CrowdfundingProjectSimpleCreateDTO createDTO) {
+    public void insertSdCrowdfundingProjectSimple(CrowdfundingProjectSimpleCreateDTO createDTO) {
         // 1. 通过多表联查获取完整的邀约信息（包括发起人和厂家信息）
         com.sutran.sd.common.core.domain.vo.ProofingInvitationDetailVO invitationDetail =
             invitationMapper.selectInvitationDetailById(createDTO.getProofingInvitationId());
@@ -373,7 +368,6 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
             }
             invitationMapper.updateStatusById(invitationDetail.getId(), 7);
         }
-        return null;
     }
 
     @Override
@@ -564,7 +558,7 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
             int initiatorQuantity = (totalSamples != null ? totalSamples : 0) - (drawNumber != null ? drawNumber : 0);
             if (initiatorQuantity > 0) {
                 Long creatorUserId = project.getCreatorUserId();
-                
+
                 // 检查是否已有发货记录
                 LambdaQueryWrapper<SdCrowdfundingSampleDelivery> existQuery = new LambdaQueryWrapper<>();
                 existQuery.eq(SdCrowdfundingSampleDelivery::getCrowdfundingProjectId, projectId)
@@ -601,10 +595,10 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
                                         .filter(a -> a.getIsDefault() != null && a.getIsDefault() == 1)
                                         .findFirst()
                                         .orElse(addressList.get(0));
-                                
+
                                 delivery.setRecipientName(targetAddress.getName());
                                 delivery.setRecipientPhone(targetAddress.getPhonenumber());
-                                
+
                                 // 构建完整地址
                                 StringBuilder fullAddress = new StringBuilder();
                                 if (StringUtils.isNotBlank(targetAddress.getProvinceName())) fullAddress.append(targetAddress.getProvinceName());
@@ -612,7 +606,7 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
                                 if (StringUtils.isNotBlank(targetAddress.getCountyName())) fullAddress.append(targetAddress.getCountyName());
                                 if (StringUtils.isNotBlank(targetAddress.getAddressName())) fullAddress.append(targetAddress.getAddressName());
                                 if (StringUtils.isNotBlank(targetAddress.getHome())) fullAddress.append(targetAddress.getHome());
-                                
+
                                 delivery.setDeliveryAddress(fullAddress.toString());
                             } else {
                                 delivery.setRecipientName(project.getCreatorName());

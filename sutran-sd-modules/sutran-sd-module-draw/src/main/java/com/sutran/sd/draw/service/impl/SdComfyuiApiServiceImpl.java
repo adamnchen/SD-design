@@ -132,7 +132,7 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
 
 
         if (StringUtils.isNotBlank(promptZh)) {
-            forbiddenWordService.validateForbiddenWord(promptZh, "提示词(中文)");
+            forbiddenWordService.validateForbiddenWordAndReturn(promptZh, "提示词(中文)");
         }
 
         if (prompt!=null) {

@@ -3,7 +3,6 @@ package com.sutran.sd.controller.design;
 import cn.dev33.satoken.annotation.SaIgnore;
 import com.ijpay.alipay.AliPayApiConfig;
 import com.sutran.sd.common.annotation.RequireMember;
-import com.sutran.sd.common.core.controller.BaseController;
 import com.sutran.sd.common.core.domain.PageQuery;
 import com.sutran.sd.common.core.domain.R;
 import com.sutran.sd.common.core.page.TableDataInfo;
@@ -18,20 +17,19 @@ import com.sutran.sd.design.vo.PresaleOrderListVO;
 import com.sutran.sd.pay.config.AliPayConfig;
 import com.sutran.sd.pay.constants.PayNotifyServer;
 import com.sutran.sd.pay.controller.BaseAliPayApiController;
-import com.sutran.sd.pay.service.BasePayNotifyService;
 import com.sutran.sd.pay.service.AliPayService;
+import com.sutran.sd.pay.service.BasePayNotifyService;
 import com.sutran.sd.pay.service.impl.PayOrderServiceImpl;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
 import java.util.List;
 import java.util.Map;
-import org.springframework.web.multipart.MultipartFile;
 
 /**
  * 预售项目管理Controller
@@ -211,6 +209,7 @@ public class PresaleController extends BaseAliPayApiController {
 
     /**
      * 发布预售项目
+     * @param publishDTO 发布预售项目DTO
      */
     @Operation(summary = "发布预售项目", description = "厂家发布预售项目，包含AI设计图和实物照片")
     @PostMapping("/publish")
@@ -221,13 +220,30 @@ public class PresaleController extends BaseAliPayApiController {
 
     /**
      * 上传实物照片
+     * @param file 上传的文件（图片）
+     * @param proofingInvitationId 打样邀约ID
+     * @return 上传结果
      */
     @Operation(summary = "上传实物照片", description = "为众筹成功的项目上传实物照片，用于发布预售")
     @PostMapping(value = "/upload/photos", consumes = "multipart/form-data")
     public R<String> uploadManufacturerPhotos(
             @RequestPart("file") MultipartFile file,
             @RequestParam(value = "proofingInvitationId") Long proofingInvitationId) {
-        return presaleProjectService.uploadManufacturerPhotos(file, proofingInvitationId);
+        return R.ok("上传实物照片成功", presaleProjectService.uploadManufacturerPhotos(file, proofingInvitationId));
+    }
+
+    /**
+     * 删除已上传实物照片
+     * @param filePath 要删除的图片
+     * @param proofingInvitationId 打样邀约ID
+     * @return 上传结果
+     */
+    @Operation(summary = "删除实物照片", description = "为众筹成功的项目删除实物照片，用于发布预售")
+    @PostMapping(value = "/delete/photos", consumes = "multipart/form-data")
+    public R<String> deleteManufacturerPhotos(
+        @RequestParam(value = "file",required = false) String filePath,
+        @RequestParam("proofingInvitationId") Long proofingInvitationId) {
+        return R.ok("删除实物照片成功", presaleProjectService.deleteManufacturerPhotos(filePath, proofingInvitationId));
     }
 
     /**
@@ -239,7 +255,7 @@ public class PresaleController extends BaseAliPayApiController {
         // 这里约定使用 deliveryId 字段，但 DTO 里只有 trackingNumber，所以需要修改 DTO 或者在这里兼容
         // 实际情况是前端可能发 JSON，但 Controller 之前定义是 @RequestParam
         // 根据用户报错，改为 RequestBody 并使用 DTO 可能是更好的方式，或者保持 RequestParam 但确保前端发 x-www-form-urlencoded
-        
+
         // 但是为了兼容性，我们这里先改成 DTO 接收，需要确保 DTO 有 deliveryId
         return presaleProjectService.updatePresaleTrackingNumber(dto.getDeliveryId(), dto.getTrackingNumber());
     }

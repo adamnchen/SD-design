@@ -9,12 +9,13 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 /**
  * 违禁词校验服务实现类
- * 
+ *
  * @author sutran
  * @date 2025-11-07
  */
@@ -63,15 +64,47 @@ public class ForbiddenWordServiceImpl implements IForbiddenWordService {
     }
 
     @Override
+    public String containsForbiddenWordAndReturn(String text) {
+        if (StringUtils.isBlank(text)) {
+            return null;
+        }
+        List<String> forbiddenWords = getForbiddenWords();
+        if (CollectionUtil.isEmpty(forbiddenWords)) {
+            return null;
+        }
+
+        String lowerText = text.toLowerCase().trim();
+        List<String> returnWords = new ArrayList<>();
+        for (String word : forbiddenWords) {
+            if (StringUtils.isNotBlank(word) && lowerText.contains(word.toLowerCase().trim())) {
+                returnWords.add(word);
+            }
+        }
+        return CollectionUtil.isEmpty(returnWords) ? null : String.join(",", returnWords);
+    }
+
+    @Override
     public void validateForbiddenWord(String text, String fieldName) {
         if (StringUtils.isBlank(text)) {
             return;
         }
 
         if (containsForbiddenWord(text)) {
-            String errorMsg = StringUtils.isNotBlank(fieldName) 
+            String errorMsg = StringUtils.isNotBlank(fieldName)
                 ? String.format("%s包含违禁词，请修改后重试", fieldName)
                 : "输入内容包含违禁词，请修改后重试";
+            throw new ServiceException(errorMsg);
+        }
+    }
+
+    @Override
+    public void validateForbiddenWordAndReturn(String text, String fieldName) {
+        if (StringUtils.isBlank(text)) {
+            return;
+        }
+        String s = containsForbiddenWordAndReturn(text);
+        if (StringUtils.isNotBlank(s)) {
+            String errorMsg = StringUtils.isNotBlank(fieldName) ? String.format("%s 包含违禁词[%s]", fieldName, s) : "输入内容包含违禁词，请修改后重试";
             throw new ServiceException(errorMsg);
         }
     }

@@ -1,43 +1,43 @@
 package com.sutran.sd.design.service.impl;
 
+import cn.hutool.core.collection.CollectionUtil;
+import cn.hutool.core.util.IdUtil;
+import cn.hutool.core.util.StrUtil;
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.serializer.SerializerFeature;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sutran.sd.common.core.domain.PageQuery;
 import com.sutran.sd.common.core.domain.R;
+import com.sutran.sd.common.core.domain.entity.SysUser;
 import com.sutran.sd.common.core.domain.vo.ProofingInvitationDetailVO;
 import com.sutran.sd.common.core.page.TableDataInfo;
+import com.sutran.sd.common.exception.ServiceException;
 import com.sutran.sd.common.helper.LoginHelper;
 import com.sutran.sd.common.utils.OrderNumUtils;
 import com.sutran.sd.common.utils.StringUtils;
-import com.sutran.sd.design.domain.SdPresaleDelivery;
-import com.sutran.sd.design.domain.SdPresaleOrder;
-import com.sutran.sd.design.domain.SdPresaleProject;
-import com.sutran.sd.design.domain.SdCrowdfundingProject;
-import com.sutran.sd.design.domain.SdCrowdfundingSampleDelivery;
-import com.sutran.sd.design.enums.PresaleOrderStatus;
-import com.sutran.sd.design.enums.PresaleProjectStatus;
-import com.sutran.sd.design.enums.CrowdfundingProjectStatus;
+import com.sutran.sd.design.domain.*;
 import com.sutran.sd.design.dto.PresaleOrderCreateDTO;
 import com.sutran.sd.design.dto.PresaleProjectPublishDTO;
-import com.sutran.sd.design.mapper.SdPresaleDeliveryMapper;
-import com.sutran.sd.design.mapper.SdPresaleOrderMapper;
-import com.sutran.sd.design.mapper.SdPresaleProjectMapper;
-import com.sutran.sd.design.mapper.SdProofingInvitationMapper;
-import com.sutran.sd.design.mapper.SdCrowdfundingProjectMapper;
+import com.sutran.sd.design.enums.CrowdfundingProjectStatus;
+import com.sutran.sd.design.enums.PresaleOrderStatus;
+import com.sutran.sd.design.enums.PresaleProjectStatus;
+import com.sutran.sd.design.mapper.*;
 import com.sutran.sd.design.service.ISdPresaleProjectService;
 import com.sutran.sd.design.vo.PresaleOrderDetailVO;
 import com.sutran.sd.design.vo.PresaleOrderListVO;
 import com.sutran.sd.design.vo.PresaleProjectDetailVO;
 import com.sutran.sd.design.vo.PresaleProjectListVO;
-import com.sutran.sd.pay.service.impl.PayOrderServiceImpl;
 import com.sutran.sd.pay.enums.BusinessType;
 import com.sutran.sd.pay.service.AliPayService;
+import com.sutran.sd.pay.service.impl.PayOrderServiceImpl;
 import com.sutran.sd.system.domain.vo.SysOssVo;
 import com.sutran.sd.system.service.IForbiddenWordService;
 import com.sutran.sd.system.service.ISysOssService;
 import com.sutran.sd.system.service.ISysUserService;
-import com.sutran.sd.common.core.domain.entity.SysUser;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -45,13 +45,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import java.util.Comparator;
+import java.util.*;
 import java.util.stream.Collectors;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * 预售项目Service业务层处理
@@ -182,18 +177,13 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
 
     @Override
     public R<List<PresaleProjectListVO>> getPresaleProjectList() {
-        log.info("获取预售项目列表");
-
         // 使用多表联查获取预售项目列表
-        Page<SdPresaleProject> page = new Page<>(1, 100); // 默认查询前100条
-        IPage<SdPresaleProject> result = presaleProjectMapper.selectPresaleProjectListWithUserInfo(page, 1); // 销售中状态
-
+        List<SdPresaleProject> projects = presaleProjectMapper.selectPresaleProjectListWithUserInfo(1, new Date());
         // 填充最新的用户信息
-        fillUserInfoForProjects(result.getRecords());
-
+        fillUserInfoForProjects(projects);
         // 转换为VO，并过滤掉已过期的项目
-        List<PresaleProjectListVO> voList = result.getRecords().stream()
-                .filter(project -> !isProjectExpired(project)) // 过滤已过期的项目
+        List<PresaleProjectListVO> voList = projects.stream()
+                .filter(project -> !isProjectExpired(project))
                 .map(this::convertToProjectListVO)
                 .collect(Collectors.toList());
 
@@ -202,24 +192,17 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
 
     @Override
     public TableDataInfo<PresaleProjectListVO> getPresaleProjectListPage(PageQuery pageQuery) {
-        log.info("获取预售项目列表（分页）");
-
         // 使用多表联查获取预售项目列表
-        Page<SdPresaleProject> page = pageQuery.build();
-        IPage<SdPresaleProject> result = presaleProjectMapper.selectPresaleProjectListWithUserInfo(page, 1); // 销售中状态
+        IPage<SdPresaleProject> result = presaleProjectMapper.selectPresaleProjectListWithUserInfoOfPage(pageQuery.build(), 1, new Date());
 
         // 填充最新的用户信息
         fillUserInfoForProjects(result.getRecords());
 
         // 转换为VO，并过滤掉已过期的项目
         List<PresaleProjectListVO> voList = result.getRecords().stream()
-                .filter(project -> !isProjectExpired(project)) // 过滤已过期的项目
                 .map(this::convertToProjectListVO)
                 .collect(Collectors.toList());
-
-        // 重新计算总数（过滤后的数量）
-        long filteredTotal = voList.size();
-        return new TableDataInfo<>(voList, filteredTotal);
+        return new TableDataInfo<>(voList, result.getTotal());
     }
 
     @Override
@@ -412,7 +395,7 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
                     // 计算当前用户在该项目下的购买数量（只计算已支付及以上状态）
                     int myPurchaseQuantity = 0;
                     BigDecimal totalRefundAmount = BigDecimal.ZERO;
-                    
+
                     // 当前项目的最新单价（阶梯价格计算出的 currentPrice）
                     BigDecimal currentProjectPrice = vo.getCurrentPrice() != null ? vo.getCurrentPrice() : project.getBasePrice();
 
@@ -420,7 +403,7 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
                         if (order.getProjectId().equals(project.getId()) && order.getOrderStatus() >= 2) {
                             // 累加购买数量
                             myPurchaseQuantity += order.getQuantity();
-                            
+
                             // 计算该订单的预计退款金额： (订单原单价 - 当前最新单价) * 数量
                             // 只有当 原单价 > 当前单价 时才会有退款
                             if (order.getOriginalUnitPrice() != null && order.getOriginalUnitPrice().compareTo(currentProjectPrice) > 0) {
@@ -430,7 +413,7 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
                             }
                         }
                     }
-                    
+
                     vo.setSoldQuantity(myPurchaseQuantity);
                     vo.setRefundAmount(totalRefundAmount);
 
@@ -486,7 +469,8 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
             order.setReceiverPhone(createDTO.getReceiverPhone());
             order.setReceiverAddress(createDTO.getReceiverAddress());
             order.setReceiverArea(createDTO.getReceiverArea());
-            order.setOrderStatus(PresaleOrderStatus.PENDING_PAYMENT.getCode()); // 待支付
+            // 待支付
+            order.setOrderStatus(PresaleOrderStatus.PENDING_PAYMENT.getCode());
 
             presaleOrderMapper.insert(order);
 
@@ -681,7 +665,7 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
         // 查询已支付订单（状态 >= 2 表示已支付）
         LambdaQueryWrapper<SdPresaleOrder> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(SdPresaleOrder::getProjectId, project.getId())
-                   .ge(SdPresaleOrder::getOrderStatus, 2); // 已支付及以上状态
+                   .ge(SdPresaleOrder::getOrderStatus, 2);
 
         List<SdPresaleOrder> paidOrders = presaleOrderMapper.selectList(queryWrapper);
 
@@ -721,7 +705,7 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
                 SdPresaleProject project = presaleProjectMapper.selectSdPresaleProjectById(order.getProjectId());
                 if (project != null) {
                     BigDecimal currentUnitPrice = calculateCurrentUnitPrice(project);
-                    
+
                     // 如果原购买单价大于当前单价，计算差价
                     if (order.getOriginalUnitPrice() != null && order.getOriginalUnitPrice().compareTo(currentUnitPrice) > 0) {
                         BigDecimal priceDiff = order.getOriginalUnitPrice().subtract(currentUnitPrice);
@@ -789,18 +773,25 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
     @Override
     public R<String> publishPresaleProject(PresaleProjectPublishDTO publishDTO) {
         try {
-            log.info("[发布预售项目] 开始发布: 标题={}, 打样邀约ID={}", publishDTO.getTitle(), publishDTO.getProofingInvitationId());
-
             // 1. 获取当前用户ID
             Long currentUserId = LoginHelper.getUserId();
-            if (currentUserId == null) {
-                return R.fail("用户未登录");
-            }
-
             // 2. 查询打样邀约信息，获取AI设计图
-             ProofingInvitationDetailVO invitationDetail = proofingInvitationMapper.selectInvitationDetailById(publishDTO.getProofingInvitationId());
+            ProofingInvitationDetailVO invitationDetail = proofingInvitationMapper.selectInvitationDetailById(publishDTO.getProofingInvitationId());
             if (invitationDetail == null) {
                 return R.fail("打样邀约不存在");
+            }
+
+            // 标题：优先使用用户填写的，否则继承打样邀约的产品标题
+            String title = StringUtils.isNotBlank(publishDTO.getTitle()) ? publishDTO.getTitle() : invitationDetail.getProductTitle();
+            // 违禁词校验
+            if (StringUtils.isNotBlank(title)) {
+                forbiddenWordService.validateForbiddenWord(title, "项目标题");
+            }
+            // 描述：优先使用用户填写的，否则继承打样邀约的产品描述
+            String description = StringUtils.isNotBlank(publishDTO.getDescription()) ? publishDTO.getDescription() : invitationDetail.getProductDescription();
+            // 违禁词校验
+            if (StringUtils.isNotBlank(description)) {
+                forbiddenWordService.validateForbiddenWord(description, "项目描述");
             }
 
             // 3. 验证用户权限（只有被邀约人才能发布预售）
@@ -808,43 +799,28 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
                 return R.fail("无权限发布此项目的预售");
             }
 
-            // 3.1 检查众筹项目是否上传了实物照片
             // 查询对应的众筹成功项目
             LambdaQueryWrapper<SdCrowdfundingProject> photoCheckQuery = new LambdaQueryWrapper<>();
             photoCheckQuery.eq(SdCrowdfundingProject::getProofingInvitationId, publishDTO.getProofingInvitationId())
-                          .eq(SdCrowdfundingProject::getStatus, CrowdfundingProjectStatus.SUCCESS.getCode()); // 众筹成功
-
-            SdCrowdfundingProject crowdfundingProjectForPhoto = crowdfundingProjectMapper.selectOne(photoCheckQuery);
-            if (crowdfundingProjectForPhoto == null) {
+                          .eq(SdCrowdfundingProject::getStatus, CrowdfundingProjectStatus.SUCCESS.getCode());
+            SdCrowdfundingProject successfulCrowdfundingProject = crowdfundingProjectMapper.selectOne(photoCheckQuery);
+            if (successfulCrowdfundingProject == null) {
                 log.warn("[发布预售项目] 未找到对应的众筹成功项目: 打样邀约ID={}", publishDTO.getProofingInvitationId());
                 return R.fail("未找到对应的众筹成功项目");
             }
-
-            if (StringUtils.isBlank(crowdfundingProjectForPhoto.getManufacturerPhotos())) {
-                log.warn("[发布预售项目] 众筹项目未上传实物照片: 打样邀约ID={}, 众筹项目ID={}",
-                    publishDTO.getProofingInvitationId(), crowdfundingProjectForPhoto.getId());
+            // 检查众筹项目是否上传了实物照片
+            if (StringUtils.isBlank(successfulCrowdfundingProject.getManufacturerPhotos())) {
+                log.warn("[发布预售项目] 众筹项目未上传实物照片: 打样邀约ID={}, 众筹项目ID={}",publishDTO.getProofingInvitationId(), successfulCrowdfundingProject.getId());
                 return R.fail("发布预售项目前必须先上传实物照片");
             }
 
             // 将众筹项目的实物照片继承到预售项目
-            String manufacturerPhotos = crowdfundingProjectForPhoto.getManufacturerPhotos();
-            log.info("[发布预售项目] 从众筹项目继承实物照片: 打样邀约ID={}, 众筹项目ID={}, 照片数据长度={}",
-                publishDTO.getProofingInvitationId(), crowdfundingProjectForPhoto.getId(),
-                manufacturerPhotos != null ? manufacturerPhotos.length() : 0);
+            String manufacturerPhotos = successfulCrowdfundingProject.getManufacturerPhotos();
 
-            // 3.2 检查是否同时存在完成众筹的项目和处于有效期内的预售项目
-            // 检查是否有完成众筹的项目（状态为SUCCESS）
-            LambdaQueryWrapper<SdCrowdfundingProject> crowdfundingQuery = new LambdaQueryWrapper<>();
-            crowdfundingQuery.eq(SdCrowdfundingProject::getProofingInvitationId, publishDTO.getProofingInvitationId())
-                           .eq(SdCrowdfundingProject::getStatus, CrowdfundingProjectStatus.SUCCESS.getCode()); // 众筹成功
-
-            List<SdCrowdfundingProject> successfulCrowdfundingProjects = crowdfundingProjectMapper.selectList(crowdfundingQuery);
-
-            // 检查是否有处于有效期内的预售项目
+            // 检查是否有处于有效期内 且 销售中 的预售项目
             LambdaQueryWrapper<SdPresaleProject> validPresaleQuery = new LambdaQueryWrapper<>();
             validPresaleQuery.eq(SdPresaleProject::getProofingInvitationId, publishDTO.getProofingInvitationId())
-                           .eq(SdPresaleProject::getStatus, PresaleProjectStatus.ON_SALE.getCode()); // 销售中
-
+                           .eq(SdPresaleProject::getStatus, PresaleProjectStatus.ON_SALE.getCode());
             List<SdPresaleProject> validPresaleProjects = presaleProjectMapper.selectList(validPresaleQuery);
 
             // 过滤出处于有效期内的预售项目
@@ -855,23 +831,22 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
                         return false;
                     }
                     long expireTime = project.getCreateTime().getTime() + (project.getValidityDays() * 24L * 60L * 60L * 1000L);
-                    return currentTime <= expireTime; // 未过期
+                    // 未过期
+                    return currentTime <= expireTime;
                 })
                 .collect(Collectors.toList());
 
-            // 如果同时存在完成众筹的项目和处于有效期内的预售项目，则不允许发布
-            if (!successfulCrowdfundingProjects.isEmpty() && !activePresaleProjects.isEmpty()) {
-                log.warn("[发布预售项目] 同时存在完成众筹项目和有效期内预售项目: 打样邀约ID={}, 众筹项目数={}, 预售项目数={}",
-                    publishDTO.getProofingInvitationId(), successfulCrowdfundingProjects.size(), activePresaleProjects.size());
-                return R.fail("该打样邀约已存在完成众筹的项目和处于有效期内的预售项目，不能同时发布新的预售项目");
+            // 如果存在处于有效期内的预售项目，则不允许发布
+            if (CollectionUtil.isNotEmpty(activePresaleProjects)) {
+                log.warn("[发布预售项目]>>>>>>>>>存在有效期内预售项目: 打样邀约ID={}, 预售项目数={}", publishDTO.getProofingInvitationId(), activePresaleProjects.size());
+                return R.fail("存在有效期内的预售项目，不能发布新的预售项目");
             }
 
             // 3.3 校验发货单：所有需要发货的记录必须已填写快递单号并上传实物图片
             SdCrowdfundingSampleDelivery sampleDeliveryQuery = new SdCrowdfundingSampleDelivery();
             sampleDeliveryQuery.setProofingInvitationId(publishDTO.getProofingInvitationId());
             List<SdCrowdfundingSampleDelivery> sampleDeliveries = sampleDeliveryMapper.selectSdCrowdfundingSampleDeliveryList(sampleDeliveryQuery);
-
-            if (sampleDeliveries != null && !sampleDeliveries.isEmpty()) {
+            if (CollectionUtil.isNotEmpty(sampleDeliveries)) {
                 long invalidCount = sampleDeliveries.stream()
                     .filter(delivery -> {
                         // delivery_status: 1=待发货，2=已发货
@@ -882,28 +857,20 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
                         return waitingToDeliver || trackingBlank;
                     })
                     .count();
-
                 if (invalidCount > 0) {
-                    log.warn("[发布预售项目] 众筹样品存在未完整发货记录: 打样邀约ID={}, 异常记录数={}",
-                        publishDTO.getProofingInvitationId(), invalidCount);
+                    log.warn("[发布预售项目] 众筹样品存在未完整发货记录: 打样邀约ID={}, 异常记录数={}", publishDTO.getProofingInvitationId(), invalidCount);
                     return R.fail("发布预售项目前，众筹样品的发货记录必须已完成发货并填写快递单号");
                 }
             }
 
-            // 3.4 检查与该打样邀约相关的所有已发布项目的订单是否都已填写物流单号
-            // 查询与该打样邀约相关的所有已发布的预售项目
+            // 查询与该打样邀约相关的所有已发布 且 销售中 的预售项目
             LambdaQueryWrapper<SdPresaleProject> projectQuery = new LambdaQueryWrapper<>();
             projectQuery.eq(SdPresaleProject::getProofingInvitationId, publishDTO.getProofingInvitationId())
-                       .eq(SdPresaleProject::getStatus, PresaleProjectStatus.ON_SALE.getCode()); // 销售中
-
+                       .eq(SdPresaleProject::getStatus, PresaleProjectStatus.ON_SALE.getCode());
             List<SdPresaleProject> relatedProjects = presaleProjectMapper.selectList(projectQuery);
-
-            if (!relatedProjects.isEmpty()) {
+            if (CollectionUtil.isNotEmpty(relatedProjects)) {
                 // 获取所有相关项目的ID
-                List<Long> projectIds = relatedProjects.stream()
-                    .map(SdPresaleProject::getId)
-                    .collect(Collectors.toList());
-
+                List<Long> projectIds = relatedProjects.stream().map(SdPresaleProject::getId).collect(Collectors.toList());
                 // 查询这些项目的所有已支付但未发货的订单（订单状态>=2已支付，但发货状态=0未开始，且快递单号为空）
                 LambdaQueryWrapper<SdPresaleOrder> orderQuery = new LambdaQueryWrapper<>();
                 orderQuery.in(SdPresaleOrder::getProjectId, projectIds)
@@ -916,92 +883,57 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
                              .isNull(SdPresaleOrder::getExpressNo) // 快递单号为空
                              .or()
                              .eq(SdPresaleOrder::getExpressNo, "")); // 或者快递单号为空字符串
-
                 List<SdPresaleOrder> undeliveredOrders = presaleOrderMapper.selectList(orderQuery);
-
-                if (!undeliveredOrders.isEmpty()) {
-                    log.warn("[发布预售项目] 存在未填写物流单号的订单: 打样邀约ID={}, 未发货订单数={}",
-                        publishDTO.getProofingInvitationId(), undeliveredOrders.size());
+                if (CollectionUtil.isNotEmpty(undeliveredOrders)) {
+                    log.warn("[发布预售项目] 存在未填写物流单号的订单: 打样邀约ID={}, 未发货订单数={}", publishDTO.getProofingInvitationId(), undeliveredOrders.size());
                     return R.fail(String.format("发布预售项目前，订单管理中的所有待发货订单必须填写物流单号。当前还有 %d 个订单未填写物流单号", undeliveredOrders.size()));
                 }
             }
 
             // 4. 创建预售项目，从打样邀约继承默认数据
-            SdPresaleProject project = new SdPresaleProject();
-
-            // 生成项目编号
-            String projectNo = "PP" + System.currentTimeMillis();
-            project.setProjectNo(projectNo);
-
-            // 标题：优先使用用户填写的，否则继承打样邀约的产品标题
-            String title = StringUtils.isNotBlank(publishDTO.getTitle()) ?
-                publishDTO.getTitle() : invitationDetail.getProductTitle();
-            // 违禁词校验
-            if (StringUtils.isNotBlank(title)) {
-                forbiddenWordService.validateForbiddenWord(title, "项目标题");
-            }
-            project.setTitle(title);
-
-            // 描述：优先使用用户填写的，否则继承打样邀约的产品描述
-            String description = StringUtils.isNotBlank(publishDTO.getDescription()) ?
-                publishDTO.getDescription() : invitationDetail.getProductDescription();
-            // 违禁词校验
-            if (StringUtils.isNotBlank(description)) {
-                forbiddenWordService.validateForbiddenWord(description, "项目描述");
-            }
-            project.setDescription(description);
-
-            project.setCoverImage(invitationDetail.getImageUrl()); // 使用AI设计图作为封面
-
-            // 设置发起人信息（当前用户）
-            project.setCreatorUserId(currentUserId);
-            project.setCreatorName(LoginHelper.getUsername());
+            SdPresaleProject project = new SdPresaleProject().setId(IdUtil.getSnowflakeNextId())
+                // 生成项目编号
+                .setProjectNo("PP" + System.currentTimeMillis())
+                .setTitle(title)
+                .setDescription(description)
+                // 使用AI设计图作为封面
+                .setCoverImage(invitationDetail.getImageUrl())
+                // 设置发起人信息（当前用户）
+                .setCreatorUserId(currentUserId)
+                .setCreatorName(LoginHelper.getUsername());
             SysUser currentUser = userService.selectUserById(currentUserId);
             if (currentUser != null) {
                 project.setCreatorAvatar(currentUser.getAvatar());
             }
-
             // 设置厂家信息（打样邀约的发起人）
-            project.setManufacturerUserId(invitationDetail.getInviterUserId());
-            project.setManufacturerName(invitationDetail.getInviterNickName());
-            project.setManufacturerAvatar(invitationDetail.getInviterAvatar());
-
-            project.setProofingInvitationId(publishDTO.getProofingInvitationId());
-
-            // 基础价格：优先使用用户填写的，否则继承打样邀约的报价
-            project.setBasePrice(publishDTO.getBasePrice() != null ?
-                publishDTO.getBasePrice() : invitationDetail.getQuotedPrice());
-
-            // 有效期天数：使用用户填写的有效期天数
-            project.setValidityDays(publishDTO.getValidityDays());
-            // 设置厂家上传的实物照片（从众筹项目继承）
-            project.setManufacturerPhotos(manufacturerPhotos);
-            project.setManufacturerUploadTime(crowdfundingProjectForPhoto.getManufacturerUploadTime());
-            log.info("[发布预售项目] 设置厂家实物照片: 打样邀约ID={}, 照片数据={}",
-                publishDTO.getProofingInvitationId(),
-                StringUtils.isNotBlank(manufacturerPhotos) ? "已设置(" + manufacturerPhotos.length() + "字符)" : "为空");
-            project.setStatus(PresaleProjectStatus.ON_SALE.getCode()); // 销售中
-            project.setViewCount(0);
-            project.setFavoriteCount(0);
-            project.setShareCount(0);
-            project.setTotalSalesAmount(BigDecimal.ZERO);
-
+            project.setManufacturerUserId(invitationDetail.getInviterUserId())
+                .setManufacturerName(invitationDetail.getInviterNickName())
+                .setManufacturerAvatar(invitationDetail.getInviterAvatar())
+                .setProofingInvitationId(publishDTO.getProofingInvitationId())
+                // 基础价格：优先使用用户填写的，否则继承打样邀约的报价
+                .setBasePrice(publishDTO.getBasePrice() != null ? publishDTO.getBasePrice() : invitationDetail.getQuotedPrice())
+                // 有效期天数：使用用户填写的有效期天数
+                .setValidityDays(publishDTO.getValidityDays())
+                // 设置厂家上传的实物照片（从众筹项目继承）
+                .setManufacturerPhotos(manufacturerPhotos)
+                .setManufacturerUploadTime(successfulCrowdfundingProject.getManufacturerUploadTime())
+                // 销售中
+                .setStatus(PresaleProjectStatus.ON_SALE.getCode())
+                .setViewCount(0)
+                .setFavoriteCount(0)
+                .setShareCount(0)
+                .setTotalSalesAmount(BigDecimal.ZERO);
             // 5. 处理阶梯价格配置：优先使用用户填写的，否则继承打样邀约的阶梯价格
             String tieredPricingJson = null;
-            if (publishDTO.getTieredPricing() != null && !publishDTO.getTieredPricing().isEmpty()) {
-                // 用户填写了阶梯价格
-                ObjectMapper mapper = new ObjectMapper();
-                tieredPricingJson = mapper.writeValueAsString(publishDTO.getTieredPricing());
-            } else if (StringUtils.isNotBlank(invitationDetail.getTieredPricing())) {
+            // 用户填写了阶梯价格
+            if (CollectionUtil.isNotEmpty(publishDTO.getTieredPricing())) {
+                tieredPricingJson = JSON.toJSONString(publishDTO.getTieredPricing(), SerializerFeature.WriteNullListAsEmpty);
+            }
+            else if (StringUtils.isNotBlank(invitationDetail.getTieredPricing())) {
                 // 继承打样邀约的阶梯价格
                 tieredPricingJson = invitationDetail.getTieredPricing();
             }
             project.setTieredPricing(tieredPricingJson);
-
-            // 6. 保存项目
-            log.info("[发布预售项目] 准备保存项目: 标题={}, manufacturerPhotos={}",
-                project.getTitle(),
-                project.getManufacturerPhotos() != null ? "已设置(" + project.getManufacturerPhotos().length() + "字符)" : "为null");
             // 使用 MyBatis-Plus 默认 insert 方法，会自动触发 CreateAndUpdateMetaObjectHandler 填充 createTime 为北京时间
             int result = presaleProjectMapper.insert(project);
             if (result > 0) {
@@ -1011,119 +943,132 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
                     project.getManufacturerPhotos() != null ? "已保存(" + project.getManufacturerPhotos().length() + "字符)" : "未保存");
 
                 // 7. 发布预售成功后，如果该打样邀约对应的众筹项目是"众筹成功"状态，则将其状态更新为4（已发布）
-                LambdaQueryWrapper<SdCrowdfundingProject> updateQuery = new LambdaQueryWrapper<>();
-                updateQuery.eq(SdCrowdfundingProject::getProofingInvitationId, publishDTO.getProofingInvitationId())
-                          .eq(SdCrowdfundingProject::getStatus, CrowdfundingProjectStatus.SUCCESS.getCode()); // 众筹成功
-
-                SdCrowdfundingProject crowdfundingProject = crowdfundingProjectMapper.selectOne(updateQuery);
+                SdCrowdfundingProject crowdfundingProject = crowdfundingProjectMapper.selectOne(
+                    new LambdaQueryWrapper<SdCrowdfundingProject>()
+                        .eq(SdCrowdfundingProject::getProofingInvitationId, publishDTO.getProofingInvitationId())
+                        .eq(SdCrowdfundingProject::getStatus, CrowdfundingProjectStatus.SUCCESS.getCode())
+                        .last("limit 1")
+                );
                 if (crowdfundingProject != null) {
+                    SdCrowdfundingProject crowdfundingProjectForUpdate = new SdCrowdfundingProject();
+                    crowdfundingProjectForUpdate.setId(crowdfundingProject.getId());
                     // 更新项目状态为已发布
-                    crowdfundingProject.setStatus(CrowdfundingProjectStatus.PUBLISHED.getCode());
+                    crowdfundingProjectForUpdate.setStatus(CrowdfundingProjectStatus.PUBLISHED.getCode());
                     // 更新资金审核状态为待审核（1=待审核）
-                    crowdfundingProject.setFundReleaseAuditStatus(1);
-
-                    int updateResult = crowdfundingProjectMapper.updateById(crowdfundingProject);
-                    if (updateResult > 0) {
-                        log.info("[发布预售项目] 更新众筹项目状态为已发布，资金审核状态为待审核: 众筹项目ID={}, 打样邀约ID={}",
-                            crowdfundingProject.getId(), publishDTO.getProofingInvitationId());
-                    } else {
-                        log.warn("[发布预售项目] 更新众筹项目状态失败: 众筹项目ID={}, 打样邀约ID={}",
-                            crowdfundingProject.getId(), publishDTO.getProofingInvitationId());
-                    }
-                } else {
-                    log.info("[发布预售项目] 未找到需要更新状态的众筹成功项目: 打样邀约ID={}", publishDTO.getProofingInvitationId());
+                    crowdfundingProjectForUpdate.setFundReleaseAuditStatus(1);
+                    crowdfundingProjectMapper.updateById(crowdfundingProjectForUpdate);
                 }
-
+                else {
+                    log.info("[发布预售项目]>>>>>>>>>未找到需要更新状态的众筹成功项目: 打样邀约ID={}", publishDTO.getProofingInvitationId());
+                }
                 return R.ok("发布成功", project.getId().toString());
             } else {
                 return R.fail("发布失败");
             }
-
-        } catch (Exception e) {
-            log.error("[发布预售项目] 发布异常: {}", e.getMessage(), e);
+        }
+        catch (Exception e) {
+            log.error("[发布预售项目]>>>>>>>>>发布异常: ", e);
             return R.fail("发布失败: " + e.getMessage());
         }
     }
 
     @Override
-    public R<String> uploadManufacturerPhotos(MultipartFile file, Long proofingInvitationId) {
+    public String uploadManufacturerPhotos(MultipartFile file, Long proofingInvitationId) {
         try {
-            log.info("[上传实物照片] 开始上传: 文件名={}, 打样邀约ID={}",
-                file.getOriginalFilename(), proofingInvitationId);
-
-            // 1. 验证打样邀约ID
+            //  验证打样邀约ID
             if (proofingInvitationId == null) {
-                return R.fail("打样邀约ID不能为空");
+                throw new ServiceException("打样邀约ID不能为空");
             }
-
-            // 2. 查询对应的众筹项目
-            LambdaQueryWrapper<SdCrowdfundingProject> queryWrapper = new LambdaQueryWrapper<>();
-            queryWrapper.eq(SdCrowdfundingProject::getProofingInvitationId, proofingInvitationId)
-                       .eq(SdCrowdfundingProject::getStatus, CrowdfundingProjectStatus.SUCCESS.getCode()); // 众筹成功
-
-            SdCrowdfundingProject crowdfundingProject = crowdfundingProjectMapper.selectOne(queryWrapper);
-            if (crowdfundingProject == null) {
-                return R.fail("未找到对应的众筹成功项目");
-            }
-
-            // 3. 验证文件
+            //  验证文件
             if (file.isEmpty()) {
-                return R.fail("文件不能为空");
+                throw new ServiceException("文件不能为空");
             }
-
-            // 4. 验证文件类型
+            // 验证文件类型
             String originalFilename = file.getOriginalFilename();
-            if (originalFilename == null || !isImageFile(originalFilename)) {
-                return R.fail("文件格式不正确，请上传JPG、JPEG、PNG格式的图片");
+            if (!isImageFile(originalFilename)) {
+                throw new ServiceException("文件格式不正确，请上传JPG、JPEG、PNG格式的图片");
             }
 
-            // 5. 上传文件
+            // 查询对应的众筹成功的项
+            SdCrowdfundingProject crowdfundingProject = crowdfundingProjectMapper.selectOne(
+                new LambdaQueryWrapper<SdCrowdfundingProject>()
+                    .eq(SdCrowdfundingProject::getProofingInvitationId, proofingInvitationId)
+                    .eq(SdCrowdfundingProject::getStatus, CrowdfundingProjectStatus.SUCCESS.getCode())
+                    .last("limit 1")
+            );
+            if (crowdfundingProject == null) {
+                throw new ServiceException("未找到对应的众筹成功项目");
+            }
+
+            // 上传文件
             SysOssVo oss = sysOssService.upload(file);
             String photoUrl = oss.getUrl();
 
-            // 6. 处理已存在的图片列表，将新上传的图片添加到列表中
+            // 处理已存在的图片列表，将新上传的图片添加到列表中
             List<String> photoList = new ArrayList<>();
-
-            // 解析已存在的图片列表
-            String existingPhotos = crowdfundingProject.getManufacturerPhotos();
-            if (StringUtils.isNotBlank(existingPhotos)) {
-                try {
-                    ObjectMapper mapper = new ObjectMapper();
-                    List<String> existingList = mapper.readValue(existingPhotos,
-                        mapper.getTypeFactory().constructCollectionType(List.class, String.class));
-                    if (existingList != null) {
-                        photoList.addAll(existingList);
-                    }
-                } catch (Exception e) {
-                    log.warn("[上传实物照片] 解析已存在图片列表失败，将创建新列表: {}", e.getMessage());
+            // 解析已存在的图片列
+            if (StringUtils.isNotBlank(crowdfundingProject.getManufacturerPhotos())) {
+                List<String> existingPhotoList = JSONArray.parseArray(crowdfundingProject.getManufacturerPhotos(), String.class);
+                if (CollectionUtil.isNotEmpty(existingPhotoList)) {
+                    photoList.addAll(existingPhotoList);
                 }
             }
-
             // 添加新上传的图片URL
-            photoList.add(photoUrl);
+            photoList.add(0, photoUrl);
 
-            // 7. 将完整的图片列表转换为JSON格式
-            ObjectMapper mapper = new ObjectMapper();
-            String photosJson = mapper.writeValueAsString(photoList);
-
-            // 8. 更新众筹项目的 manufacturer_photos 字段
-            crowdfundingProject.setManufacturerPhotos(photosJson);
-            crowdfundingProject.setManufacturerUploadTime(new Date());
-            int updateResult = crowdfundingProjectMapper.updateById(crowdfundingProject);
-
-            if (updateResult > 0) {
-                log.info("[上传实物照片] 上传成功: 众筹项目ID={}, 新图片URL={}, 总图片数={}",
-                    crowdfundingProject.getId(), photoUrl, photoList.size());
-                return R.ok("上传成功", photosJson);
-            } else {
-                log.error("[上传实物照片] 更新数据库失败: 众筹项目ID={}", crowdfundingProject.getId());
-                return R.fail("上传失败：更新数据库失败");
-            }
-
+            // 更新众筹项目的 manufacturer_photos 字段
+            SdCrowdfundingProject updateEntity = new SdCrowdfundingProject();
+            updateEntity.setId(crowdfundingProject.getId());
+            updateEntity.setManufacturerPhotos(JSON.toJSONString(photoList));
+            updateEntity.setManufacturerUploadTime(new Date());
+            crowdfundingProjectMapper.updateById(updateEntity);
+            return JSON.toJSONString(photoList);
         } catch (Exception e) {
-            log.error("[上传实物照片] 上传异常: {}", e.getMessage(), e);
-            return R.fail("上传失败: " + e.getMessage());
+            log.error("[预售][上传实物照片]>>>>>>>>>上传异常: ", e);
+            throw new ServiceException("上传失败: " + e.getMessage());
         }
+    }
+
+    @Override
+    public String deleteManufacturerPhotos(String filePath, Long proofingInvitationId) {
+        //  验证打样邀约ID
+        if (proofingInvitationId == null) {
+            throw new ServiceException("打样邀约ID不能为空");
+        }
+        // 查询对应的众筹成功的项
+        SdCrowdfundingProject crowdfundingProject = crowdfundingProjectMapper.selectOne(
+            new LambdaQueryWrapper<SdCrowdfundingProject>()
+                .eq(SdCrowdfundingProject::getProofingInvitationId, proofingInvitationId)
+                .eq(SdCrowdfundingProject::getStatus, CrowdfundingProjectStatus.SUCCESS.getCode())
+                .last("limit 1")
+        );
+        if (crowdfundingProject == null) {
+            throw new ServiceException("未找到对应的众筹成功项目");
+        }
+        List<String> photoList = new ArrayList<>();
+        if (StrUtil.isBlank(filePath)) {
+            crowdfundingProjectMapper.clearManufacturerPhotos(crowdfundingProject.getId());
+        }
+        else {
+            String manufacturerPhotos = crowdfundingProject.getManufacturerPhotos();
+            if (StringUtils.isNotBlank(manufacturerPhotos)) {
+                // 解析已存在的图片列表
+                List<String> existingPhotoList = JSONArray.parseArray(manufacturerPhotos, String.class);
+                if (CollectionUtil.isNotEmpty(existingPhotoList)) {
+                    // 移除指定的图片URL
+                    existingPhotoList.removeIf(photo -> photo.equals(filePath));
+                    if (CollectionUtil.isNotEmpty(existingPhotoList)) {
+                        photoList.addAll(existingPhotoList);
+                    }
+                    // 更新众筹项目的 manufacturer_photos 字段
+                    SdCrowdfundingProject updateEntity = new SdCrowdfundingProject();
+                    updateEntity.setId(crowdfundingProject.getId());
+                    updateEntity.setManufacturerPhotos(JSON.toJSONString(existingPhotoList));
+                    crowdfundingProjectMapper.updateById(updateEntity);
+                }
+            }
+        }
+        return JSON.toJSONString(photoList);
     }
 
     @Override

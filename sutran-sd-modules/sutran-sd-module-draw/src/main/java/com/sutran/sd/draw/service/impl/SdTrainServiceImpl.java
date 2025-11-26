@@ -1574,22 +1574,22 @@ public class SdTrainServiceImpl implements SdTrainService {
 
         // 违禁词校验
         if (StringUtils.isNotBlank(loraName)) {
-            forbiddenWordService.validateForbiddenWord(loraName, "模型名称");
+            forbiddenWordService.validateForbiddenWordAndReturn(loraName, "模型名称");
         }
         if (StringUtils.isNotBlank(modelTag)) {
-            forbiddenWordService.validateForbiddenWord(modelTag, "模型标签");
+            forbiddenWordService.validateForbiddenWordAndReturn(modelTag, "模型标签");
         }
         if (StringUtils.isNotBlank(modelDesc)) {
-            forbiddenWordService.validateForbiddenWord(modelDesc, "模型描述");
+            forbiddenWordService.validateForbiddenWordAndReturn(modelDesc, "模型描述");
         }
         // 校验提示词
         if (CollectionUtil.isNotEmpty(captions)) {
             for (TrainCaptionBo caption : captions) {
                 if (StringUtils.isNotBlank(caption.getCaption())) {
-                    forbiddenWordService.validateForbiddenWord(caption.getCaption(), "提示词");
+                    forbiddenWordService.validateForbiddenWordAndReturn(caption.getCaption(), "提示词");
                 }
                 if (StringUtils.isNotBlank(caption.getCaptionZh())) {
-                    forbiddenWordService.validateForbiddenWord(caption.getCaptionZh(), "提示词译文");
+                    forbiddenWordService.validateForbiddenWordAndReturn(caption.getCaptionZh(), "提示词译文");
                 }
             }
         }
@@ -2336,13 +2336,16 @@ public class SdTrainServiceImpl implements SdTrainService {
                         .setModelName(modelName).setModelNameZh(loraNameZh+prefix).setFileName(destModelFile.getAbsolutePath())
                         .setCrtTime(new Date()).setIsOpen(isOpen).setType(1).setPublishStatus(0).setBelongUserId(userId).setModelStrength("1.1")
                         .setModelTag(modelTag).setRemark(modelDesc).setModelType("FLUX");
-                    // 移动对应的图片文件
                     if (modelImgs != null && i < modelImgs.length) {
                         File imgFile = modelImgs[i];
-                        String imgExtension = imgFile.getName().substring(imgFile.getName().lastIndexOf("."));
-                        File destImgFile = new File(destDir, modelName.replace(".safetensors", imgExtension));
-
+//                        String imgExtension = imgFile.getName().substring(imgFile.getName().lastIndexOf("."));
+                        File destImgFile = new File(destDir, modelName.replace(".safetensors", ".jpg"));
+                        // 移动对应的图片文件
                         Files.move(imgFile.toPath(), destImgFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                        // 压缩图片质量
+                        byte[] compressPic = FileUtils.compressPic(FileUtils.readBytes(destImgFile), 0.7);
+                        // 保存压缩后的图片
+                        destImgFile = FileUtils.writeBytes(compressPic,destImgFile);
                         model.setUrl(destImgFile.getAbsolutePath().replace(destDir,"/comfyui/lora-img"));
                         log.info("[模型训练完成][模型移动]>>>>>>>>>任务ID[{}],成功移动图片文件: {} -> {}", taskId, imgFile.getAbsolutePath(), destImgFile.getAbsolutePath());
                     }

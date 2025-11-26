@@ -76,7 +76,7 @@
     <select id="selectByRecipientUserId" parameterType="Long" resultMap="SdCrowdfundingSampleDeliveryResult">
         <include refid="selectSdCrowdfundingSampleDeliveryVo"/>
         where recipient_user_id = #{recipientUserId}
-        order by create_time desc
+        order by id desc
     </select>
 
     <select id="selectBySenderUserId" parameterType="Long" resultMap="SdCrowdfundingSampleDeliveryResult">

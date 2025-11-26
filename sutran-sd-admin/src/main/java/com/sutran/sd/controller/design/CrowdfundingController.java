@@ -9,6 +9,8 @@ import com.sutran.sd.design.dto.CrowdfundingProjectSimpleCreateDTO;
 import com.sutran.sd.design.mapper.SdCrowdfundingProjectMapper;
 import com.sutran.sd.design.service.ISdCrowdfundingProjectService;
 import com.sutran.sd.common.helper.LoginHelper;
+import com.sutran.sd.design.vo.CrowdfundingProjectDetailVO;
+import com.sutran.sd.design.vo.CrowdfundingProjectListVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -77,15 +79,16 @@ public class CrowdfundingController extends BaseController {
      * 获取进行中的众筹项目列表（前端展示用）
      */
     @GetMapping("/projects")
-    public R<List<com.sutran.sd.design.vo.CrowdfundingProjectListVO>> getProjects() {
+    public R<List<CrowdfundingProjectListVO>> getProjects() {
         return R.ok(crowdfundingProjectService.getActiveCrowdfundingProjects());
     }
 
     /**
      * 获取众筹项目详情（前端展示用）
+     * @param id 众筹项目ID
      */
     @GetMapping("/projects/{id}")
-    public R<com.sutran.sd.design.vo.CrowdfundingProjectDetailVO> getProjectDetail(@PathVariable Long id) {
+    public R<CrowdfundingProjectDetailVO> getProjectDetail(@PathVariable Long id) {
         return R.ok(crowdfundingProjectService.getCrowdfundingProjectDetail(id));
     }
 
@@ -93,7 +96,7 @@ public class CrowdfundingController extends BaseController {
      * 获取厂家参与的众筹项目列表
      */
     @GetMapping("/manufacturer/projects")
-    public R<List<com.sutran.sd.design.vo.CrowdfundingProjectListVO>> getManufacturerProjects() {
+    public R<List<CrowdfundingProjectListVO>> getManufacturerProjects() {
         return R.ok(crowdfundingProjectService.getManufacturerProjects());
     }
 
@@ -107,48 +110,48 @@ public class CrowdfundingController extends BaseController {
             @PathVariable Long projectId,
             @Parameter(description = "新的抽奖数量", required = true)
             @RequestBody @Validated Map<String, Integer> request) {
-        
+
         try {
             Integer newDrawNumber = request.get("drawNumber");
             if (newDrawNumber == null) {
                 return R.fail("抽奖数量不能为空");
             }
-            
+
             if (newDrawNumber < 2) {
                 return R.fail("抽奖数量必须大于等于2个");
             }
-            
+
             // 查询项目信息
             SdCrowdfundingProject project = crowdfundingProjectService.selectSdCrowdfundingProjectById(projectId);
             if (project == null) {
                 return R.fail("众筹项目不存在");
             }
-            
+
             // 检查权限：只有厂家可以修改
             Long currentUserId = LoginHelper.getUserId();
             if (!currentUserId.equals(project.getManufacturerUserId())) {
                 return R.fail("权限不足，只有厂家可以修改抽奖数量");
             }
-            
-            // 检查项目状态：只有众筹中的项目可以修改
-            if (project.getStatus() != 1) { // 1表示众筹中
+
+            // 检查项目状态：只有众筹中的项目可以修改： 1表示众筹中
+            if (project.getStatus() != 1) {
                 return R.fail("只有众筹中的项目可以修改抽奖数量");
             }
-            
+
             // 检查抽奖数量不能超过样品总数
             if (newDrawNumber > project.getTotalSamples()) {
                 return R.fail("抽奖数量不能超过样品总数");
             }
-            
+
             // 更新抽奖数量
             project.setDrawNumber(newDrawNumber);
             crowdfundingProjectMapper.updateSdCrowdfundingProject(project);
-            
-            log.info("[众筹项目] 修改抽奖数量成功: 项目ID={}, 厂家ID={}, 新抽奖数量={}", 
+
+            log.info("[众筹项目] 修改抽奖数量成功: 项目ID={}, 厂家ID={}, 新抽奖数量={}",
                 projectId, currentUserId, newDrawNumber);
-            
+
             return R.ok("修改抽奖数量成功");
-            
+
         } catch (Exception e) {
             log.error("[众筹项目] 修改抽奖数量失败: 项目ID={}", projectId, e);
             return R.fail("修改抽奖数量失败: " + e.getMessage());
@@ -165,47 +168,47 @@ public class CrowdfundingController extends BaseController {
             @PathVariable Long projectId,
             @Parameter(description = "照片URL列表", required = true)
             @RequestBody @Validated Map<String, Object> request) {
-        
+
         try {
             @SuppressWarnings("unchecked")
             List<String> photoUrls = (List<String>) request.get("photoUrls");
             if (photoUrls == null || photoUrls.isEmpty()) {
                 return R.fail("照片不能为空");
             }
-            
+
             // 查询项目信息
             SdCrowdfundingProject project = crowdfundingProjectService.selectSdCrowdfundingProjectById(projectId);
             if (project == null) {
                 return R.fail("众筹项目不存在");
             }
-            
+
             // 检查权限：只有该项目的厂家可以上传
             Long currentUserId = LoginHelper.getUserId();
             if (!currentUserId.equals(project.getManufacturerUserId())) {
                 return R.fail("权限不足，只有该项目的厂家可以上传照片");
             }
-            
-            // 检查项目状态：只有众筹成功的项目可以上传
-            if (project.getStatus() != 2) { // 2表示众筹成功
+
+            // 检查项目状态：只有众筹成功的项目可以上传照片： 2表示众筹成功
+            if (project.getStatus() != 2) {
                 return R.fail("只有众筹成功的项目可以上传照片");
             }
-            
+
             // 将照片URL列表转换为JSON字符串
             ObjectMapper mapper = new ObjectMapper();
             String photosJson = mapper.writeValueAsString(photoUrls);
-            
+
             // 更新厂家照片
             project.setManufacturerPhotos(photosJson);
             project.setManufacturerUploadTime(new java.util.Date());
-            // 厂家上传照片后，设置资金释放审核状态为待审核
-            project.setFundReleaseAuditStatus(1); // 1=待审核
+            // 厂家上传照片后，设置资金释放审核状态为待审核： 1=待审核
+            project.setFundReleaseAuditStatus(1);
             crowdfundingProjectMapper.updateSdCrowdfundingProject(project);
-            
-            log.info("[众筹项目] 厂家上传照片成功: 项目ID={}, 厂家ID={}, 照片数量={}", 
+
+            log.info("[众筹项目] 厂家上传照片成功: 项目ID={}, 厂家ID={}, 照片数量={}",
                 projectId, currentUserId, photoUrls.size());
-            
+
             return R.ok("上传照片成功");
-            
+
         } catch (Exception e) {
             log.error("[众筹项目] 厂家上传照片失败: 项目ID={}", projectId, e);
             return R.fail("上传照片失败: " + e.getMessage());
@@ -222,45 +225,45 @@ public class CrowdfundingController extends BaseController {
             @PathVariable Long projectId,
             @Parameter(description = "照片URL列表", required = true)
             @RequestBody @Validated Map<String, Object> request) {
-        
+
         try {
             @SuppressWarnings("unchecked")
             List<String> photoUrls = (List<String>) request.get("photoUrls");
             if (photoUrls == null || photoUrls.isEmpty()) {
                 return R.fail("照片不能为空");
             }
-            
+
             // 查询项目信息
             SdCrowdfundingProject project = crowdfundingProjectService.selectSdCrowdfundingProjectById(projectId);
             if (project == null) {
                 return R.fail("众筹项目不存在");
             }
-            
+
             // 检查权限：只有该项目的发起人（设计师）可以上传
             Long currentUserId = LoginHelper.getUserId();
             if (!currentUserId.equals(project.getCreatorUserId())) {
                 return R.fail("权限不足，只有该项目的发起人可以上传照片");
             }
-            
+
             // 检查项目状态：只有众筹成功的项目可以上传
             if (project.getStatus() != 2) { // 2表示众筹成功
                 return R.fail("只有众筹成功的项目可以上传照片");
             }
-            
+
             // 将照片URL列表转换为JSON字符串
             ObjectMapper mapper = new ObjectMapper();
             String photosJson = mapper.writeValueAsString(photoUrls);
-            
+
             // 更新设计师照片
             project.setDesignerPhotos(photosJson);
             project.setDesignerUploadTime(new java.util.Date());
             crowdfundingProjectMapper.updateSdCrowdfundingProject(project);
-            
-            log.info("[众筹项目] 设计师上传照片成功: 项目ID={}, 设计师ID={}, 照片数量={}", 
+
+            log.info("[众筹项目] 设计师上传照片成功: 项目ID={}, 设计师ID={}, 照片数量={}",
                 projectId, currentUserId, photoUrls.size());
-            
+
             return R.ok("上传照片成功");
-            
+
         } catch (Exception e) {
             log.error("[众筹项目] 设计师上传照片失败: 项目ID={}", projectId, e);
             return R.fail("上传照片失败: " + e.getMessage());

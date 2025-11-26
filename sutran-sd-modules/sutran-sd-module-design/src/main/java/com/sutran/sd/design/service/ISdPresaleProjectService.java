@@ -11,6 +11,7 @@ import com.sutran.sd.design.vo.PresaleOrderListVO;
 import com.sutran.sd.design.vo.PresaleProjectDetailVO;
 import com.sutran.sd.design.vo.PresaleProjectListVO;
 import org.springframework.web.multipart.MultipartFile;
+
 import java.util.List;
 
 /**
@@ -179,7 +180,16 @@ public interface ISdPresaleProjectService {
      * @param proofingInvitationId 打样邀约ID
      * @return 完整的图片列表（JSON格式，包含新上传的图片）
      */
-    R<String> uploadManufacturerPhotos(MultipartFile file, Long proofingInvitationId);
+    String uploadManufacturerPhotos(MultipartFile file, Long proofingInvitationId);
+
+    /**
+     * 删除实物照片
+     *
+     * @param filePath 照片文件路径
+     * @param proofingInvitationId 打样邀约ID
+     * @return 完整的图片列表（JSON格式，包含删除后的图片）
+     */
+    String deleteManufacturerPhotos(String filePath, Long proofingInvitationId);
 
     /**
      * 预售发货 - 填写/更新快递单号

@@ -101,17 +101,12 @@
                         SELECT DISTINCT project_id
                         FROM sd_crowdfunding_support
                         WHERE user_id = #{userId}
-                        AND order_no IS NOT NULL
                         AND (status IS NULL OR status = 0)
                     )
                 </when>
                 <!-- 我承接的：manufacturer_user_id = 当前用户ID -->
-                <when test="type == 'manufactured'">
-                    AND cf.manufacturer_user_id = #{userId}
-                </when>
-                <!-- 不支持的类型 -->
                 <otherwise>
-                    AND 1 = 0
+                    AND cf.manufacturer_user_id = #{userId}
                 </otherwise>
             </choose>
         </where>

@@ -19,7 +19,8 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * 设计接口
+ * 打样邀约
+ * @author Administrator
  */
 @RestController
 @RequestMapping("/design/idea-center/proofing/invitations")

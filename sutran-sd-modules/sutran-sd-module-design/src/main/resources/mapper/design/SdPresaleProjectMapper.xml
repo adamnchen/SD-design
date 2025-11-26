@@ -133,8 +133,38 @@
             </if>
             <!-- 如果是销售中状态，需要检查是否过期 -->
             <if test="status != null and status == 1">
-                AND (p.validity_days IS NULL OR p.create_time IS NULL 
-                     OR DATE_ADD(p.create_time, INTERVAL p.validity_days DAY) > NOW())
+                AND DATE_ADD(p.create_time, INTERVAL p.validity_days DAY) &gt; #{now}
+            </if>
+        </where>
+        ORDER BY p.create_time DESC
+    </select>
+
+    <!-- 多表联查预售项目列表（带用户信息） -->
+    <select id="selectPresaleProjectListWithUserInfoOfPage" resultMap="SdPresaleProjectResult">
+        SELECT
+        p.id, p.project_no, p.title, p.description, p.cover_image, p.images, p.video_url, p.tags,
+        p.creator_user_id, p.creator_name, p.creator_avatar,
+        p.manufacturer_user_id, p.manufacturer_name, p.manufacturer_avatar,
+        p.proofing_invitation_id, p.base_price, p.tiered_pricing, p.validity_days,
+        p.status, p.production_status, p.delivery_status, p.view_count, p.favorite_count, p.share_count,
+        p.manufacturer_photos, p.manufacturer_upload_time, p.total_sales_amount,
+        p.create_by, p.create_time, p.update_by, p.update_time,
+        -- 关联查询发起人信息
+        creator.nick_name as creator_nick_name,
+        creator.avatar as creator_avatar_url,
+        -- 关联查询厂家信息
+        manufacturer.nick_name as manufacturer_nick_name,
+        manufacturer.avatar as manufacturer_avatar_url
+        FROM sd_presale_project p
+        LEFT JOIN sys_user creator ON p.creator_user_id = creator.user_id
+        LEFT JOIN sys_user manufacturer ON p.manufacturer_user_id = manufacturer.user_id
+        <where>
+            <if test="status != null">
+                AND p.status = #{status}
+            </if>
+            <!-- 如果是销售中状态，需要检查是否过期 -->
+            <if test="status != null and status == 1">
+                AND DATE_ADD(p.create_time, INTERVAL p.validity_days DAY) &gt; #{now}
             </if>
         </where>
         ORDER BY p.create_time DESC

@@ -47,6 +47,7 @@ public class SampleDeliveryController extends BaseController {
 
     /**
      * 上传样品图片
+     * @param id 发货记录ID
      */
     @Operation(summary = "上传样品图片", description = "上传样品实物图片")
     @PostMapping("/upload-sample-image/{id}")
@@ -56,6 +57,7 @@ public class SampleDeliveryController extends BaseController {
 
     /**
      * 删除样品图片
+     * @param id 发货记录ID
      */
     @Operation(summary = "删除样品图片", description = "删除发货记录的样品图片")
     @DeleteMapping("/delete-sample-image/{id}")

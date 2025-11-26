@@ -1,11 +1,13 @@
 package com.sutran.sd.design.mapper;
 
-import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.sutran.sd.common.core.mapper.BaseMapperPlus;
 import com.sutran.sd.design.domain.SdPresaleProject;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -15,7 +17,7 @@ import java.util.List;
  * @date 2025-01-12
  */
 @Mapper
-public interface SdPresaleProjectMapper extends BaseMapper<SdPresaleProject> {
+public interface SdPresaleProjectMapper extends BaseMapperPlus<SdPresaleProjectMapper,SdPresaleProject,SdPresaleProject> {
 
     /**
      * 查询预售项目
@@ -53,11 +55,21 @@ public interface SdPresaleProjectMapper extends BaseMapper<SdPresaleProject> {
     /**
      * 多表联查预售项目列表（带用户信息）
      *
-     * @param page 分页对象
      * @param status 项目状态
+     * @param now    当前时间
      * @return 预售项目分页数据
      */
-    IPage<SdPresaleProject> selectPresaleProjectListWithUserInfo(IPage<SdPresaleProject> page, @Param("status") Integer status);
+    List<SdPresaleProject> selectPresaleProjectListWithUserInfo(@Param("status") Integer status, @Param("now") Date now);
+
+    /**
+     * 分页查询多表联查预售项目列表（带用户信息）
+     *
+     * @param page 分页对象
+     * @param status 项目状态
+     * @param now    当前时间
+     * @return 预售项目分页数据
+     */
+    IPage<SdPresaleProject> selectPresaleProjectListWithUserInfoOfPage(Page<SdPresaleProject> page, @Param("status") Integer status, @Param("now") Date now);
 
     /**
      * 多表联查用户参与的预售项目列表

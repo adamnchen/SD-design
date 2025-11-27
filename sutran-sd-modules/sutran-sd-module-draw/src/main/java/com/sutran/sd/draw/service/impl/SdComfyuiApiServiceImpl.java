@@ -43,6 +43,7 @@ import com.sutran.sd.system.service.IForbiddenWordService;
 import com.sutran.sd.system.service.ISysOssService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.io.FilenameUtils;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.rabbit.connection.CorrelationData;
@@ -50,6 +51,8 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayOutputStream;
@@ -142,12 +145,12 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
         }
 
         sdUserTaskService.addComfyTask(taskId,userId,userName,flow,prompt,promptZh,null,3,sdFlow.getId(),modelTaskBo);
+        // 新增模型使用日志
+        sdUserModelLogService.asyncInsertData(userId,userName,Long.parseLong(modelTaskBo.getModelId()),modelTaskBo.getModelName(),modelTaskBo.getCheckPoint(),modelTaskBo.getModelStrength());
+
         // 生图任务存放到MQ队列
         DrawingTaskInfo taskInfo = new DrawingTaskInfo(taskId, flow,10,userId,batchSize,null);
         submitComfyTaskToQueue(taskInfo);
-
-        // 新增模型使用日志
-        sdUserModelLogService.asyncInsertData(userId,userName,Long.parseLong(modelTaskBo.getModelId()),modelTaskBo.getModelName(),modelTaskBo.getCheckPoint(),modelTaskBo.getModelStrength());
         return taskId;
     }
 
@@ -197,6 +200,7 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
                 String suffix = fileName.substring(fileName.lastIndexOf("."));
                 fileName = fileName.substring(0, fileName.lastIndexOf("."))+"_"+index+suffix;
             }
+            fileName = FilenameUtils.getName(fileName);
 
             images.add(new ImageInfoBo().setImageName(fileName).setContentType(file.getContentType()).setFileData(file.getBytes()));
             index++;
@@ -227,8 +231,26 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
 
         sdUserTaskService.addComfyTask(taskId, userId, userName, flowStr, prompt, promptZh, imageUrls, 4, sdFlow.getId(), null);
         // 生图任务存放到MQ队列
-        DrawingTaskInfo taskInfo = new DrawingTaskInfo(taskId, flowStr, 10, userId, sdFlow.getDrawNum(),images);
-        submitComfyTaskToQueue(taskInfo);
+//        DrawingTaskInfo taskInfo = new DrawingTaskInfo(taskId, flowStr, 10, userId, sdFlow.getDrawNum(),images);
+//        submitComfyTaskToQueue(taskInfo);
+
+        // 在事务提交后发送MQ消息
+        String finalFlowStr = flowStr;
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                // 生图任务存放到MQ队列
+                try {
+                    DrawingTaskInfo taskInfo = new DrawingTaskInfo(taskId, finalFlowStr, 10, userId, sdFlow.getDrawNum(),images);
+                    submitComfyTaskToQueue(taskInfo);
+                } catch (Exception e) {
+                    log.error("事务提交后发送MQ消息失败，任务ID: {}", taskId, e);
+                    // 更新任务状态为发送失败
+                    sdUserTaskService.failComfyTask(taskId, e.getMessage(), new Date());
+                }
+            }
+        });
+
         return taskId;
     }
 

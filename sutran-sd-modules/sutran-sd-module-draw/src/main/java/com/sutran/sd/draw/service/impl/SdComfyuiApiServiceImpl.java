@@ -149,8 +149,21 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
         sdUserModelLogService.asyncInsertData(userId,userName,Long.parseLong(modelTaskBo.getModelId()),modelTaskBo.getModelName(),modelTaskBo.getCheckPoint(),modelTaskBo.getModelStrength());
 
         // 生图任务存放到MQ队列
-        DrawingTaskInfo taskInfo = new DrawingTaskInfo(taskId, flow,10,userId,batchSize,null);
-        submitComfyTaskToQueue(taskInfo);
+        String finalFlow = flow;
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                // 生图任务存放到MQ队列
+                try {
+                    DrawingTaskInfo taskInfo = new DrawingTaskInfo(taskId, finalFlow,10,userId,batchSize,null);
+                    submitComfyTaskToQueue(taskInfo);
+                } catch (Exception e) {
+                    log.error("事务提交后发送MQ消息失败，任务ID: {}", taskId, e);
+                    // 更新任务状态为发送失败
+                    sdUserTaskService.failComfyTask(taskId, e.getMessage(), new Date());
+                }
+            }
+        });
         return taskId;
     }
 
@@ -164,6 +177,7 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
      * @return 任务id
      */
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public String submitComfyFlowTask(String flowId, String prompt, String promptZh, MultipartFile[] imageList) throws IOException {
         final Long userId = LoginHelper.getUserId();
         final String userName = LoginHelper.getUsername();
@@ -217,23 +231,16 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
         // 只判断是否为null，空字符串还是需要替换的
         prompt = StringUtils.isBlank(prompt)?sdFlow.getInitPrompt():prompt;
         promptZh = StringUtils.isBlank(promptZh)?sdFlow.getInitPromptZh():promptZh;
-
         // 违禁词校验
         if (StringUtils.isNotBlank(promptZh)) {
             forbiddenWordService.validateForbiddenWord(promptZh, "提示词(中文)");
         }
-
         if (prompt!=null) {
             // prompt双引号替换为单引号
             prompt = prompt.replace("\"","'");
             flowStr = flowStr.replace("{{prompt}}",prompt);
         }
-
         sdUserTaskService.addComfyTask(taskId, userId, userName, flowStr, prompt, promptZh, imageUrls, 4, sdFlow.getId(), null);
-        // 生图任务存放到MQ队列
-//        DrawingTaskInfo taskInfo = new DrawingTaskInfo(taskId, flowStr, 10, userId, sdFlow.getDrawNum(),images);
-//        submitComfyTaskToQueue(taskInfo);
-
         // 在事务提交后发送MQ消息
         String finalFlowStr = flowStr;
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {

@@ -22,6 +22,7 @@ import me.chanjar.weixin.common.error.WxErrorException;
 import me.chanjar.weixin.mp.api.WxMpService;
 import me.chanjar.weixin.mp.bean.template.WxMpTemplateData;
 import me.chanjar.weixin.mp.bean.template.WxMpTemplateMessage;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -236,7 +237,7 @@ public class SdTrainController {
      * @return 任务id
      */
     @ApiOperationSupport(order = 15)
-    @PostMapping("/fluxgym/start-train/v2")
+    @PostMapping(value = "/fluxgym/start-train/v2",consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @RequireMember(value = "AI模型训练", newUserBenefit = {RequireMember.NewUserBenefitType.DRAW})
     public R<String> starTrainV2(@RequestParam("images") MultipartFile[] images,
                                  @RequestParam("loraName") String loraName,

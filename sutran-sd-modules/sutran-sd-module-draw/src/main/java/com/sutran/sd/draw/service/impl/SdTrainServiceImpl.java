@@ -1593,7 +1593,7 @@ public class SdTrainServiceImpl implements SdTrainService {
                 }
             }
         }
-
+        // 数据集存储目录
         String parentFileUrl = String.format("/home/lora-scripts/train-data/%s/%s/%s",DateUtil.formatDate(new Date()),userId,taskId);
 //        String parentFileUrl = String.format("D:\\project\\ai_project\\train-data\\%s\\%s\\%s",DateUtil.formatDate(new Date()),userId,taskId);
         // 处理图片
@@ -2258,6 +2258,7 @@ public class SdTrainServiceImpl implements SdTrainService {
      * @param preParams  预处理参数
      */
     public void dealFluxgymTrainModelFile(String taskId, JSONObject preParams) {
+        log.warn("[模型训练完成][模型移动][开始]>>>>>>>>>执行模型移动,任务ID[{}]",taskId);
         // 快速检查，减少锁持有时间
         if (RedisUtils.hasKey(DEAL_MODEL_LOCK+taskId))  {
             return;
@@ -2273,20 +2274,27 @@ public class SdTrainServiceImpl implements SdTrainService {
         } finally {
             MODEL_LOCK.unlock();
         }
+        // 训练模型任务目录
+        String modelDir = "/root/cloud/lora-models/" + taskId;
+        // 训练模型样本目录
+        String modelImgDir = "/root/cloud/lora-models/" + taskId + "/sample";
+        // 训练模型数据集目录
+        String modelDataDir = "/root/cloud/lora-models/" + taskId + "/dataset";
 
-        final String modelDir = "/root/cloud/lora-models/" + taskId;
-        final String modelImgDir = "/root/cloud/lora-models/" + taskId + "/sample";
-        final String modelDataDir = "/root/cloud/lora-models/" + taskId + "/dataset";
-        final String destDir = "/home/comfyui/models/Lora";
-        final String destDataDir = preParams.getString("path") + CommonUtil.suggestNumRepeat();
-        final String loraNameZh = preParams.getString("loraName");
-        final Integer isOpen = preParams.getInteger("isOpen");
-        final String modelTag = preParams.getString("modelTag");
-        final String modelDesc = preParams.getString("modelDesc");
-        final long userId = preParams.getLongValue("userId");
-        final String userName = preParams.getString("userName");
-        final String startTime = preParams.getString("startTime");
-        final String endTime = preParams.getString("endTime");
+        // lora模型存放目标目录
+//        String destDir = "/home/comfyui/models/Lora";
+        String destDir = "/root/ComfyUI/models/loras";
+        // 训练任务数据集存放目标目录：/home/lora-scripts/train-data/年月日/用户ID/任务ID/20_zkz
+        String destDataDir = preParams.getString("path") + CommonUtil.suggestNumRepeat();
+
+        String loraNameZh = preParams.getString("loraName");
+        Integer isOpen = preParams.getInteger("isOpen");
+        String modelTag = preParams.getString("modelTag");
+        String modelDesc = preParams.getString("modelDesc");
+        long userId = preParams.getLongValue("userId");
+        String userName = preParams.getString("userName");
+        String startTime = preParams.getString("startTime");
+        String endTime = preParams.getString("endTime");
 
         try {
             // 检查目标目录是否存在，不存在则创建
@@ -2338,7 +2346,6 @@ public class SdTrainServiceImpl implements SdTrainService {
                         .setModelTag(modelTag).setRemark(modelDesc).setModelType("FLUX");
                     if (modelImgs != null && i < modelImgs.length) {
                         File imgFile = modelImgs[i];
-//                        String imgExtension = imgFile.getName().substring(imgFile.getName().lastIndexOf("."));
                         File destImgFile = new File(destDir, modelName.replace(".safetensors", ".jpg"));
                         // 移动对应的图片文件
                         Files.move(imgFile.toPath(), destImgFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
@@ -2357,6 +2364,7 @@ public class SdTrainServiceImpl implements SdTrainService {
             }
             // 移动数据集文件
             FileUtils.moveAllFiles(modelDataDir, destDataDir);
+
             // 批量插入数据库
             if (CollectionUtil.isNotEmpty(modelList)) {
                 sdUserModelService.batchAdd(modelList);
@@ -2369,12 +2377,13 @@ public class SdTrainServiceImpl implements SdTrainService {
             log.error("[模型训练完成][模型移动]>>>>>>>>>任务ID[{}],处理模型文件时发生异常: ", taskId, e);
         }
         finally {
+            log.warn("[模型训练完成][模型移动][结束]>>>>>>>>>模型移动完成,任务ID[{}]",taskId);
             try{
                 // 删除模型目录
                 FileUtils.deleteDirectory(modelDir);
             }
             catch (Exception e){
-                log.error("[模型训练完成][模型移动]>>>>>>>>>任务ID[{}],删除模型目录失败: ", taskId, e);
+                log.error("[模型训练完成][模型移动][结束]>>>>>>>>>任务ID[{}],删除模型目录失败: ", taskId, e);
             }
             RedisUtils.deleteKey(DEAL_MODEL_LOCK + taskId);
         }

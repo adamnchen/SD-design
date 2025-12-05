@@ -29,7 +29,10 @@ import com.sutran.sd.draw.domain.SdUserModelClassify;
 import com.sutran.sd.draw.domain.dto.ImgSendThirdDto;
 import com.sutran.sd.draw.domain.dto.SdUserModelFilePageDto;
 import com.sutran.sd.draw.domain.dto.img2img.SdImg2ImgDto;
-import com.sutran.sd.draw.domain.dto.model.*;
+import com.sutran.sd.draw.domain.dto.model.SdUserModelClassifyDto;
+import com.sutran.sd.draw.domain.dto.model.SdUserModelDto;
+import com.sutran.sd.draw.domain.dto.model.SdUserModelModifyDto;
+import com.sutran.sd.draw.domain.dto.model.SdUserModelPageDto;
 import com.sutran.sd.draw.domain.dto.txt2img.SdApiModelParamDto;
 import com.sutran.sd.draw.domain.dto.txt2img.SdText2ImgDto;
 import com.sutran.sd.draw.domain.vo.*;
@@ -60,10 +63,6 @@ import org.springframework.transaction.annotation.Transactional;
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletResponse;
 import java.io.*;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -488,53 +487,6 @@ public class SdWebuiApiServiceImpl implements SdWebuiApiService {
             return;
         }
         // 发布要先移动模型->然后再修改数据库状态->发送微信公众号通知
-        if (publishStatus==1) {
-            String fileName = info.getString("fileName");
-            if (StringUtils.isNotBlank(fileName)) {
-                fileName = fileName.trim();
-                if (fileName.contains("/stable-diffusion-webui/models/Lora") && !fileName.startsWith("/home")) {
-                    // 补齐路径
-                    fileName = "/home"+fileName;
-                }
-                // 将发布的模型放入到云存储目录下/root/cloud/comfyui-lora/
-                Path source = Paths.get(fileName);
-                String originalFileName = source.getFileName().toString();
-                String tempFileName = originalFileName + ".tmp";
-
-                String modelPath = "/root/cloud/comfyui-lora/" + originalFileName;
-                String tempModelPath = "/root/cloud/comfyui-lora/" + tempFileName;
-
-                Path target = Paths.get(modelPath);
-                Path tempTarget = Paths.get(tempModelPath);
-                log.warn("[模型发布]>>>>>>>>>开始移动模型：{}->{}->{}",fileName,tempModelPath,modelPath);
-                try {
-                    // 检查源文件
-                    if (!Files.exists(source)) {
-                        log.error("[模型发布]>>>>>>>>>源文件不存在: {}", fileName);
-                        return;
-                    }
-                    Path parentDir = tempTarget.getParent();
-                    if (parentDir != null && !Files.exists(parentDir)) {
-                        Files.createDirectories(parentDir);
-                    }
-                    // 临时文件
-                    Files.copy(source, tempTarget, StandardCopyOption.REPLACE_EXISTING);
-                    // 复制完成后重命名为正式文件
-                    Files.move(tempTarget, target, StandardCopyOption.REPLACE_EXISTING);
-                }
-                catch (Exception e) {
-                    if (Files.exists(tempTarget)) {
-                        try {
-                            Files.delete(tempTarget);
-                        }
-                        catch (IOException ex) {
-                            log.warn("[模型发布]>>>>>>>>>清理临时文件失败：{}", tempModelPath, ex);
-                        }
-                    }
-                    log.error("[模型发布]>>>>>>>>>{}复制到{}异常：", fileName, modelPath, e);
-                }
-            }
-        }
         sdUserModelService.publishModel(id,publishStatus,modelStrength);
         if (publishStatus==1 && info.getInteger("publishStatus")!=null && info.getInteger("publishStatus")==1) {
             // 发送完成消息

@@ -12,6 +12,7 @@ import com.sutran.sd.design.vo.PresaleProjectDetailVO;
 import com.sutran.sd.design.vo.PresaleProjectListVO;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -198,4 +199,10 @@ public interface ISdPresaleProjectService {
      * @return 结果
      */
     R<String> updatePresaleTrackingNumber(Long deliveryId, String trackingNumber);
+
+    /**
+     * 处理过期数据
+     * @param now 日期
+     */
+    void dealExpireData(Date now);
 }

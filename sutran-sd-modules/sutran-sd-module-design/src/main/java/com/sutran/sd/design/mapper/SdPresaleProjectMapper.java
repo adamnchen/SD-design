@@ -88,4 +88,10 @@ public interface SdPresaleProjectMapper extends BaseMapperPlus<SdPresaleProjectM
      * @return 结果
      */
     int insertSdPresaleProject(SdPresaleProject sdPresaleProject);
+
+    /**
+     * 处理过期数据
+     * @param now 日期
+     */
+    void dealExpireData(@Param("now") Date now);
 }

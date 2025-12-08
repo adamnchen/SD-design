@@ -5,6 +5,7 @@ import cn.hutool.core.date.DateTime;
 import cn.hutool.core.date.DateUtil;
 import com.sutran.sd.common.core.service.NoticeService;
 import com.sutran.sd.common.utils.redis.RedisUtils;
+import com.sutran.sd.design.service.ISdPresaleProjectService;
 import com.sutran.sd.draw.domain.SdChannelData;
 import com.sutran.sd.draw.domain.vo.TrainTaskStatusVo;
 import com.sutran.sd.draw.service.*;
@@ -39,12 +40,13 @@ public class CommonJobEvent {
     private final AliPayService aliPayService;
     private final SdComfyuiApiService sdComfyuiApiService;
     private final NoticeService noticeService;
+    private final ISdPresaleProjectService sdPresaleProjectService;
 
     /**
      * 定时处理训练任务V1
      * 每10秒执行一次
      */
-    @Scheduled(cron="0/10 * * * * ?")
+//    @Scheduled(cron="0/10 * * * * ?")
     public void executeTrainProgressV1(){
         Map<String, String> cacheMap = RedisUtils.getCacheMap(TRAIN_MODEL_PROGRESS_TASK_MAP_V1);
         if (CollectionUtil.isEmpty(cacheMap)) {
@@ -57,7 +59,7 @@ public class CommonJobEvent {
      * 定时处理训练任务V2
      * 每10秒执行一次
      */
-    @Scheduled(cron="0/10 * * * * ?")
+//    @Scheduled(cron="0/10 * * * * ?")
     public void executeTrainProgressV2(){
         Map<String, String> cacheMap = RedisUtils.getCacheMap(TRAIN_MODEL_PROGRESS_TASK_MAP_V2);
         if (CollectionUtil.isEmpty(cacheMap)) {
@@ -70,7 +72,7 @@ public class CommonJobEvent {
      * 定时处理预处理任务V1
      * 每10秒执行一次
      */
-    @Scheduled(cron="0/10 * * * * ?")
+//    @Scheduled(cron="0/10 * * * * ?")
     public void executePreImgProgressV1(){
         List<String> cacheList = RedisUtils.getCacheList(PRE_IMG_TASK_QUEUE_LIST_V1);
         if (CollectionUtil.isEmpty(cacheList)) {
@@ -85,7 +87,7 @@ public class CommonJobEvent {
      * 定时处理预处理任务V2
      * 每10秒执行一次
      */
-    @Scheduled(cron="0/10 * * * * ?")
+//    @Scheduled(cron="0/10 * * * * ?")
     public void executePreImgProgressV2(){
         List<String> cacheList = RedisUtils.getCacheList(PRE_IMG_TASK_QUEUE_LIST_V2);
         if (CollectionUtil.isEmpty(cacheList)) {
@@ -109,7 +111,7 @@ public class CommonJobEvent {
      * 定时清理标签翻译缓存
      * 每5分钟执行一次
      */
-    @Scheduled(cron="0 0/5 * * * ?")
+//    @Scheduled(cron="0 0/5 * * * ?")
     public void executeClearTranslateMap(){
         Collection<String> keys = RedisUtils.keys(TRAIN_TAG_TRANSLATE_MAP+"*");
         if (CollectionUtil.isEmpty(keys)) {
@@ -234,6 +236,20 @@ public class CommonJobEvent {
     public void executeNotice(){
         try{
             noticeService.dealExpireData(new Date());
+        }
+        catch (Exception e){
+            log.error("[定时任务]>>>>>>>>>定时处理通知异常：",e);
+        }
+    }
+
+    /**
+     * 定时处理预售过期数据
+     * 每10秒执行一次
+     */
+    @Scheduled(cron="0 0/5 * * * ?")
+    public void executePresaleProject(){
+        try{
+            sdPresaleProjectService.dealExpireData(new Date());
         }
         catch (Exception e){
             log.error("[定时任务]>>>>>>>>>定时处理通知异常：",e);

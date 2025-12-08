@@ -48,6 +48,13 @@
         from sd_presale_project
     </sql>
 
+    <update
+        id="dealExpireData">
+        update sd_presale_project
+        set status = 3
+        where status = 1 AND DATE_ADD(create_time, INTERVAL validity_days DAY) &lt;= #{now}
+    </update>
+
     <select id="selectSdPresaleProjectById" parameterType="Long" resultMap="SdPresaleProjectResult">
         <include refid="selectSdPresaleProjectVo"/>
         where id = #{id}

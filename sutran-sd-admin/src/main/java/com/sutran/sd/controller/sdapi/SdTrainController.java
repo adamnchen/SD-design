@@ -27,6 +27,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -246,6 +247,40 @@ public class SdTrainController {
                                  @RequestParam(value = "isOpen",required = false) Integer isOpen,
                                  @RequestParam(value = "modelDesc",required = false) String modelDesc) throws IOException {
         List<TrainCaptionBo> captionList = JSONArray.parseArray(captions, TrainCaptionBo.class);
+        return R.ok("操作成功",sdTrainService.startTrainTaskV2(images,loraName,captionList,modelTag,isOpen,modelDesc));
+    }
+
+    /**
+     * [FluxGym][V3]提交训练
+     * @param images        图片集合
+     * @param loraName      训练模型名称(用于触发词)
+     * @param captionZhs    图片描述词中文["描述词中文1","描述词中文2"]
+     * @param captionEns    图片描述词英文["描述词英文1","描述词英文2"]
+     * @param modelTag      模型标签(多个用逗号隔开)
+     * @param isOpen        是否公开[0-否,1-是]
+     * @param modelDesc     模型描述
+     * @throws IOException  图片IO异常
+     * @return 任务id
+     */
+    @ApiOperationSupport(order = 15)
+    @PostMapping(value = "/fluxgym/start-train/v3",consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @RequireMember(value = "AI模型训练", newUserBenefit = {RequireMember.NewUserBenefitType.DRAW})
+    public R<String> starTrainV3(@RequestParam("images") MultipartFile[] images,
+                                 @RequestParam("loraName") String loraName,
+                                 @RequestParam("captionZhs") String captionZhs,
+                                 @RequestParam("captionEns") String captionEns,
+                                 @RequestParam(value = "modelTag",required = false) String modelTag,
+                                 @RequestParam(value = "isOpen",required = false) Integer isOpen,
+                                 @RequestParam(value = "modelDesc",required = false) String modelDesc) throws IOException {
+        List<String> zhList = JSONArray.parseArray(captionZhs, String.class);
+        List<String> enList = JSONArray.parseArray(captionEns, String.class);
+        List<TrainCaptionBo> captionList = new ArrayList<>();
+        for(int i=0;i<enList.size();i++){
+            TrainCaptionBo bo = new TrainCaptionBo();
+            bo.setCaption(enList.get(i));
+            bo.setCaptionZh(zhList.get(i));
+            captionList.add(bo);
+        }
         return R.ok("操作成功",sdTrainService.startTrainTaskV2(images,loraName,captionList,modelTag,isOpen,modelDesc));
     }
 

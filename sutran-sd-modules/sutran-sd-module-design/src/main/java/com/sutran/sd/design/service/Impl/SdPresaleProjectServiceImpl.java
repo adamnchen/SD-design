@@ -1117,6 +1117,15 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
     }
 
     /**
+     * 处理过期数据
+     * @param now 日期
+     */
+    @Override
+    public void dealExpireData(Date now) {
+        presaleProjectMapper.dealExpireData(now);
+    }
+
+    /**
      * 检查是否为图片文件
      */
     private boolean isImageFile(String filename) {
@@ -1229,7 +1238,7 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
         }
 
         // 按数量节点排序
-        tieredPricingList.sort((a, b) -> Integer.compare(a.getNode(), b.getNode()));
+        tieredPricingList.sort(Comparator.comparingInt(TieredPricingItem::getNode));
 
         // 找到对应的价格区间
         for (int i = tieredPricingList.size() - 1; i >= 0; i--) {
@@ -1358,7 +1367,7 @@ public class SdPresaleProjectServiceImpl implements ISdPresaleProjectService {
         }
 
         // 按节点数量排序
-        tieredPricingList.sort((a, b) -> Integer.compare(a.getNode(), b.getNode()));
+        tieredPricingList.sort(Comparator.comparingInt(TieredPricingItem::getNode));
 
         // 找到下一个价格阈值
         for (TieredPricingItem item : tieredPricingList) {

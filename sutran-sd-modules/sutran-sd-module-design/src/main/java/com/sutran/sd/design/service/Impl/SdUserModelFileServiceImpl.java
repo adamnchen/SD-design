@@ -18,10 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -243,7 +240,7 @@ public class SdUserModelFileServiceImpl extends ServiceImpl<DesignSdUserModelFil
             if (!voList.isEmpty()) {
                 Set<Long> userIds = voList.stream()
                         .map(UserModelFileVO::getBelongUserId)
-                        .filter(userId -> userId != null)
+                        .filter(Objects::nonNull)
                         .collect(Collectors.toSet());
 
                 if (!userIds.isEmpty()) {

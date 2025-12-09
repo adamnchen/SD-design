@@ -71,6 +71,7 @@ public class PresaleController extends BaseAliPayApiController {
      */
     @Operation(summary = "获取预售项目详情", description = "根据ID获取预售项目详细信息")
     @GetMapping(value = "/{id}")
+    @SaIgnore
     public R<com.sutran.sd.design.vo.PresaleProjectDetailVO> getInfo(@PathVariable("id") Long id) {
         return presaleProjectService.getPresaleProjectDetail(id);
     }

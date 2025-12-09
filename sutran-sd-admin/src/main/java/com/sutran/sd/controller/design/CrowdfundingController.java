@@ -1,5 +1,6 @@
 package com.sutran.sd.controller.design;
 
+import cn.dev33.satoken.annotation.SaIgnore;
 import com.sutran.sd.common.core.controller.BaseController;
 import com.sutran.sd.common.core.domain.PageQuery;
 import com.sutran.sd.common.core.domain.R;
@@ -88,6 +89,7 @@ public class CrowdfundingController extends BaseController {
      * @param id 众筹项目ID
      */
     @GetMapping("/projects/{id}")
+    @SaIgnore
     public R<CrowdfundingProjectDetailVO> getProjectDetail(@PathVariable Long id) {
         return R.ok(crowdfundingProjectService.getCrowdfundingProjectDetail(id));
     }

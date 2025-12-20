@@ -5,7 +5,7 @@ import com.ijpay.alipay.AliPayApiConfig;
 import com.sutran.sd.common.core.domain.R;
 import com.sutran.sd.common.helper.LoginHelper;
 import com.sutran.sd.design.domain.SdCrowdfundingSupport;
-import com.sutran.sd.design.dto.CrowdfundingSupportDTO;
+import com.sutran.sd.design.dto.CrowdfundingSupportDto;
 import com.sutran.sd.design.service.ISdCrowdfundingProjectService;
 import com.sutran.sd.pay.config.AliPayConfig;
 import com.sutran.sd.pay.constants.PayNotifyServer;
@@ -50,11 +50,15 @@ public class CrowdfundingPaymentController extends BaseAliPayApiController {
 
     /**
      * 参与众筹支持
+     * @param supportDto 支持信息
+     * @return 参与众筹成功，返回订单号
      */
     @PostMapping("/support")
-    public R<String> supportProject(@Valid @RequestBody CrowdfundingSupportDTO supportDTO) {
+    public R<String> supportProject(@Valid @RequestBody CrowdfundingSupportDto supportDto) {
         try {
-            String orderNo = crowdfundingProjectService.createSupportOrder(supportDTO);
+//            supportDto.setUserId(LoginHelper.getUserId());
+//            supportDto.setUserName(LoginHelper.getUsername());
+            String orderNo = crowdfundingProjectService.createSupportOrder(supportDto);
             return R.ok("参与众筹成功", orderNo);
         } catch (Exception e) {
             return R.fail("参与众筹失败: " + e.getMessage());

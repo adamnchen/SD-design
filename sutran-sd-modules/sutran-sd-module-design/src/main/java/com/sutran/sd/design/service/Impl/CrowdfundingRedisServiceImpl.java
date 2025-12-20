@@ -1,8 +1,7 @@
 package com.sutran.sd.design.service.impl;
 
-import com.sutran.sd.common.utils.redis.RedisUtils;
-import com.sutran.sd.design.service.CrowdfundingRedisService;
 import com.sutran.sd.design.config.CrowdfundingConfig;
+import com.sutran.sd.design.service.CrowdfundingRedisService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RAtomicDouble;
@@ -28,7 +27,7 @@ public class CrowdfundingRedisServiceImpl implements CrowdfundingRedisService {
     private final RedissonClient redissonClient;
     private final CrowdfundingConfig crowdfundingConfig;
 
-    // Redis Key前缀
+    /** Redis Key前缀 **/
     private static final String CROWDFUNDING_AMOUNT_PREFIX = "crowdfunding:amount:";
     private static final String CROWDFUNDING_LOCK_PREFIX = "crowdfunding:lock:";
 
@@ -52,7 +51,6 @@ public class CrowdfundingRedisServiceImpl implements CrowdfundingRedisService {
         try {
             String key = CROWDFUNDING_AMOUNT_PREFIX + projectId;
             String lockKey = CROWDFUNDING_LOCK_PREFIX + projectId;
-
             // 使用分布式锁确保原子性
             RLock lock = redissonClient.getLock(lockKey);
             if (lock.tryLock(crowdfundingConfig.getLockWaitTime(), crowdfundingConfig.getLockLeaseTime(), TimeUnit.SECONDS)) {
@@ -63,15 +61,14 @@ public class CrowdfundingRedisServiceImpl implements CrowdfundingRedisService {
 
                     if (currentAmount >= deductAmount) {
                         atomicDouble.addAndGet(-deductAmount);
-                        log.info("扣减众筹金额成功: 项目={}, 扣减金额={}, 剩余金额={}",
-                                projectId, requestAmount, atomicDouble.get());
                         return true;
-                    } else {
-                        log.warn("众筹金额不符: 项目={}, 当前金额={}, 请求金额={}",
-                                projectId, currentAmount, deductAmount);
+                    }
+                    else {
+                        log.error("[众筹]>>>>>>>>>众筹金额不符: 项目={}, 当前金额={}, 请求金额={}", projectId, currentAmount, deductAmount);
                         return false;
                     }
-                } finally {
+                }
+                finally {
                     lock.unlock();
                 }
             } else {

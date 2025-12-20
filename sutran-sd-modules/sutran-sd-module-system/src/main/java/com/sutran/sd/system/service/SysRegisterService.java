@@ -36,13 +36,12 @@ public class SysRegisterService {
      */
     public void register(RegisterBody registerBody) {
         String username = registerBody.getPhoneNumber();
-        String nickName = StrUtil.isBlankIfStr(registerBody.getNickName())?registerBody.getNickName():"BS_USER_"+System.currentTimeMillis();
+        String nickName = StrUtil.isNotBlank(registerBody.getNickName())?registerBody.getNickName():"BS_USER_"+System.currentTimeMillis();
         String password = registerBody.getPassword();
         String phoneNumber = registerBody.getPhoneNumber();
         // 校验用户类型是否存在
         String userType = UserType.getUserType(registerBody.getUserType()).getUserType();
         // 校验验证码
-//        if (!validateSmsCode(phoneNumber, registerBody.getSmsCode())) {
         if (!validateCaptcha(registerBody.getVerifyCode(),registerBody.getVerifyUuid())) {
             throw new CaptchaException();
         }
@@ -132,7 +131,6 @@ public class SysRegisterService {
      * @param username 用户名
      * @param status   状态
      * @param message  消息内容
-     * @return
      */
     private void recordLogininfor(String username, String status, String message) {
         LogininforEvent logininforEvent = new LogininforEvent();

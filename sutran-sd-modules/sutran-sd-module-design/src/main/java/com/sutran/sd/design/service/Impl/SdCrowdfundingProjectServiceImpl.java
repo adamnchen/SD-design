@@ -10,6 +10,7 @@ import com.sutran.sd.common.core.domain.PageQuery;
 import com.sutran.sd.common.core.domain.entity.SysAddress;
 import com.sutran.sd.common.core.domain.entity.SysUser;
 import com.sutran.sd.common.core.domain.vo.NoticeCommonVo;
+import com.sutran.sd.common.core.domain.vo.ProofingInvitationDetailVO;
 import com.sutran.sd.common.core.page.TableDataInfo;
 import com.sutran.sd.common.core.service.NoticeService;
 import com.sutran.sd.common.exception.ServiceException;
@@ -19,7 +20,7 @@ import com.sutran.sd.design.domain.SdCrowdfundingProject;
 import com.sutran.sd.design.domain.SdCrowdfundingSampleDelivery;
 import com.sutran.sd.design.domain.SdCrowdfundingSupport;
 import com.sutran.sd.design.dto.CrowdfundingProjectSimpleCreateDTO;
-import com.sutran.sd.design.dto.CrowdfundingSupportDTO;
+import com.sutran.sd.design.dto.CrowdfundingSupportDto;
 import com.sutran.sd.design.enums.CrowdfundingProjectStatus;
 import com.sutran.sd.design.enums.CrowdfundingSupportStatus;
 import com.sutran.sd.design.mapper.SdCrowdfundingProjectMapper;
@@ -37,9 +38,11 @@ import com.sutran.sd.system.service.ISysUserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.interceptor.TransactionAspectSupport;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -246,13 +249,10 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
     @Transactional(rollbackFor = Exception.class)
     public void insertSdCrowdfundingProjectSimple(CrowdfundingProjectSimpleCreateDTO createDTO) {
         // 1. 通过多表联查获取完整的邀约信息（包括发起人和厂家信息）
-        com.sutran.sd.common.core.domain.vo.ProofingInvitationDetailVO invitationDetail =
-            invitationMapper.selectInvitationDetailById(createDTO.getProofingInvitationId());
-
+        ProofingInvitationDetailVO invitationDetail = invitationMapper.selectInvitationDetailById(createDTO.getProofingInvitationId());
         if (invitationDetail == null) {
             throw new ServiceException("打样邀约不存在");
         }
-
         // 2. 检查邀约是否已有回应，防止重复发布众筹
         if (invitationDetail.getStatus() != null && invitationDetail.getStatus() != 0) {
             // 邀约有回应，检查是否已存在进行中的众筹项目
@@ -416,40 +416,30 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
     public void runDrawForProject(Long projectId) {
         SdCrowdfundingProject project = crowdfundingProjectMapper.selectById(projectId);
         if (project == null) {
-            log.warn("[众筹抽奖] 项目不存在, projectId={}", projectId);
-            return;
+            throw new ServiceException("众筹项目不存在");
         }
-
-        if (!CrowdfundingProjectStatus.SUCCESS.getCode().equals(project.getStatus())) {
-            log.warn("[众筹抽奖] 项目状态非成功, 跳过抽奖, projectId={}, status={}", projectId, project.getStatus());
-            return;
+        if (CrowdfundingProjectStatus.FUNDING.getCode().equals(project.getStatus())) {
+            throw new ServiceException("项目众筹中, 暂时无法抽奖");
         }
-
-        // 如果已经抽奖结束则不再重复执行
+        if (CrowdfundingProjectStatus.FAILED.getCode().equals(project.getStatus()) || CrowdfundingProjectStatus.PUBLISHED.getCode().equals(project.getStatus())) {
+            throw new ServiceException("项目众筹结束,抽奖已结束");
+        }
         if (project.getDrawStatus() != null && project.getDrawStatus() == 2) {
-            log.info("[众筹抽奖] 项目已完成抽奖, 跳过, projectId={}", projectId);
-            return;
+            throw new ServiceException("项目众筹结束,抽奖已结束");
         }
-
         // 查询该项目下所有有效的支持记录（已支付、正常状态）
         LambdaQueryWrapper<SdCrowdfundingSupport> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(SdCrowdfundingSupport::getProjectId, projectId)
-                   .eq(SdCrowdfundingSupport::getStatus, CrowdfundingSupportStatus.NORMAL.getCode())
-                   .isNotNull(SdCrowdfundingSupport::getOrderNo);
-
+        queryWrapper.eq(SdCrowdfundingSupport::getProjectId, projectId).eq(SdCrowdfundingSupport::getStatus, CrowdfundingSupportStatus.NORMAL.getCode()).isNotNull(SdCrowdfundingSupport::getOrderNo);
         List<SdCrowdfundingSupport> supports = supportMapper.selectList(queryWrapper);
         if (supports == null || supports.isEmpty()) {
-            log.warn("[众筹抽奖] 无有效支持记录, 直接标记抽奖结束, projectId={}", projectId);
+            log.warn("[众筹抽奖]>>>>>>>>>无有效支持记录, 直接标记抽奖结束, projectId={}", projectId);
             project.setDrawStatus(2);
             project.setDrawTime(new Date());
             crowdfundingProjectMapper.updateSdCrowdfundingProject(project);
             return;
         }
-
         // 以 userId 维度去重，一人一次机会
-        Map<Long, List<SdCrowdfundingSupport>> userSupportMap = supports.stream()
-            .collect(Collectors.groupingBy(SdCrowdfundingSupport::getUserId));
-
+        Map<Long, List<SdCrowdfundingSupport>> userSupportMap = supports.stream().collect(Collectors.groupingBy(SdCrowdfundingSupport::getUserId));
         List<Long> userIds = new ArrayList<>(userSupportMap.keySet());
         if (userIds.isEmpty()) {
             log.warn("[众筹抽奖] 无参与用户, 直接标记抽奖结束, projectId={}", projectId);
@@ -458,44 +448,28 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
             crowdfundingProjectMapper.updateSdCrowdfundingProject(project);
             return;
         }
-
         // 随机打乱用户列表
         Collections.shuffle(userIds);
-
         Integer drawNumber = project.getDrawNumber();
-        int winnerCount = (drawNumber != null && drawNumber > 0)
-            ? Math.min(drawNumber, userIds.size())
-            : Math.min(1, userIds.size());
-
+        int winnerCount = (drawNumber != null && drawNumber > 0) ? Math.min(drawNumber, userIds.size()) : Math.min(1, userIds.size());
         Set<Long> winnerUserIds = new HashSet<>(userIds.subList(0, winnerCount));
-
-        log.info("[众筹抽奖] 开始抽奖, projectId={}, 参与人数={}, 中奖名额={}, 实际中奖人数={}",
-            projectId, userIds.size(), drawNumber, winnerUserIds.size());
-
         // 构建通知模板
-        NoticeCommonVo noticeTemplate = new NoticeCommonVo()
-            .setTitle("众筹抽奖结果通知")
-            .setPublishTime(new Date());
-
+        NoticeCommonVo noticeTemplate = new NoticeCommonVo().setTitle("众筹抽奖结果通知").setPublishTime(new Date());
         // 更新支持记录的抽奖状态
         for (Map.Entry<Long, List<SdCrowdfundingSupport>> entry : userSupportMap.entrySet()) {
             Long userId = entry.getKey();
             boolean isWinner = winnerUserIds.contains(userId);
-
             for (SdCrowdfundingSupport support : entry.getValue()) {
-                support.setDrawStatus(isWinner ? 2 : 3); // 2=中奖,3=未中奖
+                // 2=中奖,3=未中奖
+                support.setDrawStatus(isWinner ? 2 : 3);
                 support.setIsWinner(isWinner ? 1 : 0);
                 supportMapper.updateById(support);
             }
-
             // 给中奖用户发送通知
             if (isWinner) {
                 String projectTitle = project.getTitle() != null ? project.getTitle() : "众筹项目";
                 String content = "恭喜您参与的众筹项目【" + projectTitle + "】抽奖中奖，商家将尽快为您发放样品。";
-                NoticeCommonVo notice = new NoticeCommonVo()
-                    .setTitle(noticeTemplate.getTitle())
-                    .setContent(content)
-                    .setPublishTime(new Date());
+                NoticeCommonVo notice = new NoticeCommonVo().setTitle(noticeTemplate.getTitle()).setContent(content).setPublishTime(new Date());
                 try {
                     noticeService.asyncSendCommonMsg(notice, userId);
                 } catch (Exception e) {
@@ -503,14 +477,10 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
                 }
             }
         }
-
         // 更新项目抽奖状态为已结束
         project.setDrawStatus(2);
         project.setDrawTime(new Date());
         crowdfundingProjectMapper.updateSdCrowdfundingProject(project);
-
-        log.info("[众筹抽奖] 抽奖完成, projectId={}, 中奖用户ID={} ", projectId, winnerUserIds);
-
         // 插入众筹样品发货记录
         insertSampleDeliveryRecordsForWinners(projectId, winnerUserIds, userSupportMap);
     }
@@ -520,22 +490,18 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
      */
     private void insertSampleDeliveryRecordsForWinners(Long projectId, Set<Long> winnerUserIds, Map<Long, List<SdCrowdfundingSupport>> userSupportMap) {
         try {
-            log.info("[众筹发货] 开始为中奖者插入样品发货记录, projectId={}, 中奖人数={}", projectId, winnerUserIds.size());
-
             // 获取项目信息
             SdCrowdfundingProject project = crowdfundingProjectMapper.selectById(projectId);
             if (project == null) {
                 log.error("[众筹发货] 项目不存在, projectId={}", projectId);
                 return;
             }
-
             // 查询项目的邀约记录ID（发货记录需要）
             Long proofingInvitationId = project.getProofingInvitationId();
             if (proofingInvitationId == null) {
                 log.error("[众筹发货] 项目邀约记录ID为空, projectId={}", projectId);
                 return;
             }
-
             // 获取发起人信息作为发货人
             Long senderUserId = project.getCreatorUserId();
             String senderName = "项目发起人";
@@ -551,18 +517,15 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
             }
 
             int insertedCount = 0;
-
             // 插入发起人自留样品的发货记录
             Integer totalSamples = project.getTotalSamples();
             Integer drawNumber = project.getDrawNumber();
             int initiatorQuantity = (totalSamples != null ? totalSamples : 0) - (drawNumber != null ? drawNumber : 0);
             if (initiatorQuantity > 0) {
                 Long creatorUserId = project.getCreatorUserId();
-
                 // 检查是否已有发货记录
                 LambdaQueryWrapper<SdCrowdfundingSampleDelivery> existQuery = new LambdaQueryWrapper<>();
-                existQuery.eq(SdCrowdfundingSampleDelivery::getCrowdfundingProjectId, projectId)
-                          .eq(SdCrowdfundingSampleDelivery::getRecipientUserId, creatorUserId);
+                existQuery.eq(SdCrowdfundingSampleDelivery::getCrowdfundingProjectId, projectId).eq(SdCrowdfundingSampleDelivery::getRecipientUserId, creatorUserId);
                 if (deliveryMapper.selectCount(existQuery) == 0) {
                     SdCrowdfundingSampleDelivery delivery = new SdCrowdfundingSampleDelivery();
                     delivery.setId(IdUtil.getSnowflakeNextId());
@@ -572,12 +535,12 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
                     delivery.setRecipientUserId(creatorUserId);
                     delivery.setSenderUserId(senderUserId);
                     delivery.setSenderName(senderName);
-                    delivery.setStatus(1); // 待发货
+                    // 待发货
+                    delivery.setStatus(1);
                     delivery.setTrackingNumber("");
                     delivery.setDeliveryCompany("");
                     delivery.setQuantity(initiatorQuantity);
                     delivery.setRemark("发起人自留样品");
-
                     // 尝试获取收货信息
                     List<SdCrowdfundingSupport> creatorSupports = userSupportMap.get(creatorUserId);
                     if (creatorSupports != null && !creatorSupports.isEmpty()) {
@@ -601,11 +564,21 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
 
                                 // 构建完整地址
                                 StringBuilder fullAddress = new StringBuilder();
-                                if (StringUtils.isNotBlank(targetAddress.getProvinceName())) fullAddress.append(targetAddress.getProvinceName());
-                                if (StringUtils.isNotBlank(targetAddress.getCityName())) fullAddress.append(targetAddress.getCityName());
-                                if (StringUtils.isNotBlank(targetAddress.getCountyName())) fullAddress.append(targetAddress.getCountyName());
-                                if (StringUtils.isNotBlank(targetAddress.getAddressName())) fullAddress.append(targetAddress.getAddressName());
-                                if (StringUtils.isNotBlank(targetAddress.getHome())) fullAddress.append(targetAddress.getHome());
+                                if (StringUtils.isNotBlank(targetAddress.getProvinceName())) {
+                                    fullAddress.append(targetAddress.getProvinceName());
+                                }
+                                if (StringUtils.isNotBlank(targetAddress.getCityName())) {
+                                    fullAddress.append(targetAddress.getCityName());
+                                }
+                                if (StringUtils.isNotBlank(targetAddress.getCountyName())) {
+                                    fullAddress.append(targetAddress.getCountyName());
+                                }
+                                if (StringUtils.isNotBlank(targetAddress.getAddressName())) {
+                                    fullAddress.append(targetAddress.getAddressName());
+                                }
+                                if (StringUtils.isNotBlank(targetAddress.getHome())) {
+                                    fullAddress.append(targetAddress.getHome());
+                                }
 
                                 delivery.setDeliveryAddress(fullAddress.toString());
                             } else {
@@ -655,17 +628,22 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
                 delivery.setId(IdUtil.getSnowflakeNextId());
                 delivery.setCrowdfundingProjectId(projectId);
                 delivery.setProofingInvitationId(proofingInvitationId);
-                delivery.setSampleImageUrl(""); // 样品图片初始为空
+                // 样品图片初始为空
+                delivery.setSampleImageUrl("");
                 delivery.setRecipientUserId(winnerUserId);
                 delivery.setRecipientName(support.getReceiverName());
                 delivery.setRecipientPhone(support.getReceiverPhone());
                 delivery.setDeliveryAddress(buildFullReceiverAddress(support.getReceiverArea(), support.getReceiverAddress()));
                 delivery.setSenderUserId(senderUserId);
                 delivery.setSenderName(senderName);
-                delivery.setStatus(1); // 1=待发货
-                delivery.setTrackingNumber(""); // 快递单号初始为空，由商家后续填写
-                delivery.setDeliveryCompany(""); // 快递公司初始为空
-                delivery.setQuantity(1); // 中奖用户默认1件
+                // 1=待发货
+                delivery.setStatus(1);
+                // 快递单号初始为空，由商家后续填写
+                delivery.setTrackingNumber("");
+                // 快递公司初始为空
+                delivery.setDeliveryCompany("");
+                // 中奖用户默认1件
+                delivery.setQuantity(1);
 
                 // 插入发货记录
                 int result = deliveryMapper.insert(delivery);
@@ -772,7 +750,7 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
         // 查询项目详情（包含阶梯价格）
         SdCrowdfundingProject project = crowdfundingProjectMapper.selectSdCrowdfundingProjectByIdWithTieredPricing(id);
         if (project == null) {
-            throw new RuntimeException("众筹项目不存在");
+            throw new ServiceException("众筹项目不存在");
         }
 
         // 填充最新的用户信息（发起人和厂家）
@@ -833,7 +811,7 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
         Long currentUserId = LoginHelper.getUserId();
 
         // 查询当前用户的支持记录
-            LambdaQueryWrapper<SdCrowdfundingSupport> queryWrapper = new LambdaQueryWrapper<>();
+        LambdaQueryWrapper<SdCrowdfundingSupport> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(SdCrowdfundingSupport::getUserId, currentUserId)
                    .orderByDesc(SdCrowdfundingSupport::getCreateTime);
 
@@ -886,16 +864,11 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
             // 查询关联的样品发货记录
             try {
                 LambdaQueryWrapper<SdCrowdfundingSampleDelivery> deliveryQuery = new LambdaQueryWrapper<>();
-                deliveryQuery.eq(SdCrowdfundingSampleDelivery::getCrowdfundingProjectId, support.getProjectId())
-                           .eq(SdCrowdfundingSampleDelivery::getRecipientUserId, support.getUserId());
-
+                deliveryQuery.eq(SdCrowdfundingSampleDelivery::getCrowdfundingProjectId, support.getProjectId()).eq(SdCrowdfundingSampleDelivery::getRecipientUserId, support.getUserId());
                 List<SdCrowdfundingSampleDelivery> deliveries = deliveryMapper.selectList(deliveryQuery);
-                if (deliveries != null && !deliveries.isEmpty()) {
+                if (CollectionUtil.isNotEmpty(deliveries)) {
                     // 如果有多个发货记录，取最新的一个
-                    SdCrowdfundingSampleDelivery latestDelivery = deliveries.stream()
-                        .max(java.util.Comparator.comparing(SdCrowdfundingSampleDelivery::getCreateTime))
-                        .orElse(null);
-
+                    SdCrowdfundingSampleDelivery latestDelivery = deliveries.stream().max(Comparator.comparing(SdCrowdfundingSampleDelivery::getCreateTime)).orElse(null);
                     if (latestDelivery != null) {
                         vo.setTrackingNumber(latestDelivery.getTrackingNumber());
                         vo.setDeliveryStatus(latestDelivery.getStatus());
@@ -905,7 +878,6 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
             } catch (Exception e) {
                 log.warn("查询发货记录失败: 支持记录ID={}, 错误={}", support.getId(), e.getMessage());
             }
-
             return vo;
         }).collect(java.util.stream.Collectors.toList());
     }
@@ -917,7 +889,7 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
         // 查询当前用户的样品发货记录
         List<SdCrowdfundingSampleDelivery> deliveries = deliveryMapper.selectByRecipientUserId(currentUserId);
 
-        // 转换为VO
+        // 转换成vo
         return deliveries.stream().map(delivery -> {
             SampleDeliveryListVO vo = new SampleDeliveryListVO();
             BeanUtils.copyProperties(delivery, vo);
@@ -952,15 +924,10 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
     @Override
     public List<CrowdfundingDrawVO> getMyDraws() {
         Long currentUserId = LoginHelper.getUserId();
-
         // 查询当前用户的抽奖记录（已参与抽奖的记录）
         LambdaQueryWrapper<SdCrowdfundingSupport> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(SdCrowdfundingSupport::getUserId, currentUserId)
-                   .gt(SdCrowdfundingSupport::getDrawStatus, 0) // 已参与抽奖
-                   .orderByDesc(SdCrowdfundingSupport::getCreateTime);
-
+        queryWrapper.eq(SdCrowdfundingSupport::getUserId, currentUserId).gt(SdCrowdfundingSupport::getDrawStatus, 1).orderByDesc(SdCrowdfundingSupport::getCreateTime);
         List<SdCrowdfundingSupport> supports = supportMapper.selectList(queryWrapper);
-
         // 转换为VO
         return supports.stream().map(support -> {
             CrowdfundingDrawVO vo = new CrowdfundingDrawVO();
@@ -972,76 +939,70 @@ public class SdCrowdfundingProjectServiceImpl extends ServiceImpl<SdCrowdfunding
             vo.setIsWinner(support.getIsWinner() == 1);
             vo.setPrizeInfo(support.getPrizeInfo());
             vo.setCreateTime(support.getCreateTime());
-        return vo;
+            return vo;
         }).collect(java.util.stream.Collectors.toList());
     }
 
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public String createSupportOrder(CrowdfundingSupportDTO supportDTO) {
-        String orderNo;
+    public String createSupportOrder(CrowdfundingSupportDto supportDto) {
         try {
             // 1. 检查用户是否已经参与过该众筹项目
             LambdaQueryWrapper<SdCrowdfundingSupport> queryWrapper = new LambdaQueryWrapper<>();
-            queryWrapper.eq(SdCrowdfundingSupport::getProjectId, supportDTO.getProjectId())
-                       .eq(SdCrowdfundingSupport::getUserId, supportDTO.getUserId());
-
+            queryWrapper.eq(SdCrowdfundingSupport::getProjectId, supportDto.getProjectId()).eq(SdCrowdfundingSupport::getUserId, supportDto.getUserId());
             SdCrowdfundingSupport existingSupport = supportMapper.selectOne(queryWrapper);
             if (existingSupport != null) {
-                throw new RuntimeException("您已经参与过该众筹项目，每个用户只能参与一次打样众筹");
+                throw new ServiceException("您已经参与过该众筹项目，每个用户只能参与一次打样众筹");
             }
-
             // 2. 创建订单号
-            orderNo = OrderNumUtils.getOrderNum(new Date());
-            log.info("创建众筹支持订单: 订单号={}, 项目ID={}, 金额={}", orderNo, supportDTO.getProjectId(), supportDTO.getSupportAmount());
-
+            String orderNo = OrderNumUtils.getOrderNum(new Date());
             // 3. 落库参与者数据（设置订单号）
-            SdCrowdfundingSupport support = new SdCrowdfundingSupport();
-            support.setProjectId(supportDTO.getProjectId());
-            support.setUserId(supportDTO.getUserId());
-            support.setUserName(supportDTO.getUserName());
-            support.setOrderNo(orderNo); // 设置订单号
-            support.setSupportAmount(supportDTO.getSupportAmount());
-            support.setDrawStatus(0); // 未参与抽奖
-            support.setIsWinner(0); // 未中奖
-            support.setStatus(CrowdfundingSupportStatus.CANCELLED.getCode()); // 初始状态为已取消，支付成功后会更新为正常
-            // 设置收货信息
-            support.setReceiverName(supportDTO.getReceiverName());
-            support.setReceiverPhone(supportDTO.getReceiverPhone());
-            support.setReceiverAddress(supportDTO.getReceiverAddress());
-            support.setReceiverArea(supportDTO.getReceiverArea());
-            // createBy, createTime, updateBy, updateTime 字段由 BaseEntity 自动填充
-
+            SdCrowdfundingSupport support = getSdCrowdfundingSupport(supportDto, orderNo);
             supportMapper.insert(support);
-            log.info("参与者数据落库成功: 订单号={}, 收货信息: {}，{}，{}", orderNo,
-                support.getReceiverName(), support.getReceiverPhone(), support.getReceiverAddress());
-
             // 4. 扣除订单金额（Redis）
-            boolean deducted = crowdfundingRedisService.tryDeductAmount(supportDTO.getProjectId(), supportDTO.getSupportAmount());
+            boolean deducted = crowdfundingRedisService.tryDeductAmount(supportDto.getProjectId(), supportDto.getSupportAmount());
             if (!deducted) {
-                throw new RuntimeException("众筹金额不符，无法创建订单");
+                throw new ServiceException("众筹金额不符，无法创建订单");
             }
-            log.info("Redis金额扣除成功: 订单号={}, 金额={}", orderNo, supportDTO.getSupportAmount());
-
             // 5. 投递到MQ
             crowdfundingMqService.sendPaymentOrderMessage(orderNo, support);
-            log.info("MQ消息投递成功: 订单号={}", orderNo);
-
             // 6. 返回订单号
             return orderNo;
-
-        } catch (Exception e) {
-            // 根据异常类型决定是否抛出运行时异常
-            if (e instanceof RuntimeException) {
-                throw (RuntimeException) e;
-                } else {
-                throw new RuntimeException("创建订单失败: " + e.getMessage(), e);
-            }
+        }
+        catch (Exception e) {
+            // 手动回滚
+            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+            log.error("[众筹][创建订单]>>>>>>>>>创建订单失败：", e);
+            throw new ServiceException("创建订单失败："+e.getMessage());
         }
     }
 
-
+    /**
+     * 构建众筹参与记录实体
+     */
+    @NotNull
+    private static SdCrowdfundingSupport getSdCrowdfundingSupport(CrowdfundingSupportDto supportDTO, String orderNo) {
+        SdCrowdfundingSupport support = new SdCrowdfundingSupport();
+        support.setProjectId(supportDTO.getProjectId());
+        support.setUserId(supportDTO.getUserId());
+        support.setUserName(supportDTO.getUserName());
+        // 设置订单号
+        support.setOrderNo(orderNo);
+        support.setSupportAmount(supportDTO.getSupportAmount());
+        // 未参与抽奖
+        support.setDrawStatus(0);
+        // 未中奖
+        support.setIsWinner(0);
+        // 初始状态为已取消，支付成功后会更新为正常
+        support.setStatus(CrowdfundingSupportStatus.CANCELLED.getCode());
+        // 设置收货信息
+        support.setReceiverName(supportDTO.getReceiverName());
+        support.setReceiverPhone(supportDTO.getReceiverPhone());
+        support.setReceiverAddress(supportDTO.getReceiverAddress());
+        support.setReceiverArea(supportDTO.getReceiverArea());
+        return support;
+    }
 
 
     @Override

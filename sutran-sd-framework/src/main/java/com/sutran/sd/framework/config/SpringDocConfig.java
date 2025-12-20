@@ -158,7 +158,7 @@ public class SpringDocConfig {
     public GroupedOpenApi authServiceApi() {
         return GroupedOpenApi.builder()
             .group("认证接口")
-            .pathsToMatch("/captchaSms","/v2/captchaSms","/captchaEmail","/captchaImage","/login","/bs-login","/pre-login","/sms-login","/bs-sms-login","/email-login","/bs-email-login","/xcx-login","/wx-mp-login","/logout","/getLoggerLevel","/changeLoggerLevel","/register")
+            .pathsToMatch("/captchaSms","/v2/captchaSms","/captchaEmail","/captchaImage","/login","/bs-login","/pre-login","/sms-login","/bs-sms-login","/email-login","/bs-email-login","/xcx-login","/wx-mp-login","/logout","/getLoggerLevel","/changeLoggerLevel","/register","/mp/js-ticket")
             .packagesToScan("com.sutran.sd.controller.web")
             .build();
     }

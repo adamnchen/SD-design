@@ -13,7 +13,7 @@ import java.math.BigDecimal;
  * @date 2025-10-10
  */
 @Data
-public class CrowdfundingSupportDTO {
+public class CrowdfundingSupportDto {
 
     /**
      * 众筹项目ID

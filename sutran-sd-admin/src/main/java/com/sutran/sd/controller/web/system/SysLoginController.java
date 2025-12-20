@@ -16,12 +16,12 @@ import com.sutran.sd.common.enums.DeviceType;
 import com.sutran.sd.common.enums.EncodeType;
 import com.sutran.sd.common.exception.ServiceException;
 import com.sutran.sd.common.helper.LoginHelper;
-import com.sutran.sd.draw.service.SdUserMsgService;
 import com.sutran.sd.framework.manager.EncryptorManager;
 import com.sutran.sd.system.domain.vo.RouterVo;
 import com.sutran.sd.system.service.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import me.chanjar.weixin.common.bean.WxJsapiSignature;
 import me.chanjar.weixin.common.error.WxErrorException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.validation.annotation.Validated;
@@ -47,7 +47,6 @@ public class SysLoginController {
     private final SysLoginService loginService;
     private final ISysMenuService menuService;
     private final ISysUserService userService;
-    private final SdUserMsgService sdUserMsgService;
     private final NoticeService noticeService;
     private final EncryptorManager encryptorManager;
     private final DictService dictService;
@@ -253,6 +252,18 @@ public class SysLoginController {
         // 生成令牌
         loginService.wxMpLogin(code, DeviceType.BS_PC,ajax);
         return R.ok(ajax);
+    }
+
+    /**
+     * 业务-获取微信公众号的jsapi_ticket
+     * @param url 当前页面url
+     * @return ticket
+     */
+    @SaIgnore
+    @GetMapping("/mp/js-ticket")
+    public R<WxJsapiSignature> getSignature(@NotBlank(message = "{xcx.code.not.blank}") @RequestParam String url) throws WxErrorException {
+        WxJsapiSignature signature = loginService.getSignature(url);
+        return R.ok("获取成功",signature);
     }
 
     /**

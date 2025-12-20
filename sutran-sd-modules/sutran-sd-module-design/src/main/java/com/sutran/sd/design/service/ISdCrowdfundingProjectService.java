@@ -5,7 +5,7 @@ import com.sutran.sd.common.core.page.TableDataInfo;
 import com.sutran.sd.design.domain.SdCrowdfundingProject;
 import com.sutran.sd.design.domain.SdCrowdfundingSupport;
 import com.sutran.sd.design.dto.CrowdfundingProjectSimpleCreateDTO;
-import com.sutran.sd.design.dto.CrowdfundingSupportDTO;
+import com.sutran.sd.design.dto.CrowdfundingSupportDto;
 import com.sutran.sd.design.vo.CrowdfundingProjectDetailVO;
 import com.sutran.sd.design.vo.CrowdfundingProjectListVO;
 import com.sutran.sd.design.vo.CrowdfundingSupportVO;
@@ -146,10 +146,10 @@ public interface ISdCrowdfundingProjectService {
     /**
      * 创建众筹支持订单
      *
-     * @param supportDTO 支持DTO
+     * @param supportDto 支持DTO
      * @return 订单号
      */
-    String createSupportOrder(CrowdfundingSupportDTO supportDTO);
+    String createSupportOrder(CrowdfundingSupportDto supportDto);
 
 
 

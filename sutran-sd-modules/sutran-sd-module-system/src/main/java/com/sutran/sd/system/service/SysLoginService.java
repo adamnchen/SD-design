@@ -33,6 +33,7 @@ import com.sutran.sd.common.utils.spring.SpringUtils;
 import com.sutran.sd.system.mapper.SysUserMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import me.chanjar.weixin.common.bean.WxJsapiSignature;
 import me.chanjar.weixin.common.bean.oauth2.WxOAuth2AccessToken;
 import me.chanjar.weixin.common.error.WxErrorException;
 import me.chanjar.weixin.mp.api.WxMpService;
@@ -40,7 +41,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 
-import javax.annotation.Resource;
 import java.time.Duration;
 import java.util.Date;
 import java.util.List;
@@ -62,9 +62,8 @@ public class SysLoginService {
     private final SysUserMapper userMapper;
     private final ISysConfigService configService;
     private final SysPermissionService permissionService;
+    private final WxMpService wxMpService;
 
-    @Resource
-    private WxMpService wxMpService;
     @Value("${user.password.maxRetryCount}")
     private Integer maxRetryCount;
     @Value("${user.password.lockTime}")
@@ -541,5 +540,9 @@ public class SysLoginService {
         } catch (Exception e) {
             System.err.println("为第三方登录用户 " + userId + " 创建默认身份标签失败: " + e.getMessage());
         }
+    }
+
+    public WxJsapiSignature getSignature(String url) throws WxErrorException {
+        return wxMpService.createJsapiSignature(url);
     }
 }

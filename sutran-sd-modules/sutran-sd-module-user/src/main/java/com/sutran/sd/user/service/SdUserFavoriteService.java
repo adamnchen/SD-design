@@ -5,13 +5,16 @@ import com.sutran.sd.common.core.domain.PageQuery;
 import com.sutran.sd.common.core.domain.dto.UserFavoriteDTO;
 import com.sutran.sd.common.core.domain.vo.UserFavoriteVO;
 
+import java.util.List;
+import java.util.Map;
+
 /**
  * 用户收藏服务接口
  *
  * @author sutran
  * @date 2025-11-07
  */
-public interface IUserFavoriteService {
+public interface SdUserFavoriteService {
 
     /**
      * 添加收藏
@@ -60,5 +63,13 @@ public interface IUserFavoriteService {
      * @return 是否已收藏
      */
     boolean isFavorite(Long userId, Integer favoriteType, Long targetId);
+
+    /**
+     * 获取作品对应的收藏数量
+     * @param favoriteType  收藏类型[1-模型,2-作品]
+     * @param workIds       作品ID集合
+     * @return  收藏数量Map
+     */
+    Map<Long, Long> countFavoritesByTypeAndIds(int favoriteType, List<Long> workIds);
 }
 

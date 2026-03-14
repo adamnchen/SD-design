@@ -90,7 +90,7 @@ public class SdDrawController {
      * [通用]根据taskId获取当前用户绘图数据列表
      */
     @GetMapping("/model-file/list")
-    public R<List<SdUserModelFileVo>> userModelFileList(@RequestParam String taskId) {
+    public R<List<SdUserWorkVo>> userModelFileList(@RequestParam String taskId) {
         return R.ok(sdWebuiApiService.listUserModelFile(taskId));
     }
 
@@ -227,7 +227,7 @@ public class SdDrawController {
      * @return 任务详情
      */
     @GetMapping("/comfy/model/history-task")
-    public R<List<ComfyUserModelFileVo>> getComfyModelHistoryTask(@RequestParam String taskId) {
+    public R<List<ComfyUserWorkVo>> getComfyModelHistoryTask(@RequestParam String taskId) {
         return R.ok(sdComfyuiApiService.getComfyImageOutputByTaskId(taskId));
     }
 

@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sutran.sd.draw.mapper.SdUserWorkCommentMapper">
+
+    <resultMap type="com.sutran.sd.draw.domain.vo.SdUserWorkCommentVo" id="SdUserWorkCommentVoMap">
+        <result property="id" column="id" jdbcType="INTEGER"/>
+        <result property="parentId" column="parent_id" jdbcType="INTEGER"/>
+        <result property="workId" column="work_id" jdbcType="INTEGER"/>
+        <result property="userId" column="user_id" jdbcType="INTEGER"/>
+        <result property="nickName" column="nick_name" jdbcType="VARCHAR"/>
+        <result property="avatar" column="avatar" jdbcType="VARCHAR"/>
+        <result property="toId" column="to_id" jdbcType="INTEGER"/>
+        <result property="toUserId" column="to_user_id" jdbcType="INTEGER"/>
+        <result property="toNickName" column="to_nick_name" jdbcType="VARCHAR"/>
+        <result property="toAvatar" column="to_avatar" jdbcType="VARCHAR"/>
+        <result property="content" column="content" jdbcType="VARCHAR"/>
+        <result property="createTime" column="create_time" jdbcType="TIMESTAMP"/>
+        <result property="status" column="status" jdbcType="INTEGER"/>
+    </resultMap>
+
+    <select id="selectListById" resultType="com.sutran.sd.draw.domain.vo.SdUserWorkCommentVo">
+        SELECT A.id,
+               A.parent_id,
+               A.work_id,
+               A.user_id,
+               B.nick_name,
+               B.avatar,
+               A.to_id,
+               A.to_user_id,
+               C.nick_name AS to_nick_name,
+               C.avatar AS to_avatar,
+               A.content,
+               A.create_time,
+               A.status
+        FROM sd_user_work_comment AS A
+            INNER JOIN sys_user AS B ON A.user_id=B.user_id
+            INNER JOIN sys_user AS C ON A.to_user_id=B.user_id
+        WHERE A.work_id=#{workId} AND A.status=#{status}
+    </select>
+
+
+</mapper>
+

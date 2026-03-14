@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sutran.sd.draw.mapper.SdUserWorkMapper">
+
+    <resultMap type="com.sutran.sd.draw.domain.vo.SdUserWorkVo" id="SdUserWorkVoMap">
+        <result property="id" column="id" jdbcType="INTEGER"/>
+        <result property="taskId" column="task_id" jdbcType="INTEGER"/>
+        <result property="category" column="category" jdbcType="INTEGER"/>
+        <result property="isRedraw" column="is_redraw" jdbcType="INTEGER"/>
+        <result property="prompt" column="prompt" jdbcType="VARCHAR"/>
+        <result property="promptDesc" column="prompt_desc" jdbcType="VARCHAR"/>
+        <result property="promptZh" column="prompt_zh" jdbcType="VARCHAR"/>
+        <result property="negativePrompt" column="negative_prompt" jdbcType="VARCHAR"/>
+        <result property="negativePromptZh" column="negative_prompt_zh" jdbcType="VARCHAR"/>
+        <result property="modelStrength" column="model_strength" jdbcType="VARCHAR"/>
+        <result property="initImg" column="init_img" jdbcType="VARCHAR"/>
+        <result property="loraModelUrl" column="lora_model_url" jdbcType="VARCHAR"/>
+        <result property="fileUrl" column="file_url" jdbcType="VARCHAR"/>
+        <result property="fileInfo" column="file_info" jdbcType="VARCHAR"/>
+        <result property="fileParameters" column="file_parameters" jdbcType="VARCHAR"/>
+        <result property="modelName" column="model_name" jdbcType="VARCHAR"/>
+        <result property="loraModelId" column="lora_model_id" jdbcType="INTEGER"/>
+        <result property="loraTitle" column="lora_title" jdbcType="VARCHAR"/>
+        <result property="loraTitleZh" column="lora_title_zh" jdbcType="VARCHAR"/>
+        <result property="loraInfo" column="lora_info" jdbcType="VARCHAR"/>
+        <result property="belongUserId" column="belong_user_id" jdbcType="INTEGER"/>
+        <result property="belongUserName" column="belong_user_name" jdbcType="VARCHAR"/>
+        <result property="crtTime" column="crt_time" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <delete id="batchDelByIds">
+        DELETE FROM sd_user_work WHERE id IN <foreach collection="ids" open="(" item="id" separator="," close=")">#{id}</foreach> AND belong_user_id=#{userId}
+    </delete>
+
+    <delete id="removeUserWorkByTaskId">
+        DELETE FROM sd_user_work WHERE task_id=#{taskId}
+    </delete>
+
+    <delete id="deleteTaskById">
+        DELETE FROM sd_user_task WHERE task_id=#{taskId} AND belong_user_id=#{userId}
+    </delete>
+
+    <select id="selectListByTaskIdsAndUserId" resultMap="SdUserWorkVoMap">
+        SELECT * FROM sd_user_work WHERE task_id IN <foreach collection="taskIds" open="(" item="taskId" separator="," close=")">#{taskId}</foreach> AND belong_user_id=#{userId}
+    </select>
+
+    <select id="selectAllList" resultMap="SdUserWorkVoMap">
+        SELECT A.*,B.url AS lora_model_url
+        FROM sd_user_work AS A LEFT JOIN sd_user_model AS B ON B.id=A.lora_model_id
+        WHERE A.belong_user_id=#{userId} AND A.category IN (0,1,3,4)
+        <if test="taskId!=null and taskId!=''">AND A.task_id=#{taskId}</if>
+        <if test="category!=null">AND A.category=#{category}</if>
+        <if test="startTime!=null and startTime!='' and endTime!=null and endTime!=''">AND A.crt_time BETWEEN CONCAT(#{startTime},' 00:00:00') AND CONCAT(#{endTime},' 23:59:59')</if>
+        <if test="keyword!=null and keyword!=''">AND (A.prompt_zh LIKE CONCAT('%',#{keyword},'%') OR A.lora_title LIKE CONCAT('%',#{keyword},'%'))</if>
+        ORDER BY A.id DESC
+    </select>
+
+    <select id="selectFirstUrlByTaskIdAndUserId" resultMap="SdUserWorkVoMap">
+        SELECT A.*,B.url AS lora_model_url
+        FROM sd_user_work AS A LEFT JOIN sd_user_model AS B ON B.id=A.lora_model_id
+        WHERE A.task_id=#{taskId} AND A.belong_user_id=#{userId} ORDER BY A.id LIMIT 1
+    </select>
+
+    <select id="selectAllListByTaskId" resultMap="SdUserWorkVoMap">
+        SELECT A.*,B.url AS lora_model_url
+        FROM sd_user_work AS A LEFT JOIN sd_user_model AS B ON B.id=A.lora_model_id
+        WHERE A.belong_user_id=#{userId} AND A.task_id=#{taskId}
+    </select>
+
+    <select id="listImgUrlByTaskId" resultType="java.lang.String">
+        SELECT DISTINCT file_url FROM sd_user_work WHERE task_id=#{taskId} AND belong_user_id=#{userId}
+    </select>
+
+    <select id="listImgUrlByIds" resultType="java.lang.String">
+        SELECT DISTINCT file_url FROM sd_user_work WHERE id IN <foreach collection="ids" open="(" item="id" separator="," close=")">#{id}</foreach>
+    </select>
+
+    <select id="selectModelTestDataAndTaskInfo" resultType="com.alibaba.fastjson.JSONObject">
+        SELECT A.file_url AS gridImgUrl,B.task_id AS taskId,B.status AS taskStatus,
+               DATE_FORMAT(B.start_time,'%Y-%m-%d %H:%i:%s') AS startTime,
+               DATE_FORMAT(B.end_time,'%Y-%m-%d %H:%i:%s') AS endTime,
+               DATE_FORMAT(B.crt_time,'%Y-%m-%d %H:%i:%s') AS createTime,
+               B.reason AS failReason
+        FROM sd_user_work AS A LEFT JOIN sd_user_task AS B ON A.task_id=B.task_id AND B.category=2
+        WHERE A.lora_model_id=#{loraModelId} AND A.category=2
+        ORDER BY A.id DESC
+    </select>
+
+    <select id="selectTaskIdsByIds" resultType="java.lang.String">
+        SELECT DISTINCT task_id FROM sd_user_work WHERE id IN <foreach collection="ids" open="(" item="id" separator="," close=")">#{id}</foreach>
+    </select>
+
+
+
+
+    <sql id="selectSdUserModelFileVo">
+        select id, task_id, category, is_redraw, prompt, prompt_zh, prompt_desc, negative_prompt, negative_prompt_zh, model_strength, init_img, file_url, file_info, file_parameters, model_name, is_public, public_time, lora_model_id, lora_title, lora_title_zh, lora_info, belong_user_id, belong_user_name, crt_time from sd_user_work
+    </sql>
+
+    <select id="selectSdUserWorkListByUserId" parameterType="Long" resultMap="SdUserWorkVoMap">
+        <include refid="selectSdUserModelFileVo"/>
+        where belong_user_id = #{userId}
+        order by crt_time desc
+    </select>
+
+    <select id="selectSdUserWorkListByUserIdAndCategory" resultMap="SdUserWorkVoMap">
+        <include refid="selectSdUserModelFileVo"/>
+        where belong_user_id = #{userId}
+        <if test="category != null">
+            and category = #{category}
+        </if>
+        order by crt_time desc
+    </select>
+
+    <insert id="insertSdUserWork" parameterType="com.sutran.sd.draw.domain.SdUserWork" useGeneratedKeys="true" keyProperty="id">
+        insert into sd_user_work
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="taskId != null">task_id,</if>
+            <if test="category != null">category,</if>
+            <if test="isRedraw != null">is_redraw,</if>
+            <if test="prompt != null and prompt != ''">prompt,</if>
+            <if test="promptZh != null and promptZh != ''">prompt_zh,</if>
+            <if test="promptDesc != null and promptDesc != ''">prompt_desc,</if>
+            <if test="negativePrompt != null and negativePrompt != ''">negative_prompt,</if>
+            <if test="negativePromptZh != null and negativePromptZh != ''">negative_prompt_zh,</if>
+            <if test="modelStrength != null and modelStrength != ''">model_strength,</if>
+            <if test="initImg != null and initImg != ''">init_img,</if>
+            <if test="fileUrl != null and fileUrl != ''">file_url,</if>
+            <if test="fileInfo != null and fileInfo != ''">file_info,</if>
+            <if test="fileParameters != null and fileParameters != ''">file_parameters,</if>
+            <if test="modelName != null and modelName != ''">model_name,</if>
+            <if test="isPublic != null">is_public,</if>
+            <if test="publicTime != null">public_time,</if>
+            <if test="loraModelId != null">lora_model_id,</if>
+            <if test="loraTitle != null and loraTitle != ''">lora_title,</if>
+            <if test="loraTitleZh != null and loraTitleZh != ''">lora_title_zh,</if>
+            <if test="loraInfo != null and loraInfo != ''">lora_info,</if>
+            <if test="belongUserId != null">belong_user_id,</if>
+            <if test="belongUserName != null and belongUserName != ''">belong_user_name,</if>
+            <if test="crtTime != null">crt_time,</if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="taskId != null">#{taskId},</if>
+            <if test="category != null">#{category},</if>
+            <if test="isRedraw != null">#{isRedraw},</if>
+            <if test="prompt != null and prompt != ''">#{prompt},</if>
+            <if test="promptZh != null and promptZh != ''">#{promptZh},</if>
+            <if test="promptDesc != null and promptDesc != ''">#{promptDesc},</if>
+            <if test="negativePrompt != null and negativePrompt != ''">#{negativePrompt},</if>
+            <if test="negativePromptZh != null and negativePromptZh != ''">#{negativePromptZh},</if>
+            <if test="modelStrength != null and modelStrength != ''">#{modelStrength},</if>
+            <if test="initImg != null and initImg != ''">#{initImg},</if>
+            <if test="fileUrl != null and fileUrl != ''">#{fileUrl},</if>
+            <if test="fileInfo != null and fileInfo != ''">#{fileInfo},</if>
+            <if test="fileParameters != null and fileParameters != ''">#{fileParameters},</if>
+            <if test="modelName != null and modelName != ''">#{modelName},</if>
+            <if test="isPublic != null">#{isPublic},</if>
+            <if test="publicTime != null">#{publicTime},</if>
+            <if test="loraModelId != null">#{loraModelId},</if>
+            <if test="loraTitle != null and loraTitle != ''">#{loraTitle},</if>
+            <if test="loraTitleZh != null and loraTitleZh != ''">#{loraTitleZh},</if>
+            <if test="loraInfo != null and loraInfo != ''">#{loraInfo},</if>
+            <if test="belongUserId != null">#{belongUserId},</if>
+            <if test="belongUserName != null and belongUserName != ''">#{belongUserName},</if>
+            <if test="crtTime != null">#{crtTime},</if>
+        </trim>
+    </insert>
+
+    <update id="updatePublicByIdAndUser">
+        update sd_user_work
+        set is_public = #{isPublic},
+            public_time = #{publicTime}
+        where id = #{id} and belong_user_id = #{userId}
+    </update>
+
+
+    <delete id="deleteSdUserWorkById" parameterType="Long">
+        delete from sd_user_work where id = #{id}
+    </delete>
+
+    <delete id="deleteSdUserWorkByIds" parameterType="String">
+        delete from sd_user_work where id in
+        <foreach item="id" collection="array" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+</mapper>
+

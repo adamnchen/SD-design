@@ -7,7 +7,6 @@ import com.sutran.sd.common.core.service.NoticeService;
 import com.sutran.sd.common.utils.redis.RedisUtils;
 import com.sutran.sd.design.service.ISdPresaleProjectService;
 import com.sutran.sd.draw.domain.SdChannelData;
-import com.sutran.sd.draw.domain.vo.TrainTaskStatusVo;
 import com.sutran.sd.draw.service.*;
 import com.sutran.sd.pay.service.AliPayService;
 import com.sutran.sd.pay.service.PayOrderService;
@@ -33,7 +32,6 @@ import static com.sutran.sd.common.constant.CacheConstants.*;
 public class CommonJobEvent {
 
     private final SdTrainService sdTrainService;
-    private final SdWebuiApiService sdWebuiApiService;
     private final SdChannelDataService sdChannelDataService;
     private final SdDrawNodeService sdDrawNodeService;
     private final PayOrderService payOrderService;
@@ -41,90 +39,6 @@ public class CommonJobEvent {
     private final SdComfyuiApiService sdComfyuiApiService;
     private final NoticeService noticeService;
     private final ISdPresaleProjectService sdPresaleProjectService;
-
-    /**
-     * 定时处理训练任务V1
-     * 每10秒执行一次
-     */
-//    @Scheduled(cron="0/10 * * * * ?")
-    public void executeTrainProgressV1(){
-        Map<String, String> cacheMap = RedisUtils.getCacheMap(TRAIN_MODEL_PROGRESS_TASK_MAP_V1);
-        if (CollectionUtil.isEmpty(cacheMap)) {
-            return;
-        }
-        cacheMap.forEach((taskId, preTaskId) -> sdTrainService.trainProgress(taskId));
-    }
-
-    /**
-     * 定时处理训练任务V2
-     * 每10秒执行一次
-     */
-//    @Scheduled(cron="0/10 * * * * ?")
-    public void executeTrainProgressV2(){
-        Map<String, String> cacheMap = RedisUtils.getCacheMap(TRAIN_MODEL_PROGRESS_TASK_MAP_V2);
-        if (CollectionUtil.isEmpty(cacheMap)) {
-            return;
-        }
-        cacheMap.forEach((taskId, preTaskId) -> sdTrainService.trainProgressV2(taskId));
-    }
-
-    /**
-     * 定时处理预处理任务V1
-     * 每10秒执行一次
-     */
-//    @Scheduled(cron="0/10 * * * * ?")
-    public void executePreImgProgressV1(){
-        List<String> cacheList = RedisUtils.getCacheList(PRE_IMG_TASK_QUEUE_LIST_V1);
-        if (CollectionUtil.isEmpty(cacheList)) {
-            return;
-        }
-        for (String preTaskId : cacheList) {
-            sdTrainService.getPreImgProgress(preTaskId);
-        }
-    }
-
-    /**
-     * 定时处理预处理任务V2
-     * 每10秒执行一次
-     */
-//    @Scheduled(cron="0/10 * * * * ?")
-    public void executePreImgProgressV2(){
-        List<String> cacheList = RedisUtils.getCacheList(PRE_IMG_TASK_QUEUE_LIST_V2);
-        if (CollectionUtil.isEmpty(cacheList)) {
-            return;
-        }
-        for (String preTaskId : cacheList) {
-            sdTrainService.getPreImgProgressV2(preTaskId);
-        }
-    }
-
-    /**
-     * 定时拉取lora模型
-     * 每10分钟执行一次
-     */
-//    @Scheduled(cron="0 0/10 * * * ?")
-    public void executeRefreshLora(){
-        sdWebuiApiService.refreshLoraModels();
-    }
-
-    /**
-     * 定时清理标签翻译缓存
-     * 每5分钟执行一次
-     */
-//    @Scheduled(cron="0 0/5 * * * ?")
-    public void executeClearTranslateMap(){
-        Collection<String> keys = RedisUtils.keys(TRAIN_TAG_TRANSLATE_MAP+"*");
-        if (CollectionUtil.isEmpty(keys)) {
-            return;
-        }
-        for (String key : keys) {
-            String preTaskId = key.replace(TRAIN_TAG_TRANSLATE_MAP, "");
-            TrainTaskStatusVo taskStatus = sdTrainService.getSdTaskStatusOfJob(preTaskId);
-            if (taskStatus==null || taskStatus.getNewStatus()>4) {
-                RedisUtils.deleteMultiObject(TRAIN_TAG_TRANSLATE_MAP+preTaskId,TRAIN_ADDITION_LIST+preTaskId);
-            }
-        }
-    }
 
     /**
      * 定时推送消息
@@ -149,11 +63,11 @@ public class CommonJobEvent {
     }
 
     /**
-     * 定时处理支付订单超时的数据
+     * 定时处理h支付订单超时的数据
      * 每2分钟执行一次
      */
     @Scheduled(cron="0 0/2 * * * ?")
-    public void executeHandleMemberPayTimeout(){
+    public void executeHandlePayOrderTimeout(){
         try{
             Collection<String> outTradeNos = RedisUtils.getLeCacheZSet(PAY_ORDER_TASK, System.currentTimeMillis());
             if (CollectionUtil.isEmpty(outTradeNos)) {

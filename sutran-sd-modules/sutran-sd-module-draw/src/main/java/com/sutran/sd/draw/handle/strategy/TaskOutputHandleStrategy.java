@@ -9,7 +9,7 @@ import com.sutran.sd.common.utils.file.FileUtils;
 import com.sutran.sd.common.utils.redis.RedisUtils;
 import com.sutran.sd.draw.domain.pojo.ComfyTaskImage;
 import com.sutran.sd.draw.domain.vo.SdUserTaskVo;
-import com.sutran.sd.draw.service.SdUserModelFileService;
+import com.sutran.sd.draw.service.SdUserWorkService;
 import com.sutran.sd.draw.service.SdUserTaskService;
 import com.sutran.sd.draw.utils.JsonUtils;
 import com.sutran.sd.oss.core.OssClient;
@@ -38,7 +38,7 @@ import static com.sutran.sd.draw.constants.CommonKey.SD;
 public class TaskOutputHandleStrategy implements IComfyWebSocketTextHandleStrategy {
 
     private final SdUserTaskService sdUserTaskService;
-    private final SdUserModelFileService sdUserModelFileService;
+    private final SdUserWorkService sdUserWorkService;
     private final ISysOssService sysOssService;
 
     /**
@@ -89,7 +89,7 @@ public class TaskOutputHandleStrategy implements IComfyWebSocketTextHandleStrate
                 }
             }
             if (CollectionUtil.isNotEmpty(urlList)) {
-                sdUserModelFileService.asyncBatchInsert(task,urlList);
+                sdUserWorkService.asyncBatchInsert(task,urlList);
                 RedisUtils.setCacheMapValue(DRAW_TASK_PROGRESS, taskId, 100);
             }
         }

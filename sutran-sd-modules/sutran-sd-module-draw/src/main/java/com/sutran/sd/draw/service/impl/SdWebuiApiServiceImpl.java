@@ -93,7 +93,7 @@ public class SdWebuiApiServiceImpl implements SdWebuiApiService {
 
     private final SdUserModelService sdUserModelService;
     private final SdUserModelLogService sdUserModelLogService;
-    private final SdUserModelFileService sdUserModelFileService;
+    private final SdUserWorkService sdUserWorkService;
     private final SdUserTaskService sdUserTaskService;
     private final SdUserModelClassifyService sdUserModelClassifyService;
     private final ISysOssService sysOssService;
@@ -344,8 +344,8 @@ public class SdWebuiApiServiceImpl implements SdWebuiApiService {
                     vo.setConfig(JSONObject.parseObject(String.valueOf(vo.getConfig()), SdLoraModelVo.MetadataVo.class));
                 }
                 // 获取xyz测试数据集
-                List<JSONObject> taskList = sdUserModelFileService.selectModelTestDataAndTaskInfo(vo.getId());
-                vo.setTaskList(taskList);
+//                List<JSONObject> taskList = sdUserWorkService.selectModelTestDataAndTaskInfo(vo.getId());
+                vo.setTaskList(Collections.emptyList());
                 if (vo.getTitle().startsWith("user_")) {
                     vo.setPreTaskId(vo.getTitle().replace("user_",""));
                 }
@@ -463,18 +463,18 @@ public class SdWebuiApiServiceImpl implements SdWebuiApiService {
 
     /** 分页获取用户绘图图片数据 **/
     @Override
-    public TableDataInfo<SdUserModelFileVo> listUserModelFile(PageQuery pageQuery, SdUserModelFilePageDto dto) {
-        return sdUserModelFileService.listUserModelFile(pageQuery,LoginHelper.getUserId(),dto);
+    public TableDataInfo<SdUserWorkVo> listUserModelFile(PageQuery pageQuery, SdUserModelFilePageDto dto) {
+        return sdUserWorkService.listUserWork(pageQuery,LoginHelper.getUserId(),dto);
     }
     /** 根据任务ID获取用户绘图图片数据列表 **/
     @Override
-    public List<SdUserModelFileVo> listUserModelFile(String taskId) {
-        return sdUserModelFileService.listUserModelFile(taskId,LoginHelper.getUserId());
+    public List<SdUserWorkVo> listUserModelFile(String taskId) {
+        return sdUserWorkService.listUserWork(taskId,LoginHelper.getUserId());
     }
     /** 批量删除用户绘图图片数据 **/
     @Override
     public void removeUserModelFile(List<String> ids) {
-        sdUserModelFileService.removeUserModelFile(ids,LoginHelper.getUserId());
+        sdUserWorkService.removeUserWork(ids,LoginHelper.getUserId());
     }
 
 
@@ -516,14 +516,14 @@ public class SdWebuiApiServiceImpl implements SdWebuiApiService {
     @Transactional(rollbackFor = Exception.class)
     public void deleteTaskById(String taskId) {
         sdUserTaskService.deleteTaskByTaskId(taskId);
-        sdUserModelFileService.removeUserModelFileByTaskId(taskId);
+        sdUserWorkService.removeUserWorkByTaskId(taskId);
     }
 
 
     /** 批量下载指定绘图任务的绘图图片数据 **/
     @Override
     public void batchDownloadModelFile(String taskId, HttpServletResponse response) throws IOException {
-        List<String> imgUrls = sdUserModelFileService.listImgUrlByTaskId(taskId,LoginHelper.getUserId());
+        List<String> imgUrls = sdUserWorkService.listImgUrlByTaskId(taskId,LoginHelper.getUserId());
         if (CollectionUtil.isEmpty(imgUrls)) {
             return;
         }
@@ -532,7 +532,7 @@ public class SdWebuiApiServiceImpl implements SdWebuiApiService {
     /** 批量下载指定绘图图片数据 **/
     @Override
     public void batchDownloadUserModelFile(List<String> ids, HttpServletResponse response) throws IOException {
-        List<String> imgUrls = sdUserModelFileService.listImgUrlByIds(ids);
+        List<String> imgUrls = sdUserWorkService.listImgUrlByIds(ids);
         if (CollectionUtil.isEmpty(imgUrls)) {
             return;
         }
@@ -639,7 +639,7 @@ public class SdWebuiApiServiceImpl implements SdWebuiApiService {
     public void delXyzData(String taskId) {
         String gridUrl = sdUserTaskService.selectGridUrlByTaskId(taskId);
         sdUserTaskService.deleteTaskByTaskId(taskId);
-        sdUserModelFileService.removeUserModelFileByTaskId(taskId);
+        sdUserWorkService.removeUserWorkByTaskId(taskId);
         if (StrUtil.isNotEmpty(gridUrl)) {
             FileUtil.del(new File(gridUrl));
         }
@@ -932,7 +932,7 @@ public class SdWebuiApiServiceImpl implements SdWebuiApiService {
                         }
                     }
                     if (CollectionUtil.isNotEmpty(rs.getImages())) {
-                        sdUserModelFileService.asyncBatchInsert(rs,msg.getLong("userId"),msg.getString("userName"),loraInfo,msg.getString("modelName"), taskId, isTest?2:0, prompt, null, promptDesc, promptZh, negativePrompt, negativePromptZh, 0);
+                        sdUserWorkService.asyncBatchInsert(rs,msg.getLong("userId"),msg.getString("userName"),loraInfo,msg.getString("modelName"), taskId, isTest?2:0, prompt, null, promptDesc, promptZh, negativePrompt, negativePromptZh, 0);
                     }
                     // 更新进度状态
                     sdUserTaskService.completeWebuiTask(taskId,res.getTimeAsMillisecond());
@@ -1254,7 +1254,7 @@ public class SdWebuiApiServiceImpl implements SdWebuiApiService {
                         }
                     }
                     if (CollectionUtil.isNotEmpty(rs.getImages())) {
-                        sdUserModelFileService.asyncBatchInsert(rs,msg.getLong("userId"),msg.getString("userName"),loraInfo,msg.getString("modelName"), taskId, isTest?2:1, prompt, newInitImg, promptDesc, promptZh, negativePrompt, negativePromptZh, isRedraw);
+                        sdUserWorkService.asyncBatchInsert(rs,msg.getLong("userId"),msg.getString("userName"),loraInfo,msg.getString("modelName"), taskId, isTest?2:1, prompt, newInitImg, promptDesc, promptZh, negativePrompt, negativePromptZh, isRedraw);
                     }
                     // 更新进度状态
                     sdUserTaskService.completeWebuiTask(taskId,res.getTimeAsMillisecond());

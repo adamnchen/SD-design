@@ -7,6 +7,7 @@ import com.sutran.sd.common.core.domain.dto.BatchIdsDto;
 import com.sutran.sd.common.core.domain.vo.NoticeVo;
 import com.sutran.sd.common.core.page.TableDataInfo;
 import com.sutran.sd.common.core.service.NoticeService;
+import com.sutran.sd.common.enums.NoticeScopeType;
 import com.sutran.sd.common.helper.LoginHelper;
 import com.sutran.sd.common.utils.StringUtils;
 import com.sutran.sd.system.domain.SysNotice;
@@ -61,7 +62,7 @@ public class MsgController {
             msgVos.addAll(noticeVos);
             return R.ok(msgVos);
         }
-        if ("sys".equals(scope)) {
+        if (NoticeScopeType.sys.name().equals(scope)) {
             return R.ok(noticeService.selectNoticeList(5));
         }
         return R.ok(noticeService.selectLatestMsgList(LoginHelper.getUserId(),5));

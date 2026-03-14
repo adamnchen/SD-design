@@ -1,4 +1,4 @@
-package com.sutran.sd.design.vo;
+package com.sutran.sd.draw.domain.vo;
 
 import lombok.Data;
 
@@ -11,7 +11,7 @@ import java.util.Date;
  * @date 2025-10-11
  */
 @Data
-public class UserModelFileVO {
+public class UserWorkVo {
 
     /**
      * 数据ID
@@ -24,7 +24,7 @@ public class UserModelFileVO {
     private Long taskId;
 
     /**
-     * 分类[0-文生图，1-图生图]
+     * 任务类型[0-SD文生图,1-SD图生图,2-测试,3-Comfy生图,4-工具修复]
      */
     private Integer category;
 
@@ -154,6 +154,15 @@ public class UserModelFileVO {
     private Integer isPublic;
 
     /**
+     * 评论数量
+     */
+    private Long commentCount;
+    /**
+     * 收藏数量
+     */
+    private Long favoriteCount;
+
+    /**
      * 获取分类名称
      */
     public String getCategoryName() {
@@ -162,9 +171,15 @@ public class UserModelFileVO {
         }
         switch (category) {
             case 0:
-                return "文生图";
+                return "WEBUI文生图";
             case 1:
-                return "图生图";
+                return "WEBUI图生图";
+            case 2:
+                return "xyz 测试";
+            case 3:
+                return "ComfyUI生图";
+            case 4:
+                return "工具修复";
             default:
                 return "未知";
         }

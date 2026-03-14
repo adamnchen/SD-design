@@ -218,14 +218,6 @@ springdoc:
         type: APIKEY
         in: HEADER
         name: ${sa-token.token-name}
-  #这里定义了两个分组，可定义多个，也可以不定义
-#  group-configs:
-#    - group: 1.系统模块
-#      packages-to-scan: com.sutran.sd.web
-#    - group: 2.代码生成模块
-#      packages-to-scan: com.sutran.sd.generator
-#    - group: 3.SD模块
-#      packages-to-scan: com.sutran.sd.sdapi
 
 # 防止XSS攻击
 xss:
@@ -305,19 +297,17 @@ spring:
           driverClassName: com.mysql.cj.jdbc.Driver
           # jdbc 所有参数配置参考 https://lionli.blog.csdn.net/article/details/122018562
           # rewriteBatchedStatements=true 批处理优化 大幅提升批量插入更新删除性能(对数据库有性能损耗 使用批量操作应考虑性能问题)
-          url: jdbc:mysql://localhost:3306/sutran-sd-v1?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=true&serverTimezone=GMT%2B8&autoReconnect=true&rewriteBatchedStatements=true
-#          url: jdbc:mysql://106.15.90.128:9104/sutran-sd-v1?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=true&serverTimezone=GMT%2B8&autoReconnect=true&rewriteBatchedStatements=true
+          url: jdbc:mysql://192.168.3.7:3306/sutran-sd-v1?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=true&serverTimezone=GMT%2B8&autoReconnect=true&rewriteBatchedStatements=true
           username: root
-          password: c20040902
-#          password: sd2024@.
+          password: zhujun1995!@#$%
         # 从库数据源
         slave:
           lazy: true
           type: ${spring.datasource.type}
           driverClassName: com.mysql.cj.jdbc.Driver
-          url: jdbc:mysql://localhost:3306/ry-vue?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=true&serverTimezone=GMT%2B8&autoReconnect=true&rewriteBatchedStatements=true
-          username: root
-          password: c20040902
+          url: jdbc:mysql://192.168.3.7:3306/ry-vue?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=true&serverTimezone=GMT%2B8&autoReconnect=true&rewriteBatchedStatements=true
+          username:
+          password:
       hikari:
         # 最大连接池数量
         maxPoolSize: 20
@@ -338,16 +328,13 @@ spring:
 spring:
   redis:
     # 地址
-    host: localhost
-#    host: 106.15.90.128
+    host: 192.168.3.7
     # 端口，默认为6379
     port: 6379
-#    port: 9108
     # 数据库索引
     database: 5
     # 密码(如没有密码请注释掉)
-    #password:
-#    password: sd2024@.
+    password: 123456
     # 连接超时时间
     timeout: 10s
     # 是否开启ssl
@@ -378,8 +365,7 @@ redisson:
 --- # rabbitmq配置
 spring:
   rabbitmq:
-    host: localhost
-#    host: 192.168.3.48
+    host: 192.168.3.7
     port: 5672
     username: admin
     password: 123456
@@ -468,7 +454,7 @@ wx:
       type: RedisTemplate
       key-prefix: WX_MP
       redis:
-        host: 127.0.0.1
+        host: 192.168.3.7
         port: 6379
         password: 123456
         database: 5
@@ -526,19 +512,16 @@ ali:
     # 支付宝公钥，通过应用公钥上传到支付宝开放平台换取支付宝公钥(如果是证书模式，公钥与私钥在CSR目录)
     publicKey:
     # 应用公钥证书 (证书模式必须)
-#    appCertPath: D:\project\java_project\sutran-sd\cert1\appPublicCert.crt
-    appCertPath: C:\Users\26433\Desktop\sutran-sd\cert\appCertPublicKey.crt
+    appCertPath: D:\project\java_project\sutran-sd\cert\appCertPublicKey.crt
     # 支付宝公钥证书 (证书模式必须)
-#    aliPayCertPath: D:\project\java_project\sutran-sd\cert1\alipayPublicCert.crt
-    aliPayCertPath: C:\Users\26433\Desktop\sutran-sd\cert\alipayCertPublicKey.crt
+    aliPayCertPath: D:\project\java_project\sutran-sd\cert\alipayCertPublicKey.crt
     # 支付宝根证书 (证书模式必须)
-#    aliPayRootCertPath: D:\project\java_project\sutran-sd\cert1\alipayRootCert.crt
-    aliPayRootCertPath: C:\Users\26433\Desktop\sutran-sd\cert\alipayRootCert.crt
+    aliPayRootCertPath: D:\project\java_project\sutran-sd\cert\alipayRootCert.crt
     # 支付宝支付网关
 #    serverUrl: https://openapi-sandbox.dl.alipaydev.com/gateway.do
     serverUrl: https://openapi.alipay.com/gateway.do
     # 外网访问项目的域名，支付通知中会使用
-    domain: http://7178d8fa.r11.cpolar.top
+    domain: http://180.184.98.84:9021
 # MeiliSearch配置
 meilisearch:
   host: http://localhost:7700

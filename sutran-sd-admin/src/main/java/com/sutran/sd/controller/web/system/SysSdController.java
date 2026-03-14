@@ -48,6 +48,7 @@ public class SysSdController extends BaseController {
      * SD 大模型-获取基础大模型列表
      */
     @GetMapping("/checkpoint/list")
+    @Deprecated
     public R<List<CheckPointVo>> listCheckpointModels() {
         return R.ok(sdWebuiApiService.listCheckpointModels());
     }
@@ -56,13 +57,14 @@ public class SysSdController extends BaseController {
      * SD 大模型-切换模基础大模型
      */
     @GetMapping("/checkpoint/option")
+    @Deprecated
     public R<List<CheckPointVo>> checkpointOptions(@RequestParam("title") String title) {
         sdWebuiApiService.checkpointOptions(title);
         return R.ok();
     }
 
     /**
-     * SD Lora模型-查询列表(模型关联的测试任务、xyz数据)
+     * [通用]Lora模型-查询列表
      */
     @GetMapping("/lora/list")
     public TableDataInfo<SdUserModelVo> listLoraModelsOfTestTaskAndTrainData(SdUserModelDto dto) {
@@ -148,7 +150,7 @@ public class SysSdController extends BaseController {
      *  SD-获取指定任务下的全部绘图数据列表
      */
     @GetMapping("/model-file/list")
-    public R<List<SdUserModelFileVo>> userModelFileList(@RequestParam String taskId) {
+    public R<List<SdUserWorkVo>> userModelFileList(@RequestParam String taskId) {
         return R.ok(sdWebuiApiService.listUserModelFile(taskId));
     }
 

@@ -3,7 +3,7 @@ package com.sutran.sd.draw.service;
 import com.sutran.sd.draw.domain.SdDrawNode;
 import com.sutran.sd.draw.domain.bo.ComfyModelTaskSubmitBo;
 import com.sutran.sd.draw.domain.pojo.*;
-import com.sutran.sd.draw.domain.vo.ComfyUserModelFileVo;
+import com.sutran.sd.draw.domain.vo.ComfyUserWorkVo;
 import com.sutran.sd.draw.domain.vo.ComfyuiImageToolVo;
 import com.sutran.sd.draw.domain.vo.ComfyuiProgressVo;
 import com.sutran.sd.draw.enums.ImageType;
@@ -50,7 +50,7 @@ public interface SdComfyuiApiService {
      * @param taskId 任务id
      * @return 任务详情
      */
-    List<ComfyUserModelFileVo> getComfyImageOutputByTaskId(String taskId);
+    List<ComfyUserWorkVo> getComfyImageOutputByTaskId(String taskId);
 
     /**
      * 获取任务进度

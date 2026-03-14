@@ -305,9 +305,20 @@ public class SdTrainController {
     }
 
     /**
-     * [FluxGym]当前用户正在训练的任务ID
+     * [FluxGym]候补处理训练后的模型文件
+     * @param taskId 任务ID
      */
     @ApiOperationSupport(order = 17)
+    @PostMapping("/fluxgym/deal-model-file")
+    public R<String> dealFluxgymTrainModelFile(@RequestParam String taskId){
+        sdTrainService.dealFluxgymTrainModelFile(taskId);
+        return R.ok("操作成功");
+    }
+
+    /**
+     * [FluxGym]当前用户正在训练的任务ID
+     */
+    @ApiOperationSupport(order = 18)
     @GetMapping("/fluxgym/doing-task")
     public R<String> getDoingTask(){
         return R.ok("操作成功",sdTrainService.getDoingFluxgymTask(LoginHelper.getUserId()));
@@ -318,7 +329,7 @@ public class SdTrainController {
      * @param newStatus 任务状态[0-预处理队列中,1-预处理中,2-未训练,3-训练队列中,4-训练中,5-训练完成,6-训练失败]
      * @return 任务集合
      */
-    @ApiOperationSupport(order = 18)
+    @ApiOperationSupport(order = 19)
     @GetMapping("/fluxgym/my-task/page")
     public TableDataInfo<TrainTaskVo> getFluxgymTrainTasks(@RequestParam(required = false) Integer newStatus,
                                                            @RequestParam(defaultValue = "1") int pageNum,
@@ -333,7 +344,7 @@ public class SdTrainController {
      * 测试消息推送
      */
     @PostMapping("/test-msg")
-    @ApiOperationSupport(order = 19)
+    @ApiOperationSupport(order = 20)
     @SaIgnore
     public void testMsg(@RequestBody WxMsgDto data) throws WxErrorException {
         WxMpTemplateMessage message = WxMpTemplateMessage.builder().toUser(data.getOpenId()).templateId(data.getTemplateId()).url(data.getUrl()).build();

@@ -35,7 +35,7 @@
         <dynamic-ds.version>3.5.2</dynamic-ds.version>
         <alibaba-ttl.version>2.14.2</alibaba-ttl.version>
         <lombok.version>1.18.30</lombok.version>
-        <bouncycastle.version>1.72</bouncycastle.version>
+        <bouncycastle.version>1.78.1</bouncycastle.version>
         <!-- 离线IP地址定位库 -->
         <ip2region.version>2.7.0</ip2region.version>
 
@@ -62,6 +62,7 @@
         <pinyin4j.version>2.5.0</pinyin4j.version>
         <!-- Java WebSocket-->
         <java-websocket.version>1.5.6</java-websocket.version>
+        <commons-text.version>1.10.0</commons-text.version>
     </properties>
 
     <!-- 依赖声明 -->
@@ -341,6 +342,12 @@
                 <groupId>com.alibaba</groupId>
                 <artifactId>fastjson</artifactId>
                 <version>${fastjson.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-text</artifactId>
+                <version>${commons-text.version}</version>
             </dependency>
 
             <!-- 离线IP地址定位库 ip2region -->

@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -72,6 +73,8 @@ public class TableDataInfo<T> implements Serializable {
         TableDataInfo<T> rspData = new TableDataInfo<>();
         rspData.setCode(HttpStatus.HTTP_OK);
         rspData.setMsg("查询成功");
+        rspData.setTotal(0);
+        rspData.setRows(Collections.emptyList());
         return rspData;
     }
 

@@ -209,6 +209,17 @@ public class SysUserServiceImpl implements ISysUserService, UserService {
     }
 
     /**
+     * 根据用户ID列表查询用户信息
+     * @param userIds 用户ID列表
+     * @return 用户信息映射表
+     */
+    @Override
+    public Map<Long, SysUser> selectUserMap(Set<Long> userIds) {
+        List<SysUser> list = baseMapper.selectList(new LambdaQueryWrapper<SysUser>().select(SysUser::getUserId, SysUser::getNickName).in(SysUser::getUserId, userIds));
+        return CollectionUtil.isEmpty(list)?Collections.emptyMap():list.stream().collect(Collectors.toMap(SysUser::getUserId, e->e));
+    }
+
+    /**
      * 查询用户所属角色组
      *
      * @param userName 用户名

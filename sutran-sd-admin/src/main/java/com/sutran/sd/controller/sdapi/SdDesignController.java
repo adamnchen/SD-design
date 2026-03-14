@@ -8,7 +8,7 @@ import com.sutran.sd.common.core.page.TableDataInfo;
 import com.sutran.sd.common.core.domain.dto.BatchIdsDto;
 import com.sutran.sd.draw.domain.dto.SdUserModelFilePageDto;
 import com.sutran.sd.draw.service.SdWebuiApiService;
-import com.sutran.sd.draw.domain.vo.SdUserModelFileVo;
+import com.sutran.sd.draw.domain.vo.SdUserWorkVo;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -33,7 +33,7 @@ public class SdDesignController {
      * [业务接口]SD设计库-获取当前用户绘图数据列表
      */
     @GetMapping("/model-file/list")
-    public TableDataInfo<SdUserModelFileVo> userModelFileList(SdUserModelFilePageDto dto) {
+    public TableDataInfo<SdUserWorkVo> userModelFileList(SdUserModelFilePageDto dto) {
         PageQuery pageQuery = new PageQuery();
         pageQuery.setPageNum(dto.getPageNum());
         pageQuery.setPageSize(dto.getPageSize());

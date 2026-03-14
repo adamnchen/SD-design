@@ -106,7 +106,7 @@ public interface SdUserModelMapper extends BaseMapperPlus<SdUserModelMapper, SdU
      * @param taskId    任务ID
      * @return          模型列表
      */
-    @Select("SELECT DISTINCT B.model_name_zh AS modelNameZh,DATE_FORMAT(C.crt_time,'%Y-%m-%d %H:%i:%s') AS startTime,DATE_FORMAT(C.upd_time,'%Y-%m-%d %H:%i:%s') AS endTime FROM sd_user_model_file AS A LEFT JOIN sd_user_model AS B ON A.lora_model_id=B.id LEFT JOIN sd_user_task AS C ON A.task_id=C.task_id WHERE A.task_id=#{taskId}")
+    @Select("SELECT DISTINCT B.model_name_zh AS modelNameZh,DATE_FORMAT(C.crt_time,'%Y-%m-%d %H:%i:%s') AS startTime,DATE_FORMAT(C.upd_time,'%Y-%m-%d %H:%i:%s') AS endTime FROM sd_user_work AS A LEFT JOIN sd_user_model AS B ON A.lora_model_id=B.id LEFT JOIN sd_user_task AS C ON A.task_id=C.task_id WHERE A.task_id=#{taskId}")
     JSONObject selectLoraModelNameByTaskId(@Param("taskId") String taskId);
 
     /**

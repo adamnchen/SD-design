@@ -11,7 +11,7 @@ import com.sutran.sd.common.core.domain.vo.UserFavoriteVO;
 import com.sutran.sd.common.core.page.TableDataInfo;
 import com.sutran.sd.common.enums.BusinessType;
 import com.sutran.sd.common.helper.LoginHelper;
-import com.sutran.sd.user.service.IUserFavoriteService;
+import com.sutran.sd.user.service.SdUserFavoriteService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -34,7 +34,7 @@ import javax.validation.Valid;
 @SaCheckLogin
 public class UserFavoriteController extends BaseController {
 
-    private final IUserFavoriteService favoriteService;
+    private final SdUserFavoriteService favoriteService;
 
     /**
      * 添加收藏

@@ -70,7 +70,7 @@ public interface SdWebuiApiService {
     TableDataInfo<SdUserModelVo> listLoraModels(SdUserModelPageDto dto, PageQuery pageQuery);
 
     /**
-     * 获取lora模型列表-测试任务和训练数据
+     * 获取lora模型列表
      * @param dto   SdUserModelDto
      * @return  TableDataInfo<SdUserModelVo>
      */
@@ -153,14 +153,14 @@ public interface SdWebuiApiService {
      * @param dto   SdUserModelFilePageDto
      * @return  TableDataInfo<SdUserModelFileVo>
      */
-    TableDataInfo<SdUserModelFileVo> listUserModelFile(PageQuery pageQuery, SdUserModelFilePageDto dto);
+    TableDataInfo<SdUserWorkVo> listUserModelFile(PageQuery pageQuery, SdUserModelFilePageDto dto);
 
     /**
      * 获取用户模型文件列表-测试任务和训练数据
      * @param taskId    任务ID
      * @return  List<SdUserModelFileVo>
      */
-    List<SdUserModelFileVo> listUserModelFile(String taskId);
+    List<SdUserWorkVo> listUserModelFile(String taskId);
 
     /**
      * 删除用户模型文件

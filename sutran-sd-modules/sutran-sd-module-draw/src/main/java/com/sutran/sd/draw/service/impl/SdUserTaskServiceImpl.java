@@ -14,10 +14,10 @@ import com.sutran.sd.common.utils.redis.RedisUtils;
 import com.sutran.sd.draw.domain.SdUserTask;
 import com.sutran.sd.draw.domain.bo.ComfyModelTaskSubmitBo;
 import com.sutran.sd.draw.domain.vo.ComfyuiDoingTaskVo;
-import com.sutran.sd.draw.domain.vo.SdUserModelFileVo;
+import com.sutran.sd.draw.domain.vo.SdUserWorkVo;
 import com.sutran.sd.draw.domain.vo.SdUserTaskVo;
 import com.sutran.sd.draw.enums.TaskType;
-import com.sutran.sd.draw.mapper.SdUserModelFileMapper;
+import com.sutran.sd.draw.mapper.SdUserWorkMapper;
 import com.sutran.sd.draw.mapper.SdUserTaskMapper;
 import com.sutran.sd.draw.service.SdUserTaskService;
 import lombok.RequiredArgsConstructor;
@@ -41,7 +41,7 @@ import static com.sutran.sd.common.constant.CacheConstants.COMFY_TASK;
 public class SdUserTaskServiceImpl implements SdUserTaskService {
 
     private final SdUserTaskMapper baseMapper;
-    private final SdUserModelFileMapper sdUserModelFileMapper;
+    private final SdUserWorkMapper sdUserWorkMapper;
 
     /**
      * 新增ComfyUI任务
@@ -212,7 +212,7 @@ public class SdUserTaskServiceImpl implements SdUserTaskService {
             return TableDataInfo.build(page);
         }
         for (SdUserTaskVo e : page.getRecords()) {
-            SdUserModelFileVo firstVo = sdUserModelFileMapper.selectFirstUrlByTaskIdAndUserId(e.getTaskId(),userId);
+            SdUserWorkVo firstVo = sdUserWorkMapper.selectFirstUrlByTaskIdAndUserId(e.getTaskId(),userId);
             if (firstVo == null) {
                 continue;
             }

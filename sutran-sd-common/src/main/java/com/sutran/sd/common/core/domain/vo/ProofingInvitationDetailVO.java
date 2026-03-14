@@ -118,12 +118,12 @@ public class ProofingInvitationDetailVO implements Serializable {
     private String inviteeAvatar;
 
     /**
-     * 【新增】作品图片URL (从 sd_user_model_file 表关联查询)
+     * 【新增】作品图片URL (从 sd_user_work 表关联查询)
      */
     private String imageUrl;
 
     /**
-     * 【新增】作品图片类型 (从 sd_user_model_file 表关联查询)
+     * 【新增】作品图片类型 (从 sd_user_work 表关联查询)
      */
     private String imageType;
 

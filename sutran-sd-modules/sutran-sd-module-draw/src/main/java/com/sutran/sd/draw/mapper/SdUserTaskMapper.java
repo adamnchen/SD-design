@@ -66,7 +66,7 @@ public interface SdUserTaskMapper extends BaseMapperPlus<SdUserTaskMapper, SdUse
      * @param taskId    任务ID
      * @return          网格URL
      */
-    @Select("SELECT file_url FROM sd_user_model_file WHERE task_id=#{taskId} AND category=2 LIMIT 1")
+    @Select("SELECT file_url FROM sd_user_work WHERE task_id=#{taskId} AND category=2 LIMIT 1")
     String selectGridUrlByTaskId(@Param("taskId") String taskId);
 
     /**

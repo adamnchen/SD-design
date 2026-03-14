@@ -72,7 +72,7 @@
         SELECT
             cf.id, cf.project_no, cf.title, cf.description,
             -- 关联查询图片：通过打样邀约的work_id获取图片
-            (SELECT file_url FROM sd_user_model_file
+            (SELECT file_url FROM sd_user_work
              WHERE id = CAST(inv.work_id AS UNSIGNED)
              ORDER BY crt_time DESC LIMIT 1) AS cover_image,
             cf.images, cf.video_url, cf.tags,
@@ -118,7 +118,7 @@
         SELECT
             cf.id, cf.project_no, cf.title, cf.description,
             -- 关联查询图片：通过打样邀约的work_id获取图片
-            (SELECT file_url FROM sd_user_model_file
+            (SELECT file_url FROM sd_user_work
              WHERE id = CAST(inv.work_id AS UNSIGNED)
              ORDER BY crt_time DESC LIMIT 1) AS cover_image,
             cf.images, cf.video_url, cf.tags,
@@ -141,7 +141,7 @@
         SELECT
             cf.id, cf.project_no, cf.title, cf.description,
             -- 关联查询图片：通过打样邀约的work_id获取图片
-            (SELECT file_url FROM sd_user_model_file
+            (SELECT file_url FROM sd_user_work
              WHERE id = CAST(inv.work_id AS UNSIGNED)
              ORDER BY crt_time DESC LIMIT 1) AS cover_image,
             cf.images, cf.video_url, cf.tags,
@@ -165,7 +165,7 @@
         SELECT
             cf.id, cf.project_no, cf.title, cf.description,
             -- 关联查询图片：通过打样邀约的work_id获取图片
-            (SELECT file_url FROM sd_user_model_file
+            (SELECT file_url FROM sd_user_work
              WHERE id = CAST(inv.work_id AS UNSIGNED)
              ORDER BY crt_time DESC LIMIT 1) AS cover_image,
             cf.images, cf.video_url, cf.tags,

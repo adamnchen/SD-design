@@ -1,5 +1,6 @@
 package com.sutran.sd.user.service.impl;
 
+import cn.hutool.core.collection.CollectionUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.sutran.sd.common.core.domain.PageQuery;
@@ -8,15 +9,17 @@ import com.sutran.sd.common.core.domain.entity.SdUserFavorite;
 import com.sutran.sd.common.core.domain.vo.UserFavoriteVO;
 import com.sutran.sd.common.exception.ServiceException;
 import com.sutran.sd.user.mapper.SdUserFavoriteMapper;
-import com.sutran.sd.user.service.IUserFavoriteService;
+import com.sutran.sd.user.service.SdUserFavoriteService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -25,10 +28,11 @@ import java.util.stream.Collectors;
  * @author sutran
  * @date 2025-11-07
  */
+@SuppressWarnings("AlibabaAvoidComplexCondition")
 @Slf4j
 @RequiredArgsConstructor
-@Service("userFavoriteService")
-public class UserFavoriteServiceImpl implements IUserFavoriteService {
+@Service
+public class SdUserFavoriteServiceImpl implements SdUserFavoriteService {
 
     private final SdUserFavoriteMapper favoriteMapper;
 
@@ -152,8 +156,8 @@ public class UserFavoriteServiceImpl implements IUserFavoriteService {
             .filter(f -> f.getFavoriteType() != null && f.getFavoriteType() == SdUserFavorite.FavoriteType.WORK)
             .map(SdUserFavorite::getTargetId).distinct().collect(Collectors.toList());
 
-        java.util.Map<Long, SdUserFavoriteMapper.ModelDetail> modelDetailMap = java.util.Collections.emptyMap();
-        java.util.Map<Long, SdUserFavoriteMapper.WorkDetail> workDetailMap = java.util.Collections.emptyMap();
+        Map<Long, SdUserFavoriteMapper.ModelDetail> modelDetailMap = Collections.emptyMap();
+        Map<Long, SdUserFavoriteMapper.WorkDetail> workDetailMap = Collections.emptyMap();
         if (!modelIds.isEmpty()) {
             modelDetailMap = favoriteMapper.selectModelDetailsByIds(modelIds).stream()
                 .collect(Collectors.toMap(e -> e.id, e -> e, (a,b)->a));
@@ -198,6 +202,24 @@ public class UserFavoriteServiceImpl implements IUserFavoriteService {
 
         long count = favoriteMapper.selectCount(wrapper);
         return count > 0;
+    }
+
+    /**
+     * 获取作品对应的收藏数量
+     * @param favoriteType  收藏类型[1-模型,2-作品]
+     * @param workIds       作品ID集合
+     * @return  收藏数量Map
+     */
+    @Override
+    public Map<Long, Long> countFavoritesByTypeAndIds(int favoriteType, List<Long> workIds) {
+        if (CollectionUtil.isEmpty(workIds)) {
+            return Collections.emptyMap();
+        }
+        List<SdUserFavorite> list = favoriteMapper.selectList(new LambdaQueryWrapper<SdUserFavorite>().eq(SdUserFavorite::getFavoriteType, favoriteType).in(SdUserFavorite::getTargetId, workIds));
+        if (CollectionUtil.isEmpty(list)) {
+            return Collections.emptyMap();
+        }
+        return list.stream().collect(Collectors.groupingBy(SdUserFavorite::getTargetId, Collectors.counting()));
     }
 
     /**

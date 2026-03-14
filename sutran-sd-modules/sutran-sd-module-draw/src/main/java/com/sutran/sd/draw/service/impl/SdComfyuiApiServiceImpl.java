@@ -26,7 +26,7 @@ import com.sutran.sd.draw.domain.bo.ComfyModelTaskSubmitBo;
 import com.sutran.sd.draw.domain.bo.DrawingTaskInfo;
 import com.sutran.sd.draw.domain.bo.ImageInfoBo;
 import com.sutran.sd.draw.domain.pojo.*;
-import com.sutran.sd.draw.domain.vo.ComfyUserModelFileVo;
+import com.sutran.sd.draw.domain.vo.ComfyUserWorkVo;
 import com.sutran.sd.draw.domain.vo.ComfyuiImageToolVo;
 import com.sutran.sd.draw.domain.vo.ComfyuiProgressVo;
 import com.sutran.sd.draw.domain.vo.SdUserTaskVo;
@@ -80,7 +80,7 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
     private final SdDrawNodeService sdDrawNodeService;
     private final SdUserTaskService sdUserTaskService;
     private final ComfyWebsocketClient comfyWebsocketClient;
-    private final SdUserModelFileService sdUserModelFileService;
+    private final SdUserWorkService sdUserWorkService;
     private final ISysOssService sysOssService;
     private final UserService userService;
     private final SdFlowService sdFlowService;
@@ -267,8 +267,8 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
      * @return 任务详情
      */
     @Override
-    public List<ComfyUserModelFileVo> getComfyImageOutputByTaskId(String taskId) {
-        return sdUserModelFileService.getComfyImageOutputByTaskId(taskId);
+    public List<ComfyUserWorkVo> getComfyImageOutputByTaskId(String taskId) {
+        return sdUserWorkService.getComfyImageOutputByTaskId(taskId);
     }
 
     /**
@@ -291,7 +291,7 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
             Integer progress = RedisUtils.getCacheMapValue(DRAW_TASK_PROGRESS, taskId);
             if (progress!=null && progress == 100) {
                 // 查询是否已生成图片
-                boolean hasImg = sdUserModelFileService.checkHasImgByTaskId(taskId);
+                boolean hasImg = sdUserWorkService.checkHasImgByTaskId(taskId);
                 if (hasImg) {
                     return 100;
                 }
@@ -308,7 +308,7 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
         }
         else {
             // 查询是否已生成图片
-            boolean hasImg = sdUserModelFileService.checkHasImgByTaskId(taskId);
+            boolean hasImg = sdUserWorkService.checkHasImgByTaskId(taskId);
             if (hasImg) {
                 return 100;
             }
@@ -338,7 +338,7 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
             ComfyuiProgressVo vo = new ComfyuiProgressVo();
             if (progress!=null && progress == 100) {
                 // 查询是否已生成图片
-                boolean hasImg = sdUserModelFileService.checkHasImgByTaskId(taskId);
+                boolean hasImg = sdUserWorkService.checkHasImgByTaskId(taskId);
                 if (hasImg) {
                     return vo.setProgress(100).setStatus(2);
                 }
@@ -355,7 +355,7 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
         }
         else {
             // 查询是否已生成图片
-            boolean hasImg = sdUserModelFileService.checkHasImgByTaskId(taskId);
+            boolean hasImg = sdUserWorkService.checkHasImgByTaskId(taskId);
             if (hasImg) {
                 return new ComfyuiProgressVo().setProgress(100).setStatus(2);
             }
@@ -514,7 +514,7 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
                 }
             }
             if (CollectionUtil.isNotEmpty(urlList)) {
-                sdUserModelFileService.asyncBatchInsert(task,urlList);
+                sdUserWorkService.asyncBatchInsert(task,urlList);
             }
             // 归还节点
             RedisUtils.delCacheMapValue(DRAW_NODE_TASK_MAP, node.getId().toString());
@@ -863,7 +863,7 @@ public class SdComfyuiApiServiceImpl implements SdComfyuiApiService {
                 }
             }
             if (CollectionUtil.isNotEmpty(urlList)) {
-                sdUserModelFileService.asyncBatchInsert(taskVo,urlList);
+                sdUserWorkService.asyncBatchInsert(taskVo,urlList);
             }
             dealTaskAndNodeAndWebsocket(taskId, nodeId);
         }

@@ -1493,13 +1493,10 @@ public class SdTrainServiceImpl implements SdTrainService {
                 .form("concept_sentence", "")
                 .form("taskId",taskId)
                 .timeout(90000);
-            // 存储图片字节流
-            Map<String,byte[]> imageMap = new HashMap<>(images.length);
             for (MultipartFile image : images) {
                 File file = FileUtils.multipartFileToTempFile(image, image.getOriginalFilename(), false);
                 tempFiles.add(file);
                 request.form("images", file);
-                imageMap.put(file.getName(),image.getBytes());
             }
             String resp = execHttpRequest(request);
             FluxgymImgDealResultVo vo = JsonUtils.toObject(resp, FluxgymImgDealResultVo.class);
@@ -1518,12 +1515,6 @@ public class SdTrainServiceImpl implements SdTrainService {
                         RedisUtils.setCacheMapValue(TRANSLATE_EN_TO_ZH_MAP,result.getCaption(),zhWord);
                     }
                 }
-                // 没有翻译缓存，调用翻译接口
-//                String zhWord = sysTranslateService.enToZh(result.getCaption(), TranslateType.BAIDU);
-//                if (StringUtils.isNotBlank(zhWord) && !zhWord.equals(result.getCaption())) {
-//                    // 存储没有模型名称的英文和中文
-//                    RedisUtils.setCacheMapValue(TRANSLATE_EN_TO_ZH_MAP,result.getCaption(),zhWord);
-//                }
                 String en = instancePrompt+","+result.getCaption();
                 String zh = loraName+"，"+zhWord;
                 result.setCaptionZh(zh);

@@ -7,6 +7,7 @@ import com.sutran.sd.common.core.domain.entity.SysUserMember;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * 通用 用户服务
@@ -135,4 +136,11 @@ public interface UserService {
      * @return 用户昵称映射
      */
     Map<Long, String> selectNickNameMap(List<Long> userIds);
+
+    /**
+     * 根据用户ID列表查询用户信息
+     * @param userIds 用户ID列表
+     * @return 用户信息映射表
+     */
+    Map<Long, SysUser> selectUserMap(Set<Long> userIds);
 }

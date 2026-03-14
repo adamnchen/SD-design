@@ -6,7 +6,6 @@ import lombok.experimental.Accessors;
 
 import java.io.Serializable;
 import java.util.Date;
-import java.util.List;
 
 /**
 * SD绘图 || 用户生图文件数据记录
@@ -14,7 +13,7 @@ import java.util.List;
 */
 @Data
 @Accessors(chain = true)
-public class ComfyUserModelFileVo implements Serializable {
+public class ComfyUserWorkVo implements Serializable {
 
     /**
     * 数据ID

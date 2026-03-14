@@ -29,7 +29,7 @@ import com.sutran.sd.draw.service.SdUserModelService;
 import com.sutran.sd.draw.utils.CommonUtil;
 import com.sutran.sd.system.service.IForbiddenWordService;
 import com.sutran.sd.system.service.SysTranslateService;
-import com.sutran.sd.user.service.IUserFavoriteService;
+import com.sutran.sd.user.service.SdUserFavoriteService;
 import com.sutran.sd.common.core.domain.entity.SdUserFavorite;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -60,7 +60,7 @@ public class SdUserModelServiceImpl implements SdUserModelService {
     private final SdUserModelMapper baseMapper;
     private final SdUserModelClassifyMapper classifyMapper;
     private final SysTranslateService sysTranslateService;
-    private final IUserFavoriteService favoriteService;
+    private final SdUserFavoriteService favoriteService;
     private final IForbiddenWordService forbiddenWordService;
 
     @Resource(name = "threadPoolTaskExecutor")
@@ -179,12 +179,12 @@ public class SdUserModelServiceImpl implements SdUserModelService {
         if (!Objects.equals(userId, model.getBelongUserId())) {
             throw new ServiceException("无法修改他人模型!");
         }
-        
+
         // 违禁词校验
         if (StrUtil.isNotEmpty(dto.getRemark())) {
             forbiddenWordService.validateForbiddenWord(dto.getRemark(), "模型描述");
         }
-        
+
         model.setCrtTime(new Date()).setIsOpen(dto.getIsOpen()).setRemark(dto.getRemark()).setUrl(dto.getUrl());
         if (StrUtil.isNotEmpty(dto.getClassifyId())) {
             classifyMapper.deleteByModelId(dto.getId(),userId);

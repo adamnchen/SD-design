@@ -49,6 +49,8 @@ public class TableDataInfo<T> implements Serializable {
     public TableDataInfo(List<T> list, long total) {
         this.rows = list;
         this.total = total;
+        this.code = 200;
+        this.msg = "查询成功";
     }
 
     public static <T> TableDataInfo<T> build(IPage<T> page) {
